@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SearchIcon, XIcon } from "lucide-react";
 
 import { Button } from "@selecta/ui/components/button";
@@ -22,6 +22,19 @@ function initialCacheKey() {
   return libraryCacheKey({ query: "", subgenre: "", folder: "" });
 }
 
+function sameTrackList(a: ApiTrack[], b: ApiTrack[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const left = a[i];
+    const right = b[i];
+    if (!left || !right || left.id !== right.id || left.updatedAt !== right.updatedAt) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export function LibraryList() {
   const [query, setQuery] = useState("");
   const [subgenre, setSubgenre] = useState("");
@@ -30,29 +43,33 @@ export function LibraryList() {
   const [tracks, setTracks] = useState<ApiTrack[]>(() => initialCached?.tracks ?? []);
   const [error, setError] = useState<string | null>(null);
   const [hasFetched, setHasFetched] = useState(() => initialCached != null);
-  const [pending, startLoad] = useTransition();
   const isFirstFetch = useRef(true);
+  const tracksRef = useRef(tracks);
+  tracksRef.current = tracks;
   const hasFilters = Boolean(query || subgenre || folder);
   const isInitialLoading = !hasFetched && !error;
 
   useEffect(() => {
     let cancelled = false;
     // Debounce filter typing only — first paint should check immediately so we
-    // never flash the empty state before pending flips true.
+    // never flash the empty state before data arrives.
     const delay = isFirstFetch.current ? 0 : 220;
     isFirstFetch.current = false;
 
     const filters = { query, subgenre, folder };
     const cacheKey = libraryCacheKey(filters);
     const cached = readLibraryCache(cacheKey);
-    if (cached) {
+    if (cached && !sameTrackList(tracksRef.current, cached.tracks)) {
       setTracks(cached.tracks);
+      setError(null);
+      setHasFetched(true);
+    } else if (cached) {
       setError(null);
       setHasFetched(true);
     }
 
     const handle = window.setTimeout(() => {
-      startLoad(async () => {
+      void (async () => {
         try {
           const stats = await getLibraryStats();
           if (cancelled) return;
@@ -60,9 +77,7 @@ export function LibraryList() {
           const fingerprint = libraryFingerprint(stats);
           const current = readLibraryCache(cacheKey);
           if (current && current.fingerprint === fingerprint) {
-            setTracks(current.tracks);
-            setError(null);
-            setHasFetched(true);
+            // Cache is fresh — leave rendered UI alone.
             return;
           }
 
@@ -73,12 +88,15 @@ export function LibraryList() {
             limit: 100,
           });
           if (cancelled) return;
-          setTracks(response.tracks);
-          setError(null);
           writeLibraryCache(cacheKey, response.tracks, fingerprint);
+          if (!sameTrackList(tracksRef.current, response.tracks)) {
+            setTracks(response.tracks);
+          }
+          setError(null);
+          setHasFetched(true);
         } catch (err) {
           if (cancelled) return;
-          if (!readLibraryCache(cacheKey)) {
+          if (!readLibraryCache(cacheKey) && tracksRef.current.length === 0) {
             setTracks([]);
           }
           setError(
@@ -88,10 +106,9 @@ export function LibraryList() {
                 : err.message
               : "Failed to load library. Is the API running?",
           );
-        } finally {
-          if (!cancelled) setHasFetched(true);
+          setHasFetched(true);
         }
-      });
+      })();
     }, delay);
 
     return () => {
@@ -147,10 +164,8 @@ export function LibraryList() {
         {!error || hasFilters ? (
           <div className="flex min-h-7 items-center justify-between gap-4">
             <p className="text-muted-foreground text-xs" aria-live="polite">
-              {isInitialLoading || pending
-                ? isInitialLoading
-                  ? "Loading library…"
-                  : "Updating library…"
+              {isInitialLoading
+                ? "Loading library…"
                 : error
                   ? null
                   : `${tracks.length} ${tracks.length === 1 ? "track" : "tracks"}`}
@@ -218,7 +233,7 @@ export function LibraryList() {
                 </Link>
               </li>
             ))}
-            {hasFetched && !pending && tracks.length === 0 ? (
+            {hasFetched && tracks.length === 0 ? (
               <li className="flex flex-col items-start gap-3 px-5 py-10">
                 <div>
                   <h2 className="font-medium">
