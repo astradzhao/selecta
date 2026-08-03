@@ -1,3 +1,5 @@
+import neo4j from "neo4j-driver";
+
 import { readCypher } from "./cypher";
 import { normalizeName } from "./normalize";
 import { isFolderKind, type FolderKind } from "./schema";
@@ -164,7 +166,7 @@ export async function listSongs(input: ListSongsInput = {}): Promise<SongSummary
       subgenreNormalized,
       folderId,
       folderNormalized,
-      limit,
+      limit: neo4j.int(limit),
     },
   );
 
