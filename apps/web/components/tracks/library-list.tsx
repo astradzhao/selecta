@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { SearchIcon, XIcon } from "lucide-react";
 
 import { Button } from "@selecta/ui/components/button";
@@ -18,11 +18,19 @@ export function LibraryList() {
   const [folder, setFolder] = useState("");
   const [tracks, setTracks] = useState<ApiTrack[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [hasFetched, setHasFetched] = useState(false);
   const [pending, startLoad] = useTransition();
+  const isFirstFetch = useRef(true);
   const hasFilters = Boolean(query || subgenre || folder);
+  const isInitialLoading = !hasFetched && !error;
 
   useEffect(() => {
     let cancelled = false;
+    // Debounce filter typing only — first paint should fetch immediately so we
+    // never flash the empty state before pending flips true.
+    const delay = isFirstFetch.current ? 0 : 220;
+    isFirstFetch.current = false;
+
     const handle = window.setTimeout(() => {
       startLoad(async () => {
         try {
@@ -45,9 +53,11 @@ export function LibraryList() {
                 : err.message
               : "Failed to load library. Is the API running?",
           );
+        } finally {
+          if (!cancelled) setHasFetched(true);
         }
       });
-    }, 220);
+    }, delay);
 
     return () => {
       cancelled = true;
@@ -102,8 +112,10 @@ export function LibraryList() {
         {!error || hasFilters ? (
           <div className="flex min-h-7 items-center justify-between gap-4">
             <p className="text-muted-foreground text-xs" aria-live="polite">
-              {pending
-                ? "Updating library…"
+              {isInitialLoading || pending
+                ? isInitialLoading
+                  ? "Loading library…"
+                  : "Updating library…"
                 : error
                   ? null
                   : `${tracks.length} ${tracks.length === 1 ? "track" : "tracks"}`}
@@ -132,6 +144,13 @@ export function LibraryList() {
           <div className="border-border bg-muted/30 rounded-xl border px-5 py-6">
             <h2 className="font-medium">Library unavailable</h2>
             <p className="text-muted-foreground mt-1 max-w-xl text-sm">{error}</p>
+          </div>
+        ) : isInitialLoading ? (
+          <div
+            className="border-border text-muted-foreground rounded-xl border px-5 py-10 text-sm"
+            aria-busy="true"
+          >
+            Loading library…
           </div>
         ) : (
           <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
@@ -164,7 +183,7 @@ export function LibraryList() {
                 </Link>
               </li>
             ))}
-            {!pending && tracks.length === 0 ? (
+            {hasFetched && !pending && tracks.length === 0 ? (
               <li className="flex flex-col items-start gap-3 px-5 py-10">
                 <div>
                   <h2 className="font-medium">
