@@ -17,6 +17,10 @@ function getDatabaseUrl(): string | undefined {
   return process.env.DATABASE_URL;
 }
 
+export function isPostgresConfigured(): boolean {
+  return Boolean(getDatabaseUrl()?.trim());
+}
+
 function getPool(): pg.Pool {
   const existing = globalForDb.__selectaDb?.pool;
   if (existing) {

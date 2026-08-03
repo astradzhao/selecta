@@ -17,10 +17,13 @@ export default function Home() {
         </div>
         <div className="flex flex-wrap gap-3">
           <Button asChild>
-            <Link href="/songs/new">Add song</Link>
+            <Link href="/notes/new">Write a note</Link>
           </Button>
           <Button asChild variant="outline">
             <Link href="/library">Open library</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/notes">All notes</Link>
           </Button>
         </div>
       </main>

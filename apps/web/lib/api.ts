@@ -167,3 +167,47 @@ export async function createSong(body: CreateSongBody): Promise<{ ok: true; song
     body: JSON.stringify(body),
   });
 }
+
+export type NoteStatus = "draft" | "preview" | "committed";
+
+export type ApiNote = {
+  id: string;
+  rawText: string;
+  status: NoteStatus;
+  extraction: Record<string, unknown> | null;
+  model: string | null;
+  promptVersion: string | null;
+  rawResponse: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function listNotes(
+  input: { limit?: number } = {},
+): Promise<{ ok: true; notes: ApiNote[] }> {
+  const params = new URLSearchParams();
+  if (input.limit) params.set("limit", String(input.limit));
+  const qs = params.toString();
+  return apiFetch(`/notes${qs ? `?${qs}` : ""}`);
+}
+
+export async function getNote(id: string): Promise<{ ok: true; note: ApiNote }> {
+  return apiFetch(`/notes/${encodeURIComponent(id)}`);
+}
+
+export async function createNote(body: { rawText: string }): Promise<{ ok: true; note: ApiNote }> {
+  return apiFetch("/notes", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateNote(
+  id: string,
+  body: { rawText: string },
+): Promise<{ ok: true; note: ApiNote }> {
+  return apiFetch(`/notes/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
