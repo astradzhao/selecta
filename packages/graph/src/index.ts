@@ -1,4 +1,4 @@
-/** Neo4j driver, Cypher helpers, music graph types (stub for M1). */
+/** Neo4j driver, schema constraints, and music graph types. */
 
 export {
   TRANSITION_INTENTS,
@@ -9,6 +9,10 @@ export {
   type TransitionTechnique,
 } from "./schema";
 
-export function getGraphStatus() {
-  return { configured: false as const, store: "neo4j" as const };
-}
+export { closeDriver, getDriver, getGraphStatus, runCypher, type GraphStatus } from "./client";
+
+export {
+  GRAPH_SCHEMA_STATEMENTS,
+  ensureConstraints,
+  type EnsureConstraintsResult,
+} from "./constraints";

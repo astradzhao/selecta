@@ -8,11 +8,17 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "graph:migrate": "tsx src/migrate.ts"
+  },
+  "dependencies": {
+    "neo4j-driver": "^6.2.0"
   },
   "devDependencies": {
     "@selecta/eslint-config": "workspace:*",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
+    "tsx": "^4.23.1",
     "typescript": "^5"
   }
 }
