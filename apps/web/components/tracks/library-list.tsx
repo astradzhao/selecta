@@ -9,16 +9,27 @@ import { Button } from "@selecta/ui/components/button";
 import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
 
-import { ApiClientError, listTracks, type ApiTrack } from "@/lib/api";
+import { ApiClientError, getLibraryStats, listTracks, type ApiTrack } from "@/lib/api";
+import {
+  libraryCacheKey,
+  libraryFingerprint,
+  readLibraryCache,
+  writeLibraryCache,
+} from "@/lib/library-cache";
 import { TrackChips } from "@/components/tracks/track-chips";
+
+function initialCacheKey() {
+  return libraryCacheKey({ query: "", subgenre: "", folder: "" });
+}
 
 export function LibraryList() {
   const [query, setQuery] = useState("");
   const [subgenre, setSubgenre] = useState("");
   const [folder, setFolder] = useState("");
-  const [tracks, setTracks] = useState<ApiTrack[]>([]);
+  const initialCached = readLibraryCache(initialCacheKey());
+  const [tracks, setTracks] = useState<ApiTrack[]>(() => initialCached?.tracks ?? []);
   const [error, setError] = useState<string | null>(null);
-  const [hasFetched, setHasFetched] = useState(false);
+  const [hasFetched, setHasFetched] = useState(() => initialCached != null);
   const [pending, startLoad] = useTransition();
   const isFirstFetch = useRef(true);
   const hasFilters = Boolean(query || subgenre || folder);
@@ -26,14 +37,35 @@ export function LibraryList() {
 
   useEffect(() => {
     let cancelled = false;
-    // Debounce filter typing only — first paint should fetch immediately so we
+    // Debounce filter typing only — first paint should check immediately so we
     // never flash the empty state before pending flips true.
     const delay = isFirstFetch.current ? 0 : 220;
     isFirstFetch.current = false;
 
+    const filters = { query, subgenre, folder };
+    const cacheKey = libraryCacheKey(filters);
+    const cached = readLibraryCache(cacheKey);
+    if (cached) {
+      setTracks(cached.tracks);
+      setError(null);
+      setHasFetched(true);
+    }
+
     const handle = window.setTimeout(() => {
       startLoad(async () => {
         try {
+          const stats = await getLibraryStats();
+          if (cancelled) return;
+
+          const fingerprint = libraryFingerprint(stats);
+          const current = readLibraryCache(cacheKey);
+          if (current && current.fingerprint === fingerprint) {
+            setTracks(current.tracks);
+            setError(null);
+            setHasFetched(true);
+            return;
+          }
+
           const response = await listTracks({
             query,
             subgenre,
@@ -43,9 +75,12 @@ export function LibraryList() {
           if (cancelled) return;
           setTracks(response.tracks);
           setError(null);
+          writeLibraryCache(cacheKey, response.tracks, fingerprint);
         } catch (err) {
           if (cancelled) return;
-          setTracks([]);
+          if (!readLibraryCache(cacheKey)) {
+            setTracks([]);
+          }
           setError(
             err instanceof ApiClientError
               ? err.code === "graph_not_configured"
@@ -140,7 +175,7 @@ export function LibraryList() {
       </section>
 
       <section aria-label="Tracks">
-        {error ? (
+        {error && tracks.length === 0 ? (
           <div className="border-border bg-muted/30 rounded-xl border px-5 py-6">
             <h2 className="font-medium">Library unavailable</h2>
             <p className="text-muted-foreground mt-1 max-w-xl text-sm">{error}</p>

@@ -157,6 +157,14 @@ export async function listTracks(
   return apiFetch(`/tracks${qs ? `?${qs}` : ""}`);
 }
 
+export async function getLibraryStats(): Promise<{
+  ok: true;
+  count: number;
+  latestUpdatedAt: string | null;
+}> {
+  return apiFetch("/tracks/stats");
+}
+
 export async function getTrack(id: string): Promise<{ ok: true; track: ApiTrack }> {
   return apiFetch(`/tracks/${encodeURIComponent(id)}`);
 }

@@ -37,9 +37,11 @@ export { mergeArtist, mergeGenre, mergeSubgenre, mergeFolder, createTrack } from
 export {
   listTracks,
   getTrackById,
+  getLibraryStats,
   type ListTracksInput,
   type TrackSummary,
   type TrackDetail,
+  type LibraryStats,
 } from "./tracks";
 
 export { closeDriver, getDriver, isNeo4jConfigured, type GraphStatus } from "./client";
