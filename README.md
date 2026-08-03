@@ -21,12 +21,12 @@ dev-files/      # Architecture + planning docs
 
 ## Getting started
 
-Requires [Docker](https://docs.docker.com/get-docker/) for local Postgres (`pnpm db:up`).
+Requires [Docker](https://docs.docker.com/get-docker/) for local Postgres and Neo4j (`pnpm db:up`).
 
 ```bash
 pnpm install
 cp .env.example .env.local   # Postgres, Neo4j, AI, local stub IDs
-pnpm db:up        # Postgres via Docker Compose (defaults match .env.example)
+pnpm db:up        # Postgres + Neo4j via Docker Compose (defaults match .env.example)
 pnpm dev          # web :3000 + api :3001
 pnpm dev:web      # web only
 pnpm dev:api      # api only
@@ -38,7 +38,7 @@ pnpm format:check # CI-friendly format check
 pnpm build
 ```
 
-`.env.example` credentials match the Compose Postgres service. Fill an AI gateway key when you need that service. `DEV_LIBRARY_ID` / `DEV_USER_ID` stub single-tenant membership until auth lands. Auth provider secrets in `.env.example` are optional placeholders only. Neo4j is provisioned separately (local Docker) — keep the placeholder vars until that service is up.
+`.env.example` credentials match the Compose Postgres and Neo4j services. Postgres listens on `5432`; Neo4j Bolt on `7687` and Browser on `http://localhost:7474`. Fill an AI gateway key when you need that service. `DEV_LIBRARY_ID` / `DEV_USER_ID` stub single-tenant membership until auth lands. Auth provider secrets in `.env.example` are optional placeholders only.
 
 ## Linting & formatting
 
