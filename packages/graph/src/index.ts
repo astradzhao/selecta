@@ -16,6 +16,32 @@ export {
   type RelType,
 } from "./schema";
 
+export { normalizeName } from "./normalize";
+
+export {
+  GraphWriteError,
+  isGraphWriteError,
+  assertFolderKind,
+  type NamedRef,
+  type FolderRef,
+  type SongExternalIds,
+  type CreateSongInput,
+  type CreateSongResult,
+  type GraphNamedNode,
+  type GraphFolderNode,
+  type GraphSongNode,
+} from "./types";
+
+export { mergeArtist, mergeGenre, mergeSubgenre, mergeFolder, createSong } from "./writes";
+
+export {
+  listSongs,
+  getSongById,
+  type ListSongsInput,
+  type SongSummary,
+  type SongDetail,
+} from "./songs";
+
 export { closeDriver, getDriver, isNeo4jConfigured, type GraphStatus } from "./client";
 
 export { getGraphStatus, readCypher, runCypher, writeCypher, type CypherParams } from "./cypher";
