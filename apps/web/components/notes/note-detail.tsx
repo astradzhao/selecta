@@ -7,7 +7,8 @@ import { Button } from "@selecta/ui/components/button";
 import { Label } from "@selecta/ui/components/label";
 import { Textarea } from "@selecta/ui/components/textarea";
 
-import { ApiClientError, getNote, updateNote, type ApiNote } from "@/lib/api";
+import { NoteSongLinks } from "@/components/notes/note-song-links";
+import { ApiClientError, getNote, updateNote, type ApiNote, type ApiNoteSongLink } from "@/lib/api";
 
 function formatTimestamp(iso: string): string {
   const date = new Date(iso);
@@ -21,6 +22,7 @@ function formatTimestamp(iso: string): string {
 export function NoteDetail({ noteId }: { noteId: string }) {
   const [note, setNote] = useState<ApiNote | null>(null);
   const [rawText, setRawText] = useState("");
+  const [songLinks, setSongLinks] = useState<ApiNoteSongLink[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -35,6 +37,7 @@ export function NoteDetail({ noteId }: { noteId: string }) {
         if (cancelled) return;
         setNote(response.note);
         setRawText(response.note.rawText);
+        setSongLinks(response.note.songLinks ?? []);
         setLoadError(null);
       } catch (err) {
         if (cancelled) return;
@@ -71,6 +74,7 @@ export function NoteDetail({ noteId }: { noteId: string }) {
         const response = await updateNote(note.id, { rawText });
         setNote(response.note);
         setRawText(response.note.rawText);
+        setSongLinks(response.note.songLinks ?? songLinks);
         setSaveError(null);
         setSaveMessage("Saved.");
       } catch (err) {
@@ -104,7 +108,7 @@ export function NoteDetail({ noteId }: { noteId: string }) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <header className="border-border space-y-2 border-b pb-6">
         <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">
           <Link href="/notes" className="hover:text-foreground transition-colors">
@@ -159,6 +163,15 @@ export function NoteDetail({ noteId }: { noteId: string }) {
           </Button>
         </div>
       </form>
+
+      <NoteSongLinks
+        noteId={note.id}
+        initialLinks={songLinks}
+        onLinksChange={(next) => {
+          setSongLinks(next);
+          setNote((current) => (current ? { ...current, songLinks: next } : current));
+        }}
+      />
     </div>
   );
 }

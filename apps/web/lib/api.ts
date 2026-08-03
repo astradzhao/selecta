@@ -170,6 +170,20 @@ export async function createSong(body: CreateSongBody): Promise<{ ok: true; song
 
 export type NoteStatus = "draft" | "preview" | "committed";
 
+export type ApiNoteSongLink = {
+  id: string;
+  songId: string;
+  role: string | null;
+  createdAt: string;
+  updatedAt: string;
+  song: {
+    id: string;
+    title: string;
+    artists: ApiNamedNode[];
+    artworkUrl: string | null;
+  } | null;
+};
+
 export type ApiNote = {
   id: string;
   rawText: string;
@@ -180,6 +194,7 @@ export type ApiNote = {
   rawResponse: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
+  songLinks?: ApiNoteSongLink[];
 };
 
 export async function listNotes(
@@ -209,5 +224,29 @@ export async function updateNote(
   return apiFetch(`/notes/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body: JSON.stringify(body),
+  });
+}
+
+export async function addNoteSongLink(
+  noteId: string,
+  body: { songId: string; role?: string | null },
+): Promise<{
+  ok: true;
+  songLink: ApiNoteSongLink;
+  songLinks: ApiNoteSongLink[];
+  note?: ApiNote;
+}> {
+  return apiFetch(`/notes/${encodeURIComponent(noteId)}/songs`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function removeNoteSongLink(
+  noteId: string,
+  songId: string,
+): Promise<{ ok: true; songLinks: ApiNoteSongLink[]; note?: ApiNote }> {
+  return apiFetch(`/notes/${encodeURIComponent(noteId)}/songs/${encodeURIComponent(songId)}`, {
+    method: "DELETE",
   });
 }

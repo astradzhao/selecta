@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { getNoteById, isNotesError, isPostgresConfigured, updateNote } from "@selecta/db";
+import { addNoteSongLink, getNoteById, isNotesError, isPostgresConfigured } from "@selecta/db";
+import { getSongById, isNeo4jConfigured } from "@selecta/graph";
 
-import { loadSerializedSongLinks, serializeNote } from "@/lib/notes";
+import { loadSerializedSongLinks, serializeNote, serializeNoteSongLink } from "@/lib/notes";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -11,19 +12,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function parseUpdateBody(value: unknown): { rawText: string } {
+function parseBody(value: unknown): { songId: string; role?: string | null } {
   if (!isRecord(value)) {
     throw new Error("JSON body must be an object.");
   }
-  if (typeof value.rawText !== "string") {
-    throw new Error("rawText must be a string.");
+  if (typeof value.songId !== "string") {
+    throw new Error("songId must be a string.");
   }
-  return { rawText: value.rawText };
+  if (value.role !== undefined && value.role !== null && typeof value.role !== "string") {
+    throw new Error("role must be a string or null.");
+  }
+  return {
+    songId: value.songId,
+    role: value.role === undefined ? undefined : value.role,
+  };
 }
 
 /**
- * Fetch a single note (includes optional manual song links).
- * GET /notes/:id
+ * List manual song links for a note.
+ * GET /notes/:id/songs
  */
 export async function GET(_request: Request, context: RouteContext) {
   if (!isPostgresConfigured()) {
@@ -54,7 +61,7 @@ export async function GET(_request: Request, context: RouteContext) {
       );
     }
     const songLinks = await loadSerializedSongLinks(note.id);
-    return NextResponse.json({ ok: true, note: serializeNote(note, songLinks) });
+    return NextResponse.json({ ok: true, songLinks });
   } catch (error) {
     if (isNotesError(error)) {
       return NextResponse.json(
@@ -62,25 +69,36 @@ export async function GET(_request: Request, context: RouteContext) {
         { status: error.code === "not_found" ? 404 : 400 },
       );
     }
-    console.error("get note failed", error);
+    console.error("list note song links failed", error);
     return NextResponse.json(
-      { ok: false, error: "internal_error", message: "Failed to load note." },
+      { ok: false, error: "internal_error", message: "Failed to list note song links." },
       { status: 500 },
     );
   }
 }
 
 /**
- * Edit raw note text. Preserves committed extraction history; invalidates stale previews.
- * PATCH /notes/:id
+ * Manually link an existing Neo4j song to a note (explicit user action only).
+ * POST /notes/:id/songs
  */
-export async function PATCH(request: Request, context: RouteContext) {
+export async function POST(request: Request, context: RouteContext) {
   if (!isPostgresConfigured()) {
     return NextResponse.json(
       {
         ok: false,
         error: "db_not_configured",
         message: "Postgres is not configured.",
+      },
+      { status: 503 },
+    );
+  }
+
+  if (!isNeo4jConfigured()) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "graph_not_configured",
+        message: "Neo4j is not configured.",
       },
       { status: 503 },
     );
@@ -104,9 +122,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     );
   }
 
-  let body: { rawText: string };
+  let body: { songId: string; role?: string | null };
   try {
-    body = parseUpdateBody(json);
+    body = parseBody(json);
   } catch (error) {
     return NextResponse.json(
       {
@@ -119,9 +137,36 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   try {
-    const note = await updateNote(id, body);
-    const songLinks = await loadSerializedSongLinks(note.id);
-    return NextResponse.json({ ok: true, note: serializeNote(note, songLinks) });
+    const song = await getSongById(body.songId);
+    if (!song) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "not_found",
+          message: `Song "${body.songId.trim()}" was not found.`,
+        },
+        { status: 404 },
+      );
+    }
+
+    const { link, created } = await addNoteSongLink(id, body);
+    const songLinks = await loadSerializedSongLinks(link.noteId);
+    const note = await getNoteById(link.noteId);
+
+    return NextResponse.json(
+      {
+        ok: true,
+        songLink: serializeNoteSongLink(link, {
+          id: song.song.id,
+          title: song.song.title,
+          artists: song.artists,
+          artworkUrl: song.song.artworkUrl,
+        }),
+        songLinks,
+        ...(note ? { note: serializeNote(note, songLinks) } : {}),
+      },
+      { status: created ? 201 : 200 },
+    );
   } catch (error) {
     if (isNotesError(error)) {
       return NextResponse.json(
@@ -129,9 +174,9 @@ export async function PATCH(request: Request, context: RouteContext) {
         { status: error.code === "not_found" ? 404 : 400 },
       );
     }
-    console.error("update note failed", error);
+    console.error("add note song link failed", error);
     return NextResponse.json(
-      { ok: false, error: "internal_error", message: "Failed to update note." },
+      { ok: false, error: "internal_error", message: "Failed to link song to note." },
       { status: 500 },
     );
   }

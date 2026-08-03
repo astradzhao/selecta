@@ -1,22 +1,10 @@
 import { NextResponse } from "next/server";
-import { createNote, isNotesError, isPostgresConfigured, listNotes, type Note } from "@selecta/db";
+import { createNote, isNotesError, isPostgresConfigured, listNotes } from "@selecta/db";
+
+import { serializeNote } from "@/lib/notes";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function serializeNote(note: Note) {
-  return {
-    id: note.id,
-    rawText: note.rawText,
-    status: note.status,
-    extraction: note.extraction,
-    model: note.model,
-    promptVersion: note.promptVersion,
-    rawResponse: note.rawResponse,
-    createdAt: note.createdAt.toISOString(),
-    updatedAt: note.updatedAt.toISOString(),
-  };
 }
 
 function parseListLimit(raw: string | null): number | undefined {
@@ -63,7 +51,7 @@ export async function GET(request: Request) {
     });
     return NextResponse.json({
       ok: true,
-      notes: rows.map(serializeNote),
+      notes: rows.map((note) => serializeNote(note)),
     });
   } catch (error) {
     console.error("list notes failed", error);
@@ -116,7 +104,7 @@ export async function POST(request: Request) {
 
   try {
     const note = await createNote(body);
-    return NextResponse.json({ ok: true, note: serializeNote(note) }, { status: 201 });
+    return NextResponse.json({ ok: true, note: serializeNote(note, []) }, { status: 201 });
   } catch (error) {
     if (isNotesError(error)) {
       return NextResponse.json(

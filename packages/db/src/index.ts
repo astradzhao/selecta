@@ -11,4 +11,10 @@ export {
   type ListNotesInput,
   type UpdateNoteInput,
 } from "./notes";
+export {
+  addNoteSongLink,
+  listNoteSongLinks,
+  removeNoteSongLink,
+  type AddNoteSongLinkInput,
+} from "./note-song-links";
 export * from "./schema";
