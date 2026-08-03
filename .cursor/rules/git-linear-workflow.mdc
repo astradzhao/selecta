@@ -1,0 +1,14 @@
+---
+description: Git branch and push workflow tied to Linear issue numbers
+alwaysApply: true
+---
+
+# Git / Linear workflow
+
+When implementing a Linear issue:
+
+1. Checkout and update `main`, then create a new branch: `git checkout -b "dj-XXXX"` (lowercase issue id, e.g. `dj-13` for DJ-13).
+2. Implement and commit only on that branch.
+3. After finishing, push to origin (`git push -u origin HEAD`).
+
+Never commit feature work directly to `main`. One Linear issue → one `dj-XXXX` branch.
