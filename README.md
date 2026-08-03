@@ -2,6 +2,8 @@
 
 DJ-helping note-taking app: natural-language mix notes → Neo4j graph → live “what’s next” UX.
 
+Repo: [github.com/astradzhao/selecta](https://github.com/astradzhao/selecta)
+
 ## Monorepo layout
 
 ```text
