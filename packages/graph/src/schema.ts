@@ -1,7 +1,9 @@
 /**
- * Seeded vocabulary for TRANSITION / Cue `intent` and `technique` properties.
- * Controlled terms for Live filters and chips; free-form labels may still be stored
- * and normalized later (see architecture design principle 4).
+ * Music graph schema seeds (v1).
+ *
+ * Intent/technique are string properties on TRANSITION edges and Cue nodes today
+ * (not hub nodes yet). These are the controlled allowed values for filters, chips,
+ * and validation; free-form labels may still be stored and normalized later.
  */
 
 export const TRANSITION_INTENTS = [

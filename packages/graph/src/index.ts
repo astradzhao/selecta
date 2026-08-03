@@ -7,7 +7,7 @@ export {
   isTransitionTechnique,
   type TransitionIntent,
   type TransitionTechnique,
-} from "./vocabulary";
+} from "./schema";
 
 export function getGraphStatus() {
   return { configured: false as const, store: "neo4j" as const };
