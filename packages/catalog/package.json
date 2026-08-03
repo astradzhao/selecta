@@ -1,0 +1,19 @@
+{
+  "name": "@selecta/catalog",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@selecta/eslint-config": "workspace:*",
+    "@types/node": "^20",
+    "eslint": "^9",
+    "typescript": "^5"
+  }
+}

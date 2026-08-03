@@ -14,6 +14,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@selecta/catalog':
+        specifier: workspace:*
+        version: link:../../packages/catalog
       '@selecta/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -97,6 +100,21 @@ importers:
       tailwindcss:
         specifier: ^4
         version: 4.3.3
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
+  packages/catalog:
+    devDependencies:
+      '@selecta/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@types/node':
+        specifier: ^20
+        version: 20.19.43
+      eslint:
+        specifier: ^9
+        version: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
       typescript:
         specifier: ^5
         version: 5.9.3
