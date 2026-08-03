@@ -54,7 +54,7 @@ export function NewNoteForm() {
         </p>
         <h1 className="text-3xl font-semibold tracking-tight">New note</h1>
         <p className="text-muted-foreground max-w-xl text-sm">
-          Paste or type free-form mix notes. No song selection or AI required.
+          Paste or type free-form mix notes. No track selection or AI required.
         </p>
       </header>
 

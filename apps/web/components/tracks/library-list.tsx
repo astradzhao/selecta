@@ -9,14 +9,14 @@ import { Button } from "@selecta/ui/components/button";
 import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
 
-import { ApiClientError, listSongs, type ApiSong } from "@/lib/api";
-import { SongChips } from "@/components/songs/song-chips";
+import { ApiClientError, listTracks, type ApiTrack } from "@/lib/api";
+import { TrackChips } from "@/components/tracks/track-chips";
 
 export function LibraryList() {
   const [query, setQuery] = useState("");
   const [subgenre, setSubgenre] = useState("");
   const [folder, setFolder] = useState("");
-  const [songs, setSongs] = useState<ApiSong[]>([]);
+  const [tracks, setTracks] = useState<ApiTrack[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startLoad] = useTransition();
   const hasFilters = Boolean(query || subgenre || folder);
@@ -26,22 +26,22 @@ export function LibraryList() {
     const handle = window.setTimeout(() => {
       startLoad(async () => {
         try {
-          const response = await listSongs({
+          const response = await listTracks({
             query,
             subgenre,
             folder,
             limit: 100,
           });
           if (cancelled) return;
-          setSongs(response.songs);
+          setTracks(response.tracks);
           setError(null);
         } catch (err) {
           if (cancelled) return;
-          setSongs([]);
+          setTracks([]);
           setError(
             err instanceof ApiClientError
               ? err.code === "graph_not_configured"
-                ? "The local song database isn’t running. Start the full stack with `pnpm dev`."
+                ? "The local track database isn’t running. Start the full stack with `pnpm dev`."
                 : err.message
               : "Failed to load library. Is the API running?",
           );
@@ -60,7 +60,7 @@ export function LibraryList() {
       <header className="border-border space-y-2 border-b pb-6">
         <h1 className="text-3xl font-semibold tracking-tight">Library</h1>
         <p className="text-muted-foreground max-w-xl text-sm">
-          Search your songs or narrow the list by Subgenre and Folder.
+          Search your tracks or narrow the list by Subgenre and Folder.
         </p>
       </header>
 
@@ -106,7 +106,7 @@ export function LibraryList() {
                 ? "Updating library…"
                 : error
                   ? null
-                  : `${songs.length} ${songs.length === 1 ? "song" : "songs"}`}
+                  : `${tracks.length} ${tracks.length === 1 ? "track" : "tracks"}`}
             </p>
             {hasFilters ? (
               <Button
@@ -127,7 +127,7 @@ export function LibraryList() {
         ) : null}
       </section>
 
-      <section aria-label="Songs">
+      <section aria-label="Tracks">
         {error ? (
           <div className="border-border bg-muted/30 rounded-xl border px-5 py-6">
             <h2 className="font-medium">Library unavailable</h2>
@@ -135,16 +135,16 @@ export function LibraryList() {
           </div>
         ) : (
           <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
-            {songs.map((song) => (
-              <li key={song.id}>
+            {tracks.map((track) => (
+              <li key={track.id}>
                 <Link
-                  href={`/songs/${song.id}`}
+                  href={`/tracks/${track.id}`}
                   className="hover:bg-muted/50 flex items-center gap-3 px-4 py-3 transition-colors"
                 >
                   <div className="bg-muted relative size-12 shrink-0 overflow-hidden rounded-md">
-                    {song.artworkUrl ? (
+                    {track.artworkUrl ? (
                       <Image
-                        src={song.artworkUrl}
+                        src={track.artworkUrl}
                         alt=""
                         fill
                         className="object-cover"
@@ -154,31 +154,31 @@ export function LibraryList() {
                   </div>
                   <div className="min-w-0 flex-1 space-y-1.5">
                     <div>
-                      <p className="truncate font-medium">{song.title}</p>
+                      <p className="truncate font-medium">{track.title}</p>
                       <p className="text-muted-foreground truncate text-sm">
-                        {song.artists.map((artist) => artist.name).join(", ") || "Unknown artist"}
+                        {track.artists.map((artist) => artist.name).join(", ") || "Unknown artist"}
                       </p>
                     </div>
-                    <SongChips subgenres={song.subgenres} folders={song.folders} />
+                    <TrackChips subgenres={track.subgenres} folders={track.folders} />
                   </div>
                 </Link>
               </li>
             ))}
-            {!pending && songs.length === 0 ? (
+            {!pending && tracks.length === 0 ? (
               <li className="flex flex-col items-start gap-3 px-5 py-10">
                 <div>
                   <h2 className="font-medium">
-                    {hasFilters ? "No matching songs" : "No songs yet"}
+                    {hasFilters ? "No matching tracks" : "No tracks yet"}
                   </h2>
                   <p className="text-muted-foreground mt-1 text-sm">
                     {hasFilters
                       ? "Try clearing a filter or searching for something else."
-                      : "Add a song to start building your library."}
+                      : "Add a track to start building your library."}
                   </p>
                 </div>
                 {!hasFilters ? (
                   <Button asChild size="sm">
-                    <Link href="/songs/new">Add your first song</Link>
+                    <Link href="/tracks/new">Add your first track</Link>
                   </Button>
                 ) : null}
               </li>

@@ -1,15 +1,15 @@
 import { AppShell } from "@/components/app-shell";
-import { SongDetail } from "@/components/songs/song-detail";
+import { TrackDetail } from "@/components/tracks/track-detail";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
 
-export default async function SongDetailPage({ params }: PageProps) {
+export default async function TrackDetailPage({ params }: PageProps) {
   const { id } = await params;
   return (
     <AppShell currentPath="/library">
-      <SongDetail songId={id} />
+      <TrackDetail trackId={id} />
     </AppShell>
   );
 }

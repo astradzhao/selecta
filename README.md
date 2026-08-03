@@ -55,7 +55,7 @@ pnpm format:check  # CI-friendly format check
 pnpm build
 ```
 
-`.env.example` credentials match the Compose Postgres and Neo4j services. Postgres listens on host port `5433` (mapped to container `5432`, so it does not collide with a local Postgres on `5432`); Neo4j Bolt on `7687` and Browser on `http://localhost:7474`. `API_ORIGIN` (default `http://localhost:3001`) is used by the web app’s `/backend` rewrite. Fill an AI gateway key when you need that service. Optional `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` enable catalog search (server-only; UI falls back to manual entry when unset). Local MVP is single-user: Neo4j holds the song library; Postgres holds free-form notes. `DEV_LIBRARY_ID` / `DEV_USER_ID` remain as optional stubs until auth. Auth provider secrets in `.env.example` are optional placeholders only.
+`.env.example` credentials match the Compose Postgres and Neo4j services. Postgres listens on host port `5433` (mapped to container `5432`, so it does not collide with a local Postgres on `5432`); Neo4j Bolt on `7687` and Browser on `http://localhost:7474`. `API_ORIGIN` (default `http://localhost:3001`) is used by the web app’s `/backend` rewrite. Fill an AI gateway key when you need that service. Optional `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` enable catalog search (server-only; UI falls back to manual entry when unset). Local MVP is single-user: Neo4j holds the track library; Postgres holds free-form notes. `DEV_LIBRARY_ID` / `DEV_USER_ID` remain as optional stubs until auth. Auth provider secrets in `.env.example` are optional placeholders only.
 
 ## Linting & formatting
 

@@ -10,9 +10,9 @@ import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
 import { Separator } from "@selecta/ui/components/separator";
 
-import { ApiClientError, createSong, searchCatalog, type CatalogTrack } from "@/lib/api";
-import { FolderTagEditor, type FolderTag } from "@/components/songs/folder-tag-editor";
-import { TagEditor, type TagItem } from "@/components/songs/tag-editor";
+import { ApiClientError, createTrack, searchCatalog, type CatalogTrack } from "@/lib/api";
+import { FolderTagEditor, type FolderTag } from "@/components/tracks/folder-tag-editor";
+import { TagEditor, type TagItem } from "@/components/tracks/tag-editor";
 
 type Mode = "search" | "review";
 
@@ -24,7 +24,7 @@ function formatDuration(ms: number | null): string | null {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-export function AddSongFlow() {
+export function AddTrackFlow() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("search");
   const [query, setQuery] = useState("");
@@ -106,7 +106,7 @@ export function AddSongFlow() {
 
     startSave(async () => {
       try {
-        const response = await createSong({
+        const response = await createTrack({
           ...(catalog
             ? {
                 catalog: {
@@ -130,10 +130,10 @@ export function AddSongFlow() {
             ...(item.kind ? { kind: item.kind } : {}),
           })),
         });
-        router.push(`/songs/${response.song.id}`);
+        router.push(`/tracks/${response.track.id}`);
         router.refresh();
       } catch (error) {
-        setSaveError(error instanceof ApiClientError ? error.message : "Failed to save song.");
+        setSaveError(error instanceof ApiClientError ? error.message : "Failed to save track.");
       }
     });
   }
@@ -142,7 +142,7 @@ export function AddSongFlow() {
     <div className="space-y-8">
       <div className="space-y-2">
         <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">Library intake</p>
-        <h1 className="text-3xl font-semibold tracking-tight">Add song</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Add track</h1>
         <p className="text-muted-foreground max-w-2xl text-sm">
           Search the catalog, review the hit, then tag with musical subgenres and organizational
           folders — separately.
@@ -156,7 +156,7 @@ export function AddSongFlow() {
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search song or artist"
+              placeholder="Search track or artist"
               className="h-12 pl-10 text-base"
               autoFocus
             />
@@ -211,7 +211,7 @@ export function AddSongFlow() {
             ))}
             {!searchPending && showResults && visibleResults.length === 0 && !visibleSearchError ? (
               <li className="text-muted-foreground px-3 py-6 text-sm">
-                No catalog hits. Try another query or enter the song manually.
+                No catalog hits. Try another query or enter the track manually.
               </li>
             ) : null}
           </ul>

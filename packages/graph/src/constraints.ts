@@ -6,7 +6,7 @@ import { writeCypher } from "./cypher";
  */
 export const GRAPH_SCHEMA_STATEMENTS = [
   // Uniqueness — node ids
-  "CREATE CONSTRAINT song_id IF NOT EXISTS FOR (n:Song) REQUIRE n.id IS UNIQUE",
+  "CREATE CONSTRAINT track_id IF NOT EXISTS FOR (n:Track) REQUIRE n.id IS UNIQUE",
   "CREATE CONSTRAINT artist_id IF NOT EXISTS FOR (n:Artist) REQUIRE n.id IS UNIQUE",
   "CREATE CONSTRAINT genre_id IF NOT EXISTS FOR (n:Genre) REQUIRE n.id IS UNIQUE",
   "CREATE CONSTRAINT subgenre_id IF NOT EXISTS FOR (n:Subgenre) REQUIRE n.id IS UNIQUE",
@@ -17,9 +17,9 @@ export const GRAPH_SCHEMA_STATEMENTS = [
   "CREATE CONSTRAINT genre_name_normalized IF NOT EXISTS FOR (n:Genre) REQUIRE n.nameNormalized IS UNIQUE",
   "CREATE CONSTRAINT subgenre_name_normalized IF NOT EXISTS FOR (n:Subgenre) REQUIRE n.nameNormalized IS UNIQUE",
   "CREATE CONSTRAINT folder_name_normalized IF NOT EXISTS FOR (n:Folder) REQUIRE n.nameNormalized IS UNIQUE",
-  // Indexes — Song lookup
-  "CREATE INDEX song_title IF NOT EXISTS FOR (n:Song) ON (n.title)",
-  "CREATE INDEX song_bpm IF NOT EXISTS FOR (n:Song) ON (n.bpm)",
+  // Indexes — Track lookup
+  "CREATE INDEX track_title IF NOT EXISTS FOR (n:Track) ON (n.title)",
+  "CREATE INDEX track_bpm IF NOT EXISTS FOR (n:Track) ON (n.bpm)",
   // Indexes — TRANSITION filters (Live Mode)
   "CREATE INDEX transition_intent IF NOT EXISTS FOR ()-[r:TRANSITION]-() ON (r.intent)",
   "CREATE INDEX transition_technique IF NOT EXISTS FOR ()-[r:TRANSITION]-() ON (r.technique)",

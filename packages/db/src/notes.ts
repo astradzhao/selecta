@@ -36,7 +36,7 @@ function requireRawText(rawText: string): string {
 
 /**
  * Create a free-form note from raw text alone (status defaults to draft).
- * No song links or extraction required.
+ * No track links or extraction required.
  */
 export async function createNote(input: CreateNoteInput): Promise<Note> {
   const rawText = requireRawText(input.rawText);

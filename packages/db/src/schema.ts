@@ -3,14 +3,14 @@ import { jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-or
 
 /**
  * Note lifecycle while NL extract → preview → graph commit.
- * Notes are free-form NL; song/transition links come from extraction, not FKs.
+ * Notes are free-form NL; track/transition links come from extraction, not FKs.
  */
 export const noteStatusEnum = pgEnum("note_status", ["draft", "preview", "committed"]);
 
 /**
  * Single-user MVP Postgres surface.
  *
- * Songs / artists / genres / transitions live in Neo4j (one shared graph = the library).
+ * Tracks / artists / genres / transitions live in Neo4j (one shared graph = the library).
  * Users, libraries, membership, and live sessions are deferred until multi-tenant / Live Mode needs them.
  */
 export const notes = pgTable("notes", {
@@ -32,12 +32,12 @@ export const notes = pgTable("notes", {
 });
 
 /**
- * Manual associations between a Postgres note and Neo4j Song ids.
- * No cross-database FK — `songId` is an opaque Neo4j Song.id string.
+ * Manual associations between a Postgres note and Neo4j Track ids.
+ * No cross-database FK — `trackId` is an opaque Neo4j Track.id string.
  * Parsed extraction mentions must not write here without explicit user confirmation.
  */
-export const noteSongLinks = pgTable(
-  "note_song_links",
+export const noteTrackLinks = pgTable(
+  "note_track_links",
   {
     id: text("id")
       .primaryKey()
@@ -45,8 +45,8 @@ export const noteSongLinks = pgTable(
     noteId: text("note_id")
       .notNull()
       .references(() => notes.id, { onDelete: "cascade" }),
-    /** Neo4j `Song.id` (string). Not a Postgres FK. */
-    songId: text("song_id").notNull(),
+    /** Neo4j `Track.id` (string). Not a Postgres FK. */
+    trackId: text("track_id").notNull(),
     /** Optional free-form role (e.g. from / to / mentioned). */
     role: text("role"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -55,16 +55,16 @@ export const noteSongLinks = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (table) => [uniqueIndex("note_song_links_note_id_song_id_uidx").on(table.noteId, table.songId)],
+  (table) => [uniqueIndex("note_track_links_note_id_track_id_uidx").on(table.noteId, table.trackId)],
 );
 
 export const notesRelations = relations(notes, ({ many }) => ({
-  songLinks: many(noteSongLinks),
+  trackLinks: many(noteTrackLinks),
 }));
 
-export const noteSongLinksRelations = relations(noteSongLinks, ({ one }) => ({
+export const noteTrackLinksRelations = relations(noteTrackLinks, ({ one }) => ({
   note: one(notes, {
-    fields: [noteSongLinks.noteId],
+    fields: [noteTrackLinks.noteId],
     references: [notes.id],
   }),
 }));
@@ -72,5 +72,5 @@ export const noteSongLinksRelations = relations(noteSongLinks, ({ one }) => ({
 export type Note = typeof notes.$inferSelect;
 export type NewNote = typeof notes.$inferInsert;
 export type NoteStatus = (typeof noteStatusEnum.enumValues)[number];
-export type NoteSongLink = typeof noteSongLinks.$inferSelect;
-export type NewNoteSongLink = typeof noteSongLinks.$inferInsert;
+export type NoteTrackLink = typeof noteTrackLinks.$inferSelect;
+export type NewNoteTrackLink = typeof noteTrackLinks.$inferInsert;

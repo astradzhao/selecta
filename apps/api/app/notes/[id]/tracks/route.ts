@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { addNoteSongLink, getNoteById, isNotesError, isPostgresConfigured } from "@selecta/db";
-import { getSongById, isNeo4jConfigured } from "@selecta/graph";
+import { addNoteTrackLink, getNoteById, isNotesError, isPostgresConfigured } from "@selecta/db";
+import { getTrackById, isNeo4jConfigured } from "@selecta/graph";
 
-import { loadSerializedSongLinks, serializeNote, serializeNoteSongLink } from "@/lib/notes";
+import { loadSerializedTrackLinks, serializeNote, serializeNoteTrackLink } from "@/lib/notes";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -12,25 +12,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function parseBody(value: unknown): { songId: string; role?: string | null } {
+function parseBody(value: unknown): { trackId: string; role?: string | null } {
   if (!isRecord(value)) {
     throw new Error("JSON body must be an object.");
   }
-  if (typeof value.songId !== "string") {
-    throw new Error("songId must be a string.");
+  if (typeof value.trackId !== "string") {
+    throw new Error("trackId must be a string.");
   }
   if (value.role !== undefined && value.role !== null && typeof value.role !== "string") {
     throw new Error("role must be a string or null.");
   }
   return {
-    songId: value.songId,
+    trackId: value.trackId,
     role: value.role === undefined ? undefined : value.role,
   };
 }
 
 /**
- * List manual song links for a note.
- * GET /notes/:id/songs
+ * List manual track links for a note.
+ * GET /notes/:id/tracks
  */
 export async function GET(_request: Request, context: RouteContext) {
   if (!isPostgresConfigured()) {
@@ -60,8 +60,8 @@ export async function GET(_request: Request, context: RouteContext) {
         { status: 404 },
       );
     }
-    const songLinks = await loadSerializedSongLinks(note.id);
-    return NextResponse.json({ ok: true, songLinks });
+    const trackLinks = await loadSerializedTrackLinks(note.id);
+    return NextResponse.json({ ok: true, trackLinks });
   } catch (error) {
     if (isNotesError(error)) {
       return NextResponse.json(
@@ -69,17 +69,17 @@ export async function GET(_request: Request, context: RouteContext) {
         { status: error.code === "not_found" ? 404 : 400 },
       );
     }
-    console.error("list note song links failed", error);
+    console.error("list note track links failed", error);
     return NextResponse.json(
-      { ok: false, error: "internal_error", message: "Failed to list note song links." },
+      { ok: false, error: "internal_error", message: "Failed to list note track links." },
       { status: 500 },
     );
   }
 }
 
 /**
- * Manually link an existing Neo4j song to a note (explicit user action only).
- * POST /notes/:id/songs
+ * Manually link an existing Neo4j track to a note (explicit user action only).
+ * POST /notes/:id/tracks
  */
 export async function POST(request: Request, context: RouteContext) {
   if (!isPostgresConfigured()) {
@@ -122,7 +122,7 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
-  let body: { songId: string; role?: string | null };
+  let body: { trackId: string; role?: string | null };
   try {
     body = parseBody(json);
   } catch (error) {
@@ -137,33 +137,33 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   try {
-    const song = await getSongById(body.songId);
-    if (!song) {
+    const track = await getTrackById(body.trackId);
+    if (!track) {
       return NextResponse.json(
         {
           ok: false,
           error: "not_found",
-          message: `Song "${body.songId.trim()}" was not found.`,
+          message: `Track "${body.trackId.trim()}" was not found.`,
         },
         { status: 404 },
       );
     }
 
-    const { link, created } = await addNoteSongLink(id, body);
-    const songLinks = await loadSerializedSongLinks(link.noteId);
+    const { link, created } = await addNoteTrackLink(id, body);
+    const trackLinks = await loadSerializedTrackLinks(link.noteId);
     const note = await getNoteById(link.noteId);
 
     return NextResponse.json(
       {
         ok: true,
-        songLink: serializeNoteSongLink(link, {
-          id: song.song.id,
-          title: song.song.title,
-          artists: song.artists,
-          artworkUrl: song.song.artworkUrl,
+        trackLink: serializeNoteTrackLink(link, {
+          id: track.track.id,
+          title: track.track.title,
+          artists: track.artists,
+          artworkUrl: track.track.artworkUrl,
         }),
-        songLinks,
-        ...(note ? { note: serializeNote(note, songLinks) } : {}),
+        trackLinks,
+        ...(note ? { note: serializeNote(note, trackLinks) } : {}),
       },
       { status: created ? 201 : 200 },
     );
@@ -174,9 +174,9 @@ export async function POST(request: Request, context: RouteContext) {
         { status: error.code === "not_found" ? 404 : 400 },
       );
     }
-    console.error("add note song link failed", error);
+    console.error("add note track link failed", error);
     return NextResponse.json(
-      { ok: false, error: "internal_error", message: "Failed to link song to note." },
+      { ok: false, error: "internal_error", message: "Failed to link track to note." },
       { status: 500 },
     );
   }

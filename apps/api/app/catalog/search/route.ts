@@ -16,7 +16,7 @@ function parseLimit(raw: string | null): number | undefined {
 }
 
 /**
- * External catalog song search (no persistence).
+ * External catalog track search (no persistence).
  * GET /catalog/search?q=...&limit=20
  */
 export async function GET(request: Request) {

@@ -5,7 +5,7 @@ import { cn } from "@selecta/ui/lib/utils";
 const links = [
   { href: "/library", label: "Library" },
   { href: "/notes", label: "Notes" },
-  { href: "/songs/new", label: "Add song" },
+  { href: "/tracks/new", label: "Add track" },
 ] as const;
 
 export function AppShell({

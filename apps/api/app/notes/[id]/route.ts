@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getNoteById, isNotesError, isPostgresConfigured, updateNote } from "@selecta/db";
 
-import { loadSerializedSongLinks, serializeNote } from "@/lib/notes";
+import { loadSerializedTrackLinks, serializeNote } from "@/lib/notes";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -22,7 +22,7 @@ function parseUpdateBody(value: unknown): { rawText: string } {
 }
 
 /**
- * Fetch a single note (includes optional manual song links).
+ * Fetch a single note (includes optional manual track links).
  * GET /notes/:id
  */
 export async function GET(_request: Request, context: RouteContext) {
@@ -53,8 +53,8 @@ export async function GET(_request: Request, context: RouteContext) {
         { status: 404 },
       );
     }
-    const songLinks = await loadSerializedSongLinks(note.id);
-    return NextResponse.json({ ok: true, note: serializeNote(note, songLinks) });
+    const trackLinks = await loadSerializedTrackLinks(note.id);
+    return NextResponse.json({ ok: true, note: serializeNote(note, trackLinks) });
   } catch (error) {
     if (isNotesError(error)) {
       return NextResponse.json(
@@ -120,8 +120,8 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   try {
     const note = await updateNote(id, body);
-    const songLinks = await loadSerializedSongLinks(note.id);
-    return NextResponse.json({ ok: true, note: serializeNote(note, songLinks) });
+    const trackLinks = await loadSerializedTrackLinks(note.id);
+    return NextResponse.json({ ok: true, note: serializeNote(note, trackLinks) });
   } catch (error) {
     if (isNotesError(error)) {
       return NextResponse.json(
