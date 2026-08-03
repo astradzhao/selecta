@@ -8,6 +8,8 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { loadRootEnv } from "./load-root-env.mjs";
+
 const root = resolve(import.meta.dirname, "..");
 const envLocal = resolve(root, ".env.local");
 
@@ -44,6 +46,8 @@ console.log("→ Checking prerequisites…");
 if (!existsSync(envLocal)) {
   fail("Missing .env.local. Copy .env.example → .env.local first:\n   cp .env.example .env.local");
 }
+
+loadRootEnv(root);
 
 if (!which("docker")) {
   fail("Docker is not available. Install/start Docker Desktop, then retry `pnpm dev`.");
