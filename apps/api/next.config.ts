@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ["@dj/db", "@dj/graph", "@dj/notes"],
 };
 
 export default nextConfig;

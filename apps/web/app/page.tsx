@@ -5,8 +5,8 @@ export default function Home() {
         DJ Graph Notes
       </h1>
       <p className="mt-3 max-w-md text-center text-zinc-600">
-        Next.js App Router + TypeScript scaffold. Capture mix notes, grow the
-        graph, play live.
+        Web app (`apps/web`). API lives at `apps/api` (port 3001). Shared
+        domain code lives in `packages/*`.
       </p>
     </main>
   );

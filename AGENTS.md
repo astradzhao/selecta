@@ -26,6 +26,18 @@ Do not commit directly to `main`. Do not reuse an unrelated branch for a differe
 
 Use **pnpm** only (`pnpm install`, `pnpm add`, `pnpm run …`). Do not introduce `package-lock.json` or npm/yarn lockfiles.
 
+## Monorepo
+
+This is a pnpm workspace monorepo:
+
+- `apps/web` (`@dj/web`) — Next.js UI deployable (port 3000)
+- `apps/api` (`@dj/api`) — Next.js API deployable (port 3001)
+- `packages/db|graph|notes|ui` — shared libraries (`@dj/*`)
+
+Put deployable apps under `apps/`. Put shared domain/UI libraries under `packages/`. Prefer importing `@dj/*` from apps instead of duplicating logic.
+
+Root scripts: `pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm --filter @dj/web …`.
+
 ## Testing
 
 Only write tests that provide real value.
