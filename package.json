@@ -12,6 +12,7 @@
     "db:generate": "pnpm --filter @selecta/db db:generate",
     "db:migrate": "pnpm --filter @selecta/db db:migrate",
     "db:studio": "pnpm --filter @selecta/db db:studio",
+    "graph:migrate": "pnpm --filter @selecta/graph graph:migrate",
     "build": "pnpm run --filter @selecta/web --filter @selecta/api build",
     "lint": "pnpm run --recursive --filter '!@selecta/eslint-config' lint",
     "typecheck": "pnpm run --recursive --filter '!@selecta/eslint-config' typecheck",
