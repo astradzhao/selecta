@@ -1,0 +1,14 @@
+{
+  "name": "dj-project",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.18.0",
+  "scripts": {
+    "dev": "pnpm run --parallel --filter @dj/web --filter @dj/api dev",
+    "dev:web": "pnpm --filter @dj/web dev",
+    "dev:api": "pnpm --filter @dj/api dev",
+    "build": "pnpm run --filter @dj/web --filter @dj/api build",
+    "lint": "pnpm run --recursive lint",
+    "typecheck": "pnpm run --recursive typecheck"
+  }
+}

@@ -1,0 +1,13 @@
+---
+description: Prefer valuable tests only; no filler coverage
+alwaysApply: true
+---
+
+# Testing
+
+Only write tests that provide real value.
+
+- Cover behavior that can silently break: parsing/validation, graph commit rules, auth/membership boundaries, Live Mode logic, and non-obvious regressions.
+- Do not add filler tests (trivial renders, snapshot spam, implementation-detail asserts, or tests that only restate the code).
+- Skip tests for trivial UI chrome unless the ticket asks for them.
+- Before adding a test, answer: what bug would this catch that a human or typecheck would miss?
