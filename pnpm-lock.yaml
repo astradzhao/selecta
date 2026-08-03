@@ -20,9 +20,9 @@ importers:
       '@selecta/graph':
         specifier: workspace:*
         version: link:../../packages/graph
-      '@selecta/notes':
+      '@selecta/mix-notes':
         specifier: workspace:*
-        version: link:../../packages/notes
+        version: link:../../packages/mix-notes
       next:
         specifier: 16.2.12
         version: 16.2.12(@babel/core@7.29.7(supports-color@7.2.0))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -60,9 +60,9 @@ importers:
       '@selecta/graph':
         specifier: workspace:*
         version: link:../../packages/graph
-      '@selecta/notes':
+      '@selecta/mix-notes':
         specifier: workspace:*
-        version: link:../../packages/notes
+        version: link:../../packages/mix-notes
       '@selecta/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -140,7 +140,7 @@ importers:
         specifier: ^5
         version: 5.9.3
 
-  packages/notes:
+  packages/mix-notes:
     devDependencies:
       '@selecta/eslint-config':
         specifier: workspace:*
