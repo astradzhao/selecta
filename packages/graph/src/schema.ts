@@ -45,7 +45,7 @@ export function isTransitionTechnique(value: string): value is TransitionTechniq
  * Optional `kind` on Folder nodes — product copy only (not separate graph labels).
  * A song may belong to zero or more Folders via IN_FOLDER.
  */
-export const FOLDER_KINDS = ["folder", "playlist", "crate", "section"] as const;
+export const FOLDER_KINDS = ["folder", "playlist", "section"] as const;
 
 export type FolderKind = (typeof FOLDER_KINDS)[number];
 
@@ -63,7 +63,7 @@ export const NODE_LABELS = {
   Genre: "Genre",
   /** DJ-owned musical labels (e.g. melodic house, UKG). */
   Subgenre: "Subgenre",
-  /** DJ-owned crates / playlists / folders / set buckets. */
+  /** DJ-owned playlists / folders / set buckets. */
   Folder: "Folder",
   Cue: "Cue",
 } as const;
