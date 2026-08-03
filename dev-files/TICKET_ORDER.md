@@ -1,133 +1,108 @@
 # Local MVP — ticket order
 
 > Source of truth for **what to work on next**, local-first.  
-> Project: [MVP — NL → Graph → Live Mode](https://linear.app/dj-project-astradzhao/project/mvp-nl-graph-live-mode-08d4f2152899)  
+> Project: [MVP — Library → Notes → Graph Explorer](https://linear.app/dj-project-astradzhao/project/mvp-library-notes-graph-explorer-08d4f2152899)  
 > Last updated: 2026-08-02  
-> Strategy: get songs → NL transitions → Live Mode working on `pnpm dev` **before** auth or Vercel.
-
-Statuses below reflect Linear at last update. Re-check Linear if unsure.
+> Strategy: library import → free-form notes → graph traversal on `pnpm dev` **before** auth or Vercel.
 
 ---
 
-## Now (finish these)
+## Product model note (important)
 
-| #   | Ticket                                                        | Title                                   | Status      | Notes                                           |
-| --- | ------------------------------------------------------------- | --------------------------------------- | ----------- | ----------------------------------------------- |
-| 1   | [DJ-14](https://linear.app/dj-project-astradzhao/issue/DJ-14) | `.env.example` (PG, Neo4j, AI, `DEV_*`) | In Progress | Include `DEV_USER_ID` / `DEV_LIBRARY_ID` stubs  |
-| 2   | [DJ-17](https://linear.app/dj-project-astradzhao/issue/DJ-17) | Intent + technique vocabulary constants | In Progress | Prefer `@selecta/graph` or `@selecta/mix-notes` |
-| 3   | [DJ-18](https://linear.app/dj-project-astradzhao/issue/DJ-18) | Provision Postgres (local / Neon)       | In Progress | Docker or Neon free tier fine                   |
-| 4   | [DJ-19](https://linear.app/dj-project-astradzhao/issue/DJ-19) | Provision Neo4j (local / Aura)          | In Progress | Aura or local Neo4j/Docker fine                 |
+Do **not** collapse musical labels and crates into one “section” node.
 
-Close **[DJ-6](https://linear.app/dj-project-astradzhao/issue/DJ-6)** (M0) once 1–4 are Done.
+| Node | Meaning | Relationship |
+|---|---|---|
+| `Genre` | Provider catalog metadata (Spotify etc.) | `IN_GENRE` |
+| `Subgenre` | DJ musical label (“UKG”, “melodic house”) | `IN_SUBGENRE` |
+| `Folder` | Organizational container (playlist / crate / folder); optional `kind` | `IN_FOLDER` |
 
----
-
-## Next — M1 Data layer
-
-Wire clients + schemas against the local DBs. Order:
-
-| #   | Ticket                                                        | Title                                                      | Priority                                             |
-| --- | ------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------- |
-| 5   | [DJ-20](https://linear.app/dj-project-astradzhao/issue/DJ-20) | Postgres schema: libraries, membership, notes, sessions    | High                                                 |
-| 6   | [DJ-21](https://linear.app/dj-project-astradzhao/issue/DJ-21) | Neo4j constraints + indexes (Song/Artist/Genre/TRANSITION) | High                                                 |
-| 7   | [DJ-22](https://linear.app/dj-project-astradzhao/issue/DJ-22) | Postgres client + membership helpers (`DEV_LIBRARY_ID`)    | High                                                 |
-| 8   | [DJ-24](https://linear.app/dj-project-astradzhao/issue/DJ-24) | Neo4j driver singleton + Cypher helpers                    | High                                                 |
-| 9   | [DJ-23](https://linear.app/dj-project-astradzhao/issue/DJ-23) | Health check for both DBs                                  | Low — do if not already covered by `apps/api` health |
-
-Parent epic: [DJ-10](https://linear.app/dj-project-astradzhao/issue/DJ-10).
+Canonical ticket: [DJ-51](https://linear.app/dj-project-astradzhao/issue/DJ-51).
 
 ---
 
-## Then — M2 Song library
+## Done
 
-| #   | Ticket                                                        | Title                                      | Priority                                  |
-| --- | ------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------- |
-| 10  | [DJ-30](https://linear.app/dj-project-astradzhao/issue/DJ-30) | Ensure default / `DEV` library exists      | High — treat as seed stub, not real login |
-| 11  | [DJ-25](https://linear.app/dj-project-astradzhao/issue/DJ-25) | MERGE Artist/Genre + `BY` / `IN_GENRE`     | High                                      |
-| 12  | [DJ-26](https://linear.app/dj-project-astradzhao/issue/DJ-26) | API: create song (Artist + Genre required) | High                                      |
-| 13  | [DJ-27](https://linear.app/dj-project-astradzhao/issue/DJ-27) | API: search/list library songs             | High                                      |
-| 14  | [DJ-28](https://linear.app/dj-project-astradzhao/issue/DJ-28) | API: song detail                           | Medium                                    |
-| 15  | [DJ-29](https://linear.app/dj-project-astradzhao/issue/DJ-29) | UI: create song form                       | High                                      |
-| 16  | [DJ-31](https://linear.app/dj-project-astradzhao/issue/DJ-31) | UI: library search/list + song detail      | High                                      |
+- **M0** foundations (DJ-6, DJ-12–14, DJ-17, DJ-49, DJ-50)
+- **M1** local data foundation (DJ-10, DJ-18–24)
 
-Parent epic: [DJ-8](https://linear.app/dj-project-astradzhao/issue/DJ-8).
+Deferred outside MVP: [DJ-15](https://linear.app/dj-project-astradzhao/issue/DJ-15) Vercel, [DJ-16](https://linear.app/dj-project-astradzhao/issue/DJ-16) auth.
+
+Canceled: DJ-30 default library, DJ-39 live session, DJ-44 bar stepper.
 
 ---
 
-## Then — M3 NL → graph (transitions only)
+## Now — M2 Song discovery & library
 
-| #   | Ticket                                                        | Title                                         | Priority                |
-| --- | ------------------------------------------------------------- | --------------------------------------------- | ----------------------- |
-| 17  | [DJ-33](https://linear.app/dj-project-astradzhao/issue/DJ-33) | Zod schema for NL transition extraction       | High                    |
-| 18  | [DJ-32](https://linear.app/dj-project-astradzhao/issue/DJ-32) | Versioned NL extraction prompt + examples     | High                    |
-| 19  | [DJ-34](https://linear.app/dj-project-astradzhao/issue/DJ-34) | API: `POST /api/notes/parse`                  | High                    |
-| 20  | [DJ-35](https://linear.app/dj-project-astradzhao/issue/DJ-35) | Entity resolution + ambiguity picker          | High                    |
-| 21  | [DJ-36](https://linear.app/dj-project-astradzhao/issue/DJ-36) | UI: note capture + preview diff               | High                    |
-| 22  | [DJ-38](https://linear.app/dj-project-astradzhao/issue/DJ-38) | API: `POST /api/notes/commit` (transactional) | High                    |
-| —   | [DJ-37](https://linear.app/dj-project-astradzhao/issue/DJ-37) | UI: notes history                             | **Skip / nice-to-have** |
+Parent: [DJ-8](https://linear.app/dj-project-astradzhao/issue/DJ-8)
 
-Parent epic: [DJ-7](https://linear.app/dj-project-astradzhao/issue/DJ-7).
-
----
-
-## Then — M4 Live Mode
-
-| #   | Ticket                                                        | Title                                      | Priority                |
-| --- | ------------------------------------------------------------- | ------------------------------------------ | ----------------------- |
-| 23  | [DJ-39](https://linear.app/dj-project-astradzhao/issue/DJ-39) | API: `PUT /api/live/session`               | High                    |
-| 24  | [DJ-40](https://linear.app/dj-project-astradzhao/issue/DJ-40) | API: `GET /api/live/next` (Cypher, no LLM) | High                    |
-| 25  | [DJ-41](https://linear.app/dj-project-astradzhao/issue/DJ-41) | UI: Live Mode page                         | High                    |
-| 26  | [DJ-43](https://linear.app/dj-project-astradzhao/issue/DJ-43) | UI: one-tap advance to next song           | High                    |
-| 27  | [DJ-42](https://linear.app/dj-project-astradzhao/issue/DJ-42) | Same-artist fallback                       | Medium                  |
-| —   | [DJ-44](https://linear.app/dj-project-astradzhao/issue/DJ-44) | Bar stepper                                | **Skip / nice-to-have** |
-
-Parent epic: [DJ-11](https://linear.app/dj-project-astradzhao/issue/DJ-11).
+| # | Ticket | Title |
+|---|---|---|
+| 1 | [DJ-51](https://linear.app/dj-project-astradzhao/issue/DJ-51) | Schema: Subgenre vs Folder (separate nodes) |
+| 2 | [DJ-53](https://linear.app/dj-project-astradzhao/issue/DJ-53) | API: external music catalog search adapter |
+| 3 | [DJ-25](https://linear.app/dj-project-astradzhao/issue/DJ-25) | Graph writes for Song/Artist/Genre/Subgenre/Folder |
+| 4 | [DJ-26](https://linear.app/dj-project-astradzhao/issue/DJ-26) | API: import or manually create a song |
+| 5 | [DJ-27](https://linear.app/dj-project-astradzhao/issue/DJ-27) | API: search/list local library |
+| 6 | [DJ-28](https://linear.app/dj-project-astradzhao/issue/DJ-28) | API: song detail |
+| 7 | [DJ-29](https://linear.app/dj-project-astradzhao/issue/DJ-29) | UI: search/import + separate Subgenre & Folder pickers |
+| 8 | [DJ-31](https://linear.app/dj-project-astradzhao/issue/DJ-31) | UI: library list + song detail |
 
 ---
 
-## Then — M5 Dogfood (local acceptance)
+## Parallel-capable — M3 Free-form notes
 
-| #   | Ticket                                                        | Title                                | Priority |
-| --- | ------------------------------------------------------------- | ------------------------------------ | -------- |
-| 28  | [DJ-47](https://linear.app/dj-project-astradzhao/issue/DJ-47) | Seed ~10 real songs + transitions    | High     |
-| 29  | [DJ-45](https://linear.app/dj-project-astradzhao/issue/DJ-45) | Practice-set dogfood checklist       | High     |
-| 30  | [DJ-48](https://linear.app/dj-project-astradzhao/issue/DJ-48) | Measure Live next-options latency    | Medium   |
-| 31  | [DJ-46](https://linear.app/dj-project-astradzhao/issue/DJ-46) | File Phase 2 follow-ups + accept MVP | Medium   |
+Parent: [DJ-7](https://linear.app/dj-project-astradzhao/issue/DJ-7)  
+Raw notes do **not** require M2. Linking/parse/commit do.
 
-Parent epic: [DJ-9](https://linear.app/dj-project-astradzhao/issue/DJ-9).
-
----
-
-## Deferred (do after local MVP works)
-
-| Ticket                                                        | Title                  | Why deferred                           |
-| ------------------------------------------------------------- | ---------------------- | -------------------------------------- |
-| [DJ-16](https://linear.app/dj-project-astradzhao/issue/DJ-16) | Auth (Clerk / Auth.js) | Use `DEV_LIBRARY_ID` until slice works |
-| [DJ-15](https://linear.app/dj-project-astradzhao/issue/DJ-15) | Link Vercel + deploy   | Local `pnpm dev` is enough             |
+| # | Ticket | Title | Needs library? |
+|---|---|---|---|
+| 9 | [DJ-52](https://linear.app/dj-project-astradzhao/issue/DJ-52) | API: create/list/edit arbitrary notes | No |
+| 10 | [DJ-37](https://linear.app/dj-project-astradzhao/issue/DJ-37) | UI: notes list and detail | No |
+| 11 | [DJ-36](https://linear.app/dj-project-astradzhao/issue/DJ-36) | UI: free-form note composer + optional parse | No for save |
+| 12 | [DJ-54](https://linear.app/dj-project-astradzhao/issue/DJ-54) | Optional manual note → song links | Yes |
+| 13 | [DJ-33](https://linear.app/dj-project-astradzhao/issue/DJ-33) | Zod schema for optional extraction | No |
+| 14 | [DJ-32](https://linear.app/dj-project-astradzhao/issue/DJ-32) | Versioned free-form extraction prompt | No |
+| 15 | [DJ-34](https://linear.app/dj-project-astradzhao/issue/DJ-34) | API: parse saved note into proposals | No |
+| 16 | [DJ-35](https://linear.app/dj-project-astradzhao/issue/DJ-35) | Resolve song mentions + ambiguity picker | Yes |
+| 17 | [DJ-38](https://linear.app/dj-project-astradzhao/issue/DJ-38) | API: commit accepted transitions | Yes |
 
 ---
 
-## Already done
+## Then — M4 Song graph explorer
 
-| Ticket                                                        | Title                    |
-| ------------------------------------------------------------- | ------------------------ |
-| [DJ-5](https://linear.app/dj-project-astradzhao/issue/DJ-5)   | Architecture plan        |
-| [DJ-13](https://linear.app/dj-project-astradzhao/issue/DJ-13) | Init Next.js             |
-| [DJ-12](https://linear.app/dj-project-astradzhao/issue/DJ-12) | shadcn/ui primitives     |
-| [DJ-49](https://linear.app/dj-project-astradzhao/issue/DJ-49) | ESLint + oxfmt           |
-| [DJ-50](https://linear.app/dj-project-astradzhao/issue/DJ-50) | Monorepo naming / layout |
+Parent: [DJ-11](https://linear.app/dj-project-astradzhao/issue/DJ-11)
+
+| # | Ticket | Title |
+|---|---|---|
+| 18 | [DJ-40](https://linear.app/dj-project-astradzhao/issue/DJ-40) | API: ranked song graph neighborhood |
+| 19 | [DJ-55](https://linear.app/dj-project-astradzhao/issue/DJ-55) | Reusable song-neighborhood visualization |
+| 20 | [DJ-41](https://linear.app/dj-project-astradzhao/issue/DJ-41) | UI: graph explorer + next-song list |
+| 21 | [DJ-43](https://linear.app/dj-project-astradzhao/issue/DJ-43) | UI: traverse by selecting next song |
+| 22 | [DJ-42](https://linear.app/dj-project-astradzhao/issue/DJ-42) | Optional discovery: same-artist / subgenre / folder |
 
 ---
 
-## One-line critical path
+## Then — M5 Dogfood
+
+Parent: [DJ-9](https://linear.app/dj-project-astradzhao/issue/DJ-9)
+
+| # | Ticket | Title |
+|---|---|---|
+| 23 | [DJ-47](https://linear.app/dj-project-astradzhao/issue/DJ-47) | Import ~10 songs + representative notes |
+| 24 | [DJ-45](https://linear.app/dj-project-astradzhao/issue/DJ-45) | End-to-end dogfood checklist |
+| 25 | [DJ-48](https://linear.app/dj-project-astradzhao/issue/DJ-48) | Measure catalog search + graph latency |
+| 26 | [DJ-46](https://linear.app/dj-project-astradzhao/issue/DJ-46) | Accept local MVP + file post-MVP follow-ups |
+
+---
+
+## Critical path
 
 ```
-DJ-14 → DJ-17 → DJ-18/19 → DJ-20/21/22/24
-  → DJ-30/25/26/27/29/31
-  → DJ-33/32/34/35/36/38
-  → DJ-39/40/41/43
-  → DJ-47/45
-  → (later) DJ-16, DJ-15
+DJ-51 → DJ-53 → DJ-25 → DJ-26 → DJ-29 / DJ-27 / DJ-28 → DJ-31
+                 ↘
+DJ-52 → DJ-37 / DJ-36 → DJ-54 → DJ-33/32/34 → DJ-35 → DJ-38
+                                                      ↓
+                                              DJ-40 → DJ-55 → DJ-41 → DJ-43
+                                                      ↓
+                                              DJ-47 → DJ-45 → DJ-46
 ```
-
-**MVP done when:** you can encode ~10 transitions via Notes UI and run a short practice set in Live Mode on localhost — without auth or Vercel.

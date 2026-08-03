@@ -41,11 +41,30 @@ export function isTransitionTechnique(value: string): value is TransitionTechniq
   return techniqueSet.has(value);
 }
 
+/**
+ * Optional `kind` on Folder nodes — product copy only (not separate graph labels).
+ * A song may belong to zero or more Folders via IN_FOLDER.
+ */
+export const FOLDER_KINDS = ["folder", "playlist", "crate", "section"] as const;
+
+export type FolderKind = (typeof FOLDER_KINDS)[number];
+
+const folderKindSet: ReadonlySet<string> = new Set(FOLDER_KINDS);
+
+export function isFolderKind(value: string): value is FolderKind {
+  return folderKindSet.has(value);
+}
+
 /** Neo4j node labels (music-only graph). */
 export const NODE_LABELS = {
   Song: "Song",
   Artist: "Artist",
+  /** Provider catalog metadata (Spotify etc.) — not a substitute for Subgenre/Folder. */
   Genre: "Genre",
+  /** DJ-owned musical labels (e.g. melodic house, UKG). */
+  Subgenre: "Subgenre",
+  /** DJ-owned crates / playlists / folders / set buckets. */
+  Folder: "Folder",
   Cue: "Cue",
 } as const;
 
@@ -55,6 +74,10 @@ export type NodeLabel = (typeof NODE_LABELS)[keyof typeof NODE_LABELS];
 export const REL_TYPES = {
   BY: "BY",
   IN_GENRE: "IN_GENRE",
+  /** Song → Subgenre (zero or more). */
+  IN_SUBGENRE: "IN_SUBGENRE",
+  /** Song → Folder (zero or more). */
+  IN_FOLDER: "IN_FOLDER",
   TRANSITION: "TRANSITION",
   HAS_CUE: "HAS_CUE",
 } as const;

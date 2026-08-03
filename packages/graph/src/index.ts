@@ -3,12 +3,15 @@
 export {
   TRANSITION_INTENTS,
   TRANSITION_TECHNIQUES,
+  FOLDER_KINDS,
   NODE_LABELS,
   REL_TYPES,
   isTransitionIntent,
   isTransitionTechnique,
+  isFolderKind,
   type TransitionIntent,
   type TransitionTechnique,
+  type FolderKind,
   type NodeLabel,
   type RelType,
 } from "./schema";

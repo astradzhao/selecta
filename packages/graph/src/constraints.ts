@@ -9,10 +9,14 @@ export const GRAPH_SCHEMA_STATEMENTS = [
   "CREATE CONSTRAINT song_id IF NOT EXISTS FOR (n:Song) REQUIRE n.id IS UNIQUE",
   "CREATE CONSTRAINT artist_id IF NOT EXISTS FOR (n:Artist) REQUIRE n.id IS UNIQUE",
   "CREATE CONSTRAINT genre_id IF NOT EXISTS FOR (n:Genre) REQUIRE n.id IS UNIQUE",
+  "CREATE CONSTRAINT subgenre_id IF NOT EXISTS FOR (n:Subgenre) REQUIRE n.id IS UNIQUE",
+  "CREATE CONSTRAINT folder_id IF NOT EXISTS FOR (n:Folder) REQUIRE n.id IS UNIQUE",
   "CREATE CONSTRAINT cue_id IF NOT EXISTS FOR (n:Cue) REQUIRE n.id IS UNIQUE",
-  // Uniqueness — shared vocabulary
+  // Uniqueness — shared vocabulary / DJ-owned labels
   "CREATE CONSTRAINT artist_name_normalized IF NOT EXISTS FOR (n:Artist) REQUIRE n.nameNormalized IS UNIQUE",
   "CREATE CONSTRAINT genre_name_normalized IF NOT EXISTS FOR (n:Genre) REQUIRE n.nameNormalized IS UNIQUE",
+  "CREATE CONSTRAINT subgenre_name_normalized IF NOT EXISTS FOR (n:Subgenre) REQUIRE n.nameNormalized IS UNIQUE",
+  "CREATE CONSTRAINT folder_name_normalized IF NOT EXISTS FOR (n:Folder) REQUIRE n.nameNormalized IS UNIQUE",
   // Indexes — Song lookup
   "CREATE INDEX song_title IF NOT EXISTS FOR (n:Song) ON (n.title)",
   "CREATE INDEX song_bpm IF NOT EXISTS FOR (n:Song) ON (n.bpm)",
