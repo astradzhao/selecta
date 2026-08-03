@@ -9,13 +9,10 @@ export default function Home() {
     <AppShell currentPath="/">
       <main className="flex flex-1 flex-col justify-center gap-8 py-16">
         <div className="space-y-3">
-          <p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">Selecta</p>
-          <h1 className="max-w-xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-            Build the crate. Tag the feel. Mix from the graph.
-          </h1>
-          <p className="text-muted-foreground max-w-lg text-base text-pretty">
-            Import tracks, keep musical labels and folders separate, then grow the transition graph
-            from free-form notes.
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">selecta</h1>
+          <p className="text-muted-foreground max-w-xl text-base text-pretty sm:text-lg">
+            Build your personal DJ graph just by writing notes for yourself. We&apos;ll build the
+            song selector for you.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">

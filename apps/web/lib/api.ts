@@ -7,7 +7,7 @@ export type ApiNamedNode = {
 };
 
 export type ApiFolderNode = ApiNamedNode & {
-  kind: "folder" | "playlist" | "crate" | "section" | null;
+  kind: "folder" | "playlist" | "section" | null;
 };
 
 export type ApiSong = {
@@ -49,7 +49,7 @@ export type NamedRefInput = {
 };
 
 export type FolderRefInput = NamedRefInput & {
-  kind?: "folder" | "playlist" | "crate" | "section";
+  kind?: "folder" | "playlist" | "section";
 };
 
 export type CreateSongBody = {

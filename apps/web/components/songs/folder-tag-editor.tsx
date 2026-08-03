@@ -24,7 +24,7 @@ export function FolderTagEditor({
       <div className="space-y-1">
         <Label htmlFor="folder-tag">Folders</Label>
         <p className="text-muted-foreground text-xs">
-          Crates, playlists, and set buckets — separate from musical subgenres.
+          Playlists, folders, and set buckets — separate from musical subgenres.
         </p>
       </div>
       <div className="flex flex-col gap-2 sm:flex-row">
