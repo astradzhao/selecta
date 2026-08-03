@@ -16,7 +16,7 @@ import { resolveSubgenreRef } from "./subgenre-writes";
  * Create a Song (or reuse one matched by external provider id) and wire
  * Artist / Genre / Subgenre / Folder relationships.
  *
- * Genre = provider metadata; Subgenre = DJ musical label; Folder = crate/playlist.
+ * Genre = provider metadata; Subgenre = DJ musical label; Folder = playlist/folder.
  * Title + ≥1 artist required; genres/subgenres/folders optional.
  */
 export async function createSong(input: CreateSongInput): Promise<CreateSongResult> {

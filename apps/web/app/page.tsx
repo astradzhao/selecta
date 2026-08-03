@@ -1,13 +1,29 @@
+import Link from "next/link";
+
 import { Button } from "@selecta/ui/components/button";
+
+import { AppShell } from "@/components/app-shell";
 
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6 py-24">
-      <h1 className="text-3xl font-semibold tracking-tight">Selecta</h1>
-      <p className="text-muted-foreground mt-3 max-w-md text-center">
-        Write how you mix. Play with a graph that thinks the same way.
-      </p>
-      <Button className="mt-6">Get started</Button>
-    </main>
+    <AppShell currentPath="/">
+      <main className="flex flex-1 flex-col justify-center gap-8 py-16">
+        <div className="space-y-3">
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">selecta</h1>
+          <p className="text-muted-foreground max-w-xl text-base text-pretty sm:text-lg">
+            Build your personal DJ graph just by writing notes for yourself. We&apos;ll build the
+            song selector for you.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Button asChild>
+            <Link href="/songs/new">Add song</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/library">Open library</Link>
+          </Button>
+        </div>
+      </main>
+    </AppShell>
   );
 }

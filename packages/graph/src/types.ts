@@ -91,7 +91,7 @@ export function assertFolderKind(value: string | undefined): FolderKind | undefi
   if (!isFolderKind(value)) {
     throw new GraphWriteError(
       "invalid_input",
-      `Invalid folder kind "${value}". Expected folder | playlist | crate | section.`,
+      `Invalid folder kind "${value}". Expected folder | playlist | section.`,
     );
   }
   return value;

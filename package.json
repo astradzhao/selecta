@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "pnpm run --parallel --filter @selecta/web --filter @selecta/api dev",
+    "dev": "node scripts/dev-stack.mjs",
+    "dev:apps": "pnpm run --parallel --filter @selecta/web --filter @selecta/api dev",
     "dev:web": "pnpm --filter @selecta/web dev",
     "dev:api": "pnpm --filter @selecta/api dev",
     "db:up": "docker compose up -d",
