@@ -170,3 +170,60 @@ export async function listSongs(input: ListSongsInput = {}): Promise<SongSummary
 
   return rows.map(mapSongRow);
 }
+
+export type SongDetail = SongSummary & {
+  /** Whether any outbound TRANSITION edges exist. */
+  hasOutboundTransitions: boolean;
+  /** Whether any inbound TRANSITION edges exist. */
+  hasInboundTransitions: boolean;
+};
+
+/**
+ * Song detail for library page / M4 entry.
+ * Subgenres and Folders remain distinct arrays. Ranked neighborhood is DJ-40.
+ */
+export async function getSongById(id: string): Promise<SongDetail | null> {
+  const songId = id.trim();
+  if (!songId) {
+    return null;
+  }
+
+  const rows = await readCypher<{
+    song: Record<string, unknown>;
+    artists: GraphNamedNode[];
+    genres: GraphNamedNode[];
+    subgenres: GraphNamedNode[];
+    folders: GraphFolderNode[];
+    hasOutboundTransitions: boolean;
+    hasInboundTransitions: boolean;
+  }>(
+    `
+    MATCH (song:Song {id: $songId})
+    OPTIONAL MATCH (artist:Artist)-[:BY]->(song)
+    OPTIONAL MATCH (song)-[:IN_GENRE]->(genre:Genre)
+    OPTIONAL MATCH (song)-[:IN_SUBGENRE]->(subgenre:Subgenre)
+    OPTIONAL MATCH (song)-[:IN_FOLDER]->(folder:Folder)
+    OPTIONAL MATCH (song)-[out:TRANSITION]->(:Song)
+    OPTIONAL MATCH (:Song)-[inn:TRANSITION]->(song)
+    RETURN song { .* } AS song,
+           collect(DISTINCT artist { .id, .name, .nameNormalized }) AS artists,
+           collect(DISTINCT genre { .id, .name, .nameNormalized }) AS genres,
+           collect(DISTINCT subgenre { .id, .name, .nameNormalized }) AS subgenres,
+           collect(DISTINCT folder { .id, .name, .nameNormalized, .kind }) AS folders,
+           count(DISTINCT out) > 0 AS hasOutboundTransitions,
+           count(DISTINCT inn) > 0 AS hasInboundTransitions
+    `,
+    { songId },
+  );
+
+  const row = rows[0];
+  if (!row?.song?.id) {
+    return null;
+  }
+
+  return {
+    ...mapSongRow(row),
+    hasOutboundTransitions: Boolean(row.hasOutboundTransitions),
+    hasInboundTransitions: Boolean(row.hasInboundTransitions),
+  };
+}

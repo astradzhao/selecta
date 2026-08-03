@@ -34,7 +34,13 @@ export {
 
 export { mergeArtist, mergeGenre, mergeSubgenre, mergeFolder, createSong } from "./writes";
 
-export { listSongs, type ListSongsInput, type SongSummary } from "./songs";
+export {
+  listSongs,
+  getSongById,
+  type ListSongsInput,
+  type SongSummary,
+  type SongDetail,
+} from "./songs";
 
 export { closeDriver, getDriver, isNeo4jConfigured, type GraphStatus } from "./client";
 
