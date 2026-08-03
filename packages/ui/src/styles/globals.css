@@ -130,4 +130,14 @@
   html {
     @apply font-sans;
   }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  summary {
+    @apply cursor-pointer;
+  }
+  button:disabled,
+  [role="button"][aria-disabled="true"] {
+    @apply cursor-not-allowed;
+  }
 }
