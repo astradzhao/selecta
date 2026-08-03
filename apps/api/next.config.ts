@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@dj/db", "@dj/graph", "@dj/notes"],
+  transpilePackages: ["@selecta/db", "@selecta/graph", "@selecta/notes"],
 };
 
 export default nextConfig;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getDbStatus } from "@dj/db";
-import { getGraphStatus } from "@dj/graph";
+import { getDbStatus } from "@selecta/db";
+import { getGraphStatus } from "@selecta/graph";
 
 export async function GET() {
   return NextResponse.json({

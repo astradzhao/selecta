@@ -1,5 +1,5 @@
 {
-  "name": "@dj/ui",
+  "name": "@selecta/ui",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,15 +7,17 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "lint": "tsc --noEmit",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@selecta/eslint-config": "workspace:*",
+    "@types/react": "^19",
+    "eslint": "^9",
+    "typescript": "^5"
   },
   "peerDependencies": {
     "react": "^19",
     "react-dom": "^19"
-  },
-  "devDependencies": {
-    "@types/react": "^19",
-    "typescript": "^5"
   }
 }

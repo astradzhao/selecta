@@ -7,6 +7,8 @@ alwaysApply: true
 
 - `apps/web` (`@dj/web`) — Next.js UI deployable (port 3000)
 - `apps/api` (`@dj/api`) — Next.js API deployable (port 3001)
-- `packages/*` (`@dj/db`, `@dj/graph`, `@dj/notes`, `@dj/ui`) — shared libraries
+- `packages/*` (`@dj/db`, `@dj/graph`, `@dj/notes`, `@dj/ui`, `@dj/eslint-config`) — shared libraries
 
 Put deployable apps under `apps/`. Put shared domain/UI libraries under `packages/`. Import `@dj/*` from apps; do not duplicate domain logic inside app folders.
+
+Use **oxfmt** for formatting (`pnpm format` / `pnpm format:check`). Shared ESLint lives in `@dj/eslint-config`.
