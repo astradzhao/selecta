@@ -7,9 +7,14 @@ export {
   getNoteById,
   listNotes,
   updateNote,
+  requeueExtraction,
+  completeExtraction,
+  failExtraction,
   type CreateNoteInput,
   type ListNotesInput,
   type UpdateNoteInput,
+  type UpdateNoteResult,
+  type CompleteExtractionInput,
 } from "./notes";
 export {
   addNoteTrackLink,

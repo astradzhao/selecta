@@ -30,6 +30,14 @@ export {
   type ExtractionPromptMessage,
 } from "./extraction-prompt";
 
+export {
+  extractNoteProposals,
+  hasTransitionProposals,
+  providerFromModel,
+  type ExtractNoteProposalsInput,
+  type ExtractNoteProposalsResult,
+} from "./extract-note";
+
 export function getMixNotesStatus() {
   return {
     configured: true as const,

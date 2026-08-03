@@ -12,6 +12,7 @@
     "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
+    "ai": "^7.0.48",
     "zod": "^4.4.3"
   },
   "devDependencies": {

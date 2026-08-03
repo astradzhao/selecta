@@ -60,7 +60,8 @@ export function NotesList() {
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight">Notes</h1>
           <p className="text-muted-foreground max-w-xl text-sm">
-            Capture free-form mix notes. Save raw text first — linking and extraction come later.
+            Capture free-form mix notes. Saves are durable immediately; extraction runs
+            automatically in the background.
           </p>
         </div>
         <Button asChild>

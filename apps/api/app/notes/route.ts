@@ -1,7 +1,11 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { createNote, isNotesError, isPostgresConfigured, listNotes } from "@selecta/db";
 
+import { runNoteExtraction } from "@/lib/extraction";
 import { serializeNote } from "@/lib/notes";
+
+/** Allow AI Gateway extraction to finish after the create response. */
+export const maxDuration = 60;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -63,7 +67,7 @@ export async function GET(request: Request) {
 }
 
 /**
- * Create a free-form note from raw text alone.
+ * Create a free-form note from raw text alone, then extract in the background.
  * POST /notes
  */
 export async function POST(request: Request) {
@@ -104,6 +108,10 @@ export async function POST(request: Request) {
 
   try {
     const note = await createNote(body);
+    const version = note.extractionVersion;
+    after(() => {
+      void runNoteExtraction(note.id, version);
+    });
     return NextResponse.json({ ok: true, note: serializeNote(note, []) }, { status: 201 });
   } catch (error) {
     if (isNotesError(error)) {

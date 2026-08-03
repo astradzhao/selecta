@@ -1,11 +1,32 @@
 import { relations } from "drizzle-orm";
-import { jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  real,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 
 /**
  * Note lifecycle while NL extract → preview → graph commit.
  * Notes are free-form NL; track/transition links come from extraction, not FKs.
  */
 export const noteStatusEnum = pgEnum("note_status", ["draft", "preview", "committed"]);
+
+/**
+ * Async extraction pipeline state (DJ-34). Independent of lifecycle `note_status`.
+ * `resolving` means proposals are stored and awaiting mention resolution (DJ-35).
+ */
+export const noteExtractionStatusEnum = pgEnum("note_extraction_status", [
+  "idle",
+  "extracting",
+  "no_proposal",
+  "resolving",
+  "failed",
+]);
 
 /**
  * Single-user MVP Postgres surface.
@@ -21,6 +42,15 @@ export const notes = pgTable("notes", {
   /** Structured NL extraction preview / commit payload (filled by M3). */
   extraction: jsonb("extraction").$type<Record<string, unknown>>(),
   status: noteStatusEnum("status").notNull().default("draft"),
+  extractionStatus: noteExtractionStatusEnum("extraction_status").notNull().default("idle"),
+  /** Bumped when text changes; CAS key for idempotent extraction callbacks. */
+  extractionVersion: integer("extraction_version").notNull().default(0),
+  extractionError: text("extraction_error"),
+  extractionConfidence: real("extraction_confidence"),
+  extractionStartedAt: timestamp("extraction_started_at", { withTimezone: true }),
+  extractionFinishedAt: timestamp("extraction_finished_at", { withTimezone: true }),
+  /** Provider prefix from the model id (e.g. `openai` from `openai/gpt-4.1-mini`). */
+  provider: text("provider"),
   model: text("model"),
   promptVersion: text("prompt_version"),
   rawResponse: jsonb("raw_response").$type<Record<string, unknown>>(),
@@ -55,7 +85,9 @@ export const noteTrackLinks = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (table) => [uniqueIndex("note_track_links_note_id_track_id_uidx").on(table.noteId, table.trackId)],
+  (table) => [
+    uniqueIndex("note_track_links_note_id_track_id_uidx").on(table.noteId, table.trackId),
+  ],
 );
 
 export const notesRelations = relations(notes, ({ many }) => ({
@@ -72,5 +104,6 @@ export const noteTrackLinksRelations = relations(noteTrackLinks, ({ one }) => ({
 export type Note = typeof notes.$inferSelect;
 export type NewNote = typeof notes.$inferInsert;
 export type NoteStatus = (typeof noteStatusEnum.enumValues)[number];
+export type NoteExtractionStatus = (typeof noteExtractionStatusEnum.enumValues)[number];
 export type NoteTrackLink = typeof noteTrackLinks.$inferSelect;
 export type NewNoteTrackLink = typeof noteTrackLinks.$inferInsert;
