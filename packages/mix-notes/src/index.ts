@@ -1,5 +1,7 @@
 /** NL parse / preview / commit orchestration + schemas (M3). */
 
+import { EXTRACTION_PROMPT_VERSION } from "./extraction-prompt";
+
 export {
   NOTE_TYPES,
   TRANSITION_QUALITIES,
@@ -15,6 +17,23 @@ export {
   type ExtractionProposal,
 } from "./extraction-schema";
 
+export {
+  EXTRACTION_PROMPT_VERSION,
+  DEFAULT_EXTRACTION_MODEL,
+  EXTRACTION_PROMPT_EXAMPLES,
+  getExtractionPromptMeta,
+  buildExtractionSystemPrompt,
+  buildExtractionUserPrompt,
+  buildExtractionMessages,
+  type ExtractionPromptMeta,
+  type ExtractionPromptExample,
+  type ExtractionPromptMessage,
+} from "./extraction-prompt";
+
 export function getMixNotesStatus() {
-  return { configured: false as const, feature: "mix-notes" as const };
+  return {
+    configured: true as const,
+    feature: "mix-notes" as const,
+    promptVersion: EXTRACTION_PROMPT_VERSION,
+  };
 }
