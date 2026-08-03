@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { asFolder, asNamed, asSong } from "../mappers";
+import { asFolder, asNamed, asSong, decodeExternalIds, encodeExternalIds } from "../mappers";
 import {
   GraphWriteError,
   type CreateSongInput,
@@ -18,6 +18,9 @@ import { resolveSubgenreRef } from "./subgenre-writes";
  *
  * Genre = provider metadata; Subgenre = DJ musical label; Folder = playlist/folder.
  * Title + ≥1 artist required; genres/subgenres/folders optional.
+ *
+ * `externalIds` are stored on the Song as a string array (`provider:id`) because
+ * Neo4j node properties cannot be maps.
  */
 export async function createSong(input: CreateSongInput): Promise<CreateSongResult> {
   const title = requireTrimmed(input.title, "Title");
@@ -37,10 +40,7 @@ export async function createSong(input: CreateSongInput): Promise<CreateSongResu
   );
   const folders = await Promise.all((input.folders ?? []).map(resolveFolderRef));
   const externalIds = cleanExternalIds(input.externalIds);
-  const externalEntries = Object.entries(externalIds).map(([provider, providerId]) => ({
-    provider,
-    providerId,
-  }));
+  const externalIdEntries = encodeExternalIds(externalIds);
 
   const now = new Date().toISOString();
   const songId = randomUUID();
@@ -49,15 +49,15 @@ export async function createSong(input: CreateSongInput): Promise<CreateSongResu
     const existingResult = await tx.run(
       `
       OPTIONAL MATCH (existing:Song)
-      WHERE size($externalEntries) > 0
+      WHERE size($externalIdEntries) > 0
         AND any(
-          entry IN $externalEntries
-          WHERE existing.externalIds[entry.provider] = entry.providerId
+          entry IN $externalIdEntries
+          WHERE entry IN coalesce(existing.externalIds, [])
         )
       RETURN existing
       LIMIT 1
       `,
-      { externalEntries },
+      { externalIdEntries },
     );
     const existingNode = existingResult.records[0]?.get("existing") as
       | { properties: Record<string, unknown> }
@@ -68,6 +68,8 @@ export async function createSong(input: CreateSongInput): Promise<CreateSongResu
     let created: boolean;
 
     if (existingNode) {
+      const existingIds = decodeExternalIds(existingNode.properties.externalIds);
+      const mergedIds = encodeExternalIds({ ...existingIds, ...externalIds });
       const update = await tx.run(
         `
         MATCH (s:Song {id: $id})
@@ -80,7 +82,7 @@ export async function createSong(input: CreateSongInput): Promise<CreateSongResu
             s.musicalKey = coalesce($musicalKey, s.musicalKey),
             s.energy = coalesce($energy, s.energy),
             s.libraryId = coalesce($libraryId, s.libraryId),
-            s.externalIds = coalesce(s.externalIds, {}) + $externalIds
+            s.externalIds = $externalIds
         RETURN s { .* } AS song
         `,
         {
@@ -94,7 +96,7 @@ export async function createSong(input: CreateSongInput): Promise<CreateSongResu
           musicalKey: input.musicalKey ?? null,
           energy: input.energy ?? null,
           libraryId: input.libraryId ?? null,
-          externalIds,
+          externalIds: mergedIds,
         },
       );
       songProps = update.records[0]?.get("song") as Record<string, unknown>;
@@ -127,7 +129,7 @@ export async function createSong(input: CreateSongInput): Promise<CreateSongResu
           energy: input.energy ?? null,
           artworkUrl: input.artworkUrl ?? null,
           releaseDate: input.releaseDate ?? null,
-          externalIds,
+          externalIds: externalIdEntries,
           libraryId: input.libraryId ?? null,
           now,
         },
