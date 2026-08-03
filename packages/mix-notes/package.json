@@ -8,11 +8,17 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@selecta/eslint-config": "workspace:*",
+    "@types/node": "^20.19.43",
     "eslint": "^9",
+    "tsx": "^4.23.1",
     "typescript": "^5"
   }
 }
