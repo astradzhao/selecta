@@ -40,3 +40,23 @@ export function isTransitionIntent(value: string): value is TransitionIntent {
 export function isTransitionTechnique(value: string): value is TransitionTechnique {
   return techniqueSet.has(value);
 }
+
+/** Neo4j node labels (music-only graph). */
+export const NODE_LABELS = {
+  Song: "Song",
+  Artist: "Artist",
+  Genre: "Genre",
+  Cue: "Cue",
+} as const;
+
+export type NodeLabel = (typeof NODE_LABELS)[keyof typeof NODE_LABELS];
+
+/** Neo4j relationship types. */
+export const REL_TYPES = {
+  BY: "BY",
+  IN_GENRE: "IN_GENRE",
+  TRANSITION: "TRANSITION",
+  HAS_CUE: "HAS_CUE",
+} as const;
+
+export type RelType = (typeof REL_TYPES)[keyof typeof REL_TYPES];

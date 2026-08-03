@@ -1,4 +1,4 @@
-import { runCypher } from "./client";
+import { writeCypher } from "./cypher";
 
 /**
  * Idempotent Neo4j constraints + indexes (ARCHITECTURE §6.3).
@@ -28,7 +28,7 @@ export type EnsureConstraintsResult = {
 
 export async function ensureConstraints(): Promise<EnsureConstraintsResult> {
   for (const statement of GRAPH_SCHEMA_STATEMENTS) {
-    await runCypher(statement, {}, "WRITE");
+    await writeCypher(statement);
   }
   return {
     applied: GRAPH_SCHEMA_STATEMENTS.length,

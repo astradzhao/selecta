@@ -20,7 +20,11 @@ function getNeo4jConfig():
   return { configured: true, uri, user, password };
 }
 
-/** Neo4j driver singleton (HMR-safe). */
+export function isNeo4jConfigured(): boolean {
+  return getNeo4jConfig().configured;
+}
+
+/** Neo4j driver singleton (HMR-safe; suitable for Fluid Compute reuse). */
 export function getDriver(): Driver {
   const existing = globalForGraph.__selectaGraph?.driver;
   if (existing) {
@@ -48,25 +52,6 @@ export async function closeDriver(): Promise<void> {
   globalForGraph.__selectaGraph = undefined;
 }
 
-/**
- * Run parameterized Cypher. Never interpolate user input into the query string.
- */
-export async function runCypher<T = unknown>(
-  cypher: string,
-  params: Record<string, unknown> = {},
-  accessMode: "READ" | "WRITE" = "WRITE",
-): Promise<T[]> {
-  const session = getDriver().session({
-    defaultAccessMode: accessMode === "READ" ? neo4j.session.READ : neo4j.session.WRITE,
-  });
-  try {
-    const result = await session.run(cypher, params);
-    return result.records.map((record) => record.toObject() as T);
-  } finally {
-    await session.close();
-  }
-}
-
 export type GraphStatus = {
   configured: boolean;
   store: "neo4j";
@@ -74,28 +59,3 @@ export type GraphStatus = {
   error?: string;
   latencyMs?: number;
 };
-
-export async function getGraphStatus(): Promise<GraphStatus> {
-  if (!getNeo4jConfig().configured) {
-    return { configured: false, store: "neo4j" };
-  }
-
-  const started = performance.now();
-  try {
-    await runCypher("RETURN 1 AS ok", {}, "READ");
-    return {
-      configured: true,
-      store: "neo4j",
-      ok: true,
-      latencyMs: Math.round(performance.now() - started),
-    };
-  } catch (error) {
-    return {
-      configured: true,
-      store: "neo4j",
-      ok: false,
-      error: error instanceof Error ? error.message : String(error),
-      latencyMs: Math.round(performance.now() - started),
-    };
-  }
-}
