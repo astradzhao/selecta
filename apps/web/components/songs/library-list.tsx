@@ -56,7 +56,6 @@ export function LibraryList() {
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-2">
-          <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">Local crate</p>
           <h1 className="text-3xl font-semibold tracking-tight">Library</h1>
           <p className="text-muted-foreground max-w-xl text-sm">
             Search imported songs. Filter by Subgenre and Folder independently.
