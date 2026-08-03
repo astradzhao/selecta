@@ -1,5 +1,5 @@
 {
-  "name": "@dj/api",
+  "name": "@selecta/api",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,15 +10,15 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@dj/db": "workspace:*",
-    "@dj/graph": "workspace:*",
-    "@dj/notes": "workspace:*",
+    "@selecta/db": "workspace:*",
+    "@selecta/graph": "workspace:*",
+    "@selecta/notes": "workspace:*",
     "next": "16.2.12",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
-    "@dj/eslint-config": "workspace:*",
+    "@selecta/eslint-config": "workspace:*",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

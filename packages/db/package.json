@@ -1,5 +1,5 @@
 {
-  "name": "@dj/db",
+  "name": "@selecta/db",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@dj/eslint-config": "workspace:*",
+    "@selecta/eslint-config": "workspace:*",
     "eslint": "^9",
     "typescript": "^5"
   }

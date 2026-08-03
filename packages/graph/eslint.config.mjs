@@ -1,3 +1,3 @@
-import baseConfig from "@dj/eslint-config/base";
+import baseConfig from "@selecta/eslint-config/base";
 
 export default baseConfig;

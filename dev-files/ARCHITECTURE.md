@@ -1,4 +1,6 @@
-# DJ Graph Notes — Architecture Plan
+# Selecta — Architecture Plan
+
+<!-- Product name: Selecta. Repo may still be named dj-project; package scope is @selecta/*. -->
 
 > Status: planning only — no implementation yet  
 > Last updated: 2026-08-02  
@@ -627,15 +629,16 @@ Surface the **reason string** in UI (“HPF @ bar 16 · build hype · marked gre
 ## 13. Repository / project structure (locked monorepo)
 
 ```
-dj-project/
+selecta/                     # monorepo root (GitHub repo may still be dj-project)
   apps/
-    web/                     # Next.js UI (Vercel) — @dj/web
-    api/                     # Next.js API deployable (Vercel) — @dj/api
+    web/                     # Next.js UI (Vercel) — @selecta/web
+    api/                     # Next.js API deployable (Vercel) — @selecta/api
   packages/
-    db/                      # Postgres client, membership — @dj/db
-    graph/                   # Neo4j driver, Cypher, types — @dj/graph
-    notes/                   # parse/commit orchestration + Zod — @dj/notes
-    ui/                      # shadcn + shared UI — @dj/ui
+    db/                      # Postgres client, membership — @selecta/db
+    graph/                   # Neo4j driver, Cypher, types — @selecta/graph
+    notes/                   # parse/commit orchestration + Zod — @selecta/notes
+    ui/                      # shadcn + shared UI — @selecta/ui
+    eslint-config/           # shared ESLint — @selecta/eslint-config
   dev-files/                 # architecture, ADRs, prompts
 ```
 
@@ -766,7 +769,7 @@ The architecture is “right” if:
 ## Linear tracking
 
 - Team: **DJ Project**
-- Architecture doc: [DJ Graph Notes — Architecture Plan](https://linear.app/dj-project-astradzhao/document/dj-graph-notes-architecture-plan-01bfac2a798b)
+- Architecture doc: [Selecta — Architecture Plan](https://linear.app/dj-project-astradzhao/document/dj-graph-notes-architecture-plan-01bfac2a798b)
 - Architecture issue (done): [DJ-5](https://linear.app/dj-project-astradzhao/issue/DJ-5/architecture-plan-nl-neo4j-dj-notes-app)
 - **MVP project:** [MVP — NL → Graph → Live Mode](https://linear.app/dj-project-astradzhao/project/mvp-nl-graph-live-mode-08d4f2152899)
   - M0 [DJ-6](https://linear.app/dj-project-astradzhao/issue/DJ-6/m0-scaffold-nextjs-shadcn-vercel) → M1 [DJ-10](https://linear.app/dj-project-astradzhao/issue/DJ-10/m1-postgres-neo4j-data-layer) → M2 [DJ-8](https://linear.app/dj-project-astradzhao/issue/DJ-8/m2-song-library-with-artist-genre) → M3 [DJ-7](https://linear.app/dj-project-astradzhao/issue/DJ-7/m3-nl-parse-preview-commit-transitions) → M4 [DJ-11](https://linear.app/dj-project-astradzhao/issue/DJ-11/m4-live-mode-whats-next) → M5 [DJ-9](https://linear.app/dj-project-astradzhao/issue/DJ-9/m5-dogfood-seed-data-mvp-acceptance)

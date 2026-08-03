@@ -14,13 +14,13 @@ importers:
 
   apps/api:
     dependencies:
-      '@dj/db':
+      '@selecta/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@dj/graph':
+      '@selecta/graph':
         specifier: workspace:*
         version: link:../../packages/graph
-      '@dj/notes':
+      '@selecta/notes':
         specifier: workspace:*
         version: link:../../packages/notes
       next:
@@ -33,7 +33,7 @@ importers:
         specifier: 19.2.4
         version: 19.2.4(react@19.2.4)
     devDependencies:
-      '@dj/eslint-config':
+      '@selecta/eslint-config':
         specifier: workspace:*
         version: link:../../packages/eslint-config
       '@types/node':
@@ -54,16 +54,16 @@ importers:
 
   apps/web:
     dependencies:
-      '@dj/db':
+      '@selecta/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@dj/graph':
+      '@selecta/graph':
         specifier: workspace:*
         version: link:../../packages/graph
-      '@dj/notes':
+      '@selecta/notes':
         specifier: workspace:*
         version: link:../../packages/notes
-      '@dj/ui':
+      '@selecta/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       next:
@@ -76,7 +76,7 @@ importers:
         specifier: 19.2.4
         version: 19.2.4(react@19.2.4)
     devDependencies:
-      '@dj/eslint-config':
+      '@selecta/eslint-config':
         specifier: workspace:*
         version: link:../../packages/eslint-config
       '@tailwindcss/postcss':
@@ -103,7 +103,7 @@ importers:
 
   packages/db:
     devDependencies:
-      '@dj/eslint-config':
+      '@selecta/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
       eslint:
@@ -130,7 +130,7 @@ importers:
 
   packages/graph:
     devDependencies:
-      '@dj/eslint-config':
+      '@selecta/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
       eslint:
@@ -142,7 +142,7 @@ importers:
 
   packages/notes:
     devDependencies:
-      '@dj/eslint-config':
+      '@selecta/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
       eslint:
@@ -161,7 +161,7 @@ importers:
         specifier: ^19
         version: 19.2.4(react@19.2.4)
     devDependencies:
-      '@dj/eslint-config':
+      '@selecta/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
       '@types/react':

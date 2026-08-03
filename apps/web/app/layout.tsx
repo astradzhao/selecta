@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DJ Graph Notes",
-  description: "DJ note-taking app with graph-backed transitions and live mode",
+  title: "Selecta",
+  description: "DJ mix notes → graph → live what’s next",
 };
 
 export default function RootLayout({

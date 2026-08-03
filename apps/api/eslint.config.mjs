@@ -1,3 +1,3 @@
-import nextConfig from "@dj/eslint-config/next";
+import nextConfig from "@selecta/eslint-config/next";
 
 export default nextConfig;

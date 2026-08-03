@@ -42,14 +42,14 @@ Use **pnpm** only (`pnpm install`, `pnpm add`, `pnpm run …`). Do not introduce
 
 This is a pnpm workspace monorepo:
 
-- `apps/web` (`@dj/web`) — Next.js UI deployable (port 3000)
-- `apps/api` (`@dj/api`) — Next.js API deployable (port 3001)
-- `packages/db|graph|notes|ui` — shared libraries (`@dj/*`)
-- `packages/eslint-config` (`@dj/eslint-config`) — shared ESLint flat configs
+- `apps/web` (`@selecta/web`) — Next.js UI deployable (port 3000)
+- `apps/api` (`@selecta/api`) — Next.js API deployable (port 3001)
+- `packages/db|graph|notes|ui` — shared libraries (`@selecta/*`)
+- `packages/eslint-config` (`@selecta/eslint-config`) — shared ESLint flat configs
 
-Put deployable apps under `apps/`. Put shared domain/UI libraries under `packages/`. Prefer importing `@dj/*` from apps instead of duplicating logic.
+Put deployable apps under `apps/`. Put shared domain/UI libraries under `packages/`. Prefer importing `@selecta/*` from apps instead of duplicating logic.
 
-Root scripts: `pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm format`, `pnpm format:check`, `pnpm --filter @dj/web …`.
+Root scripts: `pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm format`, `pnpm format:check`, `pnpm --filter @selecta/web …`.
 
 **Formatting:** use **oxfmt** only (`pnpm format` / `pnpm format:check`). Do not add Prettier or Biome.
 

@@ -1,4 +1,4 @@
-# DJ Graph Notes
+# Selecta
 
 DJ-helping note-taking app: natural-language mix notes → Neo4j graph → live “what’s next” UX.
 
@@ -9,11 +9,11 @@ apps/
   web/          # Next.js UI (Vercel) — port 3000
   api/          # Next.js API deployable (Vercel) — port 3001
 packages/
-  db/           # Postgres client + membership (@dj/db)
-  graph/        # Neo4j / Cypher (@dj/graph)
-  notes/        # NL parse / preview / commit (@dj/notes)
-  ui/           # Shared UI / shadcn (@dj/ui)
-  eslint-config # Shared ESLint flat configs (@dj/eslint-config)
+  db/           # Postgres client + membership (@selecta/db)
+  graph/        # Neo4j / Cypher (@selecta/graph)
+  notes/        # NL parse / preview / commit (@selecta/notes)
+  ui/           # Shared UI / shadcn (@selecta/ui)
+  eslint-config # Shared ESLint flat configs (@selecta/eslint-config)
 dev-files/      # Architecture + planning docs
 ```
 
@@ -33,7 +33,7 @@ pnpm build
 ## Linting & formatting
 
 - **Formatter:** [oxfmt](https://oxc.rs/docs/guide/usage/formatter.html) (repo-wide). Config: `.oxfmtrc.json`. Use `pnpm format` locally; run `pnpm format:check` in CI.
-- **Linter:** ESLint via shared `@dj/eslint-config` (`./next` for apps, `./base` for packages). Formatting is left to oxfmt — do not add Prettier or Biome.
+- **Linter:** ESLint via shared `@selecta/eslint-config` (`./next` for apps, `./base` for packages). Formatting is left to oxfmt — do not add Prettier or Biome.
 
 ## Agent workflow
 
