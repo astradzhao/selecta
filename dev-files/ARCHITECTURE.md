@@ -1,6 +1,6 @@
 # Selecta — Architecture Plan
 
-<!-- Product name: Selecta. Repo may still be named dj-project; package scope is @selecta/*. -->
+<!-- Product + GitHub repo: selecta. Package scope: @selecta/*. -->
 
 > Status: planning only — no implementation yet  
 > Last updated: 2026-08-02  
@@ -629,7 +629,7 @@ Surface the **reason string** in UI (“HPF @ bar 16 · build hype · marked gre
 ## 13. Repository / project structure (locked monorepo)
 
 ```
-selecta/                     # monorepo root (GitHub repo may still be dj-project)
+selecta/                     # monorepo root (github.com/astradzhao/selecta)
   apps/
     web/                     # Next.js UI (Vercel) — @selecta/web
     api/                     # Next.js API deployable (Vercel) — @selecta/api
