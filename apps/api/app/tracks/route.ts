@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import {
-  createSong,
+  createTrack,
   isGraphWriteError,
   isNeo4jConfigured,
-  listSongs,
-  type CreateSongInput,
-  type CreateSongResult,
+  listTracks,
+  type CreateTrackInput,
+  type CreateTrackResult,
   type FolderRef,
   type NamedRef,
-  type SongSummary,
+  type TrackSummary,
 } from "@selecta/graph";
 import { CATALOG_PROVIDERS, type CatalogProviderId } from "@selecta/catalog";
 
@@ -23,7 +23,7 @@ type CatalogImportBody = {
   genres?: string[];
 };
 
-type CreateSongRequestBody = {
+type CreateTrackRequestBody = {
   /** Selected external-catalog hit (DJ-53). */
   catalog?: CatalogImportBody;
   title?: string;
@@ -169,7 +169,7 @@ function parseCatalog(value: unknown): CatalogImportBody | undefined {
   };
 }
 
-function parseBody(value: unknown): CreateSongRequestBody {
+function parseBody(value: unknown): CreateTrackRequestBody {
   if (!isRecord(value)) {
     throw new Error("JSON body must be an object.");
   }
@@ -190,7 +190,7 @@ function parseBody(value: unknown): CreateSongRequestBody {
   };
 }
 
-function toCreateInput(body: CreateSongRequestBody): CreateSongInput {
+function toCreateInput(body: CreateTrackRequestBody): CreateTrackInput {
   const catalog = body.catalog;
   const title = (body.title ?? catalog?.title ?? "").trim();
   const artists = (body.artists ?? catalog?.artists ?? [])
@@ -233,24 +233,24 @@ function toCreateInput(body: CreateSongRequestBody): CreateSongInput {
   };
 }
 
-function serializeSong(result: CreateSongResult | SongSummary, created?: boolean) {
+function serializeTrack(result: CreateTrackResult | TrackSummary, created?: boolean) {
   return {
-    id: result.song.id,
-    title: result.song.title,
+    id: result.track.id,
+    title: result.track.title,
     artists: result.artists,
     genres: result.genres,
     subgenres: result.subgenres,
     folders: result.folders,
-    artworkUrl: result.song.artworkUrl,
-    durationSec: result.song.durationSec,
-    releaseDate: result.song.releaseDate,
-    bpm: result.song.bpm,
-    musicalKey: result.song.musicalKey,
-    energy: result.song.energy,
-    externalIds: result.song.externalIds,
-    libraryId: result.song.libraryId,
-    createdAt: result.song.createdAt,
-    updatedAt: result.song.updatedAt,
+    artworkUrl: result.track.artworkUrl,
+    durationSec: result.track.durationSec,
+    releaseDate: result.track.releaseDate,
+    bpm: result.track.bpm,
+    musicalKey: result.track.musicalKey,
+    energy: result.track.energy,
+    externalIds: result.track.externalIds,
+    libraryId: result.track.libraryId,
+    createdAt: result.track.createdAt,
+    updatedAt: result.track.updatedAt,
     ...(created !== undefined ? { created } : {}),
   };
 }
@@ -267,8 +267,8 @@ function parseListLimit(raw: string | null): number | undefined {
 }
 
 /**
- * Search/list local library songs.
- * GET /songs?q=&subgenre=&subgenreId=&folder=&folderId=&limit=
+ * Search/list local library tracks.
+ * GET /tracks?q=&subgenre=&subgenreId=&folder=&folderId=&limit=
  */
 export async function GET(request: Request) {
   if (!isNeo4jConfigured()) {
@@ -284,7 +284,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   try {
-    const songs = await listSongs({
+    const tracks = await listTracks({
       query: searchParams.get("q") ?? undefined,
       subgenreId: searchParams.get("subgenreId") ?? undefined,
       subgenre: searchParams.get("subgenre") ?? undefined,
@@ -294,20 +294,20 @@ export async function GET(request: Request) {
     });
     return NextResponse.json({
       ok: true,
-      songs: songs.map((song) => serializeSong(song)),
+      tracks: tracks.map((track) => serializeTrack(track)),
     });
   } catch (error) {
-    console.error("list songs failed", error);
+    console.error("list tracks failed", error);
     return NextResponse.json(
-      { ok: false, error: "internal_error", message: "Failed to list songs." },
+      { ok: false, error: "internal_error", message: "Failed to list tracks." },
       { status: 500 },
     );
   }
 }
 
 /**
- * Import a catalog hit or manually create a song.
- * POST /songs
+ * Import a catalog hit or manually create a track.
+ * POST /tracks
  */
 export async function POST(request: Request) {
   if (!isNeo4jConfigured()) {
@@ -331,7 +331,7 @@ export async function POST(request: Request) {
     );
   }
 
-  let input: CreateSongInput;
+  let input: CreateTrackInput;
   try {
     input = toCreateInput(parseBody(json));
   } catch (error) {
@@ -346,9 +346,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await createSong(input);
+    const result = await createTrack(input);
     return NextResponse.json(
-      { ok: true, song: serializeSong(result, result.created) },
+      { ok: true, track: serializeTrack(result, result.created) },
       { status: result.created ? 201 : 200 },
     );
   } catch (error) {
@@ -359,9 +359,9 @@ export async function POST(request: Request) {
         { status },
       );
     }
-    console.error("create song failed", error);
+    console.error("create track failed", error);
     return NextResponse.json(
-      { ok: false, error: "internal_error", message: "Failed to create song." },
+      { ok: false, error: "internal_error", message: "Failed to create track." },
       { status: 500 },
     );
   }

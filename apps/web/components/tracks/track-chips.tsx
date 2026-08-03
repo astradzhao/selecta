@@ -2,7 +2,7 @@ import { Badge } from "@selecta/ui/components/badge";
 
 import type { ApiFolderNode, ApiNamedNode } from "@/lib/api";
 
-export function SongChips({
+export function TrackChips({
   subgenres,
   folders,
 }: {

@@ -3,17 +3,17 @@ import { and, asc, eq } from "drizzle-orm";
 import { getDb } from "./client";
 import { NotesError } from "./errors";
 import { getNoteById } from "./notes";
-import { noteSongLinks, type NoteSongLink } from "./schema";
+import { noteTrackLinks, type NoteTrackLink } from "./schema";
 
-export type AddNoteSongLinkInput = {
-  songId: string;
+export type AddNoteTrackLinkInput = {
+  trackId: string;
   role?: string | null;
 };
 
-function requireSongId(songId: string): string {
-  const trimmed = songId.trim();
+function requireTrackId(trackId: string): string {
+  const trimmed = trackId.trim();
   if (!trimmed) {
-    throw new NotesError("invalid_input", "songId is required.");
+    throw new NotesError("invalid_input", "trackId is required.");
   }
   return trimmed;
 }
@@ -24,8 +24,8 @@ function normalizeRole(role: string | null | undefined): string | null {
   return trimmed || null;
 }
 
-/** List manual song links for a note (stable order by createdAt). */
-export async function listNoteSongLinks(noteId: string): Promise<NoteSongLink[]> {
+/** List manual track links for a note (stable order by createdAt). */
+export async function listNoteTrackLinks(noteId: string): Promise<NoteTrackLink[]> {
   const note = await getNoteById(noteId);
   if (!note) {
     throw new NotesError("not_found", `Note "${noteId.trim()}" was not found.`);
@@ -33,40 +33,40 @@ export async function listNoteSongLinks(noteId: string): Promise<NoteSongLink[]>
 
   return getDb()
     .select()
-    .from(noteSongLinks)
-    .where(eq(noteSongLinks.noteId, note.id))
-    .orderBy(asc(noteSongLinks.createdAt));
+    .from(noteTrackLinks)
+    .where(eq(noteTrackLinks.noteId, note.id))
+    .orderBy(asc(noteTrackLinks.createdAt));
 }
 
 /**
- * Add a manual note → song link.
- * Caller must validate that `songId` exists in Neo4j before calling.
- * Idempotent for the same (noteId, songId): returns the existing row.
+ * Add a manual note → track link.
+ * Caller must validate that `trackId` exists in Neo4j before calling.
+ * Idempotent for the same (noteId, trackId): returns the existing row.
  */
-export async function addNoteSongLink(
+export async function addNoteTrackLink(
   noteId: string,
-  input: AddNoteSongLinkInput,
-): Promise<{ link: NoteSongLink; created: boolean }> {
+  input: AddNoteTrackLinkInput,
+): Promise<{ link: NoteTrackLink; created: boolean }> {
   const note = await getNoteById(noteId);
   if (!note) {
     throw new NotesError("not_found", `Note "${noteId.trim()}" was not found.`);
   }
 
-  const songId = requireSongId(input.songId);
+  const trackId = requireTrackId(input.trackId);
   const role = normalizeRole(input.role);
 
   const [existing] = await getDb()
     .select()
-    .from(noteSongLinks)
-    .where(and(eq(noteSongLinks.noteId, note.id), eq(noteSongLinks.songId, songId)))
+    .from(noteTrackLinks)
+    .where(and(eq(noteTrackLinks.noteId, note.id), eq(noteTrackLinks.trackId, trackId)))
     .limit(1);
 
   if (existing) {
     if (role !== existing.role) {
       const [updated] = await getDb()
-        .update(noteSongLinks)
+        .update(noteTrackLinks)
         .set({ role })
-        .where(eq(noteSongLinks.id, existing.id))
+        .where(eq(noteTrackLinks.id, existing.id))
         .returning();
       return { link: updated ?? existing, created: false };
     }
@@ -74,33 +74,33 @@ export async function addNoteSongLink(
   }
 
   const [row] = await getDb()
-    .insert(noteSongLinks)
-    .values({ noteId: note.id, songId, role })
+    .insert(noteTrackLinks)
+    .values({ noteId: note.id, trackId, role })
     .returning();
 
   if (!row) {
-    throw new NotesError("invalid_input", "Failed to create note song link.");
+    throw new NotesError("invalid_input", "Failed to create note track link.");
   }
   return { link: row, created: true };
 }
 
-/** Remove a manual note → song link. */
-export async function removeNoteSongLink(noteId: string, songId: string): Promise<void> {
+/** Remove a manual note → track link. */
+export async function removeNoteTrackLink(noteId: string, trackId: string): Promise<void> {
   const note = await getNoteById(noteId);
   if (!note) {
     throw new NotesError("not_found", `Note "${noteId.trim()}" was not found.`);
   }
 
-  const targetSongId = requireSongId(songId);
+  const targetTrackId = requireTrackId(trackId);
   const deleted = await getDb()
-    .delete(noteSongLinks)
-    .where(and(eq(noteSongLinks.noteId, note.id), eq(noteSongLinks.songId, targetSongId)))
-    .returning({ id: noteSongLinks.id });
+    .delete(noteTrackLinks)
+    .where(and(eq(noteTrackLinks.noteId, note.id), eq(noteTrackLinks.trackId, targetTrackId)))
+    .returning({ id: noteTrackLinks.id });
 
   if (deleted.length === 0) {
     throw new NotesError(
       "not_found",
-      `Song link "${targetSongId}" was not found on note "${note.id}".`,
+      `Track link "${targetTrackId}" was not found on note "${note.id}".`,
     );
   }
 }

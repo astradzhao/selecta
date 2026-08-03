@@ -7,8 +7,8 @@ import { Button } from "@selecta/ui/components/button";
 import { Label } from "@selecta/ui/components/label";
 import { Textarea } from "@selecta/ui/components/textarea";
 
-import { NoteSongLinks } from "@/components/notes/note-song-links";
-import { ApiClientError, getNote, updateNote, type ApiNote, type ApiNoteSongLink } from "@/lib/api";
+import { NoteTrackLinks } from "@/components/notes/note-track-links";
+import { ApiClientError, getNote, updateNote, type ApiNote, type ApiNoteTrackLink } from "@/lib/api";
 
 function formatTimestamp(iso: string): string {
   const date = new Date(iso);
@@ -22,7 +22,7 @@ function formatTimestamp(iso: string): string {
 export function NoteDetail({ noteId }: { noteId: string }) {
   const [note, setNote] = useState<ApiNote | null>(null);
   const [rawText, setRawText] = useState("");
-  const [songLinks, setSongLinks] = useState<ApiNoteSongLink[]>([]);
+  const [trackLinks, setTrackLinks] = useState<ApiNoteTrackLink[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -37,7 +37,7 @@ export function NoteDetail({ noteId }: { noteId: string }) {
         if (cancelled) return;
         setNote(response.note);
         setRawText(response.note.rawText);
-        setSongLinks(response.note.songLinks ?? []);
+        setTrackLinks(response.note.trackLinks ?? []);
         setLoadError(null);
       } catch (err) {
         if (cancelled) return;
@@ -74,7 +74,7 @@ export function NoteDetail({ noteId }: { noteId: string }) {
         const response = await updateNote(note.id, { rawText });
         setNote(response.note);
         setRawText(response.note.rawText);
-        setSongLinks(response.note.songLinks ?? songLinks);
+        setTrackLinks(response.note.trackLinks ?? trackLinks);
         setSaveError(null);
         setSaveMessage("Saved.");
       } catch (err) {
@@ -164,12 +164,12 @@ export function NoteDetail({ noteId }: { noteId: string }) {
         </div>
       </form>
 
-      <NoteSongLinks
+      <NoteTrackLinks
         noteId={note.id}
-        initialLinks={songLinks}
+        initialLinks={trackLinks}
         onLinksChange={(next) => {
-          setSongLinks(next);
-          setNote((current) => (current ? { ...current, songLinks: next } : current));
+          setTrackLinks(next);
+          setNote((current) => (current ? { ...current, trackLinks: next } : current));
         }}
       />
     </div>

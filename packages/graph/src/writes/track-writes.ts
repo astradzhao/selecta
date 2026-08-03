@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 
-import { asFolder, asNamed, asSong, decodeExternalIds, encodeExternalIds } from "../mappers";
+import { asFolder, asNamed, asTrack, decodeExternalIds, encodeExternalIds } from "../mappers";
 import {
   GraphWriteError,
-  type CreateSongInput,
-  type CreateSongResult,
+  type CreateTrackInput,
+  type CreateTrackResult,
   type GraphFolderNode,
   type GraphNamedNode,
 } from "../types";
@@ -13,16 +13,16 @@ import { cleanExternalIds, prepareVocab, requireTrimmed, runWrite } from "./shar
 import { resolveSubgenreRef } from "./subgenre-writes";
 
 /**
- * Create a Song (or reuse one matched by external provider id) and wire
+ * Create a Track (or reuse one matched by external provider id) and wire
  * Artist / Genre / Subgenre / Folder relationships.
  *
  * Genre = provider metadata; Subgenre = DJ musical label; Folder = playlist/folder.
  * Title + ≥1 artist required; genres/subgenres/folders optional.
  *
- * `externalIds` are stored on the Song as a string array (`provider:id`) because
+ * `externalIds` are stored on the Track as a string array (`provider:id`) because
  * Neo4j node properties cannot be maps.
  */
-export async function createSong(input: CreateSongInput): Promise<CreateSongResult> {
+export async function createTrack(input: CreateTrackInput): Promise<CreateTrackResult> {
   const title = requireTrimmed(input.title, "Title");
   const artistNames = (input.artists ?? []).map((name) => name.trim()).filter(Boolean);
   if (artistNames.length === 0) {
@@ -43,12 +43,12 @@ export async function createSong(input: CreateSongInput): Promise<CreateSongResu
   const externalIdEntries = encodeExternalIds(externalIds);
 
   const now = new Date().toISOString();
-  const songId = randomUUID();
+  const trackId = randomUUID();
 
   return runWrite(async (tx) => {
     const existingResult = await tx.run(
       `
-      OPTIONAL MATCH (existing:Song)
+      OPTIONAL MATCH (existing:Track)
       WHERE size($externalIdEntries) > 0
         AND any(
           entry IN $externalIdEntries
@@ -64,7 +64,7 @@ export async function createSong(input: CreateSongInput): Promise<CreateSongResu
       | null
       | undefined;
 
-    let songProps: Record<string, unknown>;
+    let trackProps: Record<string, unknown>;
     let created: boolean;
 
     if (existingNode) {
@@ -72,7 +72,7 @@ export async function createSong(input: CreateSongInput): Promise<CreateSongResu
       const mergedIds = encodeExternalIds({ ...existingIds, ...externalIds });
       const update = await tx.run(
         `
-        MATCH (s:Song {id: $id})
+        MATCH (s:Track {id: $id})
         SET s.title = $title,
             s.updatedAt = $now,
             s.artworkUrl = coalesce($artworkUrl, s.artworkUrl),
@@ -83,7 +83,7 @@ export async function createSong(input: CreateSongInput): Promise<CreateSongResu
             s.energy = coalesce($energy, s.energy),
             s.libraryId = coalesce($libraryId, s.libraryId),
             s.externalIds = $externalIds
-        RETURN s { .* } AS song
+        RETURN s { .* } AS track
         `,
         {
           id: existingNode.properties.id,
@@ -99,13 +99,13 @@ export async function createSong(input: CreateSongInput): Promise<CreateSongResu
           externalIds: mergedIds,
         },
       );
-      songProps = update.records[0]?.get("song") as Record<string, unknown>;
+      trackProps = update.records[0]?.get("track") as Record<string, unknown>;
       created = false;
     } else {
       const create = await tx.run(
         `
-        CREATE (s:Song {
-          id: $songId,
+        CREATE (s:Track {
+          id: $trackId,
           title: $title,
           bpm: $bpm,
           musicalKey: $musicalKey,
@@ -118,10 +118,10 @@ export async function createSong(input: CreateSongInput): Promise<CreateSongResu
           createdAt: $now,
           updatedAt: $now
         })
-        RETURN s { .* } AS song
+        RETURN s { .* } AS track
         `,
         {
-          songId,
+          trackId,
           title,
           bpm: input.bpm ?? null,
           musicalKey: input.musicalKey ?? null,
@@ -134,59 +134,59 @@ export async function createSong(input: CreateSongInput): Promise<CreateSongResu
           now,
         },
       );
-      songProps = create.records[0]?.get("song") as Record<string, unknown>;
+      trackProps = create.records[0]?.get("track") as Record<string, unknown>;
       created = true;
     }
 
-    const id = String(songProps.id);
+    const id = String(trackProps.id);
 
     await tx.run(
       `
-      MATCH (song:Song {id: $songId})
+      MATCH (track:Track {id: $trackId})
       FOREACH (artist IN $artists |
         MERGE (a:Artist {nameNormalized: artist.nameNormalized})
         ON CREATE SET a.id = artist.id, a.name = artist.name
-        MERGE (a)-[:BY]->(song)
+        MERGE (a)-[:BY]->(track)
       )
       FOREACH (genre IN $genres |
         MERGE (g:Genre {nameNormalized: genre.nameNormalized})
         ON CREATE SET g.id = genre.id, g.name = genre.name
-        MERGE (song)-[:IN_GENRE]->(g)
+        MERGE (track)-[:IN_GENRE]->(g)
       )
       FOREACH (subgenre IN $subgenres |
         MERGE (sg:Subgenre {nameNormalized: subgenre.nameNormalized})
         ON CREATE SET sg.id = subgenre.id, sg.name = subgenre.name
-        MERGE (song)-[:IN_SUBGENRE]->(sg)
+        MERGE (track)-[:IN_SUBGENRE]->(sg)
       )
       FOREACH (folder IN $folders |
         MERGE (f:Folder {nameNormalized: folder.nameNormalized})
         ON CREATE SET f.id = folder.id, f.name = folder.name, f.kind = folder.kind
         ON MATCH SET f.kind = coalesce(folder.kind, f.kind)
-        MERGE (song)-[:IN_FOLDER]->(f)
+        MERGE (track)-[:IN_FOLDER]->(f)
       )
       `,
-      { songId: id, artists, genres, subgenres, folders },
+      { trackId: id, artists, genres, subgenres, folders },
     );
 
     const linked = await tx.run(
       `
-      MATCH (song:Song {id: $songId})
-      OPTIONAL MATCH (artist:Artist)-[:BY]->(song)
-      OPTIONAL MATCH (song)-[:IN_GENRE]->(genre:Genre)
-      OPTIONAL MATCH (song)-[:IN_SUBGENRE]->(subgenre:Subgenre)
-      OPTIONAL MATCH (song)-[:IN_FOLDER]->(folder:Folder)
-      RETURN song { .* } AS song,
+      MATCH (track:Track {id: $trackId})
+      OPTIONAL MATCH (artist:Artist)-[:BY]->(track)
+      OPTIONAL MATCH (track)-[:IN_GENRE]->(genre:Genre)
+      OPTIONAL MATCH (track)-[:IN_SUBGENRE]->(subgenre:Subgenre)
+      OPTIONAL MATCH (track)-[:IN_FOLDER]->(folder:Folder)
+      RETURN track { .* } AS track,
              collect(DISTINCT artist { .id, .name, .nameNormalized }) AS artists,
              collect(DISTINCT genre { .id, .name, .nameNormalized }) AS genres,
              collect(DISTINCT subgenre { .id, .name, .nameNormalized }) AS subgenres,
              collect(DISTINCT folder { .id, .name, .nameNormalized, .kind }) AS folders
       `,
-      { songId: id },
+      { trackId: id },
     );
 
     const record = linked.records[0];
     return {
-      song: asSong(record.get("song") as Record<string, unknown>),
+      track: asTrack(record.get("track") as Record<string, unknown>),
       artists: ((record.get("artists") as GraphNamedNode[]) ?? [])
         .map((row) => asNamed(row))
         .filter((row): row is GraphNamedNode => row !== null),

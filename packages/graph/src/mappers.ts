@@ -1,6 +1,6 @@
 import { normalizeName } from "./normalize";
 import { isFolderKind, type FolderKind } from "./schema";
-import type { GraphFolderNode, GraphNamedNode, GraphSongNode, SongExternalIds } from "./types";
+import type { GraphFolderNode, GraphNamedNode, GraphTrackNode, TrackExternalIds } from "./types";
 
 export function asNamed(row: {
   id?: unknown;
@@ -60,7 +60,7 @@ export function decodeExternalIds(value: unknown): Record<string, string> {
   // Tolerate in-memory / mistaken map shapes (not valid Neo4j property values).
   if (value && typeof value === "object") {
     const decoded: Record<string, string> = {};
-    for (const [provider, providerId] of Object.entries(value as SongExternalIds)) {
+    for (const [provider, providerId] of Object.entries(value as TrackExternalIds)) {
       if (typeof provider === "string" && typeof providerId === "string") {
         const key = provider.trim();
         const id = providerId.trim();
@@ -73,7 +73,7 @@ export function decodeExternalIds(value: unknown): Record<string, string> {
   return {};
 }
 
-export function asSong(props: Record<string, unknown>): GraphSongNode {
+export function asTrack(props: Record<string, unknown>): GraphTrackNode {
   return {
     id: String(props.id),
     title: String(props.title ?? ""),

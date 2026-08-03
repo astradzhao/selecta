@@ -21,7 +21,7 @@ export async function mergeSubgenre(name: string): Promise<GraphNamedNode> {
   return row;
 }
 
-/** Resolve a Subgenre ref by id and/or name for song linking. */
+/** Resolve a Subgenre ref by id and/or name for track linking. */
 export async function resolveSubgenreRef(ref: NamedRef, label: string): Promise<VocabParams> {
   const id = ref.id?.trim();
   const name = ref.name?.trim();

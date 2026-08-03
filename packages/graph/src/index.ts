@@ -24,23 +24,23 @@ export {
   assertFolderKind,
   type NamedRef,
   type FolderRef,
-  type SongExternalIds,
-  type CreateSongInput,
-  type CreateSongResult,
+  type TrackExternalIds,
+  type CreateTrackInput,
+  type CreateTrackResult,
   type GraphNamedNode,
   type GraphFolderNode,
-  type GraphSongNode,
+  type GraphTrackNode,
 } from "./types";
 
-export { mergeArtist, mergeGenre, mergeSubgenre, mergeFolder, createSong } from "./writes";
+export { mergeArtist, mergeGenre, mergeSubgenre, mergeFolder, createTrack } from "./writes";
 
 export {
-  listSongs,
-  getSongById,
-  type ListSongsInput,
-  type SongSummary,
-  type SongDetail,
-} from "./songs";
+  listTracks,
+  getTrackById,
+  type ListTracksInput,
+  type TrackSummary,
+  type TrackDetail,
+} from "./tracks";
 
 export { closeDriver, getDriver, isNeo4jConfigured, type GraphStatus } from "./client";
 

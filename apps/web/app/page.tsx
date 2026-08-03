@@ -12,7 +12,7 @@ export default function Home() {
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">selecta</h1>
           <p className="text-muted-foreground max-w-xl text-base text-pretty sm:text-lg">
             Build your personal DJ graph just by writing notes for yourself. We&apos;ll build the
-            song selector for you.
+            track selector for you.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">

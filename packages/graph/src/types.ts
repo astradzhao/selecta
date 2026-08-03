@@ -13,9 +13,9 @@ export type FolderRef = NamedRef & {
 };
 
 /** Provider → external id map (e.g. `{ spotify: "…" }`). */
-export type SongExternalIds = Record<string, string>;
+export type TrackExternalIds = Record<string, string>;
 
-export type CreateSongInput = {
+export type CreateTrackInput = {
   title: string;
   /** At least one artist name required. */
   artists: string[];
@@ -25,7 +25,7 @@ export type CreateSongInput = {
   subgenres?: NamedRef[];
   /** Optional organizational containers (Folder + IN_FOLDER). */
   folders?: FolderRef[];
-  externalIds?: SongExternalIds;
+  externalIds?: TrackExternalIds;
   artworkUrl?: string | null;
   durationSec?: number | null;
   releaseDate?: string | null;
@@ -45,7 +45,7 @@ export type GraphFolderNode = GraphNamedNode & {
   kind: FolderKind | null;
 };
 
-export type GraphSongNode = {
+export type GraphTrackNode = {
   id: string;
   title: string;
   bpm: number | null;
@@ -60,13 +60,13 @@ export type GraphSongNode = {
   updatedAt: string;
 };
 
-export type CreateSongResult = {
-  song: GraphSongNode;
+export type CreateTrackResult = {
+  track: GraphTrackNode;
   artists: GraphNamedNode[];
   genres: GraphNamedNode[];
   subgenres: GraphNamedNode[];
   folders: GraphFolderNode[];
-  /** False when an existing song was matched by external provider id. */
+  /** False when an existing track was matched by external provider id. */
   created: boolean;
 };
 

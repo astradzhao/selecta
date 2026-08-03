@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
-import { getNoteById, isNotesError, isPostgresConfigured, removeNoteSongLink } from "@selecta/db";
+import { getNoteById, isNotesError, isPostgresConfigured, removeNoteTrackLink } from "@selecta/db";
 
-import { loadSerializedSongLinks, serializeNote } from "@/lib/notes";
+import { loadSerializedTrackLinks, serializeNote } from "@/lib/notes";
 
 type RouteContext = {
-  params: Promise<{ id: string; songId: string }>;
+  params: Promise<{ id: string; trackId: string }>;
 };
 
 /**
- * Remove a manual note → song link.
- * DELETE /notes/:id/songs/:songId
+ * Remove a manual note → track link.
+ * DELETE /notes/:id/tracks/:trackId
  */
 export async function DELETE(_request: Request, context: RouteContext) {
   if (!isPostgresConfigured()) {
@@ -23,28 +23,28 @@ export async function DELETE(_request: Request, context: RouteContext) {
     );
   }
 
-  const { id, songId } = await context.params;
+  const { id, trackId } = await context.params;
   if (!id?.trim()) {
     return NextResponse.json(
       { ok: false, error: "invalid_id", message: "Note id is required." },
       { status: 400 },
     );
   }
-  if (!songId?.trim()) {
+  if (!trackId?.trim()) {
     return NextResponse.json(
-      { ok: false, error: "invalid_id", message: "Song id is required." },
+      { ok: false, error: "invalid_id", message: "Track id is required." },
       { status: 400 },
     );
   }
 
   try {
-    await removeNoteSongLink(id, decodeURIComponent(songId));
+    await removeNoteTrackLink(id, decodeURIComponent(trackId));
     const note = await getNoteById(id);
-    const songLinks = note ? await loadSerializedSongLinks(note.id) : [];
+    const trackLinks = note ? await loadSerializedTrackLinks(note.id) : [];
     return NextResponse.json({
       ok: true,
-      songLinks,
-      ...(note ? { note: serializeNote(note, songLinks) } : {}),
+      trackLinks,
+      ...(note ? { note: serializeNote(note, trackLinks) } : {}),
     });
   } catch (error) {
     if (isNotesError(error)) {
@@ -53,9 +53,9 @@ export async function DELETE(_request: Request, context: RouteContext) {
         { status: error.code === "not_found" ? 404 : 400 },
       );
     }
-    console.error("remove note song link failed", error);
+    console.error("remove note track link failed", error);
     return NextResponse.json(
-      { ok: false, error: "internal_error", message: "Failed to unlink song from note." },
+      { ok: false, error: "internal_error", message: "Failed to unlink track from note." },
       { status: 500 },
     );
   }

@@ -1,10 +1,10 @@
 import { AppShell } from "@/components/app-shell";
-import { AddSongFlow } from "@/components/songs/add-song-flow";
+import { AddTrackFlow } from "@/components/tracks/add-track-flow";
 
-export default function AddSongPage() {
+export default function AddTrackPage() {
   return (
-    <AppShell currentPath="/songs/new">
-      <AddSongFlow />
+    <AppShell currentPath="/tracks/new">
+      <AddTrackFlow />
     </AppShell>
   );
 }

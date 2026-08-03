@@ -10,7 +10,7 @@ export type ApiFolderNode = ApiNamedNode & {
   kind: "folder" | "playlist" | "section" | null;
 };
 
-export type ApiSong = {
+export type ApiTrack = {
   id: string;
   title: string;
   artists: ApiNamedNode[];
@@ -52,7 +52,7 @@ export type FolderRefInput = NamedRefInput & {
   kind?: "folder" | "playlist" | "section";
 };
 
-export type CreateSongBody = {
+export type CreateTrackBody = {
   catalog?: {
     provider: string;
     providerId: string;
@@ -140,29 +140,29 @@ export async function searchCatalog(
   return apiFetch(`/catalog/search?${params}`);
 }
 
-export async function listSongs(
+export async function listTracks(
   input: {
     query?: string;
     subgenre?: string;
     folder?: string;
     limit?: number;
   } = {},
-): Promise<{ ok: true; songs: ApiSong[] }> {
+): Promise<{ ok: true; tracks: ApiTrack[] }> {
   const params = new URLSearchParams();
   if (input.query?.trim()) params.set("q", input.query.trim());
   if (input.subgenre?.trim()) params.set("subgenre", input.subgenre.trim());
   if (input.folder?.trim()) params.set("folder", input.folder.trim());
   if (input.limit) params.set("limit", String(input.limit));
   const qs = params.toString();
-  return apiFetch(`/songs${qs ? `?${qs}` : ""}`);
+  return apiFetch(`/tracks${qs ? `?${qs}` : ""}`);
 }
 
-export async function getSong(id: string): Promise<{ ok: true; song: ApiSong }> {
-  return apiFetch(`/songs/${encodeURIComponent(id)}`);
+export async function getTrack(id: string): Promise<{ ok: true; track: ApiTrack }> {
+  return apiFetch(`/tracks/${encodeURIComponent(id)}`);
 }
 
-export async function createSong(body: CreateSongBody): Promise<{ ok: true; song: ApiSong }> {
-  return apiFetch("/songs", {
+export async function createTrack(body: CreateTrackBody): Promise<{ ok: true; track: ApiTrack }> {
+  return apiFetch("/tracks", {
     method: "POST",
     body: JSON.stringify(body),
   });
@@ -170,13 +170,13 @@ export async function createSong(body: CreateSongBody): Promise<{ ok: true; song
 
 export type NoteStatus = "draft" | "preview" | "committed";
 
-export type ApiNoteSongLink = {
+export type ApiNoteTrackLink = {
   id: string;
-  songId: string;
+  trackId: string;
   role: string | null;
   createdAt: string;
   updatedAt: string;
-  song: {
+  track: {
     id: string;
     title: string;
     artists: ApiNamedNode[];
@@ -194,7 +194,7 @@ export type ApiNote = {
   rawResponse: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
-  songLinks?: ApiNoteSongLink[];
+  trackLinks?: ApiNoteTrackLink[];
 };
 
 export async function listNotes(
@@ -227,26 +227,26 @@ export async function updateNote(
   });
 }
 
-export async function addNoteSongLink(
+export async function addNoteTrackLink(
   noteId: string,
-  body: { songId: string; role?: string | null },
+  body: { trackId: string; role?: string | null },
 ): Promise<{
   ok: true;
-  songLink: ApiNoteSongLink;
-  songLinks: ApiNoteSongLink[];
+  trackLink: ApiNoteTrackLink;
+  trackLinks: ApiNoteTrackLink[];
   note?: ApiNote;
 }> {
-  return apiFetch(`/notes/${encodeURIComponent(noteId)}/songs`, {
+  return apiFetch(`/notes/${encodeURIComponent(noteId)}/tracks`, {
     method: "POST",
     body: JSON.stringify(body),
   });
 }
 
-export async function removeNoteSongLink(
+export async function removeNoteTrackLink(
   noteId: string,
-  songId: string,
-): Promise<{ ok: true; songLinks: ApiNoteSongLink[]; note?: ApiNote }> {
-  return apiFetch(`/notes/${encodeURIComponent(noteId)}/songs/${encodeURIComponent(songId)}`, {
+  trackId: string,
+): Promise<{ ok: true; trackLinks: ApiNoteTrackLink[]; note?: ApiNote }> {
+  return apiFetch(`/notes/${encodeURIComponent(noteId)}/tracks/${encodeURIComponent(trackId)}`, {
     method: "DELETE",
   });
 }

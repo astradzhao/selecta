@@ -35,7 +35,7 @@ export async function mergeFolder(input: {
   return row;
 }
 
-/** Resolve a Folder ref by id and/or name for song linking. */
+/** Resolve a Folder ref by id and/or name for track linking. */
 export async function resolveFolderRef(
   ref: FolderRef,
   index: number,

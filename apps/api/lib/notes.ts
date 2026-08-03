@@ -1,20 +1,20 @@
-import { listNoteSongLinks, type Note, type NoteSongLink } from "@selecta/db";
-import { getSongById, type SongDetail } from "@selecta/graph";
+import { listNoteTrackLinks, type Note, type NoteTrackLink } from "@selecta/db";
+import { getTrackById, type TrackDetail } from "@selecta/graph";
 
-export type SerializedSongSummary = {
+export type SerializedTrackSummary = {
   id: string;
   title: string;
   artists: Array<{ id: string; name: string; nameNormalized: string }>;
   artworkUrl: string | null;
 };
 
-export type SerializedNoteSongLink = {
+export type SerializedNoteTrackLink = {
   id: string;
-  songId: string;
+  trackId: string;
   role: string | null;
   createdAt: string;
   updatedAt: string;
-  song: SerializedSongSummary | null;
+  track: SerializedTrackSummary | null;
 };
 
 export type SerializedNote = {
@@ -27,19 +27,19 @@ export type SerializedNote = {
   rawResponse: Note["rawResponse"];
   createdAt: string;
   updatedAt: string;
-  songLinks?: SerializedNoteSongLink[];
+  trackLinks?: SerializedNoteTrackLink[];
 };
 
-function serializeSongSummary(detail: SongDetail): SerializedSongSummary {
+function serializeTrackSummary(detail: TrackDetail): SerializedTrackSummary {
   return {
-    id: detail.song.id,
-    title: detail.song.title,
+    id: detail.track.id,
+    title: detail.track.title,
     artists: detail.artists,
-    artworkUrl: detail.song.artworkUrl,
+    artworkUrl: detail.track.artworkUrl,
   };
 }
 
-export function serializeNote(note: Note, songLinks?: SerializedNoteSongLink[]): SerializedNote {
+export function serializeNote(note: Note, trackLinks?: SerializedNoteTrackLink[]): SerializedNote {
   return {
     id: note.id,
     rawText: note.rawText,
@@ -50,38 +50,38 @@ export function serializeNote(note: Note, songLinks?: SerializedNoteSongLink[]):
     rawResponse: note.rawResponse,
     createdAt: note.createdAt.toISOString(),
     updatedAt: note.updatedAt.toISOString(),
-    ...(songLinks !== undefined ? { songLinks } : {}),
+    ...(trackLinks !== undefined ? { trackLinks } : {}),
   };
 }
 
-export function serializeNoteSongLink(
-  link: NoteSongLink,
-  song: SerializedSongSummary | null,
-): SerializedNoteSongLink {
+export function serializeNoteTrackLink(
+  link: NoteTrackLink,
+  track: SerializedTrackSummary | null,
+): SerializedNoteTrackLink {
   return {
     id: link.id,
-    songId: link.songId,
+    trackId: link.trackId,
     role: link.role,
     createdAt: link.createdAt.toISOString(),
     updatedAt: link.updatedAt.toISOString(),
-    song,
+    track,
   };
 }
 
-/** Resolve manual links and attach Neo4j song summaries when available. */
-export async function loadSerializedSongLinks(noteId: string): Promise<SerializedNoteSongLink[]> {
-  const links = await listNoteSongLinks(noteId);
+/** Resolve manual links and attach Neo4j track summaries when available. */
+export async function loadSerializedTrackLinks(noteId: string): Promise<SerializedNoteTrackLink[]> {
+  const links = await listNoteTrackLinks(noteId);
   return Promise.all(
     links.map(async (link) => {
-      let song: SerializedSongSummary | null = null;
+      let track: SerializedTrackSummary | null = null;
       try {
-        const detail = await getSongById(link.songId);
-        song = detail ? serializeSongSummary(detail) : null;
+        const detail = await getTrackById(link.trackId);
+        track = detail ? serializeTrackSummary(detail) : null;
       } catch (error) {
-        console.error(`failed to resolve song ${link.songId} for note ${noteId}`, error);
-        song = null;
+        console.error(`failed to resolve track ${link.trackId} for note ${noteId}`, error);
+        track = null;
       }
-      return serializeNoteSongLink(link, song);
+      return serializeNoteTrackLink(link, track);
     }),
   );
 }

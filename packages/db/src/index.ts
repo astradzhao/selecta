@@ -12,9 +12,9 @@ export {
   type UpdateNoteInput,
 } from "./notes";
 export {
-  addNoteSongLink,
-  listNoteSongLinks,
-  removeNoteSongLink,
-  type AddNoteSongLinkInput,
-} from "./note-song-links";
+  addNoteTrackLink,
+  listNoteTrackLinks,
+  removeNoteTrackLink,
+  type AddNoteTrackLinkInput,
+} from "./note-track-links";
 export * from "./schema";

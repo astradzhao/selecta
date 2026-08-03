@@ -4,7 +4,7 @@ import neo4j, { type ManagedTransaction } from "neo4j-driver";
 
 import { getDriver } from "../client";
 import { normalizeName } from "../normalize";
-import { GraphWriteError, type SongExternalIds } from "../types";
+import { GraphWriteError, type TrackExternalIds } from "../types";
 
 export type VocabParams = {
   id: string;
@@ -29,7 +29,7 @@ export function prepareVocab(name: string, label: string): VocabParams {
   };
 }
 
-export function cleanExternalIds(externalIds: SongExternalIds | undefined): Record<string, string> {
+export function cleanExternalIds(externalIds: TrackExternalIds | undefined): Record<string, string> {
   if (!externalIds) {
     return {};
   }

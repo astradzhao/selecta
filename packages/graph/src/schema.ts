@@ -43,7 +43,7 @@ export function isTransitionTechnique(value: string): value is TransitionTechniq
 
 /**
  * Optional `kind` on Folder nodes — product copy only (not separate graph labels).
- * A song may belong to zero or more Folders via IN_FOLDER.
+ * A track may belong to zero or more Folders via IN_FOLDER.
  */
 export const FOLDER_KINDS = ["folder", "playlist", "section"] as const;
 
@@ -57,7 +57,7 @@ export function isFolderKind(value: string): value is FolderKind {
 
 /** Neo4j node labels (music-only graph). */
 export const NODE_LABELS = {
-  Song: "Song",
+  Track: "Track",
   Artist: "Artist",
   /** Provider catalog metadata (Spotify etc.) — not a substitute for Subgenre/Folder. */
   Genre: "Genre",
@@ -74,9 +74,9 @@ export type NodeLabel = (typeof NODE_LABELS)[keyof typeof NODE_LABELS];
 export const REL_TYPES = {
   BY: "BY",
   IN_GENRE: "IN_GENRE",
-  /** Song → Subgenre (zero or more). */
+  /** Track → Subgenre (zero or more). */
   IN_SUBGENRE: "IN_SUBGENRE",
-  /** Song → Folder (zero or more). */
+  /** Track → Folder (zero or more). */
   IN_FOLDER: "IN_FOLDER",
   TRANSITION: "TRANSITION",
   HAS_CUE: "HAS_CUE",

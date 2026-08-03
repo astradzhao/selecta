@@ -10,11 +10,11 @@
 
 ## 1. Product vision
 
-A **DJ-helping note-taking app** where DJs capture knowledge about songs and transitions in **natural language**. Those notes are automatically parsed into a **Neo4j graph** so that, during a live set, the DJ can update “I am on song X (around bar N)” and instantly see:
+A **DJ-helping note-taking app** where DJs capture knowledge about tracks and transitions in **natural language**. Those notes are automatically parsed into a **Neo4j graph** so that, during a live set, the DJ can update “I am on track X (around bar N)” and instantly see:
 
-- Which songs are good next
+- Which tracks are good next
 - Why each transition works (technique, timing, energy intent)
-- Intra-song opportunities (loops, hype builds, cool-downs) that are not song→song edges
+- Intra-track opportunities (loops, hype builds, cool-downs) that are not track→track edges
 
 **Near-term focus:** NL → structured graph notes + a live “what’s next” UX.  
 **Far-term (explicitly out of scope for v1):** music embeddings, auto-suggested paths, DJ software sync (Serato / Rekordbox / Traktor / VirtualDJ).
@@ -31,12 +31,12 @@ DJs accumulate tribal knowledge that is hard to reuse under pressure:
 
 | Knowledge type   | Example                                             | Graph shape                                |
 | ---------------- | --------------------------------------------------- | ------------------------------------------ |
-| Transition       | “A → B at bar 16 with HPF, great for building hype” | `Song -[:TRANSITION]-> Song` + edge props  |
-| Intra-song cue   | “At bar 32 on track A, 4-bar loop builds hype”      | `Song -[:HAS_CUE]-> Cue`                   |
-| Artist / catalog | “Other tracks by this artist”                       | `Artist -[:BY]-> Song`                     |
-| Genre            | “UKG / techno — multi-tag”                          | `Song -[:IN_GENRE]-> Genre` (many edges)   |
-| Song metadata    | BPM, key, energy                                    | `Song` **properties** (scalars)            |
-| Set context      | Current song + energy goal                          | Postgres session → Cypher over music graph |
+| Transition       | “A → B at bar 16 with HPF, great for building hype” | `Track -[:TRANSITION]-> Track` + edge props  |
+| Intra-track cue   | “At bar 32 on track A, 4-bar loop builds hype”      | `Track -[:HAS_CUE]-> Cue`                   |
+| Artist / catalog | “Other tracks by this artist”                       | `Artist -[:BY]-> Track`                     |
+| Genre            | “UKG / techno — multi-tag”                          | `Track -[:IN_GENRE]-> Genre` (many edges)   |
+| Track metadata    | BPM, key, energy                                    | `Track` **properties** (scalars)            |
+| Set context      | Current track + energy goal                          | Postgres session → Cypher over music graph |
 
 The product is **not** a DAW or mixer. It is a **knowledge + decision surface** for live performance.
 
@@ -50,7 +50,7 @@ The product is **not** a DAW or mixer. It is a **knowledge + decision surface** 
 4. **Intentional vocabulary, not rigid ontology** — seed controlled terms (`build_hype`, `cool_down`, `hpf`, `loop`) but allow free-form labels that can be normalized later.
 5. **Confirm before mutate (early)** — NL extraction returns a preview diff; user accepts into the graph. Auto-commit can come later once trust is high.
 6. **Music-only Neo4j** — users, notes, and sessions stay in Postgres; the graph is traversable musical knowledge.
-7. **Multi-tenant via membership** — Postgres library↔song IDs scope all Cypher (even if v1 UX is single-user).
+7. **Multi-tenant via membership** — Postgres library↔track IDs scope all Cypher (even if v1 UX is single-user).
 
 ---
 
@@ -60,30 +60,30 @@ The product is **not** a DAW or mixer. It is a **knowledge + decision surface** 
 
 | Store        | Owns                                                                                                                        | Does not own                       |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| **Postgres** | Users/auth, libraries, sessions, raw notes + extraction previews/commits, song↔user membership (`library_songs`), app audit | Music topology / mix relationships |
-| **Neo4j**    | Songs, artists, genres, transitions, cues, (later) intent/technique hubs & artist similarity                                | Users, notes, sessions, auth       |
+| **Postgres** | Users/auth, libraries, sessions, raw notes + extraction previews/commits, track↔user membership (`library_tracks`), app audit | Music topology / mix relationships |
+| **Neo4j**    | Tracks, artists, genres, transitions, cues, (later) intent/technique hubs & artist similarity                                | Users, notes, sessions, auth       |
 
-### Why not `(:User)-[:OWNS]->(:Song)` / `(:Note)`?
+### Why not `(:User)-[:OWNS]->(:Track)` / `(:Note)`?
 
 Those edges were tenancy scaffolding for an all-in-Neo4j design. They are **removed** because:
 
 1. Users, notes, and sessions are not musical concepts — they pollute traversal and mental model.
 2. Ownership/membership is a classic relational concern (library membership table in Postgres).
-3. Live/graph queries should read as “song → transition → song → artist → genre”, not “user → owns → …”.
+3. Live/graph queries should read as “track → transition → track → artist → genre”, not “user → owns → …”.
 
 ### How tenancy works with a music-only graph
 
-- Postgres `library_songs(library_id, song_id)` (and similar for cues if needed) defines which Neo4j song IDs a user can see/edit.
-- API always: auth → resolve allowed `song_id`s → Cypher with parameterized IDs.
-- Optional denormalized `libraryId` property on `Song`/`Cue` for defense-in-depth filtering — **not** a `User` node.
-- Artists/Genres are **shared vocabulary nodes** (MERGE by canonical name). Songs remain library-scoped; artists/genres are reusable hubs across a user’s library (and later across users if we ever share graphs).
+- Postgres `library_tracks(library_id, track_id)` (and similar for cues if needed) defines which Neo4j track IDs a user can see/edit.
+- API always: auth → resolve allowed `track_id`s → Cypher with parameterized IDs.
+- Optional denormalized `libraryId` property on `Track`/`Cue` for defense-in-depth filtering — **not** a `User` node.
+- Artists/Genres are **shared vocabulary nodes** (MERGE by canonical name). Tracks remain library-scoped; artists/genres are reusable hubs across a user’s library (and later across users if we ever share graphs).
 
 ```
 Postgres                         Neo4j (music only)
 ────────                         ─────────────────
-User ── Library                  Artist ──BY── Song ──IN_GENRE── Genre
+User ── Library                  Artist ──BY── Track ──IN_GENRE── Genre
            │                              │
-           │ library_songs                ├──TRANSITION──► Song
+           │ library_tracks               ├──TRANSITION──► Track
            │                              └──HAS_CUE──► Cue
          Note / Session
 ```
@@ -96,24 +96,24 @@ User ── Library                  Artist ──BY── Song ──IN_GENRE�
 
 ```
 Postgres:
-  User → Library → membership → songIds
+  User → Library → membership → trackIds
   Note (raw NL + extraction)
   Session (live runtime)
 
 Neo4j:
-  Artist ──[:BY]── Song ──[:IN_GENRE]── Genre
-  Song ──[:TRANSITION]──► Song
-  Song ──[:HAS_CUE]──► Cue
+  Artist ──[:BY]── Track ──[:IN_GENRE]── Genre
+  Track ──[:TRANSITION]──► Track
+  Track ──[:HAS_CUE]──► Cue
 ```
 
 ### 5.2 Node vs property decision rule
 
 Promote to a **node** when most of these are true:
 
-1. **Shared identity** — reused across many songs (Artist, Genre)
-2. **Traversal hub** — you want queries like “song → artist → other songs” or “genre → songs”
+1. **Shared identity** — reused across many tracks (Artist, Genre)
+2. **Traversal hub** — you want queries like “track → artist → other tracks” or “genre → tracks”
 3. **Own relationships later** — e.g. `(:Artist)-[:SIMILAR_TO]->(:Artist)`, `(:Genre)-[:RELATED_TO]->(:Genre)`
-4. **Many-to-many** — a song has multiple genres; encoding as a CSV property fights the graph
+4. **Many-to-many** — a track has multiple genres; encoding as a CSV property fights the graph
 5. **First-class UI object** — browsable/filterable entity, not just a field on a form
 
 Keep as a **property** when most of these are true:
@@ -126,21 +126,21 @@ Keep as a **property** when most of these are true:
 
 | Concept                                     | v1 shape                                                          | Why                                                     |
 | ------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------- |
-| Song                                        | **Node**                                                          | Central entity                                          |
-| Artist                                      | **Node** (required ≥1 via `BY`)                                   | Traverse song→artist→songs; future similarity           |
-| Genre                                       | **Node** + `IN_GENRE` edges (required ≥1)                         | Multi-genre; traverse genre→songs                       |
-| Cue                                         | **Node**                                                          | Time-anchored object with its own fields; many per song |
-| Transition                                  | **Relationship**                                                  | Directed mix fact between two songs                     |
-| BPM / key / energy / duration               | **Song properties**                                               | Scalars; filtering ok via indexes, not hubs             |
-| Title                                       | **Song property**                                                 | Identity string, not a hub                              |
+| Track                                        | **Node**                                                          | Central entity                                          |
+| Artist                                      | **Node** (required ≥1 via `BY`)                                   | Traverse track→artist→tracks; future similarity           |
+| Genre                                       | **Node** + `IN_GENRE` edges (required ≥1)                         | Multi-genre; traverse genre→tracks                       |
+| Cue                                         | **Node**                                                          | Time-anchored object with its own fields; many per track |
+| Transition                                  | **Relationship**                                                  | Directed mix fact between two tracks                     |
+| BPM / key / energy / duration               | **Track properties**                                               | Scalars; filtering ok via indexes, not hubs             |
+| Title                                       | **Track property**                                                 | Identity string, not a hub                              |
 | Transition bars / overlap / quality / notes | **Edge properties**                                               | Local to that mix instance                              |
 | Intent (`build_hype`, …)                    | **Edge/Cue property in v1** → optional **Intent node** in Phase 2 | Start simple; promote when faceting/analytics need hubs |
 | Technique (`hpf`, `bass_swap`, …)           | **Edge/Cue property in v1** → optional **Technique node** later   | Same as intent                                          |
 | User / Note / Session                       | **Postgres only**                                                 | Not musical graph                                       |
 
-**Rule of thumb:** if you would ever write “find all X connected through Y”, Y is probably a node. If you would write “filter songs where field = value”, it can stay a property.
+**Rule of thumb:** if you would ever write “find all X connected through Y”, Y is probably a node. If you would write “filter tracks where field = value”, it can stay a property.
 
-### 5.3 Song (Neo4j node)
+### 5.3 Track (Neo4j node)
 
 | Field         | Required    | Notes                                               |
 | ------------- | ----------- | --------------------------------------------------- |
@@ -153,12 +153,12 @@ Keep as a **property** when most of these are true:
 | `externalIds` | no          | Map/JSON-ish for Spotify, Beatport, Rekordbox later |
 | `libraryId`   | recommended | Defense-in-depth scope (mirrors Postgres)           |
 
-**Not song properties:** artist name, genre list — those are relationships.
+**Not track properties:** artist name, genre list — those are relationships.
 
-Creating a song requires:
+Creating a track requires:
 
-- ≥1 `(:Artist)-[:BY]->(:Song)` (primary artist first; features allowed as additional `BY` or later `FEATURES`)
-- ≥1 `(:Song)-[:IN_GENRE]->(:Genre)`
+- ≥1 `(:Artist)-[:BY]->(:Track)` (primary artist first; features allowed as additional `BY` or later `FEATURES`)
+- ≥1 `(:Track)-[:IN_GENRE]->(:Genre)`
 
 ### 5.4 Artist (Neo4j node)
 
@@ -171,12 +171,12 @@ Creating a song requires:
 Relationships:
 
 ```cypher
-(:Artist)-[:BY]->(:Song)                 // required for every song
+(:Artist)-[:BY]->(:Track)                 // required for every track
 // Phase 3+:
 (:Artist)-[:SIMILAR_TO {score?, notes?}]->(:Artist)
 ```
 
-Traversal example: current song → artist → other songs by same artist (excluding current), useful as Live Mode fallback when few transitions exist.
+Traversal example: current track → artist → other tracks by same artist (excluding current), useful as Live Mode fallback when few transitions exist.
 
 ### 5.5 Genre (Neo4j node)
 
@@ -189,16 +189,16 @@ Traversal example: current song → artist → other songs by same artist (exclu
 Relationships:
 
 ```cypher
-(:Song)-[:IN_GENRE]->(:Genre)            // multi-genre via multiple edges
+(:Track)-[:IN_GENRE]->(:Genre)            // multi-genre via multiple edges
 // Optional later:
 (:Genre)-[:RELATED_TO]->(:Genre)
 ```
 
-Direction note: either `Song-[:IN_GENRE]->Genre` or `Genre-[:HAS_SONG]->Song` works. Prefer **`Song-[:IN_GENRE]->Genre`** so song-centric queries stay outgoing from the current track; genre browse is just a reverse traverse.
+Direction note: either `Track-[:IN_GENRE]->Genre` or `Genre-[:HAS_SONG]->Track` works. Prefer **`Track-[:IN_GENRE]->Genre`** so track-centric queries stay outgoing from the current track; genre browse is just a reverse traverse.
 
 ### 5.6 Transition (edge)
 
-Directed relationship `(:Song)-[:TRANSITION]->(:Song)` with properties:
+Directed relationship `(:Track)-[:TRANSITION]->(:Track)` with properties:
 
 | Property                  | Example                  | Purpose                                 |
 | ------------------------- | ------------------------ | --------------------------------------- |
@@ -214,10 +214,10 @@ Directed relationship `(:Song)-[:TRANSITION]->(:Song)` with properties:
 
 Multiple transitions between the same pair are allowed (different techniques/intents).
 
-### 5.7 Intra-song cues (nodes)
+### 5.7 Intra-track cues (nodes)
 
 ```cypher
-(:Song)-[:HAS_CUE]->(:Cue {
+(:Track)-[:HAS_CUE]->(:Cue {
   id, bar, barEnd?, kind, intent, technique, notes, quality, sourceNoteId
 })
 ```
@@ -228,10 +228,10 @@ Example `kind` values: `loop_opportunity`, `hype_build`, `vocal_drop`, `breakdow
 
 | Field           | Description                              |
 | --------------- | ---------------------------------------- |
-| `currentSongId` | Now playing (Neo4j song id)              |
+| `currentTrackId` | Now playing (Neo4j track id)              |
 | `currentBar`    | Approximate position (manual for v1)     |
 | `energyGoal`    | Optional filter: build / cool / maintain |
-| `recentSongIds` | Avoid immediate repeats                  |
+| `recentTrackIds` | Avoid immediate repeats                  |
 | `setId`         | Optional grouping of a night             |
 
 ---
@@ -240,7 +240,7 @@ Example `kind` values: `loop_opportunity`, `hype_build`, `vocal_drop`, `breakdow
 
 ### 6.1 Node labels (music only)
 
-- `Song`
+- `Track`
 - `Artist`
 - `Genre`
 - `Cue`
@@ -251,31 +251,31 @@ Example `kind` values: `loop_opportunity`, `hype_build`, `vocal_drop`, `breakdow
 ### 6.2 Relationships
 
 ```cypher
-(:Artist)-[:BY]->(:Song)
-(:Song)-[:IN_GENRE]->(:Genre)
-(:Song)-[:TRANSITION {
+(:Artist)-[:BY]->(:Track)
+(:Track)-[:IN_GENRE]->(:Genre)
+(:Track)-[:TRANSITION {
   fromBar, toBar, technique, intent, quality, notes,
   barsOverlap, sourceNoteId, createdAt, updatedAt
-}]->(:Song)
-(:Song)-[:HAS_CUE]->(:Cue)
+}]->(:Track)
+(:Track)-[:HAS_CUE]->(:Cue)
 ```
 
 ### 6.3 Constraints & indexes
 
-- Unique `Song.id`, `Artist.id`, `Genre.id`, `Cue.id`
+- Unique `Track.id`, `Artist.id`, `Genre.id`, `Cue.id`
 - Unique `Artist.nameNormalized`, `Genre.nameNormalized` (global vocabulary)
-- Indexes on `Song.title`, `Song.bpm`, `Song.libraryId`
+- Indexes on `Track.title`, `Track.bpm`, `Track.libraryId`
 - Index on `TRANSITION.intent`, `TRANSITION.technique`
 - Index on `Cue.bar`, `Cue.kind`
 
 ### 6.4 Example Cypher — live “what’s next”
 
 ```cypher
-MATCH (current:Song {id: $currentSongId})
-MATCH (current)-[t:TRANSITION]->(next:Song)
+MATCH (current:Track {id: $currentTrackId})
+MATCH (current)-[t:TRANSITION]->(next:Track)
 WHERE ($intent IS NULL OR t.intent = $intent)
-  AND NOT next.id IN $recentSongIds
-  AND next.id IN $allowedSongIds   // from Postgres membership
+  AND NOT next.id IN $recentTrackIds
+  AND next.id IN $allowedTrackIds   // from Postgres membership
 RETURN next, t
 ORDER BY
   CASE t.quality WHEN 'great' THEN 0 WHEN 'ok' THEN 1 ELSE 2 END,
@@ -286,9 +286,9 @@ LIMIT 20
 ### 6.5 Example — same-artist fallback
 
 ```cypher
-MATCH (current:Song {id: $currentSongId})<-[:BY]-(a:Artist)-[:BY]->(other:Song)
+MATCH (current:Track {id: $currentTrackId})<-[:BY]-(a:Artist)-[:BY]->(other:Track)
 WHERE other.id <> current.id
-  AND other.id IN $allowedSongIds
+  AND other.id IN $allowedTrackIds
 RETURN DISTINCT other, a
 LIMIT 10
 ```
@@ -296,7 +296,7 @@ LIMIT 10
 ### 6.6 Example — cues near current bar
 
 ```cypher
-MATCH (s:Song {id: $currentSongId})-[:HAS_CUE]->(c:Cue)
+MATCH (s:Track {id: $currentTrackId})-[:HAS_CUE]->(c:Cue)
 WHERE c.bar >= $currentBar - 8 AND c.bar <= $currentBar + 32
 RETURN c
 ORDER BY c.bar ASC
@@ -305,9 +305,9 @@ ORDER BY c.bar ASC
 ### 6.7 Example — genre neighborhood
 
 ```cypher
-MATCH (current:Song {id: $currentSongId})-[:IN_GENRE]->(g:Genre)<-[:IN_GENRE]-(other:Song)
+MATCH (current:Track {id: $currentTrackId})-[:IN_GENRE]->(g:Genre)<-[:IN_GENRE]-(other:Track)
 WHERE other.id <> current.id
-  AND other.id IN $allowedSongIds
+  AND other.id IN $allowedTrackIds
 RETURN other, collect(DISTINCT g.name) AS sharedGenres
 LIMIT 20
 ```
@@ -321,7 +321,7 @@ LIMIT 20
 Two complementary input surfaces:
 
 1. **Quick capture** — single text box: “Transition A into B at 16 with HPF, builds hype”
-2. **Structured assist** — optional form fields after parse (song pickers, bar numbers, intent chips)
+2. **Structured assist** — optional form fields after parse (track pickers, bar numbers, intent chips)
 
 Keep raw text forever; show a **proposed graph diff** before commit.
 
@@ -331,13 +331,13 @@ Keep raw text forever; show a **proposed graph diff** before commit.
 [Raw note text]
       │
       ▼
-1. Preprocess (trim, song alias resolution hints)
+1. Preprocess (trim, track alias resolution hints)
       │
       ▼
 2. LLM structured extraction → JSON schema
       │
       ▼
-3. Entity resolution (match/create Song nodes)
+3. Entity resolution (match/create Track nodes)
       │
       ▼
 4. Validation + conflict checks
@@ -353,10 +353,10 @@ Keep raw text forever; show a **proposed graph diff** before commit.
 
 ```json
 {
-  "noteType": "transition | cue | song_note | mixed",
-  "songs": [
+  "noteType": "transition | cue | track_note | mixed",
+  "tracks": [
     {
-      "mention": "song A",
+      "mention": "track A",
       "resolvedId": null,
       "titleHint": "...",
       "artists": [{ "mention": "Artist Name", "resolvedId": null }],
@@ -365,8 +365,8 @@ Keep raw text forever; show a **proposed graph diff** before commit.
   ],
   "transitions": [
     {
-      "fromMention": "song A",
-      "toMention": "song B",
+      "fromMention": "track A",
+      "toMention": "track B",
       "fromBar": 16,
       "toBar": null,
       "technique": "high_pass_filter",
@@ -377,7 +377,7 @@ Keep raw text forever; show a **proposed graph diff** before commit.
   ],
   "cues": [
     {
-      "songMention": "song A",
+      "trackMention": "track A",
       "bar": 32,
       "barEnd": 36,
       "kind": "loop_opportunity",
@@ -386,7 +386,7 @@ Keep raw text forever; show a **proposed graph diff** before commit.
       "notes": "..."
     }
   ],
-  "songUpdates": [{ "songMention": "song A", "bpm": 128, "energy": 0.8 }],
+  "trackUpdates": [{ "trackMention": "track A", "bpm": 128, "energy": 0.8 }],
   "confidence": 0.0,
   "ambiguities": ["Which 'Midnight' track?", "Genre 'house' vs 'tech house'?"]
 }
@@ -394,7 +394,7 @@ Keep raw text forever; show a **proposed graph diff** before commit.
 
 ### 7.4 Ambiguity handling
 
-- Fuzzy song match → picker UI
+- Fuzzy track match → picker UI
 - Missing bars/technique → allow partial save
 - Low confidence → force confirm
 - Mixed notes (transition + cue) → multi-op commit in one transaction
@@ -404,7 +404,7 @@ Keep raw text forever; show a **proposed graph diff** before commit.
 - Use structured output (JSON schema) via AI SDK / gateway
 - Keep prompts versioned; store `model`, `promptVersion`, `rawResponse` on `Note`
 - Do **not** require AI for Live Mode queries — those are pure Cypher
-- Future: embeddings on songs/transitions for “similar vibe” suggestions
+- Future: embeddings on tracks/transitions for “similar vibe” suggestions
 
 ---
 
@@ -473,7 +473,7 @@ Live Mode must feel instant. Design rules:
 1. **No LLM on Live queries** — pure Postgres membership + Neo4j Cypher.
 2. **Minimize hops** — browser → Next server → DBs. Never browser → API#2 → Neo4j.
 3. **Reuse connections** — Neo4j driver + PG pool as module singletons; Fluid Compute instance reuse keeps pools warm.
-4. **Tight Cypher** — parameterized queries, indexes on `Song.id`, `TRANSITION.intent`, `Cue.bar`; return only fields Live UI needs.
+4. **Tight Cypher** — parameterized queries, indexes on `Track.id`, `TRANSITION.intent`, `Cue.bar`; return only fields Live UI needs.
 5. **Parallelize independent reads** — e.g. `Promise.all` for outbound transitions + nearby cues (+ optional same-artist fallback).
 6. **Cache membership allow-list briefly** in the request/server scope (not a separate Redis unless needed).
 7. **Prefer Server Actions / RSC where they cut round-trips**; use Route Handlers for clear JSON endpoints (Live refresh).
@@ -485,7 +485,7 @@ Target UX budget (guideline): Live “what’s next” **p95 &lt; 200–300ms** 
 
 Keep code clean with folders/modules — not separate deployables:
 
-1. **`library`** — song/artist/genre CRUD orchestration
+1. **`library`** — track/artist/genre CRUD orchestration
 2. **`notes`** — raw note storage (PG), parse, preview, commit
 3. **`graph`** — Neo4j driver, Cypher builders, schema constants
 4. **`live`** — session (PG) + next-options aggregation
@@ -499,11 +499,11 @@ UI uses **shadcn** primitives (`Button`, `Command`, `Dialog`, `Input`, etc.). Li
 | ------ | ------------------------- | --------------------------------------------- |
 | `POST` | `/api/notes/parse`        | NL → structured preview (no write)            |
 | `POST` | `/api/notes/commit`       | Apply accepted preview to Neo4j + PG note row |
-| `GET`  | `/api/songs`              | Search/list (membership-scoped)               |
-| `POST` | `/api/songs`              | Manual create (Artist + Genre required)       |
-| `GET`  | `/api/songs/:id`          | Song + cues + outbound transitions            |
-| `GET`  | `/api/live/next`          | Session → ranked next songs + nearby cues     |
-| `PUT`  | `/api/live/session`       | Update current song/bar/intent filter         |
+| `GET`  | `/api/tracks`              | Search/list (membership-scoped)               |
+| `POST` | `/api/tracks`              | Manual create (Artist + Genre required)       |
+| `GET`  | `/api/tracks/:id`          | Track + cues + outbound transitions            |
+| `GET`  | `/api/live/next`          | Session → ranked next tracks + nearby cues     |
+| `PUT`  | `/api/live/session`       | Update current track/bar/intent filter         |
 | `GET`  | `/api/graph/neighborhood` | Optional explorer (prep mode)                 |
 
 ---
@@ -515,26 +515,26 @@ UI uses **shadcn** primitives (`Button`, `Command`, `Dialog`, `Input`, etc.). Li
 1. **Library / Notes mode** (prep)
    - Capture NL notes
    - Review extraction diffs
-   - Browse songs, edit transitions, inspect graph neighborhood
+   - Browse tracks, edit transitions, inspect graph neighborhood
 
 2. **Live mode** (performance)
-   - Big current-song selector
+   - Big current-track selector
    - Optional bar stepper (`-8 / +8` or number pad)
    - Intent chips: Build hype · Cool down · Maintain · Drop
-   - Primary panel: **Next songs** (title, why, technique, fromBar)
+   - Primary panel: **Next tracks** (title, why, technique, fromBar)
    - Secondary panel: **Do this now** (cues near current bar)
-   - One-tap: “Play next” → advances session current song
+   - One-tap: “Play next” → advances session current track
 
 ### 9.2 Live Mode interaction loop
 
 ```
-Set current song → (optional) set bar / intent
+Set current track → (optional) set bar / intent
         │
         ▼
 Query graph for outbound TRANSITION + nearby CUE
         │
         ▼
-DJ picks a next song OR executes a cue
+DJ picks a next track OR executes a cue
         │
         ▼
 Update session (current = chosen next) → repeat
@@ -544,7 +544,7 @@ Update session (current = chosen next) → repeat
 
 - Thumb-friendly; high contrast; minimal chrome
 - Prefer 1 current context + 1 decision list (not a dashboard of widgets)
-- Offline/degraded: cache last neighborhood for current song (phase 2)
+- Offline/degraded: cache last neighborhood for current track (phase 2)
 - Mistaps are costly mid-set — confirm destructive edits only in Library mode
 
 ### 9.4 Library note review
@@ -552,7 +552,7 @@ Update session (current = chosen next) → repeat
 Show a side-by-side:
 
 - Left: original text
-- Right: proposed ops (`CREATE Song`, `MERGE TRANSITION`, `CREATE Cue`)
+- Right: proposed ops (`CREATE Track`, `MERGE TRANSITION`, `CREATE Cue`)
 - Actions: Accept all · Edit fields · Reject
 
 ---
@@ -572,7 +572,7 @@ sequenceDiagram
   DJ->>UI: Paste/type note
   UI->>API: POST /notes/parse
   API->>LLM: Extract structured JSON
-  LLM-->>API: transitions/cues/songs + ambiguities
+  LLM-->>API: transitions/cues/tracks + ambiguities
   API->>Neo4j: Read-only entity resolution
   API-->>UI: Preview diff
   DJ->>UI: Confirm / edit
@@ -590,13 +590,13 @@ sequenceDiagram
   participant API
   participant Neo4j
 
-  DJ->>LiveUI: Select current song (+ bar, intent)
+  DJ->>LiveUI: Select current track (+ bar, intent)
   LiveUI->>API: PUT /live/session
   LiveUI->>API: GET /live/next
   API->>Neo4j: TRANSITION + CUE queries
   Neo4j-->>API: Candidates
   API-->>LiveUI: Ranked next + nearby cues
-  DJ->>LiveUI: Choose next song
+  DJ->>LiveUI: Choose next track
   LiveUI->>API: PUT /live/session (advance)
 ```
 
@@ -618,9 +618,9 @@ Surface the **reason string** in UI (“HPF @ bar 16 · build hype · marked gre
 
 ## 12. Security, tenancy, and trust
 
-- Tenancy lives in **Postgres** (library membership). Cypher receives an allow-list of song IDs (and optional `libraryId` property filter) — never a `User` node walk.
+- Tenancy lives in **Postgres** (library membership). Cypher receives an allow-list of track IDs (and optional `libraryId` property filter) — never a `User` node walk.
 - Never interpolate user strings into Cypher — parameterized queries only.
-- LLM outputs are untrusted: validate against schema; whitelist enums where possible; require resolved Artist + ≥1 Genre before song commit.
+- LLM outputs are untrusted: validate against schema; whitelist enums where possible; require resolved Artist + ≥1 Genre before track commit.
 - Soft-delete or archive transitions rather than hard-delete mid-set.
 - Export/import (JSON / Cypher dump) as a later reliability feature.
 
@@ -665,23 +665,23 @@ Suggested early `dev-files/` companions (later, not now):
 
 ### Phase 1 — MVP vertical slice
 
-**Goal:** Write a transition note → see it as a next-song option in Live Mode.
+**Goal:** Write a transition note → see it as a next-track option in Live Mode.
 
 1. Auth + Postgres library membership
-2. Manual song create with **required Artist + ≥1 Genre** (Neo4j nodes/edges)
+2. Manual track create with **required Artist + ≥1 Genre** (Neo4j nodes/edges)
 3. NL parse → preview → commit for **transitions only**
-4. Neo4j write/read of `Song` / `Artist` / `Genre` / `TRANSITION`
-5. Live Mode: set current song → list outbound transitions → advance
+4. Neo4j write/read of `Track` / `Artist` / `Genre` / `TRANSITION`
+5. Live Mode: set current track → list outbound transitions → advance
 6. Bonus fallback: same-artist suggestions when transitions are sparse
 
 **Success metric:** A DJ can encode 10 transitions and run a short practice set using only Live Mode.
 
 ### Phase 2 — Cues & richer notes
 
-1. Intra-song `Cue` extraction + Live “do this now”
+1. Intra-track `Cue` extraction + Live “do this now”
 2. Intent/technique chips + filters
-3. Song property updates via NL (“this track is 124 BPM, peak energy”)
-4. Duplicate song merge / aliases
+3. Track property updates via NL (“this track is 124 BPM, peak energy”)
+4. Duplicate track merge / aliases
 
 ### Phase 3 — Graph UX & quality
 
@@ -692,14 +692,14 @@ Suggested early `dev-files/` companions (later, not now):
 
 ### Phase 4 — Intelligence (future)
 
-1. Embeddings over songs + transition notes
+1. Embeddings over tracks + transition notes
 2. Path suggestions for a target energy arc
 3. Semi-automatic extraction without confirm for high-confidence notes
 
 ### Phase 5 — DJ software integrations (future)
 
 1. Read now-playing from Rekordbox/Serato/etc.
-2. Auto-update session current song
+2. Auto-update session current track
 3. Optional bidirectional cues (non-blocking; treat as adapter layer)
 
 ---
@@ -716,7 +716,7 @@ Suggested early `dev-files/` companions (later, not now):
 | Auto-commit NL vs confirm      | Speed vs trust                      | Confirm in Phases 1–2                                            |
 | Cue as node vs properties      | Flexibility vs simplicity           | Cue nodes                                                        |
 | Intent/Technique               | Edge props vs nodes                 | Props in v1; promote to nodes if faceting needs hubs             |
-| Artist uniqueness              | Per-library vs global MERGE         | Global `nameNormalized` MERGE; songs stay library-scoped         |
+| Artist uniqueness              | Per-library vs global MERGE         | Global `nameNormalized` MERGE; tracks stay library-scoped         |
 | Bar tracking                   | Manual vs synced                    | Manual stepper in v1                                             |
 | Multi-device live              | Phone + laptop                      | PWA-friendly Live Mode early                                     |
 | Ontology strictness            | Enums vs free text                  | Hybrid: seeded enums + `notes` free text                         |
@@ -725,7 +725,7 @@ Suggested early `dev-files/` companions (later, not now):
 ### Open product questions
 
 1. Single-DJ personal tool first, or shared/collaborative libraries later?
-2. Do we need set planning (ordered playlists) in MVP, or only reactive next-song?
+2. Do we need set planning (ordered playlists) in MVP, or only reactive next-track?
 3. How important is key/BPM compatibility in v1 vs pure human-encoded transitions?
 4. Preferred booth device: phone, tablet, or laptop?
 5. Should failed transitions be first-class (`quality: risky/fail`) from day one?
@@ -750,7 +750,7 @@ The architecture is “right” if:
 
 1. A plain-English transition becomes a queryable edge within one confirm action.
 2. Live Mode answers “what’s next?” in one screen with reasons.
-3. Intra-song cues don’t pollute song→song topology.
+3. Intra-track cues don’t pollute track→track topology.
 4. Future embedding/DJ-software features can attach without rewriting the graph core.
 5. Raw notes remain recoverable for re-extraction when the schema evolves.
 
@@ -772,28 +772,28 @@ The architecture is “right” if:
 - Architecture doc: [Selecta — Architecture Plan](https://linear.app/dj-project-astradzhao/document/dj-graph-notes-architecture-plan-01bfac2a798b)
 - Architecture issue (done): [DJ-5](https://linear.app/dj-project-astradzhao/issue/DJ-5/architecture-plan-nl-neo4j-dj-notes-app)
 - **MVP project:** [MVP — NL → Graph → Live Mode](https://linear.app/dj-project-astradzhao/project/mvp-nl-graph-live-mode-08d4f2152899)
-  - M0 [DJ-6](https://linear.app/dj-project-astradzhao/issue/DJ-6/m0-scaffold-nextjs-shadcn-vercel) → M1 [DJ-10](https://linear.app/dj-project-astradzhao/issue/DJ-10/m1-postgres-neo4j-data-layer) → M2 [DJ-8](https://linear.app/dj-project-astradzhao/issue/DJ-8/m2-song-library-with-artist-genre) → M3 [DJ-7](https://linear.app/dj-project-astradzhao/issue/DJ-7/m3-nl-parse-preview-commit-transitions) → M4 [DJ-11](https://linear.app/dj-project-astradzhao/issue/DJ-11/m4-live-mode-whats-next) → M5 [DJ-9](https://linear.app/dj-project-astradzhao/issue/DJ-9/m5-dogfood-seed-data-mvp-acceptance)
+  - M0 [DJ-6](https://linear.app/dj-project-astradzhao/issue/DJ-6/m0-scaffold-nextjs-shadcn-vercel) → M1 [DJ-10](https://linear.app/dj-project-astradzhao/issue/DJ-10/m1-postgres-neo4j-data-layer) → M2 [DJ-8](https://linear.app/dj-project-astradzhao/issue/DJ-8/m2-track-library-with-artist-genre) → M3 [DJ-7](https://linear.app/dj-project-astradzhao/issue/DJ-7/m3-nl-parse-preview-commit-transitions) → M4 [DJ-11](https://linear.app/dj-project-astradzhao/issue/DJ-11/m4-live-mode-whats-next) → M5 [DJ-9](https://linear.app/dj-project-astradzhao/issue/DJ-9/m5-dogfood-seed-data-mvp-acceptance)
 
 ---
 
 ## Appendix A — Example notes the system should handle
 
-1. “Song A into Song B at bar 16 with a high-pass filter — great for building hype.”
-2. “On Song A at bar 32, 4-bar loop is a good hype build.”
-3. “Don’t go from Song C to Song D — key clash, messy.” → `quality: risky` or negative edge later
-4. “Song E is peak-time, ~128 BPM, major energy.” → song property update
-5. “Echo out of Song F into Song G over 8 bars to cool down.”
+1. “Track A into Track B at bar 16 with a high-pass filter — great for building hype.”
+2. “On Track A at bar 32, 4-bar loop is a good hype build.”
+3. “Don’t go from Track C to Track D — key clash, messy.” → `quality: risky` or negative edge later
+4. “Track E is peak-time, ~128 BPM, major energy.” → track property update
+5. “Echo out of Track F into Track G over 8 bars to cool down.”
 
 ## Appendix B — Glossary
 
 | Term       | Meaning                                                                |
 | ---------- | ---------------------------------------------------------------------- |
-| Transition | Directed mix relationship from song A to song B                        |
-| Cue        | Time-anchored opportunity on a single song                             |
-| Artist     | Graph node; songs connect via `BY`                                     |
-| Genre      | Graph node; songs connect via `IN_GENRE` (many-to-many)                |
+| Transition | Directed mix relationship from track A to track B                        |
+| Cue        | Time-anchored opportunity on a single track                             |
+| Artist     | Graph node; tracks connect via `BY`                                     |
+| Genre      | Graph node; tracks connect via `IN_GENRE` (many-to-many)                |
 | Intent     | Energy/role label (build hype, cool down, …) — edge/cue property in v1 |
 | Technique  | Mixing method (HPF, bass swap, loop, …) — edge/cue property in v1      |
 | Live Mode  | Performance UI driven by session state + graph queries                 |
 | Extraction | NL → structured graph operations                                       |
-| Membership | Postgres link from library/user → Neo4j song ids                       |
+| Membership | Postgres link from library/user → Neo4j track ids                       |

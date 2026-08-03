@@ -11,25 +11,25 @@ import { Label } from "@selecta/ui/components/label";
 
 import {
   ApiClientError,
-  addNoteSongLink,
-  listSongs,
-  removeNoteSongLink,
-  type ApiNoteSongLink,
-  type ApiSong,
+  addNoteTrackLink,
+  listTracks,
+  removeNoteTrackLink,
+  type ApiNoteTrackLink,
+  type ApiTrack,
 } from "@/lib/api";
 
-export function NoteSongLinks({
+export function NoteTrackLinks({
   noteId,
   initialLinks,
   onLinksChange,
 }: {
   noteId: string;
-  initialLinks: ApiNoteSongLink[];
-  onLinksChange?: (links: ApiNoteSongLink[]) => void;
+  initialLinks: ApiNoteTrackLink[];
+  onLinksChange?: (links: ApiNoteTrackLink[]) => void;
 }) {
   const [links, setLinks] = useState(initialLinks);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<ApiSong[]>([]);
+  const [results, setResults] = useState<ApiTrack[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searching, startSearch] = useTransition();
   const [mutating, startMutate] = useTransition();
@@ -49,10 +49,10 @@ export function NoteSongLinks({
     const handle = window.setTimeout(() => {
       startSearch(async () => {
         try {
-          const response = await listSongs({ query: q, limit: 8 });
+          const response = await listTracks({ query: q, limit: 8 });
           if (cancelled) return;
-          const linkedIds = new Set(links.map((link) => link.songId));
-          setResults(response.songs.filter((song) => !linkedIds.has(song.id)));
+          const linkedIds = new Set(links.map((link) => link.trackId));
+          setResults(response.tracks.filter((track) => !linkedIds.has(track.id)));
           setError(null);
         } catch (err) {
           if (cancelled) return;
@@ -60,9 +60,9 @@ export function NoteSongLinks({
           setError(
             err instanceof ApiClientError
               ? err.code === "graph_not_configured"
-                ? "The local song database isn’t running. Start the full stack with `pnpm dev`."
+                ? "The local track database isn’t running. Start the full stack with `pnpm dev`."
                 : err.message
-              : "Failed to search library songs.",
+              : "Failed to search library tracks.",
           );
         }
       });
@@ -74,49 +74,49 @@ export function NoteSongLinks({
     };
   }, [query, links]);
 
-  function updateLinks(next: ApiNoteSongLink[]) {
+  function updateLinks(next: ApiNoteTrackLink[]) {
     setLinks(next);
     onLinksChange?.(next);
   }
 
-  function linkSong(song: ApiSong) {
+  function linkTrack(track: ApiTrack) {
     startMutate(async () => {
       try {
-        const response = await addNoteSongLink(noteId, { songId: song.id });
-        updateLinks(response.songLinks);
+        const response = await addNoteTrackLink(noteId, { trackId: track.id });
+        updateLinks(response.trackLinks);
         setQuery("");
         setResults([]);
         setError(null);
       } catch (err) {
         setError(
-          err instanceof ApiClientError ? err.message : "Failed to link song. Is the API running?",
+          err instanceof ApiClientError ? err.message : "Failed to link track. Is the API running?",
         );
       }
     });
   }
 
-  function unlinkSong(songId: string) {
+  function unlinkTrack(trackId: string) {
     startMutate(async () => {
       try {
-        const response = await removeNoteSongLink(noteId, songId);
-        updateLinks(response.songLinks);
+        const response = await removeNoteTrackLink(noteId, trackId);
+        updateLinks(response.trackLinks);
         setError(null);
       } catch (err) {
         setError(
           err instanceof ApiClientError
             ? err.message
-            : "Failed to unlink song. Is the API running?",
+            : "Failed to unlink track. Is the API running?",
         );
       }
     });
   }
 
   return (
-    <section aria-label="Linked songs" className="space-y-4">
+    <section aria-label="Linked tracks" className="space-y-4">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold tracking-tight">Linked songs</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Linked tracks</h2>
         <p className="text-muted-foreground text-sm">
-          Optionally attach existing library songs. Links are manual — parsing never adds them
+          Optionally attach existing library tracks. Links are manual — parsing never adds them
           silently.
         </p>
       </div>
@@ -125,9 +125,9 @@ export function NoteSongLinks({
         {links.map((link) => (
           <li key={link.id} className="flex items-center gap-3 px-4 py-3">
             <div className="bg-muted relative size-10 shrink-0 overflow-hidden rounded-md">
-              {link.song?.artworkUrl ? (
+              {link.track?.artworkUrl ? (
                 <Image
-                  src={link.song.artworkUrl}
+                  src={link.track.artworkUrl}
                   alt=""
                   fill
                   className="object-cover"
@@ -136,22 +136,22 @@ export function NoteSongLinks({
               ) : null}
             </div>
             <div className="min-w-0 flex-1">
-              {link.song ? (
+              {link.track ? (
                 <>
                   <Link
-                    href={`/songs/${link.song.id}`}
+                    href={`/tracks/${link.track.id}`}
                     className="truncate font-medium hover:underline"
                   >
-                    {link.song.title}
+                    {link.track.title}
                   </Link>
                   <p className="text-muted-foreground truncate text-sm">
-                    {link.song.artists.map((artist) => artist.name).join(", ") || "Unknown artist"}
+                    {link.track.artists.map((artist) => artist.name).join(", ") || "Unknown artist"}
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="truncate font-medium">Song unavailable</p>
-                  <p className="text-muted-foreground truncate text-sm">{link.songId}</p>
+                  <p className="truncate font-medium">Track unavailable</p>
+                  <p className="text-muted-foreground truncate text-sm">{link.trackId}</p>
                 </>
               )}
             </div>
@@ -160,8 +160,8 @@ export function NoteSongLinks({
               variant="ghost"
               size="sm"
               disabled={mutating}
-              onClick={() => unlinkSong(link.songId)}
-              aria-label={`Unlink ${link.song?.title ?? link.songId}`}
+              onClick={() => unlinkTrack(link.trackId)}
+              aria-label={`Unlink ${link.track?.title ?? link.trackId}`}
             >
               <XIcon />
               Remove
@@ -169,16 +169,16 @@ export function NoteSongLinks({
           </li>
         ))}
         {links.length === 0 ? (
-          <li className="text-muted-foreground px-4 py-6 text-sm">No songs linked yet.</li>
+          <li className="text-muted-foreground px-4 py-6 text-sm">No tracks linked yet.</li>
         ) : null}
       </ul>
 
       <div className="space-y-2">
-        <Label htmlFor="note-link-song-search">Add song from library</Label>
+        <Label htmlFor="note-link-track-search">Add track from library</Label>
         <div className="relative">
           <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input
-            id="note-link-song-search"
+            id="note-link-track-search"
             className="pl-10"
             placeholder="Search title or artist"
             value={query}
@@ -196,18 +196,18 @@ export function NoteSongLinks({
         ) : null}
         {query.trim() && !searching ? (
           <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
-            {results.map((song) => (
-              <li key={song.id}>
+            {results.map((track) => (
+              <li key={track.id}>
                 <button
                   type="button"
                   className="hover:bg-muted/50 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
                   disabled={mutating}
-                  onClick={() => linkSong(song)}
+                  onClick={() => linkTrack(track)}
                 >
                   <div className="bg-muted relative size-10 shrink-0 overflow-hidden rounded-md">
-                    {song.artworkUrl ? (
+                    {track.artworkUrl ? (
                       <Image
-                        src={song.artworkUrl}
+                        src={track.artworkUrl}
                         alt=""
                         fill
                         className="object-cover"
@@ -216,9 +216,9 @@ export function NoteSongLinks({
                     ) : null}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{song.title}</p>
+                    <p className="truncate font-medium">{track.title}</p>
                     <p className="text-muted-foreground truncate text-sm">
-                      {song.artists.map((artist) => artist.name).join(", ") || "Unknown artist"}
+                      {track.artists.map((artist) => artist.name).join(", ") || "Unknown artist"}
                     </p>
                   </div>
                   <PlusIcon className="text-muted-foreground size-4 shrink-0" />
@@ -226,7 +226,7 @@ export function NoteSongLinks({
               </li>
             ))}
             {results.length === 0 ? (
-              <li className="text-muted-foreground px-4 py-5 text-sm">No matching songs.</li>
+              <li className="text-muted-foreground px-4 py-5 text-sm">No matching tracks.</li>
             ) : null}
           </ul>
         ) : null}
