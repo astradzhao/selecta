@@ -1,6 +1,4 @@
-/** Postgres schema + migrate tooling (client lands in DJ-22). */
-export function getDbStatus() {
-  return { configured: false as const, store: "postgres" as const };
-}
+/** Postgres client + notes schema (single-user MVP; membership deferred). */
 
+export { getDb, getDbStatus, type DbStatus } from "./client";
 export * from "./schema";

@@ -6,7 +6,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     service: "api",
-    db: getDbStatus(),
+    db: await getDbStatus(),
     graph: getGraphStatus(),
   });
 }
