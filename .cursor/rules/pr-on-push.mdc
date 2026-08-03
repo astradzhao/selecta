@@ -1,0 +1,28 @@
+---
+description: Open or update a GitHub PR after every push to a dj-XXXX branch
+alwaysApply: true
+---
+
+# Pull requests on push
+
+After pushing a `dj-XXXX` branch to origin, open or update a PR to `main` using `gh pr create` or `gh pr edit`.
+
+**Title:** `[DJ-XXXX] Brief title` (match the Linear issue)
+
+**Body** (follow `.github/pull_request_template.md`):
+
+```markdown
+## Why
+[1–2 sentences]
+
+## What
+[1–2 sentences]
+
+## Description
+[Longer but concise summary]
+
+## Linear
+[DJ-XXXX](https://linear.app/dj-project-astradzhao/issue/DJ-XXXX)
+```
+
+If a PR already exists for the branch, update title/body instead of creating a duplicate.

@@ -19,8 +19,20 @@ For every Linear issue implementation:
    ```bash
    git push -u origin HEAD
    ```
+5. After every push, open or update a PR to `main` (see **Pull requests** below).
 
 Do not commit directly to `main`. Do not reuse an unrelated branch for a different Linear issue.
+
+## Pull requests
+
+After pushing a `dj-XXXX` branch, create or update a GitHub PR using [`.github/pull_request_template.md`](./.github/pull_request_template.md).
+
+- **Title:** `[DJ-XXXX] Brief title` (aligned with the Linear issue)
+- **Body sections:** Why → What → Description → Linear link
+
+Example Linear link: `[DJ-13](https://linear.app/dj-project-astradzhao/issue/DJ-13/init-nextjs-app-router-typescript)`
+
+If a PR already exists for the branch, update it instead of opening a duplicate. Use `gh pr create` / `gh pr edit`.
 
 ## Package manager
 
