@@ -12,3 +12,5 @@ When implementing a Linear issue:
 3. After finishing, push to origin (`git push -u origin HEAD`).
 
 Never commit feature work directly to `main`. One Linear issue → one `dj-XXXX` branch.
+
+Use **pnpm** for all package installs and scripts (not npm/yarn).

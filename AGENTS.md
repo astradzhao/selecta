@@ -22,6 +22,19 @@ For every Linear issue implementation:
 
 Do not commit directly to `main`. Do not reuse an unrelated branch for a different Linear issue.
 
+## Package manager
+
+Use **pnpm** only (`pnpm install`, `pnpm add`, `pnpm run …`). Do not introduce `package-lock.json` or npm/yarn lockfiles.
+
+## Testing
+
+Only write tests that provide real value.
+
+- Prefer tests that lock in behavior we care about: parsing/validation, graph commit rules, membership/auth boundaries, Live Mode next-options logic, and other non-obvious regressions.
+- Do **not** add filler coverage: snapshot spam, trivial render-only checks, asserting implementation details, or tests that only restate the code.
+- If a change is trivial UI chrome with no meaningful failure mode, skip a test unless the ticket asks for one.
+- When adding a test, be able to answer: “What bug would this catch that a human or typecheck would miss?”
+
 ## Next.js
 
 <!-- BEGIN:nextjs-agent-rules -->

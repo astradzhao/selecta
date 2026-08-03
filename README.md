@@ -6,22 +6,23 @@ DJ-helping note-taking app: natural-language mix notes → Neo4j graph → live 
 
 - Next.js App Router + TypeScript
 - Tailwind CSS
+- pnpm
 - Deploy target: Vercel
 
 ## Getting started
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
 ```bash
-npm run lint
-npm run build
+pnpm lint
+pnpm build
 ```
 
 ## Agent workflow
 
-See [AGENTS.md](./AGENTS.md) for Linear issue branching (`dj-XXXX`) and push conventions.
+See [AGENTS.md](./AGENTS.md) for Linear branching (`dj-XXXX`), pnpm, and testing conventions.
