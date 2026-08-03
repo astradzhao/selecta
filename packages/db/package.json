@@ -7,10 +7,12 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "lint": "tsc --noEmit",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@dj/eslint-config": "workspace:*",
+    "eslint": "^9",
     "typescript": "^5"
   }
 }

@@ -27,14 +27,14 @@ A **DJ-helping note-taking app** where DJs capture knowledge about songs and tra
 
 DJs accumulate tribal knowledge that is hard to reuse under pressure:
 
-| Knowledge type | Example | Graph shape |
-|---|---|---|
-| Transition | “A → B at bar 16 with HPF, great for building hype” | `Song -[:TRANSITION]-> Song` + edge props |
-| Intra-song cue | “At bar 32 on track A, 4-bar loop builds hype” | `Song -[:HAS_CUE]-> Cue` |
-| Artist / catalog | “Other tracks by this artist” | `Artist -[:BY]-> Song` |
-| Genre | “UKG / techno — multi-tag” | `Song -[:IN_GENRE]-> Genre` (many edges) |
-| Song metadata | BPM, key, energy | `Song` **properties** (scalars) |
-| Set context | Current song + energy goal | Postgres session → Cypher over music graph |
+| Knowledge type   | Example                                             | Graph shape                                |
+| ---------------- | --------------------------------------------------- | ------------------------------------------ |
+| Transition       | “A → B at bar 16 with HPF, great for building hype” | `Song -[:TRANSITION]-> Song` + edge props  |
+| Intra-song cue   | “At bar 32 on track A, 4-bar loop builds hype”      | `Song -[:HAS_CUE]-> Cue`                   |
+| Artist / catalog | “Other tracks by this artist”                       | `Artist -[:BY]-> Song`                     |
+| Genre            | “UKG / techno — multi-tag”                          | `Song -[:IN_GENRE]-> Genre` (many edges)   |
+| Song metadata    | BPM, key, energy                                    | `Song` **properties** (scalars)            |
+| Set context      | Current song + energy goal                          | Postgres session → Cypher over music graph |
 
 The product is **not** a DAW or mixer. It is a **knowledge + decision surface** for live performance.
 
@@ -56,10 +56,10 @@ The product is **not** a DAW or mixer. It is a **knowledge + decision surface** 
 
 **Decision (locked): split stores. Neo4j holds only musical knowledge.**
 
-| Store | Owns | Does not own |
-|---|---|---|
+| Store        | Owns                                                                                                                        | Does not own                       |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
 | **Postgres** | Users/auth, libraries, sessions, raw notes + extraction previews/commits, song↔user membership (`library_songs`), app audit | Music topology / mix relationships |
-| **Neo4j** | Songs, artists, genres, transitions, cues, (later) intent/technique hubs & artist similarity | Users, notes, sessions, auth |
+| **Neo4j**    | Songs, artists, genres, transitions, cues, (later) intent/technique hubs & artist similarity                                | Users, notes, sessions, auth       |
 
 ### Why not `(:User)-[:OWNS]->(:Song)` / `(:Note)`?
 
@@ -117,39 +117,39 @@ Promote to a **node** when most of these are true:
 Keep as a **property** when most of these are true:
 
 1. **Scalar attribute of one entity** — BPM, key, duration, energy score
-2. **Not a useful hub** — you rarely start a query *from* that value as an entity
+2. **Not a useful hub** — you rarely start a query _from_ that value as an entity
 3. **High-cardinality / free text** — titles, rationale notes, external ID strings
 4. **Edge-local fact** — `fromBar`, `toBar`, `barsOverlap`, `quality` on a specific transition
 5. **Enum that only filters one relationship type** — can start as an edge property; promote later if it becomes a hub
 
-| Concept | v1 shape | Why |
-|---|---|---|
-| Song | **Node** | Central entity |
-| Artist | **Node** (required ≥1 via `BY`) | Traverse song→artist→songs; future similarity |
-| Genre | **Node** + `IN_GENRE` edges (required ≥1) | Multi-genre; traverse genre→songs |
-| Cue | **Node** | Time-anchored object with its own fields; many per song |
-| Transition | **Relationship** | Directed mix fact between two songs |
-| BPM / key / energy / duration | **Song properties** | Scalars; filtering ok via indexes, not hubs |
-| Title | **Song property** | Identity string, not a hub |
-| Transition bars / overlap / quality / notes | **Edge properties** | Local to that mix instance |
-| Intent (`build_hype`, …) | **Edge/Cue property in v1** → optional **Intent node** in Phase 2 | Start simple; promote when faceting/analytics need hubs |
-| Technique (`hpf`, `bass_swap`, …) | **Edge/Cue property in v1** → optional **Technique node** later | Same as intent |
-| User / Note / Session | **Postgres only** | Not musical graph |
+| Concept                                     | v1 shape                                                          | Why                                                     |
+| ------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------- |
+| Song                                        | **Node**                                                          | Central entity                                          |
+| Artist                                      | **Node** (required ≥1 via `BY`)                                   | Traverse song→artist→songs; future similarity           |
+| Genre                                       | **Node** + `IN_GENRE` edges (required ≥1)                         | Multi-genre; traverse genre→songs                       |
+| Cue                                         | **Node**                                                          | Time-anchored object with its own fields; many per song |
+| Transition                                  | **Relationship**                                                  | Directed mix fact between two songs                     |
+| BPM / key / energy / duration               | **Song properties**                                               | Scalars; filtering ok via indexes, not hubs             |
+| Title                                       | **Song property**                                                 | Identity string, not a hub                              |
+| Transition bars / overlap / quality / notes | **Edge properties**                                               | Local to that mix instance                              |
+| Intent (`build_hype`, …)                    | **Edge/Cue property in v1** → optional **Intent node** in Phase 2 | Start simple; promote when faceting/analytics need hubs |
+| Technique (`hpf`, `bass_swap`, …)           | **Edge/Cue property in v1** → optional **Technique node** later   | Same as intent                                          |
+| User / Note / Session                       | **Postgres only**                                                 | Not musical graph                                       |
 
 **Rule of thumb:** if you would ever write “find all X connected through Y”, Y is probably a node. If you would write “filter songs where field = value”, it can stay a property.
 
 ### 5.3 Song (Neo4j node)
 
-| Field | Required | Notes |
-|---|---|---|
-| `id` | yes | UUID (also referenced from Postgres membership) |
-| `title` | yes | Display / search |
-| `bpm` | no | Float |
-| `musicalKey` | no | Camelot / open key string |
-| `durationSec` | no | |
-| `energy` | no | Ordinal or 0–1 |
-| `externalIds` | no | Map/JSON-ish for Spotify, Beatport, Rekordbox later |
-| `libraryId` | recommended | Defense-in-depth scope (mirrors Postgres) |
+| Field         | Required    | Notes                                               |
+| ------------- | ----------- | --------------------------------------------------- |
+| `id`          | yes         | UUID (also referenced from Postgres membership)     |
+| `title`       | yes         | Display / search                                    |
+| `bpm`         | no          | Float                                               |
+| `musicalKey`  | no          | Camelot / open key string                           |
+| `durationSec` | no          |                                                     |
+| `energy`      | no          | Ordinal or 0–1                                      |
+| `externalIds` | no          | Map/JSON-ish for Spotify, Beatport, Rekordbox later |
+| `libraryId`   | recommended | Defense-in-depth scope (mirrors Postgres)           |
 
 **Not song properties:** artist name, genre list — those are relationships.
 
@@ -160,11 +160,11 @@ Creating a song requires:
 
 ### 5.4 Artist (Neo4j node)
 
-| Field | Required | Notes |
-|---|---|---|
-| `id` | yes | UUID |
-| `name` | yes | Canonical display name |
-| `nameNormalized` | yes | Lowercased / stripped for MERGE uniqueness |
+| Field            | Required | Notes                                      |
+| ---------------- | -------- | ------------------------------------------ |
+| `id`             | yes      | UUID                                       |
+| `name`           | yes      | Canonical display name                     |
+| `nameNormalized` | yes      | Lowercased / stripped for MERGE uniqueness |
 
 Relationships:
 
@@ -178,11 +178,11 @@ Traversal example: current song → artist → other songs by same artist (exclu
 
 ### 5.5 Genre (Neo4j node)
 
-| Field | Required | Notes |
-|---|---|---|
-| `id` | yes | UUID |
-| `name` | yes | e.g. `techno`, `ukg`, `disco` |
-| `nameNormalized` | yes | For MERGE |
+| Field            | Required | Notes                         |
+| ---------------- | -------- | ----------------------------- |
+| `id`             | yes      | UUID                          |
+| `name`           | yes      | e.g. `techno`, `ukg`, `disco` |
+| `nameNormalized` | yes      | For MERGE                     |
 
 Relationships:
 
@@ -198,17 +198,17 @@ Direction note: either `Song-[:IN_GENRE]->Genre` or `Genre-[:HAS_SONG]->Song` wo
 
 Directed relationship `(:Song)-[:TRANSITION]->(:Song)` with properties:
 
-| Property | Example | Purpose |
-|---|---|---|
-| `fromBar` | `16` | When to leave outgoing track |
-| `toBar` | `1` or `32` | Where to enter incoming track |
-| `technique` | `high_pass_filter` | How (property v1; node later if needed) |
-| `intent` | `build_hype` | Why / energy role (property v1) |
-| `quality` | `great` / `ok` / `risky` | Preference |
-| `notes` | free text | Human rationale |
-| `barsOverlap` | `8` | Blend length |
-| `sourceNoteId` | UUID | FK-ish to Postgres `notes.id` |
-| `createdAt` / `updatedAt` | ISO timestamps | Lifecycle |
+| Property                  | Example                  | Purpose                                 |
+| ------------------------- | ------------------------ | --------------------------------------- |
+| `fromBar`                 | `16`                     | When to leave outgoing track            |
+| `toBar`                   | `1` or `32`              | Where to enter incoming track           |
+| `technique`               | `high_pass_filter`       | How (property v1; node later if needed) |
+| `intent`                  | `build_hype`             | Why / energy role (property v1)         |
+| `quality`                 | `great` / `ok` / `risky` | Preference                              |
+| `notes`                   | free text                | Human rationale                         |
+| `barsOverlap`             | `8`                      | Blend length                            |
+| `sourceNoteId`            | UUID                     | FK-ish to Postgres `notes.id`           |
+| `createdAt` / `updatedAt` | ISO timestamps           | Lifecycle                               |
 
 Multiple transitions between the same pair are allowed (different techniques/intents).
 
@@ -224,13 +224,13 @@ Example `kind` values: `loop_opportunity`, `hype_build`, `vocal_drop`, `breakdow
 
 ### 5.8 Session (Postgres, not Neo4j)
 
-| Field | Description |
-|---|---|
-| `currentSongId` | Now playing (Neo4j song id) |
-| `currentBar` | Approximate position (manual for v1) |
-| `energyGoal` | Optional filter: build / cool / maintain |
-| `recentSongIds` | Avoid immediate repeats |
-| `setId` | Optional grouping of a night |
+| Field           | Description                              |
+| --------------- | ---------------------------------------- |
+| `currentSongId` | Now playing (Neo4j song id)              |
+| `currentBar`    | Approximate position (manual for v1)     |
+| `energyGoal`    | Optional filter: build / cool / maintain |
+| `recentSongIds` | Avoid immediate repeats                  |
+| `setId`         | Optional grouping of a night             |
 
 ---
 
@@ -384,9 +384,7 @@ Keep raw text forever; show a **proposed graph diff** before commit.
       "notes": "..."
     }
   ],
-  "songUpdates": [
-    { "songMention": "song A", "bpm": 128, "energy": 0.8 }
-  ],
+  "songUpdates": [{ "songMention": "song A", "bpm": 128, "energy": 0.8 }],
   "confidence": 0.0,
   "ambiguities": ["Which 'Midnight' track?", "Genre 'house' vs 'tech house'?"]
 }
@@ -414,9 +412,9 @@ Keep raw text forever; show a **proposed graph diff** before commit.
 
 **Four things only:**
 
-1. **Frontend + Backend** — one Next.js app on Vercel  
-2. **Postgres** — app/tenancy/notes/sessions  
-3. **Neo4j Aura** — music graph  
+1. **Frontend + Backend** — one Next.js app on Vercel
+2. **Postgres** — app/tenancy/notes/sessions
+3. **Neo4j Aura** — music graph
 4. **AI Gateway** (managed call from the app) — NL extraction only; not a service we operate
 
 No separate Go/Python API. No message bus. No extra BFF. Split a worker later only if profiling demands it (embeddings batch, DJ-software sync daemons).
@@ -444,25 +442,25 @@ No separate Go/Python API. No message bus. No extra BFF. Split a worker later on
 
 ### 8.2 Backend: Next.js vs Go/Python
 
-| Option | Pros | Cons |
-|---|---|---|
-| **Next.js fullstack (chosen)** | One deploy, one auth boundary, zero extra hops, shared types, least ops | CPU-heavy long jobs less ideal later |
-| Separate Go/Python API | Fine for heavy compute / strict isolation | Extra service, extra latency hop, duplicated auth, more infra — fights “clean + few services” |
+| Option                         | Pros                                                                    | Cons                                                                                          |
+| ------------------------------ | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Next.js fullstack (chosen)** | One deploy, one auth boundary, zero extra hops, shared types, least ops | CPU-heavy long jobs less ideal later                                                          |
+| Separate Go/Python API         | Fine for heavy compute / strict isolation                               | Extra service, extra latency hop, duplicated auth, more infra — fights “clean + few services” |
 
 **Locked for v1–3:** Next.js is the backend. Live Mode and Neo4j reads are simple Cypher + membership checks — Node on Fluid Compute is fast enough. Revisit a worker/service only for Phase 4+ batch intelligence or Phase 5 sync adapters.
 
 ### 8.3 Suggested tech stack (locked)
 
-| Layer | Choice | Rationale |
-|---|---|---|
-| App | **Next.js App Router + TypeScript** on Vercel | Single deployable = cleanest architecture |
-| UI | **shadcn/ui + Tailwind** | Accessible primitives; Live Mode can still be custom/composition-light |
-| Auth | Clerk (or Auth.js) | Stays in the Next app |
-| API | Route Handlers + Server Actions | Same-origin, typed, no separate API host |
-| Graph DB | Neo4j Aura | Music-only knowledge graph |
-| App DB | Postgres (Neon / Marketplace) | Tenancy, sessions, notes |
-| AI | Vercel AI Gateway + AI SDK structured output | NL → JSON; not on Live Mode hot path |
-| Hosting | Vercel Fluid Compute (Node) | Connection reuse, no edge runtime required |
+| Layer    | Choice                                        | Rationale                                                              |
+| -------- | --------------------------------------------- | ---------------------------------------------------------------------- |
+| App      | **Next.js App Router + TypeScript** on Vercel | Single deployable = cleanest architecture                              |
+| UI       | **shadcn/ui + Tailwind**                      | Accessible primitives; Live Mode can still be custom/composition-light |
+| Auth     | Clerk (or Auth.js)                            | Stays in the Next app                                                  |
+| API      | Route Handlers + Server Actions               | Same-origin, typed, no separate API host                               |
+| Graph DB | Neo4j Aura                                    | Music-only knowledge graph                                             |
+| App DB   | Postgres (Neon / Marketplace)                 | Tenancy, sessions, notes                                               |
+| AI       | Vercel AI Gateway + AI SDK structured output  | NL → JSON; not on Live Mode hot path                                   |
+| Hosting  | Vercel Fluid Compute (Node)                   | Connection reuse, no edge runtime required                             |
 
 **Not in v1:** separate Go/Python service, Redis (unless session cache proves necessary), Kafka/queues, microservice mesh.
 
@@ -485,26 +483,26 @@ Target UX budget (guideline): Live “what’s next” **p95 &lt; 200–300ms** 
 
 Keep code clean with folders/modules — not separate deployables:
 
-1. **`library`** — song/artist/genre CRUD orchestration  
-2. **`notes`** — raw note storage (PG), parse, preview, commit  
-3. **`graph`** — Neo4j driver, Cypher builders, schema constants  
-4. **`live`** — session (PG) + next-options aggregation  
-5. **`resolution`** — entity matching / aliases  
+1. **`library`** — song/artist/genre CRUD orchestration
+2. **`notes`** — raw note storage (PG), parse, preview, commit
+3. **`graph`** — Neo4j driver, Cypher builders, schema constants
+4. **`live`** — session (PG) + next-options aggregation
+5. **`resolution`** — entity matching / aliases
 
 UI uses **shadcn** primitives (`Button`, `Command`, `Dialog`, `Input`, etc.). Live Mode composition stays glanceable — shadcn is the kit, not a dashboard aesthetic mandate.
 
 ### 8.6 API surface (conceptual)
 
-| Method | Path | Purpose |
-|---|---|---|
-| `POST` | `/api/notes/parse` | NL → structured preview (no write) |
-| `POST` | `/api/notes/commit` | Apply accepted preview to Neo4j + PG note row |
-| `GET` | `/api/songs` | Search/list (membership-scoped) |
-| `POST` | `/api/songs` | Manual create (Artist + Genre required) |
-| `GET` | `/api/songs/:id` | Song + cues + outbound transitions |
-| `GET` | `/api/live/next` | Session → ranked next songs + nearby cues |
-| `PUT` | `/api/live/session` | Update current song/bar/intent filter |
-| `GET` | `/api/graph/neighborhood` | Optional explorer (prep mode) |
+| Method | Path                      | Purpose                                       |
+| ------ | ------------------------- | --------------------------------------------- |
+| `POST` | `/api/notes/parse`        | NL → structured preview (no write)            |
+| `POST` | `/api/notes/commit`       | Apply accepted preview to Neo4j + PG note row |
+| `GET`  | `/api/songs`              | Search/list (membership-scoped)               |
+| `POST` | `/api/songs`              | Manual create (Artist + Genre required)       |
+| `GET`  | `/api/songs/:id`          | Song + cues + outbound transitions            |
+| `GET`  | `/api/live/next`          | Session → ranked next songs + nearby cues     |
+| `PUT`  | `/api/live/session`       | Update current song/bar/intent filter         |
+| `GET`  | `/api/graph/neighborhood` | Optional explorer (prep mode)                 |
 
 ---
 
@@ -512,18 +510,18 @@ UI uses **shadcn** primitives (`Button`, `Command`, `Dialog`, `Input`, etc.). Li
 
 ### 9.1 Modes
 
-1. **Library / Notes mode** (prep)  
-   - Capture NL notes  
-   - Review extraction diffs  
-   - Browse songs, edit transitions, inspect graph neighborhood  
+1. **Library / Notes mode** (prep)
+   - Capture NL notes
+   - Review extraction diffs
+   - Browse songs, edit transitions, inspect graph neighborhood
 
-2. **Live mode** (performance)  
-   - Big current-song selector  
-   - Optional bar stepper (`-8 / +8` or number pad)  
-   - Intent chips: Build hype · Cool down · Maintain · Drop  
-   - Primary panel: **Next songs** (title, why, technique, fromBar)  
-   - Secondary panel: **Do this now** (cues near current bar)  
-   - One-tap: “Play next” → advances session current song  
+2. **Live mode** (performance)
+   - Big current-song selector
+   - Optional bar stepper (`-8 / +8` or number pad)
+   - Intent chips: Build hype · Cool down · Maintain · Drop
+   - Primary panel: **Next songs** (title, why, technique, fromBar)
+   - Secondary panel: **Do this now** (cues near current bar)
+   - One-tap: “Play next” → advances session current song
 
 ### 9.2 Live Mode interaction loop
 
@@ -542,18 +540,18 @@ Update session (current = chosen next) → repeat
 
 ### 9.3 UX constraints for Live Mode
 
-- Thumb-friendly; high contrast; minimal chrome  
-- Prefer 1 current context + 1 decision list (not a dashboard of widgets)  
-- Offline/degraded: cache last neighborhood for current song (phase 2)  
-- Mistaps are costly mid-set — confirm destructive edits only in Library mode  
+- Thumb-friendly; high contrast; minimal chrome
+- Prefer 1 current context + 1 decision list (not a dashboard of widgets)
+- Offline/degraded: cache last neighborhood for current song (phase 2)
+- Mistaps are costly mid-set — confirm destructive edits only in Library mode
 
 ### 9.4 Library note review
 
 Show a side-by-side:
 
-- Left: original text  
-- Right: proposed ops (`CREATE Song`, `MERGE TRANSITION`, `CREATE Cue`)  
-- Actions: Accept all · Edit fields · Reject  
+- Left: original text
+- Right: proposed ops (`CREATE Song`, `MERGE TRANSITION`, `CREATE Cue`)
+- Actions: Accept all · Edit fields · Reject
 
 ---
 
@@ -606,10 +604,10 @@ sequenceDiagram
 
 v1 ranking should be **transparent and rule-based**, not ML:
 
-1. Filter by optional `intent`  
-2. Prefer `quality = great`  
-3. Prefer transitions whose `fromBar` is near `currentBar` (if bar known)  
-4. Deprioritize recently played  
+1. Filter by optional `intent`
+2. Prefer `quality = great`
+3. Prefer transitions whose `fromBar` is near `currentBar` (if bar known)
+4. Deprioritize recently played
 5. Optional soft filters: BPM delta, key compatibility (only if metadata present)
 
 Surface the **reason string** in UI (“HPF @ bar 16 · build hype · marked great”) so the DJ trusts the suggestion.
@@ -645,12 +643,11 @@ pnpm workspace at repo root. Deployables live in `apps/`; shared domain/UI code 
 
 Suggested early `dev-files/` companions (later, not now):
 
-- `GRAPH_SCHEMA.md` — concrete property dictionary  
-- `NL_EXTRACTION_PROMPT.md` — versioned prompt + examples  
-- `LIVE_UX.md` — wireframe notes  
-- `ROADMAP.md` — milestone checklist  
-- `ADR-001-nextjs-fullstack.md` — why no separate Go/Python API  
-
+- `GRAPH_SCHEMA.md` — concrete property dictionary
+- `NL_EXTRACTION_PROMPT.md` — versioned prompt + examples
+- `LIVE_UX.md` — wireframe notes
+- `ROADMAP.md` — milestone checklist
+- `ADR-001-nextjs-fullstack.md` — why no separate Go/Python API
 
 ---
 
@@ -658,70 +655,69 @@ Suggested early `dev-files/` companions (later, not now):
 
 ### Phase 0 — Foundations (this doc)
 
-- [x] Architecture plan  
-- [x] Lock stack: Next.js fullstack + shadcn + Vercel + PG + Neo4j  
-- [ ] Seed vocabulary for intents/techniques  
-- [ ] Provision Neo4j Aura + Postgres in same region  
-
+- [x] Architecture plan
+- [x] Lock stack: Next.js fullstack + shadcn + Vercel + PG + Neo4j
+- [ ] Seed vocabulary for intents/techniques
+- [ ] Provision Neo4j Aura + Postgres in same region
 
 ### Phase 1 — MVP vertical slice
 
 **Goal:** Write a transition note → see it as a next-song option in Live Mode.
 
-1. Auth + Postgres library membership  
-2. Manual song create with **required Artist + ≥1 Genre** (Neo4j nodes/edges)  
-3. NL parse → preview → commit for **transitions only**  
-4. Neo4j write/read of `Song` / `Artist` / `Genre` / `TRANSITION`  
-5. Live Mode: set current song → list outbound transitions → advance  
+1. Auth + Postgres library membership
+2. Manual song create with **required Artist + ≥1 Genre** (Neo4j nodes/edges)
+3. NL parse → preview → commit for **transitions only**
+4. Neo4j write/read of `Song` / `Artist` / `Genre` / `TRANSITION`
+5. Live Mode: set current song → list outbound transitions → advance
 6. Bonus fallback: same-artist suggestions when transitions are sparse
 
 **Success metric:** A DJ can encode 10 transitions and run a short practice set using only Live Mode.
 
 ### Phase 2 — Cues & richer notes
 
-1. Intra-song `Cue` extraction + Live “do this now”  
-2. Intent/technique chips + filters  
-3. Song property updates via NL (“this track is 124 BPM, peak energy”)  
-4. Duplicate song merge / aliases  
+1. Intra-song `Cue` extraction + Live “do this now”
+2. Intent/technique chips + filters
+3. Song property updates via NL (“this track is 124 BPM, peak energy”)
+4. Duplicate song merge / aliases
 
 ### Phase 3 — Graph UX & quality
 
-1. Neighborhood explorer (optional, prep mode only)  
-2. Transition quality feedback from Live Mode (“worked / failed”)  
-3. Better ranking (BPM/key soft scoring)  
-4. Mobile/PWA polish for booth use  
+1. Neighborhood explorer (optional, prep mode only)
+2. Transition quality feedback from Live Mode (“worked / failed”)
+3. Better ranking (BPM/key soft scoring)
+4. Mobile/PWA polish for booth use
 
 ### Phase 4 — Intelligence (future)
 
-1. Embeddings over songs + transition notes  
-2. Path suggestions for a target energy arc  
-3. Semi-automatic extraction without confirm for high-confidence notes  
+1. Embeddings over songs + transition notes
+2. Path suggestions for a target energy arc
+3. Semi-automatic extraction without confirm for high-confidence notes
 
 ### Phase 5 — DJ software integrations (future)
 
-1. Read now-playing from Rekordbox/Serato/etc.  
-2. Auto-update session current song  
+1. Read now-playing from Rekordbox/Serato/etc.
+2. Auto-update session current song
 3. Optional bidirectional cues (non-blocking; treat as adapter layer)
 
 ---
 
 ## 15. Risks & open decisions
 
-| Topic | Options | Recommendation |
-|---|---|---|
-| Neo4j only vs Neo4j + Postgres | Single store vs split | **Locked: split** — Postgres app/tenancy/notes; Neo4j music only |
-| User/Note in graph | OWNS edges vs external membership | **Locked: no User/Note in Neo4j** |
-| Artist / Genre modeling | Properties vs nodes | **Locked: required nodes + edges** |
-| Backend shape | Next fullstack vs Go/Python service | **Locked: Next.js on Vercel** (fewest services, fewest hops) |
-| UI kit | Custom vs shadcn | **Locked: shadcn/ui + Tailwind** |
-| Auto-commit NL vs confirm | Speed vs trust | Confirm in Phases 1–2 |
-| Cue as node vs properties | Flexibility vs simplicity | Cue nodes |
-| Intent/Technique | Edge props vs nodes | Props in v1; promote to nodes if faceting needs hubs |
-| Artist uniqueness | Per-library vs global MERGE | Global `nameNormalized` MERGE; songs stay library-scoped |
-| Bar tracking | Manual vs synced | Manual stepper in v1 |
-| Multi-device live | Phone + laptop | PWA-friendly Live Mode early |
-| Ontology strictness | Enums vs free text | Hybrid: seeded enums + `notes` free text |
-| Extra infra (Redis/queue) | Add early vs defer | **Defer** until measured need |
+| Topic                          | Options                             | Recommendation                                                   |
+| ------------------------------ | ----------------------------------- | ---------------------------------------------------------------- |
+| Neo4j only vs Neo4j + Postgres | Single store vs split               | **Locked: split** — Postgres app/tenancy/notes; Neo4j music only |
+| User/Note in graph             | OWNS edges vs external membership   | **Locked: no User/Note in Neo4j**                                |
+| Artist / Genre modeling        | Properties vs nodes                 | **Locked: required nodes + edges**                               |
+| Backend shape                  | Next fullstack vs Go/Python service | **Locked: Next.js on Vercel** (fewest services, fewest hops)     |
+| UI kit                         | Custom vs shadcn                    | **Locked: shadcn/ui + Tailwind**                                 |
+| Auto-commit NL vs confirm      | Speed vs trust                      | Confirm in Phases 1–2                                            |
+| Cue as node vs properties      | Flexibility vs simplicity           | Cue nodes                                                        |
+| Intent/Technique               | Edge props vs nodes                 | Props in v1; promote to nodes if faceting needs hubs             |
+| Artist uniqueness              | Per-library vs global MERGE         | Global `nameNormalized` MERGE; songs stay library-scoped         |
+| Bar tracking                   | Manual vs synced                    | Manual stepper in v1                                             |
+| Multi-device live              | Phone + laptop                      | PWA-friendly Live Mode early                                     |
+| Ontology strictness            | Enums vs free text                  | Hybrid: seeded enums + `notes` free text                         |
+| Extra infra (Redis/queue)      | Add early vs defer                  | **Defer** until measured need                                    |
 
 ### Open product questions
 
@@ -737,11 +733,11 @@ Suggested early `dev-files/` companions (later, not now):
 
 ## 16. Non-goals (v1)
 
-- Real-time audio analysis  
-- Automatic beatmatching / stem separation  
-- Marketplace of shared transition graphs  
-- Full graph visualization as the primary Live UI  
-- Training custom music embedding models  
+- Real-time audio analysis
+- Automatic beatmatching / stem separation
+- Marketplace of shared transition graphs
+- Full graph visualization as the primary Live UI
+- Training custom music embedding models
 
 ---
 
@@ -749,22 +745,21 @@ Suggested early `dev-files/` companions (later, not now):
 
 The architecture is “right” if:
 
-1. A plain-English transition becomes a queryable edge within one confirm action.  
-2. Live Mode answers “what’s next?” in one screen with reasons.  
-3. Intra-song cues don’t pollute song→song topology.  
-4. Future embedding/DJ-software features can attach without rewriting the graph core.  
+1. A plain-English transition becomes a queryable edge within one confirm action.
+2. Live Mode answers “what’s next?” in one screen with reasons.
+3. Intra-song cues don’t pollute song→song topology.
+4. Future embedding/DJ-software features can attach without rewriting the graph core.
 5. Raw notes remain recoverable for re-extraction when the schema evolves.
 
 ---
 
 ## 18. Immediate next steps (when implementation starts)
 
-1. Provision Neo4j Aura + Postgres in the **same region** as the Vercel project  
-2. Scaffold Next.js app + shadcn + auth  
-3. Lock v1 property dictionary + Zod extraction schema  
-4. Implement Phase 1 vertical slice only (no extra services)  
-5. Seed 5–10 real transitions and measure Live `/api/live/next` latency  
-
+1. Provision Neo4j Aura + Postgres in the **same region** as the Vercel project
+2. Scaffold Next.js app + shadcn + auth
+3. Lock v1 property dictionary + Zod extraction schema
+4. Implement Phase 1 vertical slice only (no extra services)
+5. Seed 5–10 real transitions and measure Live `/api/live/next` latency
 
 ---
 
@@ -780,22 +775,22 @@ The architecture is “right” if:
 
 ## Appendix A — Example notes the system should handle
 
-1. “Song A into Song B at bar 16 with a high-pass filter — great for building hype.”  
-2. “On Song A at bar 32, 4-bar loop is a good hype build.”  
-3. “Don’t go from Song C to Song D — key clash, messy.” → `quality: risky` or negative edge later  
-4. “Song E is peak-time, ~128 BPM, major energy.” → song property update  
-5. “Echo out of Song F into Song G over 8 bars to cool down.”  
+1. “Song A into Song B at bar 16 with a high-pass filter — great for building hype.”
+2. “On Song A at bar 32, 4-bar loop is a good hype build.”
+3. “Don’t go from Song C to Song D — key clash, messy.” → `quality: risky` or negative edge later
+4. “Song E is peak-time, ~128 BPM, major energy.” → song property update
+5. “Echo out of Song F into Song G over 8 bars to cool down.”
 
 ## Appendix B — Glossary
 
-| Term | Meaning |
-|---|---|
-| Transition | Directed mix relationship from song A to song B |
-| Cue | Time-anchored opportunity on a single song |
-| Artist | Graph node; songs connect via `BY` |
-| Genre | Graph node; songs connect via `IN_GENRE` (many-to-many) |
-| Intent | Energy/role label (build hype, cool down, …) — edge/cue property in v1 |
-| Technique | Mixing method (HPF, bass swap, loop, …) — edge/cue property in v1 |
-| Live Mode | Performance UI driven by session state + graph queries |
-| Extraction | NL → structured graph operations |
-| Membership | Postgres link from library/user → Neo4j song ids |
+| Term       | Meaning                                                                |
+| ---------- | ---------------------------------------------------------------------- |
+| Transition | Directed mix relationship from song A to song B                        |
+| Cue        | Time-anchored opportunity on a single song                             |
+| Artist     | Graph node; songs connect via `BY`                                     |
+| Genre      | Graph node; songs connect via `IN_GENRE` (many-to-many)                |
+| Intent     | Energy/role label (build hype, cool down, …) — edge/cue property in v1 |
+| Technique  | Mixing method (HPF, bass swap, loop, …) — edge/cue property in v1      |
+| Live Mode  | Performance UI driven by session state + graph queries                 |
+| Extraction | NL → structured graph operations                                       |
+| Membership | Postgres link from library/user → Neo4j song ids                       |

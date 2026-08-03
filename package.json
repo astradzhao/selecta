@@ -2,13 +2,18 @@
   "name": "dj-project",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@11.18.0",
   "scripts": {
     "dev": "pnpm run --parallel --filter @dj/web --filter @dj/api dev",
     "dev:web": "pnpm --filter @dj/web dev",
     "dev:api": "pnpm --filter @dj/api dev",
     "build": "pnpm run --filter @dj/web --filter @dj/api build",
-    "lint": "pnpm run --recursive lint",
-    "typecheck": "pnpm run --recursive typecheck"
-  }
+    "lint": "pnpm run --recursive --filter '!@dj/eslint-config' lint",
+    "typecheck": "pnpm run --recursive --filter '!@dj/eslint-config' typecheck",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.61.0"
+  },
+  "packageManager": "pnpm@11.18.0"
 }
