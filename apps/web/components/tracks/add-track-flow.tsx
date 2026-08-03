@@ -11,6 +11,7 @@ import { Label } from "@selecta/ui/components/label";
 import { Separator } from "@selecta/ui/components/separator";
 
 import { ApiClientError, createTrack, searchCatalog, type CatalogTrack } from "@/lib/api";
+import { invalidateLibraryCache } from "@/lib/library-cache";
 import { FolderTagEditor, type FolderTag } from "@/components/tracks/folder-tag-editor";
 import { TagEditor, type TagItem } from "@/components/tracks/tag-editor";
 
@@ -130,6 +131,7 @@ export function AddTrackFlow() {
             ...(item.kind ? { kind: item.kind } : {}),
           })),
         });
+        invalidateLibraryCache();
         router.push(`/tracks/${response.track.id}`);
         router.refresh();
       } catch (error) {

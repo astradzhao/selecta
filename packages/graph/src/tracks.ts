@@ -116,6 +116,44 @@ export async function listTracks(input: ListTracksInput = {}): Promise<TrackSumm
   return rows.map(mapTrackRow);
 }
 
+export type LibraryStats = {
+  count: number;
+  /** ISO timestamp of the most recently updated Track, or null when empty. */
+  latestUpdatedAt: string | null;
+};
+
+/**
+ * Cheap library fingerprint for client cache invalidation.
+ * Prefer this over a full listTracks when checking whether cached data is stale.
+ */
+export async function getLibraryStats(): Promise<LibraryStats> {
+  const rows = await readCypher<{ count: unknown; latestUpdatedAt: unknown }>(
+    `
+    MATCH (t:Track)
+    RETURN count(t) AS count, max(t.updatedAt) AS latestUpdatedAt
+    `,
+  );
+
+  const row = rows[0];
+  const rawCount = row?.count;
+  const count =
+    typeof rawCount === "number"
+      ? rawCount
+      : rawCount != null &&
+          typeof rawCount === "object" &&
+          "toNumber" in rawCount &&
+          typeof (rawCount as { toNumber: () => number }).toNumber === "function"
+        ? (rawCount as { toNumber: () => number }).toNumber()
+        : 0;
+
+  const latest =
+    typeof row?.latestUpdatedAt === "string" && row.latestUpdatedAt.trim()
+      ? row.latestUpdatedAt
+      : null;
+
+  return { count, latestUpdatedAt: latest };
+}
+
 export type TrackDetail = TrackSummary & {
   /** Whether any outbound TRANSITION edges exist. */
   hasOutboundTransitions: boolean;
