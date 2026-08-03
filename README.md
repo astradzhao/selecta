@@ -22,26 +22,40 @@ dev-files/      # Architecture + planning docs
 
 ## Getting started
 
-Requires [Docker](https://docs.docker.com/get-docker/) for local Postgres and Neo4j (`pnpm db:up`).
+Requires [Docker Desktop](https://docs.docker.com/get-docker/) (Compose healthchecks for Postgres + Neo4j).
 
 ```bash
 pnpm install
-cp .env.example .env.local   # Postgres, Neo4j, AI, local stub IDs
-pnpm db:up        # Postgres + Neo4j via Docker Compose (defaults match .env.example)
-pnpm db:migrate   # apply Postgres schema migrations (@selecta/db)
-pnpm graph:migrate # apply Neo4j constraints/indexes (@selecta/graph)
-pnpm dev          # web :3000 + api :3001
-pnpm dev:web      # web only
-pnpm dev:api      # api only
-pnpm db:down      # stop Compose services
-pnpm db:logs      # follow Compose logs
+cp .env.example .env.local   # Postgres, Neo4j, API_ORIGIN, optional Spotify/AI
+pnpm dev                     # DBs → migrate → web :3000 + api :3001
+```
+
+`pnpm dev` is the primary local entrypoint (`scripts/dev-stack.mjs`). It:
+
+1. Starts Postgres + Neo4j via Docker Compose and waits until healthy
+2. Applies pending Postgres + Neo4j migrations (idempotent)
+3. Starts `@selecta/web` and `@selecta/api`
+
+Then open [http://localhost:3000/library](http://localhost:3000/library).
+
+### Escape hatches
+
+```bash
+pnpm db:up         # Compose only
+pnpm db:migrate    # Postgres migrations only
+pnpm graph:migrate # Neo4j constraints only
+pnpm dev:apps      # web + api only (DBs already up)
+pnpm dev:web       # web only
+pnpm dev:api       # api only
+pnpm db:down       # stop Compose services
+pnpm db:logs       # follow Compose logs
 pnpm lint
-pnpm format       # write with oxfmt
-pnpm format:check # CI-friendly format check
+pnpm format        # write with oxfmt
+pnpm format:check  # CI-friendly format check
 pnpm build
 ```
 
-`.env.example` credentials match the Compose Postgres and Neo4j services. Postgres listens on host port `5433` (mapped to container `5432`, so it does not collide with a local Postgres on `5432`); Neo4j Bolt on `7687` and Browser on `http://localhost:7474`. Fill an AI gateway key when you need that service. Optional `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` enable `GET /catalog/search` on the API (server-only; UI falls back to manual entry when unset). Local MVP is single-user: Neo4j holds the song library; Postgres holds free-form notes. `DEV_LIBRARY_ID` / `DEV_USER_ID` remain as optional stubs until auth. Auth provider secrets in `.env.example` are optional placeholders only.
+`.env.example` credentials match the Compose Postgres and Neo4j services. Postgres listens on host port `5433` (mapped to container `5432`, so it does not collide with a local Postgres on `5432`); Neo4j Bolt on `7687` and Browser on `http://localhost:7474`. `API_ORIGIN` (default `http://localhost:3001`) is used by the web app’s `/backend` rewrite. Fill an AI gateway key when you need that service. Optional `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` enable catalog search (server-only; UI falls back to manual entry when unset). Local MVP is single-user: Neo4j holds the song library; Postgres holds free-form notes. `DEV_LIBRARY_ID` / `DEV_USER_ID` remain as optional stubs until auth. Auth provider secrets in `.env.example` are optional placeholders only.
 
 ## Linting & formatting
 
