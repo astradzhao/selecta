@@ -3,10 +3,12 @@ import {
   createSong,
   isGraphWriteError,
   isNeo4jConfigured,
+  listSongs,
   type CreateSongInput,
   type CreateSongResult,
   type FolderRef,
   type NamedRef,
+  type SongSummary,
 } from "@selecta/graph";
 import { CATALOG_PROVIDERS, type CatalogProviderId } from "@selecta/catalog";
 
@@ -231,7 +233,7 @@ function toCreateInput(body: CreateSongRequestBody): CreateSongInput {
   };
 }
 
-function serializeSong(result: CreateSongResult) {
+function serializeSong(result: CreateSongResult | SongSummary, created?: boolean) {
   return {
     id: result.song.id,
     title: result.song.title,
@@ -249,8 +251,58 @@ function serializeSong(result: CreateSongResult) {
     libraryId: result.song.libraryId,
     createdAt: result.song.createdAt,
     updatedAt: result.song.updatedAt,
-    created: result.created,
+    ...(created !== undefined ? { created } : {}),
   };
+}
+
+function parseListLimit(raw: string | null): number | undefined {
+  if (raw == null || raw === "") {
+    return undefined;
+  }
+  const value = Number(raw);
+  if (!Number.isFinite(value)) {
+    return undefined;
+  }
+  return value;
+}
+
+/**
+ * Search/list local library songs.
+ * GET /songs?q=&subgenre=&subgenreId=&folder=&folderId=&limit=
+ */
+export async function GET(request: Request) {
+  if (!isNeo4jConfigured()) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "graph_not_configured",
+        message: "Neo4j is not configured.",
+      },
+      { status: 503 },
+    );
+  }
+
+  const { searchParams } = new URL(request.url);
+  try {
+    const songs = await listSongs({
+      query: searchParams.get("q") ?? undefined,
+      subgenreId: searchParams.get("subgenreId") ?? undefined,
+      subgenre: searchParams.get("subgenre") ?? undefined,
+      folderId: searchParams.get("folderId") ?? undefined,
+      folder: searchParams.get("folder") ?? undefined,
+      limit: parseListLimit(searchParams.get("limit")),
+    });
+    return NextResponse.json({
+      ok: true,
+      songs: songs.map((song) => serializeSong(song)),
+    });
+  } catch (error) {
+    console.error("list songs failed", error);
+    return NextResponse.json(
+      { ok: false, error: "internal_error", message: "Failed to list songs." },
+      { status: 500 },
+    );
+  }
 }
 
 /**
@@ -296,7 +348,7 @@ export async function POST(request: Request) {
   try {
     const result = await createSong(input);
     return NextResponse.json(
-      { ok: true, song: serializeSong(result) },
+      { ok: true, song: serializeSong(result, result.created) },
       { status: result.created ? 201 : 200 },
     );
   } catch (error) {

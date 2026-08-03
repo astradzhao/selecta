@@ -34,6 +34,8 @@ export {
 
 export { mergeArtist, mergeGenre, mergeSubgenre, mergeFolder, createSong } from "./writes";
 
+export { listSongs, type ListSongsInput, type SongSummary } from "./songs";
+
 export { closeDriver, getDriver, isNeo4jConfigured, type GraphStatus } from "./client";
 
 export { getGraphStatus, readCypher, runCypher, writeCypher, type CypherParams } from "./cypher";
