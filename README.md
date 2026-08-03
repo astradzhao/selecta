@@ -23,6 +23,7 @@ dev-files/      # Architecture + planning docs
 
 ```bash
 pnpm install
+cp .env.example .env.local   # Postgres, Neo4j, AI, local stub IDs
 pnpm dev          # web :3000 + api :3001
 pnpm dev:web      # web only
 pnpm dev:api      # api only
@@ -31,6 +32,8 @@ pnpm format       # write with oxfmt
 pnpm format:check # CI-friendly format check
 pnpm build
 ```
+
+Fill `.env.local` with local Postgres / Neo4j credentials and an AI gateway key when you need those services. `DEV_LIBRARY_ID` / `DEV_USER_ID` stub single-tenant membership until auth lands. Auth provider secrets in `.env.example` are optional placeholders only.
 
 ## Linting & formatting
 
