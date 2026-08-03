@@ -636,7 +636,7 @@ selecta/                     # monorepo root (github.com/astradzhao/selecta)
   packages/
     db/                      # Postgres client, membership — @selecta/db
     graph/                   # Neo4j driver, Cypher, types — @selecta/graph
-    notes/                   # parse/commit orchestration + Zod — @selecta/notes
+    mix-notes/               # parse/commit orchestration + Zod — @selecta/mix-notes
     ui/                      # shadcn + shared UI — @selecta/ui
     eslint-config/           # shared ESLint — @selecta/eslint-config
   dev-files/                 # architecture, ADRs, prompts

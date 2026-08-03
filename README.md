@@ -13,7 +13,7 @@ apps/
 packages/
   db/           # Postgres client + membership (@selecta/db)
   graph/        # Neo4j / Cypher (@selecta/graph)
-  notes/        # NL parse / preview / commit (@selecta/notes)
+  mix-notes/    # NL parse / preview / commit (@selecta/mix-notes)
   ui/           # Shared UI / shadcn (@selecta/ui)
   eslint-config # Shared ESLint flat configs (@selecta/eslint-config)
 dev-files/      # Architecture + planning docs
