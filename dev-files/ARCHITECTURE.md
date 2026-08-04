@@ -29,14 +29,14 @@ A **DJ-helping note-taking app** where DJs capture knowledge about tracks and tr
 
 DJs accumulate tribal knowledge that is hard to reuse under pressure:
 
-| Knowledge type   | Example                                             | Graph shape                                |
-| ---------------- | --------------------------------------------------- | ------------------------------------------ |
-| Transition       | “A → B at bar 16 with HPF, great for building hype” | `Track -[:TRANSITION]-> Track` + edge props  |
-| Intra-track cue   | “At bar 32 on track A, 4-bar loop builds hype”      | `Track -[:HAS_CUE]-> Cue`                   |
+| Knowledge type   | Example                                             | Graph shape                                 |
+| ---------------- | --------------------------------------------------- | ------------------------------------------- |
+| Transition       | “A → B at bar 16 with HPF, great for building hype” | `Track -[:TRANSITION]-> Track` + edge props |
+| Intra-track cue  | “At bar 32 on track A, 4-bar loop builds hype”      | `Track -[:HAS_CUE]-> Cue`                   |
 | Artist / catalog | “Other tracks by this artist”                       | `Artist -[:BY]-> Track`                     |
 | Genre            | “UKG / techno — multi-tag”                          | `Track -[:IN_GENRE]-> Genre` (many edges)   |
-| Track metadata    | BPM, key, energy                                    | `Track` **properties** (scalars)            |
-| Set context      | Current track + energy goal                          | Postgres session → Cypher over music graph |
+| Track metadata   | BPM, key, energy                                    | `Track` **properties** (scalars)            |
+| Set context      | Current track + energy goal                         | Postgres session → Cypher over music graph  |
 
 The product is **not** a DAW or mixer. It is a **knowledge + decision surface** for live performance.
 
@@ -58,10 +58,10 @@ The product is **not** a DAW or mixer. It is a **knowledge + decision surface** 
 
 **Decision (locked): split stores. Neo4j holds only musical knowledge.**
 
-| Store        | Owns                                                                                                                        | Does not own                       |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Store        | Owns                                                                                                                          | Does not own                       |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
 | **Postgres** | Users/auth, libraries, sessions, raw notes + extraction previews/commits, track↔user membership (`library_tracks`), app audit | Music topology / mix relationships |
-| **Neo4j**    | Tracks, artists, genres, transitions, cues, (later) intent/technique hubs & artist similarity                                | Users, notes, sessions, auth       |
+| **Neo4j**    | Tracks, artists, genres, transitions, cues, (later) intent/technique hubs & artist similarity                                 | Users, notes, sessions, auth       |
 
 ### Why not `(:User)-[:OWNS]->(:Track)` / `(:Note)`?
 
@@ -124,19 +124,19 @@ Keep as a **property** when most of these are true:
 4. **Edge-local fact** — `fromBar`, `toBar`, `barsOverlap`, `quality` on a specific transition
 5. **Enum that only filters one relationship type** — can start as an edge property; promote later if it becomes a hub
 
-| Concept                                     | v1 shape                                                          | Why                                                     |
-| ------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------- |
-| Track                                        | **Node**                                                          | Central entity                                          |
-| Artist                                      | **Node** (required ≥1 via `BY`)                                   | Traverse track→artist→tracks; future similarity           |
+| Concept                                     | v1 shape                                                          | Why                                                      |
+| ------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------- |
+| Track                                       | **Node**                                                          | Central entity                                           |
+| Artist                                      | **Node** (required ≥1 via `BY`)                                   | Traverse track→artist→tracks; future similarity          |
 | Genre                                       | **Node** + `IN_GENRE` edges (required ≥1)                         | Multi-genre; traverse genre→tracks                       |
 | Cue                                         | **Node**                                                          | Time-anchored object with its own fields; many per track |
 | Transition                                  | **Relationship**                                                  | Directed mix fact between two tracks                     |
-| BPM / key / energy / duration               | **Track properties**                                               | Scalars; filtering ok via indexes, not hubs             |
-| Title                                       | **Track property**                                                 | Identity string, not a hub                              |
-| Transition bars / overlap / quality / notes | **Edge properties**                                               | Local to that mix instance                              |
-| Intent (`build_hype`, …)                    | **Edge/Cue property in v1** → optional **Intent node** in Phase 2 | Start simple; promote when faceting/analytics need hubs |
-| Technique (`hpf`, `bass_swap`, …)           | **Edge/Cue property in v1** → optional **Technique node** later   | Same as intent                                          |
-| User / Note / Session                       | **Postgres only**                                                 | Not musical graph                                       |
+| BPM / key / energy / duration               | **Track properties**                                              | Scalars; filtering ok via indexes, not hubs              |
+| Title                                       | **Track property**                                                | Identity string, not a hub                               |
+| Transition bars / overlap / quality / notes | **Edge properties**                                               | Local to that mix instance                               |
+| Intent (`build_hype`, …)                    | **Edge/Cue property in v1** → optional **Intent node** in Phase 2 | Start simple; promote when faceting/analytics need hubs  |
+| Technique (`hpf`, `bass_swap`, …)           | **Edge/Cue property in v1** → optional **Technique node** later   | Same as intent                                           |
+| User / Note / Session                       | **Postgres only**                                                 | Not musical graph                                        |
 
 **Rule of thumb:** if you would ever write “find all X connected through Y”, Y is probably a node. If you would write “filter tracks where field = value”, it can stay a property.
 
@@ -226,13 +226,13 @@ Example `kind` values: `loop_opportunity`, `hype_build`, `vocal_drop`, `breakdow
 
 ### 5.8 Session (Postgres, not Neo4j)
 
-| Field           | Description                              |
-| --------------- | ---------------------------------------- |
-| `currentTrackId` | Now playing (Neo4j track id)              |
-| `currentBar`    | Approximate position (manual for v1)     |
-| `energyGoal`    | Optional filter: build / cool / maintain |
+| Field            | Description                              |
+| ---------------- | ---------------------------------------- |
+| `currentTrackId` | Now playing (Neo4j track id)             |
+| `currentBar`     | Approximate position (manual for v1)     |
+| `energyGoal`     | Optional filter: build / cool / maintain |
 | `recentTrackIds` | Avoid immediate repeats                  |
-| `setId`         | Optional grouping of a night             |
+| `setId`          | Optional grouping of a night             |
 
 ---
 
@@ -328,26 +328,26 @@ Keep raw text forever; show a **proposed graph diff** before commit.
 ### 7.2 Pipeline stages
 
 ```
-[Raw note text]
+[Raw note text]  (durable save first)
       │
       ▼
-1. Preprocess (trim, track alias resolution hints)
+1. Bounded note agent (≤4 steps; library + Spotify search tools only)
       │
       ▼
-2. LLM structured extraction → JSON schema
+2. Validated processing plan (opaque graph:/spotify: candidate handles)
       │
       ▼
-3. Entity resolution (match/create Track nodes)
+3. Deterministic policy gates (unique match, confidence, ambiguity)
+      │
+      ├── needs_review → persist reasons for DJ-36 UI
+      │
+      └── auto path → idempotent Spotify import + TRANSITION MERGE
       │
       ▼
-4. Validation + conflict checks
-      │
-      ▼
-5. Preview diff (human confirm)
-      │
-      ▼
-6. Cypher write transaction + Note provenance
+4. Postgres agent-run audit + note extraction status (CAS by version)
 ```
+
+The model never runs Cypher, generic HTTP, or mutation tools. Imports/commits are application policy only.
 
 ### 7.3 Extraction schema (conceptual)
 
@@ -499,11 +499,11 @@ UI uses **shadcn** primitives (`Button`, `Command`, `Dialog`, `Input`, etc.). Li
 | ------ | ------------------------- | --------------------------------------------- |
 | `POST` | `/api/notes/parse`        | NL → structured preview (no write)            |
 | `POST` | `/api/notes/commit`       | Apply accepted preview to Neo4j + PG note row |
-| `GET`  | `/api/tracks`              | Search/list (membership-scoped)               |
-| `POST` | `/api/tracks`              | Manual create (Artist + Genre required)       |
-| `GET`  | `/api/tracks/:id`          | Track + cues + outbound transitions            |
-| `GET`  | `/api/live/next`          | Session → ranked next tracks + nearby cues     |
-| `PUT`  | `/api/live/session`       | Update current track/bar/intent filter         |
+| `GET`  | `/api/tracks`             | Search/list (membership-scoped)               |
+| `POST` | `/api/tracks`             | Manual create (Artist + Genre required)       |
+| `GET`  | `/api/tracks/:id`         | Track + cues + outbound transitions           |
+| `GET`  | `/api/live/next`          | Session → ranked next tracks + nearby cues    |
+| `PUT`  | `/api/live/session`       | Update current track/bar/intent filter        |
 | `GET`  | `/api/graph/neighborhood` | Optional explorer (prep mode)                 |
 
 ---
@@ -636,7 +636,8 @@ selecta/                     # monorepo root (github.com/astradzhao/selecta)
   packages/
     db/                      # Postgres client, membership — @selecta/db
     graph/                   # Neo4j driver, Cypher, types — @selecta/graph
-    mix-notes/               # parse/commit orchestration + Zod — @selecta/mix-notes
+    mix-notes/               # note agent + Zod schemas — @selecta/mix-notes
+    agentics/                # bounded AI agent harness — @selecta/agentics
     ui/                      # shadcn + shared UI — @selecta/ui
     eslint-config/           # shared ESLint — @selecta/eslint-config
   dev-files/                 # architecture, ADRs, prompts
@@ -716,7 +717,7 @@ Suggested early `dev-files/` companions (later, not now):
 | Auto-commit NL vs confirm      | Speed vs trust                      | Confirm in Phases 1–2                                            |
 | Cue as node vs properties      | Flexibility vs simplicity           | Cue nodes                                                        |
 | Intent/Technique               | Edge props vs nodes                 | Props in v1; promote to nodes if faceting needs hubs             |
-| Artist uniqueness              | Per-library vs global MERGE         | Global `nameNormalized` MERGE; tracks stay library-scoped         |
+| Artist uniqueness              | Per-library vs global MERGE         | Global `nameNormalized` MERGE; tracks stay library-scoped        |
 | Bar tracking                   | Manual vs synced                    | Manual stepper in v1                                             |
 | Multi-device live              | Phone + laptop                      | PWA-friendly Live Mode early                                     |
 | Ontology strictness            | Enums vs free text                  | Hybrid: seeded enums + `notes` free text                         |
@@ -788,12 +789,12 @@ The architecture is “right” if:
 
 | Term       | Meaning                                                                |
 | ---------- | ---------------------------------------------------------------------- |
-| Transition | Directed mix relationship from track A to track B                        |
-| Cue        | Time-anchored opportunity on a single track                             |
-| Artist     | Graph node; tracks connect via `BY`                                     |
-| Genre      | Graph node; tracks connect via `IN_GENRE` (many-to-many)                |
+| Transition | Directed mix relationship from track A to track B                      |
+| Cue        | Time-anchored opportunity on a single track                            |
+| Artist     | Graph node; tracks connect via `BY`                                    |
+| Genre      | Graph node; tracks connect via `IN_GENRE` (many-to-many)               |
 | Intent     | Energy/role label (build hype, cool down, …) — edge/cue property in v1 |
 | Technique  | Mixing method (HPF, bass swap, loop, …) — edge/cue property in v1      |
 | Live Mode  | Performance UI driven by session state + graph queries                 |
 | Extraction | NL → structured graph operations                                       |
-| Membership | Postgres link from library/user → Neo4j track ids                       |
+| Membership | Postgres link from library/user → Neo4j track ids                      |

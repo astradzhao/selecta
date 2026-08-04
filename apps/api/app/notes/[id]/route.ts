@@ -1,7 +1,11 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { getNoteById, isNotesError, isPostgresConfigured, updateNote } from "@selecta/db";
 
+import { runNoteExtraction } from "@/lib/extraction";
 import { loadSerializedTrackLinks, serializeNote } from "@/lib/notes";
+
+/** Allow AI Gateway extraction to finish after the update response. */
+export const maxDuration = 60;
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -71,7 +75,7 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 /**
- * Edit raw note text. Preserves committed extraction history; invalidates stale previews.
+ * Edit raw note text. Text changes invalidate prior extraction and start a new version.
  * PATCH /notes/:id
  */
 export async function PATCH(request: Request, context: RouteContext) {
@@ -119,7 +123,13 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   try {
-    const note = await updateNote(id, body);
+    const { note, extractionQueued } = await updateNote(id, body);
+    if (extractionQueued) {
+      const version = note.extractionVersion;
+      after(() => {
+        void runNoteExtraction(note.id, version);
+      });
+    }
     const trackLinks = await loadSerializedTrackLinks(note.id);
     return NextResponse.json({ ok: true, note: serializeNote(note, trackLinks) });
   } catch (error) {

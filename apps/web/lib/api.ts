@@ -178,6 +178,16 @@ export async function createTrack(body: CreateTrackBody): Promise<{ ok: true; tr
 
 export type NoteStatus = "draft" | "preview" | "committed";
 
+export type NoteExtractionStatus =
+  | "idle"
+  | "extracting"
+  | "no_proposal"
+  | "resolving"
+  | "needs_review"
+  | "committed"
+  | "commit_failed"
+  | "failed";
+
 export type ApiNoteTrackLink = {
   id: string;
   trackId: string;
@@ -196,7 +206,14 @@ export type ApiNote = {
   id: string;
   rawText: string;
   status: NoteStatus;
+  extractionStatus: NoteExtractionStatus;
+  extractionVersion: number;
+  extractionError: string | null;
+  extractionConfidence: number | null;
+  extractionStartedAt: string | null;
+  extractionFinishedAt: string | null;
   extraction: Record<string, unknown> | null;
+  provider: string | null;
   model: string | null;
   promptVersion: string | null;
   rawResponse: Record<string, unknown> | null;
@@ -232,6 +249,13 @@ export async function updateNote(
   return apiFetch(`/notes/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body: JSON.stringify(body),
+  });
+}
+
+/** Retry extraction for the current note version. */
+export async function extractNote(id: string): Promise<{ ok: true; note: ApiNote }> {
+  return apiFetch(`/notes/${encodeURIComponent(id)}/extract`, {
+    method: "POST",
   });
 }
 

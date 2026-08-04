@@ -12,6 +12,8 @@
     "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
+    "@selecta/agentics": "workspace:*",
+    "ai": "^7.0.48",
     "zod": "^4.4.3"
   },
   "devDependencies": {

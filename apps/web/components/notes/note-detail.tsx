@@ -8,7 +8,15 @@ import { Label } from "@selecta/ui/components/label";
 import { Textarea } from "@selecta/ui/components/textarea";
 
 import { NoteTrackLinks } from "@/components/notes/note-track-links";
-import { ApiClientError, getNote, updateNote, type ApiNote, type ApiNoteTrackLink } from "@/lib/api";
+import {
+  ApiClientError,
+  extractNote,
+  getNote,
+  updateNote,
+  type ApiNote,
+  type ApiNoteTrackLink,
+  type NoteExtractionStatus,
+} from "@/lib/api";
 
 function formatTimestamp(iso: string): string {
   const date = new Date(iso);
@@ -19,6 +27,42 @@ function formatTimestamp(iso: string): string {
   }).format(date);
 }
 
+function extractionStatusLabel(status: NoteExtractionStatus): string {
+  switch (status) {
+    case "extracting":
+      return "Processing…";
+    case "no_proposal":
+      return "No graph proposal";
+    case "resolving":
+      return "Proposals ready (legacy)";
+    case "needs_review":
+      return "Needs review";
+    case "committed":
+      return "Auto-committed";
+    case "commit_failed":
+      return "Commit failed";
+    case "failed":
+      return "Processing failed";
+    case "idle":
+    default:
+      return "Not processed yet";
+  }
+}
+
+function reviewReasonsFromNote(note: ApiNote): string[] {
+  const extraction = note.extraction;
+  if (!extraction || typeof extraction !== "object") return [];
+  const reasons = (extraction as { reviewReasons?: unknown }).reviewReasons;
+  if (!Array.isArray(reasons)) return [];
+  return reasons
+    .map((reason) => {
+      if (!reason || typeof reason !== "object") return null;
+      const message = (reason as { message?: unknown }).message;
+      return typeof message === "string" ? message : null;
+    })
+    .filter((message): message is string => Boolean(message));
+}
+
 export function NoteDetail({ noteId }: { noteId: string }) {
   const [note, setNote] = useState<ApiNote | null>(null);
   const [rawText, setRawText] = useState("");
@@ -26,8 +70,10 @@ export function NoteDetail({ noteId }: { noteId: string }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [retryError, setRetryError] = useState<string | null>(null);
   const [loading, startLoad] = useTransition();
   const [saving, startSave] = useTransition();
+  const [retrying, startRetry] = useTransition();
 
   useEffect(() => {
     let cancelled = false;
@@ -56,6 +102,26 @@ export function NoteDetail({ noteId }: { noteId: string }) {
     };
   }, [noteId]);
 
+  useEffect(() => {
+    if (note?.extractionStatus !== "extracting") return;
+    let cancelled = false;
+    const timer = window.setInterval(() => {
+      void getNote(noteId)
+        .then((response) => {
+          if (cancelled) return;
+          setNote(response.note);
+          setTrackLinks(response.note.trackLinks ?? []);
+        })
+        .catch(() => {
+          /* keep last known note; next poll may succeed */
+        });
+    }, 1500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [noteId, note?.extractionStatus]);
+
   const trimmed = rawText.trim();
   const dirty = note != null && rawText !== note.rawText;
   const canSave = dirty && trimmed.length > 0 && !saving;
@@ -76,7 +142,8 @@ export function NoteDetail({ noteId }: { noteId: string }) {
         setRawText(response.note.rawText);
         setTrackLinks(response.note.trackLinks ?? trackLinks);
         setSaveError(null);
-        setSaveMessage("Saved.");
+        setRetryError(null);
+        setSaveMessage("Saved — extraction started.");
       } catch (err) {
         setSaveMessage(null);
         setSaveError(
@@ -85,6 +152,24 @@ export function NoteDetail({ noteId }: { noteId: string }) {
               ? "The local notes database isn’t running. Start the full stack with `pnpm dev`."
               : err.message
             : "Failed to save note. Is the API running?",
+        );
+      }
+    });
+  }
+
+  function onRetryExtraction() {
+    if (!note) return;
+    startRetry(async () => {
+      try {
+        const response = await extractNote(note.id);
+        setNote(response.note);
+        setTrackLinks(response.note.trackLinks ?? trackLinks);
+        setRetryError(null);
+      } catch (err) {
+        setRetryError(
+          err instanceof ApiClientError
+            ? err.message
+            : "Failed to retry extraction. Is the API running?",
         );
       }
     });
@@ -125,6 +210,54 @@ export function NoteDetail({ noteId }: { noteId: string }) {
             : null}
         </p>
       </header>
+
+      <section
+        className="border-border bg-muted/30 space-y-2 rounded-lg border px-3 py-3"
+        aria-live="polite"
+      >
+        <p className="text-sm font-medium">
+          Extraction: {extractionStatusLabel(note.extractionStatus)}
+          <span className="text-muted-foreground font-normal"> · v{note.extractionVersion}</span>
+        </p>
+        {note.extractionStatus === "failed" && note.extractionError ? (
+          <p className="text-sm" role="alert">
+            {note.extractionError}
+          </p>
+        ) : null}
+        {note.extractionStatus === "needs_review" || note.extractionStatus === "commit_failed"
+          ? reviewReasonsFromNote(note).map((reason) => (
+              <p key={reason} className="text-muted-foreground text-sm">
+                {reason}
+              </p>
+            ))
+          : null}
+        {note.extractionConfidence != null ? (
+          <p className="text-muted-foreground text-xs">
+            Confidence {note.extractionConfidence.toFixed(2)}
+            {note.model ? ` · ${note.model}` : null}
+            {note.promptVersion ? ` · prompt ${note.promptVersion}` : null}
+          </p>
+        ) : null}
+        {retryError ? (
+          <p className="text-sm" role="alert">
+            {retryError}
+          </p>
+        ) : null}
+        {note.extractionStatus === "failed" ||
+        note.extractionStatus === "idle" ||
+        note.extractionStatus === "needs_review" ||
+        note.extractionStatus === "commit_failed" ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={retrying}
+            onClick={onRetryExtraction}
+          >
+            {retrying ? "Retrying…" : "Retry processing"}
+          </Button>
+        ) : null}
+      </section>
 
       <form onSubmit={onSubmit} className="space-y-6">
         <div className="space-y-2">

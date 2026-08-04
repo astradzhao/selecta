@@ -21,7 +21,14 @@ export type SerializedNote = {
   id: string;
   rawText: string;
   status: Note["status"];
+  extractionStatus: Note["extractionStatus"];
+  extractionVersion: number;
+  extractionError: string | null;
+  extractionConfidence: number | null;
+  extractionStartedAt: string | null;
+  extractionFinishedAt: string | null;
   extraction: Note["extraction"];
+  provider: string | null;
   model: string | null;
   promptVersion: string | null;
   rawResponse: Note["rawResponse"];
@@ -44,7 +51,14 @@ export function serializeNote(note: Note, trackLinks?: SerializedNoteTrackLink[]
     id: note.id,
     rawText: note.rawText,
     status: note.status,
+    extractionStatus: note.extractionStatus,
+    extractionVersion: note.extractionVersion,
+    extractionError: note.extractionError,
+    extractionConfidence: note.extractionConfidence,
+    extractionStartedAt: note.extractionStartedAt?.toISOString() ?? null,
+    extractionFinishedAt: note.extractionFinishedAt?.toISOString() ?? null,
     extraction: note.extraction,
+    provider: note.provider,
     model: note.model,
     promptVersion: note.promptVersion,
     rawResponse: note.rawResponse,

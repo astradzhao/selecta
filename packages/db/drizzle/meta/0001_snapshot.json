@@ -146,12 +146,8 @@
           "name": "note_track_links_note_id_notes_id_fk",
           "tableFrom": "note_track_links",
           "tableTo": "notes",
-          "columnsFrom": [
-            "note_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["note_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -167,11 +163,7 @@
     "public.note_status": {
       "name": "note_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "preview",
-        "committed"
-      ]
+      "values": ["draft", "preview", "committed"]
     }
   },
   "schemas": {},
