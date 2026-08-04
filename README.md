@@ -44,10 +44,11 @@ Then open [http://localhost:3000/library](http://localhost:3000/library).
 pnpm db:up         # Compose only
 pnpm db:migrate    # Postgres migrations only
 pnpm graph:migrate # Neo4j constraints only
+pnpm dev:stop      # stop Compose DBs + free :3000 / :3001 (stale Next leftovers)
 pnpm dev:apps      # web + api only (DBs already up)
 pnpm dev:web       # web only
 pnpm dev:api       # api only
-pnpm db:down       # stop Compose services
+pnpm db:down       # stop Compose services only
 pnpm db:logs       # follow Compose logs
 pnpm lint
 pnpm format        # write with oxfmt
