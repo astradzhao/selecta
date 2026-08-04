@@ -8,7 +8,13 @@ import { loadRootEnv } from "../../scripts/load-root-env.mjs";
 loadRootEnv(resolve(dirname(fileURLToPath(import.meta.url)), "../.."));
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@selecta/catalog", "@selecta/db", "@selecta/graph", "@selecta/mix-notes"],
+  transpilePackages: [
+    "@selecta/agentics",
+    "@selecta/catalog",
+    "@selecta/db",
+    "@selecta/graph",
+    "@selecta/mix-notes",
+  ],
 };
 
 export default nextConfig;

@@ -5,3 +5,9 @@ export { mergeGenre } from "./genre-writes";
 export { mergeSubgenre } from "./subgenre-writes";
 export { mergeFolder } from "./folder-writes";
 export { createTrack } from "./track-writes";
+export {
+  commitTransitionProposal,
+  commitTransitionProposals,
+  type CommitTransitionInput,
+  type CommitTransitionResult,
+} from "./transition-writes";

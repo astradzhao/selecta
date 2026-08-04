@@ -35,6 +35,19 @@ export {
 export { mergeArtist, mergeGenre, mergeSubgenre, mergeFolder, createTrack } from "./writes";
 
 export {
+  commitTransitionProposal,
+  commitTransitionProposals,
+  type CommitTransitionInput,
+  type CommitTransitionResult,
+} from "./writes";
+
+export {
+  AGENT_SAFE_GRAPH_SCHEMA,
+  formatAgentSafeGraphSchema,
+  type AgentSafeGraphSchema,
+} from "./agent-schema";
+
+export {
   listTracks,
   getTrackById,
   getLibraryStats,

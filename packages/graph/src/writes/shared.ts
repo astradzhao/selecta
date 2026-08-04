@@ -29,7 +29,9 @@ export function prepareVocab(name: string, label: string): VocabParams {
   };
 }
 
-export function cleanExternalIds(externalIds: TrackExternalIds | undefined): Record<string, string> {
+export function cleanExternalIds(
+  externalIds: TrackExternalIds | undefined,
+): Record<string, string> {
   if (!externalIds) {
     return {};
   }

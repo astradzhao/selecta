@@ -1,8 +1,19 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, max } from "drizzle-orm";
 
 import { getDb } from "./client";
 import { NotesError } from "./errors";
-import { notes, type Note, type NoteExtractionStatus, type NoteStatus } from "./schema";
+import {
+  noteAgentRuns,
+  notes,
+  noteTransitionCommits,
+  type Note,
+  type NoteAgentRun,
+  type NoteAgentRunStatus,
+  type NoteExtractionStatus,
+  type NoteStatus,
+  type NoteTransitionCommit,
+  type NoteTransitionCommitStatus,
+} from "./schema";
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
@@ -26,9 +37,12 @@ export type CompleteExtractionInput = {
   provider: string;
   promptVersion: string;
   extractionConfidence: number;
-  extractionStatus: Extract<NoteExtractionStatus, "no_proposal" | "resolving">;
+  extractionStatus: Extract<
+    NoteExtractionStatus,
+    "no_proposal" | "needs_review" | "committed" | "commit_failed" | "resolving"
+  >;
   /** Lifecycle status after a successful extract. */
-  status: Extract<NoteStatus, "draft" | "preview">;
+  status: Extract<NoteStatus, "draft" | "preview" | "committed">;
 };
 
 function clampLimit(limit: number | undefined): number {
@@ -235,5 +249,168 @@ export async function failExtraction(
     )
     .returning();
 
+  return row ?? null;
+}
+
+export type StartAgentRunInput = {
+  noteId: string;
+  extractionVersion: number;
+  agentName: string;
+  model?: string | null;
+  provider?: string | null;
+  promptVersion?: string | null;
+  promptHash?: string | null;
+};
+
+export async function startAgentRun(input: StartAgentRunInput): Promise<NoteAgentRun> {
+  const attempts = await getDb()
+    .select({ maxAttempt: max(noteAgentRuns.attempt) })
+    .from(noteAgentRuns)
+    .where(
+      and(
+        eq(noteAgentRuns.noteId, input.noteId),
+        eq(noteAgentRuns.extractionVersion, input.extractionVersion),
+      ),
+    );
+  const nextAttempt = (attempts[0]?.maxAttempt ?? 0) + 1;
+
+  const [row] = await getDb()
+    .insert(noteAgentRuns)
+    .values({
+      noteId: input.noteId,
+      extractionVersion: input.extractionVersion,
+      attempt: nextAttempt,
+      agentName: input.agentName,
+      status: "running",
+      model: input.model ?? null,
+      provider: input.provider ?? null,
+      promptVersion: input.promptVersion ?? null,
+      promptHash: input.promptHash ?? null,
+    })
+    .returning();
+
+  if (!row) {
+    throw new NotesError("invalid_input", "Failed to start agent run.");
+  }
+  return row;
+}
+
+export type FinishAgentRunInput = {
+  status: Extract<NoteAgentRunStatus, "completed" | "failed" | "superseded">;
+  stepCount?: number;
+  toolCallCount?: number;
+  usage?: Record<string, unknown> | null;
+  toolSummary?: Record<string, unknown> | null;
+  plan?: Record<string, unknown> | null;
+  policyResult?: Record<string, unknown> | null;
+  error?: string | null;
+  model?: string | null;
+  provider?: string | null;
+  promptVersion?: string | null;
+  promptHash?: string | null;
+};
+
+export async function finishAgentRun(
+  runId: string,
+  input: FinishAgentRunInput,
+): Promise<NoteAgentRun | null> {
+  const [row] = await getDb()
+    .update(noteAgentRuns)
+    .set({
+      status: input.status,
+      stepCount: input.stepCount ?? 0,
+      toolCallCount: input.toolCallCount ?? 0,
+      usage: input.usage ?? null,
+      toolSummary: input.toolSummary ?? null,
+      plan: input.plan ?? null,
+      policyResult: input.policyResult ?? null,
+      error: input.error?.slice(0, 2000) ?? null,
+      model: input.model ?? undefined,
+      provider: input.provider ?? undefined,
+      promptVersion: input.promptVersion ?? undefined,
+      promptHash: input.promptHash ?? undefined,
+      finishedAt: new Date(),
+    })
+    .where(and(eq(noteAgentRuns.id, runId), eq(noteAgentRuns.status, "running")))
+    .returning();
+  return row ?? null;
+}
+
+export async function listAgentRunsForNote(noteId: string, limit = 10): Promise<NoteAgentRun[]> {
+  return getDb()
+    .select()
+    .from(noteAgentRuns)
+    .where(eq(noteAgentRuns.noteId, noteId))
+    .orderBy(desc(noteAgentRuns.createdAt))
+    .limit(clampLimit(limit));
+}
+
+export type UpsertTransitionCommitInput = {
+  noteId: string;
+  extractionVersion: number;
+  proposalKey: string;
+  status: NoteTransitionCommitStatus;
+  fromTrackId?: string | null;
+  toTrackId?: string | null;
+  payload?: Record<string, unknown> | null;
+  error?: string | null;
+};
+
+export async function upsertTransitionCommit(
+  input: UpsertTransitionCommitInput,
+): Promise<NoteTransitionCommit> {
+  const existing = await getDb()
+    .select()
+    .from(noteTransitionCommits)
+    .where(eq(noteTransitionCommits.proposalKey, input.proposalKey))
+    .limit(1);
+
+  if (existing[0]) {
+    const [row] = await getDb()
+      .update(noteTransitionCommits)
+      .set({
+        status: input.status,
+        fromTrackId: input.fromTrackId ?? existing[0].fromTrackId,
+        toTrackId: input.toTrackId ?? existing[0].toTrackId,
+        payload: input.payload ?? existing[0].payload,
+        error: input.error?.slice(0, 2000) ?? null,
+        committedAt: input.status === "committed" ? new Date() : existing[0].committedAt,
+      })
+      .where(eq(noteTransitionCommits.proposalKey, input.proposalKey))
+      .returning();
+    if (!row) {
+      throw new NotesError("invalid_input", "Failed to update transition commit.");
+    }
+    return row;
+  }
+
+  const [row] = await getDb()
+    .insert(noteTransitionCommits)
+    .values({
+      noteId: input.noteId,
+      extractionVersion: input.extractionVersion,
+      proposalKey: input.proposalKey,
+      status: input.status,
+      fromTrackId: input.fromTrackId ?? null,
+      toTrackId: input.toTrackId ?? null,
+      payload: input.payload ?? null,
+      error: input.error?.slice(0, 2000) ?? null,
+      committedAt: input.status === "committed" ? new Date() : null,
+    })
+    .returning();
+  if (!row) {
+    throw new NotesError("invalid_input", "Failed to create transition commit.");
+  }
+  return row;
+}
+
+export async function getTransitionCommitByKey(
+  proposalKey: string,
+): Promise<NoteTransitionCommit | null> {
+  const [row] = await getDb()
+    .select()
+    .from(noteTransitionCommits)
+    .where(eq(noteTransitionCommits.proposalKey, proposalKey))
+    .limit(1);
   return row ?? null;
 }

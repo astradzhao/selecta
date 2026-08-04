@@ -178,7 +178,15 @@ export async function createTrack(body: CreateTrackBody): Promise<{ ok: true; tr
 
 export type NoteStatus = "draft" | "preview" | "committed";
 
-export type NoteExtractionStatus = "idle" | "extracting" | "no_proposal" | "resolving" | "failed";
+export type NoteExtractionStatus =
+  | "idle"
+  | "extracting"
+  | "no_proposal"
+  | "resolving"
+  | "needs_review"
+  | "committed"
+  | "commit_failed"
+  | "failed";
 
 export type ApiNoteTrackLink = {
   id: string;

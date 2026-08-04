@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@selecta/agentics": "workspace:*",
     "@selecta/catalog": "workspace:*",
     "@selecta/db": "workspace:*",
     "@selecta/graph": "workspace:*",

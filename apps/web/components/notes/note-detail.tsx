@@ -30,17 +30,37 @@ function formatTimestamp(iso: string): string {
 function extractionStatusLabel(status: NoteExtractionStatus): string {
   switch (status) {
     case "extracting":
-      return "Extracting…";
+      return "Processing…";
     case "no_proposal":
       return "No graph proposal";
     case "resolving":
-      return "Proposals ready (pending resolve)";
+      return "Proposals ready (legacy)";
+    case "needs_review":
+      return "Needs review";
+    case "committed":
+      return "Auto-committed";
+    case "commit_failed":
+      return "Commit failed";
     case "failed":
-      return "Extraction failed";
+      return "Processing failed";
     case "idle":
     default:
-      return "Not extracted yet";
+      return "Not processed yet";
   }
+}
+
+function reviewReasonsFromNote(note: ApiNote): string[] {
+  const extraction = note.extraction;
+  if (!extraction || typeof extraction !== "object") return [];
+  const reasons = (extraction as { reviewReasons?: unknown }).reviewReasons;
+  if (!Array.isArray(reasons)) return [];
+  return reasons
+    .map((reason) => {
+      if (!reason || typeof reason !== "object") return null;
+      const message = (reason as { message?: unknown }).message;
+      return typeof message === "string" ? message : null;
+    })
+    .filter((message): message is string => Boolean(message));
 }
 
 export function NoteDetail({ noteId }: { noteId: string }) {
@@ -204,6 +224,13 @@ export function NoteDetail({ noteId }: { noteId: string }) {
             {note.extractionError}
           </p>
         ) : null}
+        {note.extractionStatus === "needs_review" || note.extractionStatus === "commit_failed"
+          ? reviewReasonsFromNote(note).map((reason) => (
+              <p key={reason} className="text-muted-foreground text-sm">
+                {reason}
+              </p>
+            ))
+          : null}
         {note.extractionConfidence != null ? (
           <p className="text-muted-foreground text-xs">
             Confidence {note.extractionConfidence.toFixed(2)}
@@ -216,7 +243,10 @@ export function NoteDetail({ noteId }: { noteId: string }) {
             {retryError}
           </p>
         ) : null}
-        {note.extractionStatus === "failed" || note.extractionStatus === "idle" ? (
+        {note.extractionStatus === "failed" ||
+        note.extractionStatus === "idle" ||
+        note.extractionStatus === "needs_review" ||
+        note.extractionStatus === "commit_failed" ? (
           <Button
             type="button"
             variant="outline"
@@ -224,7 +254,7 @@ export function NoteDetail({ noteId }: { noteId: string }) {
             disabled={retrying}
             onClick={onRetryExtraction}
           >
-            {retrying ? "Retrying…" : "Retry extraction"}
+            {retrying ? "Retrying…" : "Retry processing"}
           </Button>
         ) : null}
       </section>
