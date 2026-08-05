@@ -58,6 +58,17 @@ export {
   type LibraryStats,
 } from "./tracks";
 
+export {
+  getTrackNeighborhood,
+  rankNeighborhoodNeighbors,
+  compareNeighborhoodNeighbors,
+  transitionQualityRank,
+  asTransitionEdge,
+  type TransitionEdgeSummary,
+  type NeighborhoodNeighbor,
+  type TrackNeighborhood,
+} from "./neighborhood";
+
 export { closeDriver, getDriver, isNeo4jConfigured, type GraphStatus } from "./client";
 
 export { getGraphStatus, readCypher, runCypher, writeCypher, type CypherParams } from "./cypher";

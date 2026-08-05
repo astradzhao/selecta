@@ -163,7 +163,8 @@ export type TrackDetail = TrackSummary & {
 
 /**
  * Track detail for library page / M4 entry.
- * Subgenres and Folders remain distinct arrays. Ranked neighborhood is DJ-40.
+ * Subgenres and Folders remain distinct arrays.
+ * Ranked outbound neighborhood: `getTrackNeighborhood` (DJ-40).
  */
 export async function getTrackById(id: string): Promise<TrackDetail | null> {
   const trackId = id.trim();
