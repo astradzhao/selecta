@@ -3,8 +3,12 @@ import type { CatalogSearchOptions, CatalogTrack, MusicCatalogProvider } from ".
 
 const TOKEN_URL = "https://accounts.spotify.com/api/token";
 const SEARCH_URL = "https://api.spotify.com/v1/search";
-const DEFAULT_LIMIT = 20;
-const MAX_LIMIT = 50;
+/**
+ * Spotify `/v1/search` currently rejects limits above 10 (HTTP 400 "Invalid limit"),
+ * even though older docs still advertise 1–50. Other Spotify list endpoints still allow 50.
+ */
+export const SPOTIFY_SEARCH_DEFAULT_LIMIT = 10;
+export const SPOTIFY_SEARCH_MAX_LIMIT = 10;
 const DEFAULT_MARKET = "US";
 
 type SpotifyTokenResponse = {
@@ -101,11 +105,12 @@ export function normalizeSpotifyTrack(track: SpotifySearchTrack): CatalogTrack {
   };
 }
 
-function clampLimit(limit: number | undefined): number {
+/** Coerce a client limit into Spotify `/v1/search`'s accepted integer range. */
+export function clampSpotifySearchLimit(limit: number | undefined): number {
   if (limit === undefined || !Number.isFinite(limit)) {
-    return DEFAULT_LIMIT;
+    return SPOTIFY_SEARCH_DEFAULT_LIMIT;
   }
-  return Math.min(MAX_LIMIT, Math.max(1, Math.floor(limit)));
+  return Math.min(SPOTIFY_SEARCH_MAX_LIMIT, Math.max(1, Math.floor(limit)));
 }
 
 async function fetchAccessToken(credentials: SpotifyCredentials): Promise<string> {
@@ -172,7 +177,7 @@ export function createSpotifyProvider(credentials?: SpotifyCredentials): MusicCa
     id: "spotify",
     async searchTracks(query: string, options?: CatalogSearchOptions): Promise<CatalogTrack[]> {
       const accessToken = await fetchAccessToken(creds);
-      const limit = clampLimit(options?.limit);
+      const limit = clampSpotifySearchLimit(options?.limit);
       const url = new URL(SEARCH_URL);
       url.searchParams.set("q", query);
       url.searchParams.set("type", "track");

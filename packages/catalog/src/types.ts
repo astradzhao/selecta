@@ -21,7 +21,7 @@ export type CatalogTrack = {
 };
 
 export type CatalogSearchOptions = {
-  /** Max results (clamped per provider; default 20). */
+  /** Max results (clamped per provider; Spotify `/search` currently max 10). */
   limit?: number;
 };
 

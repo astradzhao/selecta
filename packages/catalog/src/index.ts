@@ -17,10 +17,13 @@ export { getCatalogProvider, getCatalogStatus, isCatalogConfigured, searchCatalo
 
 export {
   clearSpotifyTokenCache,
+  clampSpotifySearchLimit,
   createSpotifyProvider,
   isSpotifyConfigured,
   normalizeSpotifyMarket,
   normalizeSpotifyTrack,
   readSpotifyCredentials,
+  SPOTIFY_SEARCH_DEFAULT_LIMIT,
+  SPOTIFY_SEARCH_MAX_LIMIT,
   type SpotifySearchTrack,
 } from "./providers/spotify";

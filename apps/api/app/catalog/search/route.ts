@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
-import { isCatalogError, searchCatalog } from "@selecta/catalog";
-
-const DEFAULT_LIMIT = 20;
-const MAX_LIMIT = 50;
+import {
+  clampSpotifySearchLimit,
+  isCatalogError,
+  searchCatalog,
+  SPOTIFY_SEARCH_DEFAULT_LIMIT,
+} from "@selecta/catalog";
 
 function parseLimit(raw: string | null): number | undefined {
   if (raw == null || raw === "") {
@@ -12,17 +14,17 @@ function parseLimit(raw: string | null): number | undefined {
   if (!Number.isFinite(value)) {
     return undefined;
   }
-  return Math.min(MAX_LIMIT, Math.max(1, Math.floor(value)));
+  return clampSpotifySearchLimit(value);
 }
 
 /**
  * External catalog track search (no persistence).
- * GET /catalog/search?q=...&limit=20
+ * GET /catalog/search?q=...&limit=10
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q") ?? "";
-  const limit = parseLimit(searchParams.get("limit")) ?? DEFAULT_LIMIT;
+  const limit = parseLimit(searchParams.get("limit")) ?? SPOTIFY_SEARCH_DEFAULT_LIMIT;
 
   try {
     const result = await searchCatalog(q, { limit });

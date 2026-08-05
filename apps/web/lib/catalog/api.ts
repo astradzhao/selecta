@@ -6,7 +6,8 @@ export type { CatalogTrack } from "./types";
 
 export async function searchCatalog(
   query: string,
-  limit = 12,
+  /** Spotify `/v1/search` currently caps at 10; higher values 400. */
+  limit = 10,
 ): Promise<{
   ok: true;
   provider: string;
