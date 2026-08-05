@@ -10,8 +10,14 @@ export const MENTION_RESOLUTION_STATUSES = [
 ] as const;
 export type MentionResolutionStatus = (typeof MENTION_RESOLUTION_STATUSES)[number];
 
-const optionalNonNegInt = z.number().int().nonnegative().nullable().optional();
-const optionalNonEmptyString = z.string().min(1).optional();
+/**
+ * OpenAI structured outputs require every `properties` key to appear in `required`.
+ * Represent "missing" values as `null` — never Zod `.optional()`.
+ */
+const nullableNonNegInt = z.number().int().nonnegative().nullable();
+const nullableNonEmptyString = z.string().min(1).nullable();
+const nullableString = z.string().nullable();
+const nullableConfidence = z.number().min(0).max(1).nullable();
 
 /** Opaque handles returned by tools: `graph:<id>` or `spotify:<providerId>`. */
 export const CandidateHandleSchema = z
@@ -21,36 +27,72 @@ export const CandidateHandleSchema = z
 export const NoteMentionPlanSchema = z.object({
   mentionId: z.string().min(1),
   mention: z.string().min(1),
-  titleHint: z.string().optional(),
-  artistHint: z.string().optional(),
-  selectedCandidateId: CandidateHandleSchema.nullable().optional(),
+  titleHint: nullableString,
+  artistHint: nullableString,
+  selectedCandidateId: CandidateHandleSchema.nullable(),
   resolutionStatus: z.enum(MENTION_RESOLUTION_STATUSES),
-  confidence: z.number().min(0).max(1).optional(),
-  ambiguityReason: z.string().optional(),
+  confidence: nullableConfidence,
+  ambiguityReason: nullableString,
 });
 export type NoteMentionPlan = z.infer<typeof NoteMentionPlanSchema>;
 
 export const NoteTransitionPlanSchema = z.object({
   fromMentionId: z.string().min(1),
   toMentionId: z.string().min(1),
-  fromBar: optionalNonNegInt,
-  toBar: optionalNonNegInt,
-  barsOverlap: optionalNonNegInt,
-  technique: optionalNonEmptyString,
-  intent: optionalNonEmptyString,
-  quality: z.enum(TRANSITION_QUALITIES).optional(),
-  notes: z.string().optional(),
+  fromBar: nullableNonNegInt,
+  toBar: nullableNonNegInt,
+  barsOverlap: nullableNonNegInt,
+  technique: nullableNonEmptyString,
+  intent: nullableNonEmptyString,
+  quality: z.enum(TRANSITION_QUALITIES).nullable(),
+  notes: nullableString,
 });
 export type NoteTransitionPlan = z.infer<typeof NoteTransitionPlanSchema>;
 
 export const NoteProcessingPlanSchema = z.object({
   noteType: z.enum(NOTE_TYPES),
-  mentions: z.array(NoteMentionPlanSchema).default([]),
-  transitions: z.array(NoteTransitionPlanSchema).default([]),
+  mentions: z.array(NoteMentionPlanSchema),
+  transitions: z.array(NoteTransitionPlanSchema),
   confidence: z.number().min(0).max(1),
-  ambiguities: z.array(z.string()).default([]),
+  ambiguities: z.array(z.string()),
 });
 export type NoteProcessingPlan = z.infer<typeof NoteProcessingPlanSchema>;
+
+/**
+ * Cheap one-shot LLM draft. Candidate selection is filled deterministically afterward.
+ * selectedCandidateId / resolutionStatus are not model-controlled.
+ */
+export const NoteExtractionDraftSchema = z.object({
+  noteType: z.enum(NOTE_TYPES),
+  mentions: z.array(
+    z.object({
+      mentionId: z.string().min(1),
+      mention: z.string().min(1),
+      titleHint: nullableString,
+      artistHint: nullableString,
+      confidence: nullableConfidence,
+      ambiguityReason: nullableString,
+    }),
+  ),
+  transitions: z.array(NoteTransitionPlanSchema),
+  confidence: z.number().min(0).max(1),
+  ambiguities: z.array(z.string()),
+});
+export type NoteExtractionDraft = z.infer<typeof NoteExtractionDraftSchema>;
+
+export function draftToUnresolvedPlan(draft: NoteExtractionDraft): NoteProcessingPlan {
+  return {
+    noteType: draft.noteType,
+    confidence: draft.confidence,
+    ambiguities: draft.ambiguities,
+    transitions: draft.transitions,
+    mentions: draft.mentions.map((mention) => ({
+      ...mention,
+      selectedCandidateId: null,
+      resolutionStatus: "unresolved" as const,
+    })),
+  };
+}
 
 export function parseCandidateHandle(
   handle: string,

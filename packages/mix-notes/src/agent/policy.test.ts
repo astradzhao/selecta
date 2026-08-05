@@ -2,9 +2,38 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { evaluateNoteProcessingPolicy } from "./policy";
-import type { NoteProcessingPlan } from "./schema";
+import type { NoteMentionPlan, NoteProcessingPlan, NoteTransitionPlan } from "./schema";
 import type { TrackCandidate } from "./services";
 import { validateNoteProcessingPlan } from "./validate-plan";
+
+function mention(
+  partial: Pick<NoteMentionPlan, "mentionId" | "mention" | "resolutionStatus"> &
+    Partial<NoteMentionPlan>,
+): NoteMentionPlan {
+  return {
+    titleHint: null,
+    artistHint: null,
+    selectedCandidateId: null,
+    confidence: null,
+    ambiguityReason: null,
+    ...partial,
+  };
+}
+
+function transition(
+  partial: Pick<NoteTransitionPlan, "fromMentionId" | "toMentionId"> & Partial<NoteTransitionPlan>,
+): NoteTransitionPlan {
+  return {
+    fromBar: null,
+    toBar: null,
+    barsOverlap: null,
+    technique: null,
+    intent: null,
+    quality: null,
+    notes: null,
+    ...partial,
+  };
+}
 
 function plan(
   partial: Partial<NoteProcessingPlan> & Pick<NoteProcessingPlan, "noteType" | "confidence">,
@@ -52,24 +81,22 @@ describe("evaluateNoteProcessingPolicy", () => {
         noteType: "transition",
         confidence: 0.99,
         mentions: [
-          {
+          mention({
             mentionId: "m1",
             mention: "Levels",
             titleHint: "Levels",
             artistHint: "Avicii",
-            selectedCandidateId: null,
             resolutionStatus: "unresolved",
-          },
-          {
+          }),
+          mention({
             mentionId: "m2",
             mention: "Love Someone",
             titleHint: "Love Someone",
             artistHint: "Prospa",
-            selectedCandidateId: null,
             resolutionStatus: "unresolved",
-          },
+          }),
         ],
-        transitions: [{ fromMentionId: "m1", toMentionId: "m2" }],
+        transitions: [transition({ fromMentionId: "m1", toMentionId: "m2" })],
       }),
       candidatesByHandle: new Map(),
     });
@@ -83,24 +110,24 @@ describe("evaluateNoteProcessingPolicy", () => {
         noteType: "transition",
         confidence: 0.95,
         mentions: [
-          {
+          mention({
             mentionId: "m1",
             mention: "Levels",
             titleHint: "Levels",
             artistHint: "Avicii",
             selectedCandidateId: "spotify:invented",
             resolutionStatus: "catalog_match",
-          },
-          {
+          }),
+          mention({
             mentionId: "m2",
             mention: "Love Someone",
             titleHint: "Love Someone",
             artistHint: "Prospa",
             selectedCandidateId: "graph:real",
             resolutionStatus: "resolved",
-          },
+          }),
         ],
-        transitions: [{ fromMentionId: "m1", toMentionId: "m2" }],
+        transitions: [transition({ fromMentionId: "m1", toMentionId: "m2" })],
       }),
       candidatesByHandle: new Map([
         ["graph:real", graphCandidate("real", "Love Someone", ["Prospa"])],
@@ -127,24 +154,26 @@ describe("evaluateNoteProcessingPolicy", () => {
         noteType: "transition",
         confidence: 0.95,
         mentions: [
-          {
+          mention({
             mentionId: "m1",
             mention: "levels - avicii",
             titleHint: "Levels",
             artistHint: "Avicii",
             selectedCandidateId: local.handle,
             resolutionStatus: "resolved",
-          },
-          {
+          }),
+          mention({
             mentionId: "m2",
             mention: "love someone - prospa",
             titleHint: "Love Someone",
             artistHint: "Prospa",
             selectedCandidateId: remote.handle,
             resolutionStatus: "catalog_match",
-          },
+          }),
         ],
-        transitions: [{ fromMentionId: "m1", toMentionId: "m2", fromBar: 32, toBar: 40 }],
+        transitions: [
+          transition({ fromMentionId: "m1", toMentionId: "m2", fromBar: 32, toBar: 40 }),
+        ],
       }),
       candidatesByHandle,
       candidatesByMentionId,
@@ -157,7 +186,7 @@ describe("evaluateNoteProcessingPolicy", () => {
     assert.equal(result.resolvedTrackIdsByMention.m1, "t1");
   });
 
-  it("sends ambiguous Spotify peers to needs_review", () => {
+  it("accepts tied Spotify peers by preferring the selected top hit", () => {
     const a = spotifyCandidate("a", "Love Someone", ["Prospa"]);
     const b = spotifyCandidate("b", "Love Someone", ["Prospa"]);
     const result = evaluateNoteProcessingPolicy({
@@ -165,24 +194,65 @@ describe("evaluateNoteProcessingPolicy", () => {
         noteType: "transition",
         confidence: 0.95,
         mentions: [
-          {
+          mention({
             mentionId: "m1",
             mention: "Levels",
             titleHint: "Levels",
             artistHint: "Avicii",
             selectedCandidateId: "graph:t1",
             resolutionStatus: "resolved",
-          },
-          {
+          }),
+          mention({
             mentionId: "m2",
             mention: "Love Someone",
             titleHint: "Love Someone",
             artistHint: "Prospa",
             selectedCandidateId: a.handle,
             resolutionStatus: "catalog_match",
-          },
+          }),
         ],
-        transitions: [{ fromMentionId: "m1", toMentionId: "m2" }],
+        transitions: [transition({ fromMentionId: "m1", toMentionId: "m2" })],
+      }),
+      candidatesByHandle: new Map([
+        ["graph:t1", graphCandidate("t1", "Levels", ["Avicii"])],
+        [a.handle, a],
+        [b.handle, b],
+      ]),
+      candidatesByMentionId: new Map([
+        ["m1", [graphCandidate("t1", "Levels", ["Avicii"])]],
+        ["m2", [a, b]],
+      ]),
+    });
+    assert.equal(result.decision, "auto_commit");
+    assert.equal(result.imports[0]?.providerId, "a");
+  });
+
+  it("sends near-tied Spotify peers to needs_review", () => {
+    const a = spotifyCandidate("a", "Love Someone (Edit)", ["Prospa"]);
+    const b = spotifyCandidate("b", "Love Someone", ["Prospa Band"]);
+    const result = evaluateNoteProcessingPolicy({
+      plan: plan({
+        noteType: "transition",
+        confidence: 0.95,
+        mentions: [
+          mention({
+            mentionId: "m1",
+            mention: "Levels",
+            titleHint: "Levels",
+            artistHint: "Avicii",
+            selectedCandidateId: "graph:t1",
+            resolutionStatus: "resolved",
+          }),
+          mention({
+            mentionId: "m2",
+            mention: "Love Someone",
+            titleHint: "Love Someone",
+            artistHint: "Prospa",
+            selectedCandidateId: a.handle,
+            resolutionStatus: "catalog_match",
+          }),
+        ],
+        transitions: [transition({ fromMentionId: "m1", toMentionId: "m2" })],
       }),
       candidatesByHandle: new Map([
         ["graph:t1", graphCandidate("t1", "Levels", ["Avicii"])],
@@ -206,14 +276,14 @@ describe("validateNoteProcessingPlan", () => {
         noteType: "transition",
         confidence: 0.9,
         mentions: [
-          {
+          mention({
             mentionId: "m1",
             mention: "x",
             selectedCandidateId: "spotify:missing",
             resolutionStatus: "catalog_match",
-          },
+          }),
         ],
-        transitions: [{ fromMentionId: "m1", toMentionId: "m2" }],
+        transitions: [transition({ fromMentionId: "m1", toMentionId: "m2" })],
       }),
       candidatesByHandle: new Map(),
     });

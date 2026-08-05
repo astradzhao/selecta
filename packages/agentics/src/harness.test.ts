@@ -2,10 +2,16 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { z } from "zod";
 
+import { tool } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 
 import { runBoundedAgent } from "./harness";
-import type { AgentLogEvent } from "./logging";
+import {
+  createAgentLogger,
+  createNoopAgentLogger,
+  isDevModeLoggingEnabled,
+  type AgentLogEvent,
+} from "./logging";
 
 const OutputSchema = z.object({
   noteType: z.enum(["unknown", "song_note", "transition"]),
@@ -94,5 +100,79 @@ describe("runBoundedAgent", () => {
     });
 
     assert.ok(serialized.every((line) => !line.includes(secret)));
+  });
+
+  it("returns a clear error when structured output is missing instead of throwing", async () => {
+    const model = new MockLanguageModelV4({
+      doGenerate: {
+        content: [
+          {
+            type: "tool-call",
+            toolCallId: "call-1",
+            toolName: "searchLibraryTracks",
+            input: JSON.stringify({ queries: [{ mentionId: "m1", query: "levels" }] }),
+          },
+        ],
+        finishReason: { unified: "tool-calls" as const, raw: "tool_calls" },
+        usage: {
+          inputTokens: { total: 1, noCache: 1, cacheRead: undefined, cacheWrite: undefined },
+          outputTokens: { total: 1, text: 1, reasoning: undefined },
+        },
+        warnings: [],
+      },
+    });
+
+    const result = await runBoundedAgent({
+      agentName: "test",
+      model,
+      promptVersion: "v-test",
+      promptHash: "abc123",
+      instructions: "Return JSON.",
+      userPrompt: "levels into love someone",
+      outputSchema: OutputSchema,
+      limits: { maxSteps: 1 },
+      tools: {
+        searchLibraryTracks: tool({
+          description: "search",
+          inputSchema: z.object({
+            queries: z.array(
+              z.object({
+                mentionId: z.string(),
+                query: z.string(),
+              }),
+            ),
+          }),
+          execute: async () => ({ results: [] }),
+        }),
+      },
+      logger: { log() {} },
+    });
+
+    assert.equal(result.ok, false);
+    if (result.ok) return;
+    assert.equal(result.error.code, "invalid_output");
+    assert.match(result.error.message, /structured output|No output generated/i);
+  });
+});
+
+describe("createAgentLogger", () => {
+  it("is quiet unless DEV_MODE is enabled or force is set", () => {
+    const previous = process.env.DEV_MODE;
+    try {
+      process.env.DEV_MODE = "";
+      assert.equal(isDevModeLoggingEnabled(), false);
+
+      process.env.DEV_MODE = "true";
+      assert.equal(isDevModeLoggingEnabled(), true);
+
+      const forced = createAgentLogger({ force: true });
+      assert.notEqual(forced.log, createNoopAgentLogger().log);
+    } finally {
+      if (previous === undefined) {
+        delete process.env.DEV_MODE;
+      } else {
+        process.env.DEV_MODE = previous;
+      }
+    }
   });
 });

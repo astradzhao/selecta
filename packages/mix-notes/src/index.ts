@@ -43,6 +43,8 @@ export {
   NoteMentionPlanSchema,
   NoteTransitionPlanSchema,
   NoteProcessingPlanSchema,
+  NoteExtractionDraftSchema,
+  draftToUnresolvedPlan,
   parseCandidateHandle,
   graphCandidateHandle,
   spotifyCandidateHandle,
@@ -51,6 +53,7 @@ export {
   type NoteMentionPlan,
   type NoteTransitionPlan,
   type NoteProcessingPlan,
+  type NoteExtractionDraft,
 } from "./agent/schema";
 
 export {
@@ -70,6 +73,7 @@ export {
   type NoteAgentServices,
 } from "./agent/services";
 
+/** Reserved for future `@selecta/agentics` tool-loop agents; production path is one-shot. */
 export { createNoteAgentTools } from "./agent/tools";
 export { CandidateRegistry, withCandidateRegistry } from "./agent/candidate-registry";
 export {
@@ -90,6 +94,11 @@ export {
   type ApplyPolicyInput,
   type ApplyPolicyResult,
 } from "./agent/apply-policy";
+export {
+  resolveNoteMentions,
+  type ResolveMentionsInput,
+  type ResolveMentionsResult,
+} from "./agent/resolve-mentions";
 export {
   runNoteAgent,
   DEFAULT_NOTE_AGENT_MODEL,

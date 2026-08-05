@@ -19,6 +19,7 @@ export {
   clearSpotifyTokenCache,
   createSpotifyProvider,
   isSpotifyConfigured,
+  normalizeSpotifyMarket,
   normalizeSpotifyTrack,
   readSpotifyCredentials,
   type SpotifySearchTrack,

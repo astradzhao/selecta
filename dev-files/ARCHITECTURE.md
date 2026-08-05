@@ -331,13 +331,13 @@ Keep raw text forever; show a **proposed graph diff** before commit.
 [Raw note text]  (durable save first)
       │
       ▼
-1. Bounded note agent (≤4 steps; library + Spotify search tools only)
+1. One-shot LLM structured draft (no tools; cheap)
       │
       ▼
-2. Validated processing plan (opaque graph:/spotify: candidate handles)
+2. Deterministic resolve (local library → Spotify unique match)
       │
       ▼
-3. Deterministic policy gates (unique match, confidence, ambiguity)
+3. Deterministic policy gates (confidence, uniqueness, limits)
       │
       ├── needs_review → persist reasons for DJ-36 UI
       │
@@ -347,7 +347,8 @@ Keep raw text forever; show a **proposed graph diff** before commit.
 4. Postgres agent-run audit + note extraction status (CAS by version)
 ```
 
-The model never runs Cypher, generic HTTP, or mutation tools. Imports/commits are application policy only.
+The model never searches Neo4j, runs Cypher, or calls mutation tools.
+`@selecta/agentics` remains available for future multi-step agents.
 
 ### 7.3 Extraction schema (conceptual)
 

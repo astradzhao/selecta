@@ -7,7 +7,6 @@ import {
   startAgentRun,
   upsertTransitionCommit,
 } from "@selecta/db";
-import { formatAgentSafeGraphSchema } from "@selecta/graph";
 import {
   applyNoteProcessingPolicy,
   evaluateNoteProcessingPolicy,
@@ -15,6 +14,7 @@ import {
   runNoteAgent,
   validateNoteProcessingPlan,
 } from "@selecta/mix-notes";
+import { createAgentLogger } from "@selecta/agentics";
 
 import { createNoteAgentServices } from "./note-agent-services";
 
@@ -28,8 +28,8 @@ function hasAiGatewayAuth(): boolean {
 }
 
 /**
- * Run the bounded note agent + deterministic policy for a note version.
- * No-ops when the note was edited (version mismatch) or is no longer extracting.
+ * Cheap note pipeline for a note version:
+ * one-shot LLM draft → deterministic library/Spotify resolve → policy import/commit.
  * Never throws to the caller — failures are written onto the note / agent-run rows.
  */
 export async function runNoteExtraction(noteId: string, version: number): Promise<void> {
@@ -54,6 +54,7 @@ export async function runNoteExtraction(noteId: string, version: number): Promis
     return;
   }
 
+  const logger = createAgentLogger();
   const services = createNoteAgentServices();
   const agentRun = await startAgentRun({
     noteId,
@@ -61,16 +62,33 @@ export async function runNoteExtraction(noteId: string, version: number): Promis
     agentName: NOTE_AGENT_NAME,
   });
 
+  logger.log("info", {
+    type: "coordinator",
+    runId: agentRun.id,
+    noteId,
+    extractionVersion: version,
+    phase: "start",
+    detail: `rawTextChars=${note.rawText.length}`,
+  });
+
   try {
     const agentResult = await runNoteAgent({
       rawText: note.rawText,
-      graphSchemaText: formatAgentSafeGraphSchema(),
       services,
       runId: agentRun.id,
       meta: { noteId, extractionVersion: version },
+      logger,
     });
 
     if (!agentResult.ok) {
+      logger.log("error", {
+        type: "coordinator",
+        runId: agentRun.id,
+        noteId,
+        extractionVersion: version,
+        phase: "agent_failed",
+        detail: `${agentResult.error.code}: ${agentResult.error.message}`,
+      });
       await finishAgentRun(agentRun.id, {
         status: "failed",
         stepCount: agentResult.stepCount,
@@ -95,6 +113,14 @@ export async function runNoteExtraction(noteId: string, version: number): Promis
 
     if (!validation.ok) {
       const message = validation.issues.map((issue) => issue.message).join(" | ");
+      logger.log("error", {
+        type: "coordinator",
+        runId: agentRun.id,
+        noteId,
+        extractionVersion: version,
+        phase: "validation_failed",
+        detail: message,
+      });
       await finishAgentRun(agentRun.id, {
         status: "failed",
         stepCount: agentResult.stepCount,
@@ -118,6 +144,13 @@ export async function runNoteExtraction(noteId: string, version: number): Promis
       plan: agentResult.plan,
       candidatesByHandle: agentResult.candidates.byHandle,
       candidatesByMentionId: agentResult.candidates.byMentionId,
+    });
+
+    logger.log("info", {
+      type: "policy",
+      runId: agentRun.id,
+      decision: policy.decision,
+      reasons: policy.reasons.map((reason) => `${reason.code}:${reason.message}`),
     });
 
     const applied = await applyNoteProcessingPolicy({
@@ -230,9 +263,26 @@ export async function runNoteExtraction(noteId: string, version: number): Promis
       extractionStatus,
       status: noteStatus,
     });
+
+    logger.log("info", {
+      type: "coordinator",
+      runId: agentRun.id,
+      noteId,
+      extractionVersion: version,
+      phase: "complete",
+      detail: `extractionStatus=${extractionStatus} decision=${applied.decision}`,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Note agent failed unexpectedly.";
     console.error(`note agent failed for ${noteId}@${version}`, error);
+    logger.log("error", {
+      type: "coordinator",
+      runId: agentRun.id,
+      noteId,
+      extractionVersion: version,
+      phase: "exception",
+      detail: message,
+    });
     await finishAgentRun(agentRun.id, {
       status: "failed",
       error: message,

@@ -1,21 +1,20 @@
 import { composeAgentSystemPrompt, type ComposedPrompt } from "@selecta/agentics";
 
 import { EXTRACTION_PROMPT_EXAMPLES } from "../extraction-prompt";
-import { NoteProcessingPlanSchema } from "./schema";
+import { NoteExtractionDraftSchema } from "./schema";
 
-export const NOTE_AGENT_PROMPT_VERSION = "v2" as const;
+export const NOTE_AGENT_PROMPT_VERSION = "v4" as const;
 export const NOTE_AGENT_NAME = "note-processing" as const;
 
-export type BuildNoteAgentPromptInput = {
-  graphSchemaText: string;
-};
-
-export function buildNoteAgentPrompt(input: BuildNoteAgentPromptInput): ComposedPrompt {
+/**
+ * Cheap one-shot extraction prompt. No tools, no graph schema — resolution is deterministic.
+ */
+export function buildNoteAgentPrompt(): ComposedPrompt {
   const examples = EXTRACTION_PROMPT_EXAMPLES.map((example) =>
     [
       `### ${example.id}`,
       `Note: ${JSON.stringify(example.note)}`,
-      "Expected shape (illustrative — use candidate handles from tools when resolving):",
+      "Expected draft (resolver fills track matches later):",
       "```json",
       JSON.stringify(
         {
@@ -23,19 +22,21 @@ export function buildNoteAgentPrompt(input: BuildNoteAgentPromptInput): Composed
           mentions: example.expected.songMentions.map((song, index) => ({
             mentionId: `m${index + 1}`,
             mention: song.mention,
-            titleHint: song.titleHint,
-            artistHint: song.artistHint,
-            selectedCandidateId: null,
-            resolutionStatus: "unresolved",
+            titleHint: song.titleHint ?? null,
+            artistHint: song.artistHint ?? null,
+            confidence: null,
+            ambiguityReason: null,
           })),
           transitions: example.expected.transitionProposals.map((transition) => ({
             fromMentionId: "m1",
             toMentionId: "m2",
             fromBar: "fromBar" in transition ? (transition.fromBar ?? null) : null,
             toBar: "toBar" in transition ? (transition.toBar ?? null) : null,
-            technique: "technique" in transition ? transition.technique : undefined,
-            intent: "intent" in transition ? transition.intent : undefined,
-            quality: "quality" in transition ? transition.quality : undefined,
+            barsOverlap: null,
+            technique: "technique" in transition ? (transition.technique ?? null) : null,
+            intent: "intent" in transition ? (transition.intent ?? null) : null,
+            quality: "quality" in transition ? (transition.quality ?? null) : null,
+            notes: null,
           })),
           confidence: example.expected.confidence,
           ambiguities: example.expected.ambiguities,
@@ -49,38 +50,22 @@ export function buildNoteAgentPrompt(input: BuildNoteAgentPromptInput): Composed
 
   return composeAgentSystemPrompt({
     promptVersion: NOTE_AGENT_PROMPT_VERSION,
-    outputSchema: NoteProcessingPlanSchema,
-    outputSchemaTitle: "Note processing plan schema",
+    outputSchema: NoteExtractionDraftSchema,
+    outputSchemaTitle: "Note extraction draft schema",
     sections: [
       {
         id: "identity",
         title: "Identity",
-        body: "You are a fast DJ note-processing agent. Parse free-form mix notes into a structured plan.",
+        body: "You extract structured DJ mix-note drafts. You do not search catalogs or the library.",
       },
       {
         id: "objective",
         title: "Objective",
         body: [
-          "1. Identify song mentions and optional transition proposals.",
-          "2. Optionally search the local library and Spotify via tools to gather candidate handles.",
-          "3. Return one JSON plan. Prefer 1–3 model steps; finish as soon as the plan is solid.",
-          "4. Never assume every note is a transition. Empty mentions/transitions are valid.",
-        ].join("\n"),
-      },
-      {
-        id: "graph-schema",
-        title: "Neo4j graph schema (read-only context)",
-        body: input.graphSchemaText,
-      },
-      {
-        id: "tools",
-        title: "Tools",
-        body: [
-          "- searchLibraryTracks: local Neo4j library search (returns graph:<trackId> handles)",
-          "- searchSpotifyTracks: Spotify catalog search (returns spotify:<providerId> handles)",
-          "Batch up to 4 mention queries per call. At most 5 candidates each.",
-          "Do not invent handles. selectedCandidateId must be null or a handle returned by tools in this run.",
-          "You cannot create tracks or write transitions — the application applies policy after your plan.",
+          "1. Identify song mentions and optional transition proposals from the note text.",
+          "2. Return one JSON draft in a single response.",
+          "3. Never assume every note is a transition. Empty mentions/transitions are valid.",
+          "4. Downstream code will match titles/artists to the library and Spotify.",
         ].join("\n"),
       },
       {
@@ -89,10 +74,12 @@ export function buildNoteAgentPrompt(input: BuildNoteAgentPromptInput): Composed
         body: [
           "- Never invent track titles, artists, bars, techniques, or intents not implied by the note.",
           "- Prefer seeded technique/intent spellings when clear (high_pass_filter, cool_down, …).",
-          "- If a mention is ambiguous, set resolutionStatus to ambiguous and explain in ambiguityReason / ambiguities.",
+          "- Put title/artist guesses in titleHint/artistHint when possible.",
+          "- If a mention is unclear, keep it and add an ambiguities entry / ambiguityReason.",
           "- If no song is recognizable, noteType=unknown with empty mentions/transitions.",
           "- Ordinary song notes without transitions are valid (noteType=song_note).",
-          "- After at most one refinement search, produce the final JSON plan (tools will be disabled).",
+          "- Include every schema key; use null for unknown optional fields (never omit keys).",
+          "- Do not invent track ids or catalog ids.",
         ].join("\n"),
       },
       {
@@ -105,5 +92,5 @@ export function buildNoteAgentPrompt(input: BuildNoteAgentPromptInput): Composed
 }
 
 export function buildNoteAgentUserPrompt(rawNote: string): string {
-  return ["Process this DJ note into a structured plan:", "", rawNote.trim()].join("\n");
+  return ["Extract a structured draft from this DJ note:", "", rawNote.trim()].join("\n");
 }

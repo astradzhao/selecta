@@ -1,20 +1,24 @@
-import { runBoundedAgent, type AgentLogger, type BoundedAgentResult } from "@selecta/agentics";
+import { createAgentLogger, type AgentLogger, type AgentUsage } from "@selecta/agentics";
+import { generateText, NoOutputGeneratedError, Output } from "ai";
 
-import { CandidateRegistry, withCandidateRegistry } from "./candidate-registry";
-import { buildNoteAgentPrompt, buildNoteAgentUserPrompt, NOTE_AGENT_NAME } from "./prompt";
-import { NoteProcessingPlanSchema, type NoteProcessingPlan } from "./schema";
-import type { NoteAgentServices } from "./services";
-import { createNoteAgentTools } from "./tools";
 import { providerFromModel } from "../extract-note";
+import { CandidateRegistry } from "./candidate-registry";
+import { buildNoteAgentPrompt, buildNoteAgentUserPrompt, NOTE_AGENT_NAME } from "./prompt";
+import { resolveNoteMentions } from "./resolve-mentions";
+import {
+  draftToUnresolvedPlan,
+  NoteExtractionDraftSchema,
+  type NoteExtractionDraft,
+  type NoteProcessingPlan,
+} from "./schema";
+import type { NoteAgentServices } from "./services";
 
-export const DEFAULT_NOTE_AGENT_MODEL = "openai/gpt-4.1-mini" as const;
+export const DEFAULT_NOTE_AGENT_MODEL = "openai/gpt-5.4-mini" as const;
 
 export type RunNoteAgentInput = {
   rawText: string;
-  graphSchemaText: string;
   services: NoteAgentServices;
   model?: string;
-  maxSteps?: number;
   logger?: AgentLogger;
   runId?: string;
   meta?: Record<string, string | number | boolean | null>;
@@ -22,6 +26,8 @@ export type RunNoteAgentInput = {
 
 export type RunNoteAgentSuccess = {
   ok: true;
+  /** Raw structured LLM output before deterministic resolve. */
+  draft: NoteExtractionDraft;
   plan: NoteProcessingPlan;
   candidates: CandidateRegistry;
   model: string;
@@ -31,7 +37,7 @@ export type RunNoteAgentSuccess = {
   stepCount: number;
   toolCallCount: number;
   finishReason?: string;
-  usage?: BoundedAgentResult<NoteProcessingPlan> extends { usage?: infer U } ? U : never;
+  usage?: AgentUsage;
   durationMs: number;
 };
 
@@ -50,8 +56,19 @@ export type RunNoteAgentFailure = {
 
 export type RunNoteAgentResult = RunNoteAgentSuccess | RunNoteAgentFailure;
 
+function toUsage(raw: unknown): AgentUsage | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const usage = raw as Record<string, unknown>;
+  return {
+    inputTokens: typeof usage.inputTokens === "number" ? usage.inputTokens : undefined,
+    outputTokens: typeof usage.outputTokens === "number" ? usage.outputTokens : undefined,
+    totalTokens: typeof usage.totalTokens === "number" ? usage.totalTokens : undefined,
+  };
+}
+
 /**
- * Bounded note-processing agent: read-only library + Spotify tools, structured plan output.
+ * Cheap note pipeline: one-shot structured extraction (no tools), then deterministic
+ * library → Spotify resolution. `@selecta/agentics` remains available for future agents.
  */
 export async function runNoteAgent(input: RunNoteAgentInput): Promise<RunNoteAgentResult> {
   const rawText = input.rawText.trim();
@@ -61,61 +78,152 @@ export async function runNoteAgent(input: RunNoteAgentInput): Promise<RunNoteAge
 
   const model =
     input.model?.trim() || process.env.NOTE_AGENT_MODEL?.trim() || DEFAULT_NOTE_AGENT_MODEL;
-  const maxStepsEnv = Number(process.env.NOTE_AGENT_MAX_STEPS ?? "");
-  const maxSteps = Math.min(
-    4,
-    Math.max(1, input.maxSteps ?? (Number.isFinite(maxStepsEnv) ? maxStepsEnv : 4)),
-  );
+  const logger = input.logger ?? createAgentLogger();
+  const prompt = buildNoteAgentPrompt();
+  const provider = providerFromModel(model);
+  const started = Date.now();
+  const runId = input.runId ?? "note-extract";
+  const emptyCandidates = new CandidateRegistry();
 
-  const prompt = buildNoteAgentPrompt({ graphSchemaText: input.graphSchemaText });
-  const registry = new CandidateRegistry();
-  const services = withCandidateRegistry(input.services, registry);
-  const tools = createNoteAgentTools(services);
-
-  const result = await runBoundedAgent({
+  logger.log("info", {
+    type: "run_start",
+    runId,
     agentName: NOTE_AGENT_NAME,
     model,
     promptVersion: prompt.promptVersion,
-    promptHash: prompt.promptHash,
-    instructions: prompt.system,
-    userPrompt: buildNoteAgentUserPrompt(rawText),
-    tools,
-    outputSchema: NoteProcessingPlanSchema,
-    limits: { maxSteps },
-    logger: input.logger,
-    runId: input.runId,
-    meta: input.meta,
+    maxSteps: 1,
   });
 
-  const provider = providerFromModel(model);
+  try {
+    const result = await generateText({
+      model,
+      system: prompt.system,
+      prompt: buildNoteAgentUserPrompt(rawText),
+      output: Output.object({
+        schema: NoteExtractionDraftSchema,
+      }),
+      maxOutputTokens: 1_200,
+    });
 
-  if (!result.ok) {
+    let draftUnknown: unknown;
+    try {
+      draftUnknown = result.output;
+    } catch (error) {
+      if (NoOutputGeneratedError.isInstance(error)) {
+        const message = "No structured extraction draft generated.";
+        logger.log("error", {
+          type: "run_end",
+          runId,
+          status: "failed",
+          stepCount: 1,
+          toolCallCount: 0,
+          finishReason: result.finishReason,
+          errorCode: "invalid_output",
+          errorMessage: message,
+          durationMs: Date.now() - started,
+        });
+        return {
+          ok: false,
+          error: { code: "invalid_output", message },
+          candidates: emptyCandidates,
+          model,
+          provider,
+          promptVersion: prompt.promptVersion,
+          promptHash: prompt.promptHash,
+          stepCount: 1,
+          toolCallCount: 0,
+          durationMs: Date.now() - started,
+        };
+      }
+      throw error;
+    }
+
+    const parsed = NoteExtractionDraftSchema.safeParse(draftUnknown);
+    if (!parsed.success) {
+      logger.log("error", {
+        type: "run_end",
+        runId,
+        status: "failed",
+        stepCount: 1,
+        toolCallCount: 0,
+        finishReason: result.finishReason,
+        errorCode: "invalid_output",
+        errorMessage: "Extraction draft failed schema validation.",
+        durationMs: Date.now() - started,
+      });
+      return {
+        ok: false,
+        error: {
+          code: "invalid_output",
+          message: "Extraction draft failed schema validation.",
+          details: { issues: parsed.error.issues.slice(0, 8) },
+        },
+        candidates: emptyCandidates,
+        model,
+        provider,
+        promptVersion: prompt.promptVersion,
+        promptHash: prompt.promptHash,
+        stepCount: 1,
+        toolCallCount: 0,
+        durationMs: Date.now() - started,
+      };
+    }
+
+    const unresolved = draftToUnresolvedPlan(parsed.data);
+    const resolved = await resolveNoteMentions({
+      plan: unresolved,
+      services: input.services,
+    });
+
+    logger.log("info", {
+      type: "run_end",
+      runId,
+      status: "completed",
+      stepCount: 1,
+      toolCallCount: 0,
+      finishReason: result.finishReason,
+      usage: toUsage(result.usage) as Record<string, number> | undefined,
+      durationMs: Date.now() - started,
+    });
+
     return {
-      ok: false,
-      error: result.error,
-      candidates: registry,
+      ok: true,
+      draft: parsed.data,
+      plan: resolved.plan,
+      candidates: resolved.candidates,
       model,
       provider,
-      promptVersion: result.promptVersion,
-      promptHash: result.promptHash,
-      stepCount: result.stepCount,
-      toolCallCount: result.toolCallCount,
-      durationMs: result.durationMs,
+      promptVersion: prompt.promptVersion,
+      promptHash: prompt.promptHash,
+      stepCount: 1,
+      toolCallCount: 0,
+      finishReason: result.finishReason,
+      usage: toUsage(result.usage),
+      durationMs: Date.now() - started,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Note extraction failed.";
+    logger.log("error", {
+      type: "run_end",
+      runId,
+      status: "failed",
+      stepCount: 0,
+      toolCallCount: 0,
+      errorCode: "internal",
+      errorMessage: message.slice(0, 500),
+      durationMs: Date.now() - started,
+    });
+    return {
+      ok: false,
+      error: { code: "internal", message },
+      candidates: emptyCandidates,
+      model,
+      provider,
+      promptVersion: prompt.promptVersion,
+      promptHash: prompt.promptHash,
+      stepCount: 0,
+      toolCallCount: 0,
+      durationMs: Date.now() - started,
     };
   }
-
-  return {
-    ok: true,
-    plan: result.output,
-    candidates: registry,
-    model,
-    provider,
-    promptVersion: result.promptVersion,
-    promptHash: result.promptHash,
-    stepCount: result.stepCount,
-    toolCallCount: result.toolCallCount,
-    finishReason: result.finishReason,
-    usage: result.usage,
-    durationMs: result.durationMs,
-  };
 }

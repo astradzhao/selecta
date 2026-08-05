@@ -59,13 +59,22 @@ export type SpotifyCredentials = {
   market: string;
 };
 
+/** ISO 3166-1 alpha-2; strips accidental inline-comment junk from .env values. */
+export function normalizeSpotifyMarket(raw: string | undefined): string {
+  const token = raw?.trim().split(/\s+|#/)[0]?.toUpperCase() ?? "";
+  if (/^[A-Z]{2}$/.test(token)) {
+    return token;
+  }
+  return DEFAULT_MARKET;
+}
+
 export function readSpotifyCredentials(): SpotifyCredentials | null {
   const clientId = process.env.SPOTIFY_CLIENT_ID?.trim();
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET?.trim();
   if (!clientId || !clientSecret) {
     return null;
   }
-  const market = process.env.SPOTIFY_MARKET?.trim() || DEFAULT_MARKET;
+  const market = normalizeSpotifyMarket(process.env.SPOTIFY_MARKET);
   return { clientId, clientSecret, market };
 }
 
@@ -191,9 +200,18 @@ export function createSpotifyProvider(credentials?: SpotifyCredentials): MusicCa
       }
 
       if (!response.ok) {
-        throw new CatalogError("unavailable", `Spotify search failed (${response.status}).`, {
-          provider: "spotify",
-        });
+        let detail = "";
+        try {
+          const errBody = (await response.json()) as { error?: { message?: string } };
+          detail = errBody.error?.message ? `: ${errBody.error.message}` : "";
+        } catch {
+          // ignore body parse failures
+        }
+        throw new CatalogError(
+          "unavailable",
+          `Spotify search failed (${response.status})${detail}.`,
+          { provider: "spotify" },
+        );
       }
 
       const body = (await response.json()) as SpotifySearchResponse;
