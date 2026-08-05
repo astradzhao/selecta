@@ -9,7 +9,7 @@ import { Button } from "@selecta/ui/components/button";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { ApiClientError } from "@/lib/api/client";
-import { flyElementInto, prefersReducedMotion, wait } from "@/lib/motion";
+import { morphCardIntoPanel, prefersReducedMotion, wait } from "@/lib/motion";
 import {
   getTrackNeighborhood,
   type ApiNeighborhoodCurrent,
@@ -17,6 +17,11 @@ import {
   type ApiTransitionEdge,
 } from "@/lib/tracks/api";
 import { TrackPickerDialog } from "@/components/tracks/graph-landing";
+
+/** Soft exit for the outgoing “now playing” panel — not a full fade to empty. */
+/** Outgoing track clears quickly so it never overlaps the incoming copy. */
+const CURRENT_EXIT =
+  "pointer-events-none opacity-0 duration-200 ease-in motion-safe:-translate-x-6 motion-safe:scale-[0.98]";
 
 type Neighborhood = {
   current: ApiNeighborhoodCurrent;
@@ -51,13 +56,19 @@ function Artwork({
   url,
   size,
   className,
+  artRole,
+  sizes,
 }: {
   url: string | null;
   size: number;
   className?: string;
+  /** Morph anchor: the card thumbnail expands into the hero slot. */
+  artRole?: "card" | "hero";
+  sizes?: string;
 }) {
   return (
     <div
+      data-art-role={artRole}
       className={cn(
         "bg-muted relative shrink-0 overflow-hidden rounded-2xl transition-transform duration-300",
         className,
@@ -65,7 +76,7 @@ function Artwork({
       style={{ width: size, height: size }}
     >
       {url ? (
-        <Image src={url} alt="" fill className="object-cover" sizes={`${size}px`} />
+        <Image src={url} alt="" fill className="object-cover" sizes={sizes ?? `${size}px`} />
       ) : (
         <div className="text-muted-foreground/40 flex h-full w-full items-center justify-center text-xs tracking-[0.14em] uppercase">
           No art
@@ -260,16 +271,16 @@ function NeighborCard({
     <li
       className={cn(
         "border-border bg-background overflow-hidden rounded-2xl border",
-        "transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-        "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-3 fill-mode-both",
-        "hover:border-foreground/20 hover:shadow-sm",
-        fadingOut && "pointer-events-none opacity-0 motion-safe:translate-x-8 motion-safe:scale-95",
+        "transition-[opacity,transform] duration-400 ease-[cubic-bezier(0.2,0,0,1)]",
+        "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 fill-mode-both",
+        "hover:border-foreground/20",
+        fadingOut && "pointer-events-none opacity-0 motion-safe:translate-x-6 motion-safe:scale-95",
         choosing && "opacity-0",
       )}
       style={{
-        animationDelay: `${Math.min(index, 10) * 45}ms`,
-        animationDuration: "480ms",
-        transitionDelay: fadingOut ? `${Math.min(index, 8) * 30}ms` : undefined,
+        animationDelay: `${Math.min(index, 8) * 30}ms`,
+        animationDuration: "360ms",
+        transitionDelay: fadingOut ? `${Math.min(index, 6) * 22}ms` : undefined,
       }}
     >
       <button
@@ -290,9 +301,12 @@ function NeighborCard({
         <Artwork
           url={neighbor.artworkUrl}
           size={56}
+          artRole="card"
+          // Oversized source so the thumbnail stays sharp as it morphs to 220px.
+          sizes="220px"
           className={cn("rounded-xl", expanded && "motion-safe:scale-105")}
         />
-        <div className="min-w-0 flex-1 space-y-1.5">
+        <div data-card-text className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="truncate font-medium tracking-tight">{neighbor.title}</p>
@@ -390,6 +404,8 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
   const [pending, startLoad] = useTransition();
   const [choosingId, setChoosingId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  /** When false, the hero mounts at full opacity (no fade/zoom) after a hop. */
+  const [heroEnter, setHeroEnter] = useState(true);
 
   const loadedIdRef = useRef<string | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
@@ -443,28 +459,56 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
     return () => window.removeEventListener("popstate", syncFromUrl);
   }, []);
 
-  async function goToTrack(nextId: string, sourceElement?: HTMLElement | null) {
+  async function goToTrack(
+    nextId: string,
+    sourceElement?: HTMLElement | null,
+    preview?: { title: string; artists: { name: string }[] },
+  ) {
     if (choosingId || nextId === activeId) return;
-    setChoosingId(nextId);
 
+    const panel = panelRef.current;
     const request = loadNeighborhood(nextId).catch(() => null);
 
-    if (sourceElement && panelRef.current) {
-      await flyElementInto(sourceElement, panelRef.current);
-    } else {
-      await wait(prefersReducedMotion() ? 0 : 180);
+    async function commit() {
+      const next = await request;
+      window.history.pushState(null, "", `/tracks/${encodeURIComponent(nextId)}/graph`);
+      loadedIdRef.current = next ? nextId : null;
+      setExpandedKey(null);
+      setActiveId(nextId);
+      if (next) {
+        setCurrent(next.current);
+        setNeighbors(next.neighbors);
+        setError(null);
+      }
+      setChoosingId(null);
     }
 
-    const next = await request;
-    window.history.pushState(null, "", `/tracks/${encodeURIComponent(nextId)}/graph`);
-    loadedIdRef.current = next ? nextId : null;
-    setExpandedKey(null);
-    setChoosingId(null);
-    setActiveId(nextId);
-    if (next) {
-      setCurrent(next.current);
-      setNeighbors(next.neighbors);
-      setError(null);
+    setChoosingId(nextId);
+    // The morph covers the panel, so the incoming hero must not fade in behind it.
+    setHeroEnter(false);
+
+    if (sourceElement && panel) {
+      // Called before React paints the exit state so both ends measure at rest.
+      await morphCardIntoPanel({
+        sourceCard: sourceElement,
+        targetPanel: panel,
+        sourceArt: sourceElement.querySelector<HTMLElement>('[data-art-role="card"]'),
+        targetArt: panel.querySelector<HTMLElement>('[data-art-role="hero"]'),
+        sourceText: sourceElement.querySelector<HTMLElement>("[data-card-text]"),
+        targetText: preview ? panel.querySelector<HTMLElement>("[data-hero-text]") : null,
+        prepareTargetText: preview
+          ? (ghost) => {
+              const title = ghost.querySelector("[data-hero-title]");
+              if (title) title.textContent = preview.title;
+              const artist = ghost.querySelector("[data-hero-artist]");
+              if (artist) artist.textContent = artistLine(preview.artists);
+            }
+          : undefined,
+        onCover: commit,
+      });
+    } else {
+      await wait(prefersReducedMotion() ? 0 : 160);
+      await commit();
     }
   }
 
@@ -531,33 +575,44 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
           <section
             ref={panelRef}
             aria-labelledby="graph-current-heading"
-            className={cn(
-              "border-border bg-background sticky top-20 flex flex-col gap-5 rounded-3xl border p-5 sm:p-6",
-              "transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-              swapping && "opacity-0 motion-safe:-translate-x-6 motion-safe:scale-[0.97]",
-            )}
+            className="border-border bg-background sticky top-20 flex flex-col gap-5 rounded-3xl border p-5 sm:p-6"
           >
+            {/* Keyed so the outgoing panel is replaced outright — no transition
+                back from the exit transform once the morph covers it. */}
             <div
               key={current.id}
-              className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 flex flex-col gap-5 duration-500"
+              className={cn(
+                "flex flex-col gap-5 transition-[opacity,transform] duration-400 ease-[cubic-bezier(0.2,0,0,1)]",
+                heroEnter &&
+                  "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 duration-500",
+                swapping && CURRENT_EXIT,
+              )}
             >
-              <div className="space-y-1">
+              {/* Artwork leads the panel so the morph destination does not shift
+                  with title length. */}
+              <Artwork
+                url={current.artworkUrl}
+                size={220}
+                artRole="hero"
+                className="mx-auto w-full max-w-[220px] sm:mx-0"
+              />
+              {/* The morph overlay fades a ghost of this block in mid-flight,
+                  so the real copy must land without its own entrance. */}
+              <div data-hero-text className="space-y-1">
                 <p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
                   Now playing
                 </p>
                 <h1
                   id="graph-current-heading"
+                  data-hero-title
                   className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl"
                 >
                   {current.title}
                 </h1>
-                <p className="text-muted-foreground text-sm">{artistLine(current.artists)}</p>
+                <p data-hero-artist className="text-muted-foreground text-sm">
+                  {artistLine(current.artists)}
+                </p>
               </div>
-              <Artwork
-                url={current.artworkUrl}
-                size={220}
-                className="mx-auto w-full max-w-[220px] sm:mx-0"
-              />
               <dl className="text-muted-foreground grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <dt className="tracking-[0.12em] uppercase">BPM</dt>
@@ -634,7 +689,12 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
                       if (!expanded) void loadNeighborhood(neighbor.id).catch(() => null);
                     }}
                     onPrefetch={() => void loadNeighborhood(neighbor.id).catch(() => null)}
-                    onChoose={() => void goToTrack(neighbor.id, cardRefs.current.get(rowKey))}
+                    onChoose={() =>
+                      void goToTrack(neighbor.id, cardRefs.current.get(rowKey), {
+                        title: neighbor.title,
+                        artists: neighbor.artists,
+                      })
+                    }
                     fadingOut={swapping && choosingId !== neighbor.id}
                     choosing={choosingId === neighbor.id}
                   />
