@@ -50,6 +50,7 @@ export {
 export {
   listTracks,
   getTrackById,
+  getTrackByExternalId,
   getLibraryStats,
   type ListTracksInput,
   type TrackSummary,

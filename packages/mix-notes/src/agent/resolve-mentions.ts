@@ -5,7 +5,10 @@ import type { NoteAgentServices, TrackCandidate } from "./services";
 
 export type ResolveMentionsInput = {
   plan: NoteProcessingPlan;
-  services: Pick<NoteAgentServices, "searchLibraryTracks" | "searchSpotifyTracks">;
+  services: Pick<
+    NoteAgentServices,
+    "searchLibraryTracks" | "searchSpotifyTracks" | "findLibraryTrackByExternalId"
+  >;
   /** Max mentions to search in one batch (library + Spotify). */
   maxMentions?: number;
 };
@@ -23,8 +26,12 @@ function batchQueries(mentions: NoteMentionPlan[], maxMentions: number) {
 }
 
 /**
- * Deterministic mention resolution: local library first, then Spotify.
- * Never invents tracks — only attaches opaque handles from search results.
+ * Deterministic mention resolution:
+ * 1) fuzzy local library
+ * 2) Spotify catalog
+ * 3) exact graph lookup by Spotify external id (reuse existing Track)
+ *
+ * Never invents tracks — only attaches opaque handles from search/lookup results.
  */
 export async function resolveNoteMentions(
   input: ResolveMentionsInput,
@@ -78,6 +85,27 @@ export async function resolveNoteMentions(
       );
       const unique = uniqueBestCandidate(mention, peers);
       if (unique?.providerId) {
+        // Fuzzy library search may have missed this Track; reuse by exact Spotify id.
+        const existing = await input.services.findLibraryTrackByExternalId({
+          provider: "spotify",
+          providerId: unique.providerId,
+        });
+        if (existing?.trackId) {
+          registry.ingest({
+            results: [
+              {
+                mentionId: mention.mentionId,
+                query: mentionSearchQuery(mention),
+                candidates: [existing],
+              },
+            ],
+          });
+          mention.selectedCandidateId = existing.handle;
+          mention.resolutionStatus = "resolved";
+          mention.ambiguityReason = null;
+          continue;
+        }
+
         mention.selectedCandidateId = unique.handle;
         mention.resolutionStatus = "catalog_match";
         mention.ambiguityReason = null;

@@ -210,3 +210,49 @@ export async function getTrackById(id: string): Promise<TrackDetail | null> {
     hasInboundTransitions: Boolean(row.hasInboundTransitions),
   };
 }
+
+/**
+ * Exact Track lookup by provider external id (`spotify:<id>` stored in `externalIds`).
+ * Used after Spotify catalog match to reuse an existing library node.
+ */
+export async function getTrackByExternalId(
+  provider: string,
+  providerId: string,
+): Promise<TrackSummary | null> {
+  const providerKey = provider.trim().toLowerCase();
+  const id = providerId.trim();
+  if (!providerKey || !id || providerKey.includes(":")) {
+    return null;
+  }
+  const entry = `${providerKey}:${id}`;
+
+  const rows = await readCypher<{
+    track: Record<string, unknown>;
+    artists: GraphNamedNode[];
+    genres: GraphNamedNode[];
+    subgenres: GraphNamedNode[];
+    folders: GraphFolderNode[];
+  }>(
+    `
+    MATCH (track:Track)
+    WHERE $entry IN coalesce(track.externalIds, [])
+    OPTIONAL MATCH (artist:Artist)-[:BY]->(track)
+    OPTIONAL MATCH (track)-[:IN_GENRE]->(genre:Genre)
+    OPTIONAL MATCH (track)-[:IN_SUBGENRE]->(subgenre:Subgenre)
+    OPTIONAL MATCH (track)-[:IN_FOLDER]->(folder:Folder)
+    RETURN track { .* } AS track,
+           collect(DISTINCT artist { .id, .name, .nameNormalized }) AS artists,
+           collect(DISTINCT genre { .id, .name, .nameNormalized }) AS genres,
+           collect(DISTINCT subgenre { .id, .name, .nameNormalized }) AS subgenres,
+           collect(DISTINCT folder { .id, .name, .nameNormalized, .kind }) AS folders
+    LIMIT 1
+    `,
+    { entry },
+  );
+
+  const row = rows[0];
+  if (!row?.track?.id) {
+    return null;
+  }
+  return mapTrackRow(row);
+}

@@ -39,6 +39,14 @@ export type SearchCandidatesOutput = z.infer<typeof SearchCandidatesOutputSchema
 export type NoteAgentServices = {
   searchLibraryTracks: (input: SearchQueriesInput) => Promise<SearchCandidatesOutput>;
   searchSpotifyTracks: (input: SearchQueriesInput) => Promise<SearchCandidatesOutput>;
+  /**
+   * Exact library lookup by catalog external id (e.g. Spotify).
+   * Used after a Spotify hit to reuse an existing Track node.
+   */
+  findLibraryTrackByExternalId: (input: {
+    provider: string;
+    providerId: string;
+  }) => Promise<TrackCandidate | null>;
   /** Deterministic import — never exposed as an LLM tool. */
   importSpotifyTrack: (input: {
     providerId: string;
