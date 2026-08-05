@@ -327,7 +327,7 @@ function NeighborCard({
           artRole="card"
           // Oversized source so the thumbnail stays sharp as it morphs to 220px.
           sizes="220px"
-          className={cn("rounded-xl", expanded && "motion-safe:scale-105")}
+          className="rounded-xl"
         />
         <div data-card-text className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-start justify-between gap-2">

@@ -32,10 +32,6 @@ export function nextFrame(): Promise<void> {
 
 type Box = { left: number; top: number; width: number; height: number };
 
-function toBox(rect: DOMRectReadOnly): Box {
-  return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
-}
-
 function placeAt(element: HTMLElement, box: Box): void {
   Object.assign(element.style, {
     position: "absolute",
