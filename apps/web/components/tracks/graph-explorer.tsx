@@ -9,7 +9,15 @@ import { Button } from "@selecta/ui/components/button";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { ApiClientError } from "@/lib/api/client";
-import { beginArtFlight, nextFrame, prefersReducedMotion, wait } from "@/lib/motion";
+import {
+  beginArtFlight,
+  HOP_COPY_IN_MS,
+  HOP_COPY_OUT_MS,
+  HOP_FLIGHT_MS,
+  nextFrame,
+  prefersReducedMotion,
+  wait,
+} from "@/lib/motion";
 import {
   getTrackNeighborhood,
   type ApiNeighborhoodCurrent,
@@ -21,13 +29,26 @@ import { TrackPickerDialog } from "@/components/tracks/graph-landing";
 /** Copy/meta opacity during a hop — opacity only, never translate/scale (those snap). */
 type CopyPhase = "visible" | "out" | "hidden" | "in";
 
+/** Durations must match HOP_* in lib/motion — one timeline for exit, flight, enter. */
 const COPY_PHASE_CLASS: Record<CopyPhase, string> = {
   visible: "opacity-100",
-  out: "opacity-0 duration-200 ease-in",
+  out: "opacity-0 ease-in",
   // Instant hold at 0 so the remounted panel doesn't flash before the fade-in.
   hidden: "opacity-0 duration-0",
-  in: "opacity-100 duration-300 ease-out",
+  in: "opacity-100 ease-out",
 };
+
+const COPY_PHASE_DURATION: Record<CopyPhase, number | undefined> = {
+  visible: undefined,
+  out: HOP_COPY_OUT_MS,
+  hidden: 0,
+  in: HOP_COPY_IN_MS,
+};
+
+function copyPhaseStyle(phase: CopyPhase): { transitionDuration?: string } | undefined {
+  const ms = COPY_PHASE_DURATION[phase];
+  return ms == null ? undefined : { transitionDuration: `${ms}ms` };
+}
 
 type Neighborhood = {
   current: ApiNeighborhoodCurrent;
@@ -272,7 +293,7 @@ function NeighborCard({
     <li
       className={cn(
         "border-border bg-background overflow-hidden rounded-2xl border",
-        "transition-[opacity,transform] duration-400 ease-[cubic-bezier(0.2,0,0,1)]",
+        "transition-[opacity,transform] ease-[cubic-bezier(0.2,0,0,1)]",
         "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 fill-mode-both",
         "hover:border-foreground/20",
         fadingOut && "pointer-events-none opacity-0 motion-safe:translate-x-6",
@@ -280,7 +301,8 @@ function NeighborCard({
       )}
       style={{
         animationDelay: `${Math.min(index, 8) * 30}ms`,
-        animationDuration: "360ms",
+        animationDuration: `${HOP_COPY_IN_MS}ms`,
+        transitionDuration: `${HOP_COPY_OUT_MS}ms`,
         transitionDelay: fadingOut ? `${Math.min(index, 6) * 22}ms` : undefined,
       }}
     >
@@ -481,8 +503,8 @@ export function GraphExplorer({
 
     try {
       const next = await request;
-      // Let the outgoing copy finish fading before the panel remounts.
-      await wait(prefersReducedMotion() ? 0 : 200);
+      // Hold until the outgoing copy has fully faded — same clock as the flight.
+      await wait(prefersReducedMotion() ? 0 : HOP_COPY_OUT_MS);
 
       // Stay on /graph — only session memory moves.
       if (options?.resetTrail) setTrail([]);
@@ -495,25 +517,28 @@ export function GraphExplorer({
         setError(null);
       }
       setChoosingId(null);
-      // Remount holds at opacity 0 — no enter transform that could snap sideways.
+      // Remount stays invisible until the art has landed.
       setCopyPhase("hidden");
 
       await nextFrame();
       const heroArt = panelRef.current?.querySelector<HTMLElement>('[data-art-role="hero"]');
 
-      // Fade copy in while the art is in flight (same window, not after landing).
-      setCopyPhase("in");
       if (flight && heroArt) {
-        await flight.landOn(heroArt);
-      } else if (!prefersReducedMotion()) {
-        await wait(300);
+        await flight.landOn(heroArt, HOP_FLIGHT_MS);
+      } else {
+        await wait(prefersReducedMotion() ? 0 : HOP_FLIGHT_MS);
       }
+
+      // Reveal real art and fade copy in together — only after the slot is filled.
+      setArtHidden(false);
+      await nextFrame();
+      setCopyPhase("in");
+      await wait(prefersReducedMotion() ? 0 : HOP_COPY_IN_MS);
       setCopyPhase("visible");
     } finally {
       setArtHidden(false);
       setCopyPhase("visible");
       if (flight) {
-        await nextFrame();
         flight.destroy();
       }
     }
@@ -624,6 +649,7 @@ export function GraphExplorer({
                   COPY_PHASE_CLASS[copyPhase],
                   copyPhase !== "visible" && "pointer-events-none",
                 )}
+                style={copyPhaseStyle(copyPhase)}
               >
                 <p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
                   Now playing
@@ -645,6 +671,7 @@ export function GraphExplorer({
                   COPY_PHASE_CLASS[copyPhase],
                   copyPhase !== "visible" && "pointer-events-none",
                 )}
+                style={copyPhaseStyle(copyPhase)}
               >
                 <dl className="text-muted-foreground grid grid-cols-2 gap-3 text-xs">
                   <div>

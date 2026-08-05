@@ -10,6 +10,11 @@ export function motionDelay(ms: number): number {
   return prefersReducedMotion() ? 0 : ms;
 }
 
+/** Shared hop timeline — copy exit, art flight, and copy enter all use these. */
+export const HOP_COPY_OUT_MS = 420;
+export const HOP_FLIGHT_MS = 420;
+export const HOP_COPY_IN_MS = 420;
+
 export function wait(ms: number): Promise<void> {
   if (ms <= 0) return Promise.resolve();
   return new Promise((resolve) => {
@@ -120,7 +125,7 @@ export function beginArtFlight(source: HTMLElement | null | undefined): ArtFligh
   let destroyed = false;
 
   return {
-    async landOn(target, duration = 420) {
+    async landOn(target, duration = HOP_FLIGHT_MS) {
       if (destroyed) return;
       const to = toBox(target.getBoundingClientRect());
       if (!to.width || !to.height) return;
