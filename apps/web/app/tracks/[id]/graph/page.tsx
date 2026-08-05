@@ -9,7 +9,7 @@ export default async function TrackGraphPage({ params }: PageProps) {
   const { id } = await params;
   return (
     <AppShell currentPath="/graph">
-      <GraphExplorer key={id} trackId={id} />
+      <GraphExplorer trackId={id} />
     </AppShell>
   );
 }

@@ -18,7 +18,7 @@ import { Input } from "@selecta/ui/components/input";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { ApiClientError } from "@/lib/api/client";
-import { motionDelay, navigateWithMotion } from "@/lib/motion";
+import { motionDelay } from "@/lib/motion";
 import { listTracks, type ApiTrack } from "@/lib/tracks/api";
 
 function artistLine(artists: { name: string }[]): string {
@@ -118,7 +118,7 @@ export function TrackPickerDialog({
 
           <div
             className={cn(
-              "border-border max-h-[min(50vh,22rem)] overflow-y-auto rounded-xl border",
+              "border-border max-h-[min(50vh,22rem)] overflow-y-auto overflow-x-hidden rounded-xl border",
               "transition-opacity duration-300",
               pending && hasSearched ? "opacity-70" : "opacity-100",
             )}
@@ -186,7 +186,7 @@ export function TrackPickerDialog({
           </div>
         </div>
 
-        <DialogFooter className="sm:justify-between">
+        <DialogFooter className="m-0 gap-3 rounded-none border-t px-5 py-3.5 sm:items-center sm:justify-between">
           <p className="text-muted-foreground hidden text-xs sm:block">
             {selected ? `Selected: ${selected.title}` : "Select a track to continue"}
           </p>
@@ -215,7 +215,7 @@ export function GraphLanding() {
     setLeaving(true);
     setPickerOpen(false);
     window.setTimeout(() => {
-      navigateWithMotion(router, `/tracks/${track.id}/graph`);
+      router.push(`/tracks/${track.id}/graph`);
     }, motionDelay(220));
   }
 

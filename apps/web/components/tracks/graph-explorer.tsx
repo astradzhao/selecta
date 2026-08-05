@@ -2,15 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useId, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 
 import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { ApiClientError } from "@/lib/api/client";
-import { motionDelay, navigateWithMotion } from "@/lib/motion";
+import { flyElementInto, prefersReducedMotion, wait } from "@/lib/motion";
 import {
   getTrackNeighborhood,
   type ApiNeighborhoodCurrent,
@@ -18,6 +17,11 @@ import {
   type ApiTransitionEdge,
 } from "@/lib/tracks/api";
 import { TrackPickerDialog } from "@/components/tracks/graph-landing";
+
+type Neighborhood = {
+  current: ApiNeighborhoodCurrent;
+  neighbors: ApiNeighborhoodNeighbor[];
+};
 
 function artistLine(artists: { name: string }[]): string {
   return artists.map((a) => a.name).join(", ") || "Unknown artist";
@@ -36,6 +40,11 @@ function qualityTone(quality: string | null): "default" | "secondary" | "outline
   if (quality === "great") return "default";
   if (quality === "ok") return "secondary";
   return "outline";
+}
+
+function trackIdFromPath(pathname: string): string | null {
+  const match = /^\/tracks\/([^/]+)\/graph\/?$/.exec(pathname);
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
 function Artwork({
@@ -178,7 +187,7 @@ function TransitionMeters({ transition }: { transition: ApiTransitionEdge }) {
           {[0.35, 0.55, 0.7, 0.45, 0.6, 0.4, 0.5].map((height, index) => (
             <div
               key={index}
-              className="bg-foreground/15 w-full max-w-2 origin-bottom rounded-sm transition-transform duration-700 ease-out motion-safe:scale-y-100"
+              className="bg-foreground/15 w-full max-w-2 origin-bottom rounded-sm transition-transform duration-700 ease-out"
               style={{
                 height: `${height * 100}%`,
                 transitionDelay: `${120 + index * 40}ms`,
@@ -220,78 +229,28 @@ function MeterRow({
   );
 }
 
-function CurrentTrackPanel({
-  track,
-  phase,
-}: {
-  track: ApiNeighborhoodCurrent;
-  phase: "idle" | "exiting" | "receiving";
-}) {
-  return (
-    <section
-      aria-labelledby="graph-current-heading"
-      className={cn(
-        "border-border bg-background sticky top-20 flex flex-col gap-5 rounded-3xl border p-5 sm:p-6",
-        "transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-        phase === "idle" &&
-          "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-left-4 duration-500",
-        phase === "exiting" && "pointer-events-none opacity-0 motion-safe:-translate-x-8",
-        phase === "receiving" && "motion-safe:scale-[1.01]",
-      )}
-    >
-      <div className="space-y-1">
-        <p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">Now playing</p>
-        <h1
-          id="graph-current-heading"
-          className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl"
-        >
-          {track.title}
-        </h1>
-        <p className="text-muted-foreground text-sm">{artistLine(track.artists)}</p>
-      </div>
-      <Artwork
-        url={track.artworkUrl}
-        size={220}
-        className={cn(
-          "mx-auto w-full max-w-[220px] sm:mx-0",
-          phase === "receiving" && "motion-safe:scale-105",
-        )}
-      />
-      <dl className="text-muted-foreground grid grid-cols-2 gap-3 text-xs">
-        <div>
-          <dt className="uppercase tracking-[0.12em]">BPM</dt>
-          <dd className="text-foreground mt-0.5 font-mono text-sm">{track.bpm ?? "—"}</dd>
-        </div>
-        <div>
-          <dt className="uppercase tracking-[0.12em]">Key</dt>
-          <dd className="text-foreground mt-0.5 font-mono text-sm">{track.musicalKey ?? "—"}</dd>
-        </div>
-      </dl>
-      <Button asChild variant="outline" size="sm" className="w-fit">
-        <Link href={`/tracks/${track.id}`}>Track detail</Link>
-      </Button>
-    </section>
-  );
-}
-
 function NeighborCard({
   neighbor,
   expanded,
   onToggle,
   onChoose,
+  onPrefetch,
   fadingOut,
   choosing,
   index,
   panelId,
+  registerRef,
 }: {
   neighbor: ApiNeighborhoodNeighbor;
   expanded: boolean;
   onToggle: () => void;
   onChoose: () => void;
+  onPrefetch: () => void;
   fadingOut: boolean;
   choosing: boolean;
   index: number;
   panelId: string;
+  registerRef: (element: HTMLElement | null) => void;
 }) {
   const t = neighbor.transition;
   const technique = formatLabel(t.technique);
@@ -304,23 +263,25 @@ function NeighborCard({
         "transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
         "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-3 fill-mode-both",
         "hover:border-foreground/20 hover:shadow-sm",
-        fadingOut &&
-          "pointer-events-none max-h-0 opacity-0 motion-safe:translate-x-6 motion-safe:scale-95",
-        choosing &&
-          "border-foreground/50 shadow-md motion-safe:-translate-x-3 motion-safe:scale-[1.02]",
+        fadingOut && "pointer-events-none opacity-0 motion-safe:translate-x-8 motion-safe:scale-95",
+        choosing && "opacity-0",
       )}
       style={{
         animationDelay: `${Math.min(index, 10) * 45}ms`,
         animationDuration: "480ms",
+        transitionDelay: fadingOut ? `${Math.min(index, 8) * 30}ms` : undefined,
       }}
     >
       <button
+        ref={registerRef}
         type="button"
         aria-expanded={expanded}
         aria-controls={panelId}
         onClick={onToggle}
+        onPointerEnter={onPrefetch}
+        onFocus={onPrefetch}
         className={cn(
-          "flex w-full items-start gap-3 px-4 py-3.5 text-left",
+          "bg-background flex w-full items-start gap-3 px-4 py-3.5 text-left",
           "transition-colors duration-300",
           "hover:bg-muted/50 focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
           expanded && "bg-muted/30",
@@ -370,6 +331,7 @@ function NeighborCard({
 
       <div
         id={panelId}
+        inert={!expanded}
         className={cn(
           "grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
           expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
@@ -409,7 +371,7 @@ function NeighborCard({
               disabled={choosing}
               className="w-full transition-transform duration-200 active:scale-[0.98] sm:w-auto"
             >
-              {choosing ? "Moving…" : "Choose this track"}
+              Choose this track
             </Button>
           </div>
         </div>
@@ -419,28 +381,44 @@ function NeighborCard({
 }
 
 export function GraphExplorer({ trackId }: { trackId: string }) {
-  const router = useRouter();
   const baseId = useId();
+  const [activeId, setActiveId] = useState(trackId);
   const [current, setCurrent] = useState<ApiNeighborhoodCurrent | null>(null);
   const [neighbors, setNeighbors] = useState<ApiNeighborhoodNeighbor[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [pending, startLoad] = useTransition();
   const [choosingId, setChoosingId] = useState<string | null>(null);
-  const [fading, setFading] = useState(false);
-  const [panelPhase, setPanelPhase] = useState<"idle" | "exiting" | "receiving">("idle");
   const [pickerOpen, setPickerOpen] = useState(false);
 
+  const loadedIdRef = useRef<string | null>(null);
+  const panelRef = useRef<HTMLElement | null>(null);
+  const cardRefs = useRef(new Map<string, HTMLElement>());
+  const requestsRef = useRef(new Map<string, Promise<Neighborhood>>());
+
+  function loadNeighborhood(id: string): Promise<Neighborhood> {
+    const inFlight = requestsRef.current.get(id);
+    if (inFlight) return inFlight;
+    const request = getTrackNeighborhood(id).then((response) => ({
+      current: response.current,
+      neighbors: response.neighbors,
+    }));
+    requestsRef.current.set(id, request);
+    void request.catch(() => requestsRef.current.delete(id));
+    return request;
+  }
+
   useEffect(() => {
+    if (loadedIdRef.current === activeId) return;
     let cancelled = false;
     startLoad(async () => {
       try {
-        const response = await getTrackNeighborhood(trackId);
+        const next = await loadNeighborhood(activeId);
         if (cancelled) return;
-        setCurrent(response.current);
-        setNeighbors(response.neighbors);
+        loadedIdRef.current = activeId;
+        setCurrent(next.current);
+        setNeighbors(next.neighbors);
         setError(null);
-        setPanelPhase("idle");
       } catch (err) {
         if (cancelled) return;
         setCurrent(null);
@@ -453,17 +431,41 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [trackId]);
+  }, [activeId]);
 
-  function chooseNeighbor(neighbor: ApiNeighborhoodNeighbor) {
-    if (choosingId) return;
-    setChoosingId(neighbor.id);
-    setFading(true);
-    setPanelPhase("receiving");
-    window.setTimeout(() => setPanelPhase("exiting"), motionDelay(180));
-    window.setTimeout(() => {
-      navigateWithMotion(router, `/tracks/${neighbor.id}/graph`);
-    }, motionDelay(520));
+  // Traversal updates the URL without a route change, so back/forward is ours to honor.
+  useEffect(() => {
+    function syncFromUrl() {
+      const id = trackIdFromPath(window.location.pathname);
+      if (id) setActiveId(id);
+    }
+    window.addEventListener("popstate", syncFromUrl);
+    return () => window.removeEventListener("popstate", syncFromUrl);
+  }, []);
+
+  async function goToTrack(nextId: string, sourceElement?: HTMLElement | null) {
+    if (choosingId || nextId === activeId) return;
+    setChoosingId(nextId);
+
+    const request = loadNeighborhood(nextId).catch(() => null);
+
+    if (sourceElement && panelRef.current) {
+      await flyElementInto(sourceElement, panelRef.current);
+    } else {
+      await wait(prefersReducedMotion() ? 0 : 180);
+    }
+
+    const next = await request;
+    window.history.pushState(null, "", `/tracks/${encodeURIComponent(nextId)}/graph`);
+    loadedIdRef.current = next ? nextId : null;
+    setExpandedKey(null);
+    setChoosingId(null);
+    setActiveId(nextId);
+    if (next) {
+      setCurrent(next.current);
+      setNeighbors(next.neighbors);
+      setError(null);
+    }
   }
 
   if (pending && !current) {
@@ -485,12 +487,14 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
             <Link href="/graph">Back to Graph</Link>
           </Button>
           <Button asChild variant="secondary">
-            <Link href={`/tracks/${trackId}`}>Track detail</Link>
+            <Link href={`/tracks/${activeId}`}>Track detail</Link>
           </Button>
         </div>
       </div>
     );
   }
+
+  const swapping = choosingId !== null;
 
   return (
     <div className="space-y-6">
@@ -520,11 +524,57 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
             className={cn(
               "from-foreground/30 via-foreground/10 pointer-events-none absolute top-28 right-[-1.25rem] bottom-28 hidden w-10 bg-gradient-to-r to-transparent lg:block",
               "transition-opacity duration-500",
-              fading ? "opacity-0" : "opacity-100",
+              swapping ? "opacity-0" : "opacity-100",
             )}
             aria-hidden
           />
-          <CurrentTrackPanel track={current} phase={panelPhase} />
+          <section
+            ref={panelRef}
+            aria-labelledby="graph-current-heading"
+            className={cn(
+              "border-border bg-background sticky top-20 flex flex-col gap-5 rounded-3xl border p-5 sm:p-6",
+              "transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+              swapping && "opacity-0 motion-safe:-translate-x-6 motion-safe:scale-[0.97]",
+            )}
+          >
+            <div
+              key={current.id}
+              className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 flex flex-col gap-5 duration-500"
+            >
+              <div className="space-y-1">
+                <p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
+                  Now playing
+                </p>
+                <h1
+                  id="graph-current-heading"
+                  className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl"
+                >
+                  {current.title}
+                </h1>
+                <p className="text-muted-foreground text-sm">{artistLine(current.artists)}</p>
+              </div>
+              <Artwork
+                url={current.artworkUrl}
+                size={220}
+                className="mx-auto w-full max-w-[220px] sm:mx-0"
+              />
+              <dl className="text-muted-foreground grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <dt className="tracking-[0.12em] uppercase">BPM</dt>
+                  <dd className="text-foreground mt-0.5 font-mono text-sm">{current.bpm ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="tracking-[0.12em] uppercase">Key</dt>
+                  <dd className="text-foreground mt-0.5 font-mono text-sm">
+                    {current.musicalKey ?? "—"}
+                  </dd>
+                </div>
+              </dl>
+              <Button asChild variant="outline" size="sm" className="w-fit">
+                <Link href={`/tracks/${current.id}`}>Track detail</Link>
+              </Button>
+            </div>
+          </section>
         </div>
 
         <section aria-labelledby="graph-next-heading" className="min-w-0 space-y-3">
@@ -557,33 +607,40 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
               </div>
             </div>
           ) : (
-            <div className="relative">
-              <ul
-                className={cn(
-                  "max-h-[min(70vh,40rem)] space-y-2 overflow-y-auto pe-1",
-                  "[mask-image:linear-gradient(to_bottom,transparent_0%,black_14px,black_calc(100%-32px),transparent_100%)]",
-                  "pt-2 pb-6",
-                )}
-              >
-                {neighbors.map((neighbor, index) => {
-                  const rowKey = neighbor.transition.proposalKey ?? neighbor.id;
-                  const expanded = expandedId === rowKey;
-                  return (
-                    <NeighborCard
-                      key={rowKey}
-                      neighbor={neighbor}
-                      expanded={expanded}
-                      index={index}
-                      panelId={`${baseId}-${rowKey}`}
-                      onToggle={() => setExpandedId(expanded ? null : rowKey)}
-                      onChoose={() => chooseNeighbor(neighbor)}
-                      fadingOut={fading && choosingId !== neighbor.id}
-                      choosing={choosingId === neighbor.id}
-                    />
-                  );
-                })}
-              </ul>
-            </div>
+            <ul
+              key={current.id}
+              className={cn(
+                "max-h-[min(70vh,40rem)] space-y-2 overflow-y-auto pe-1",
+                "[mask-image:linear-gradient(to_bottom,transparent_0%,black_14px,black_calc(100%-32px),transparent_100%)]",
+                "pt-2 pb-6",
+              )}
+            >
+              {neighbors.map((neighbor, index) => {
+                const rowKey = neighbor.transition.proposalKey ?? neighbor.id;
+                const expanded = expandedKey === rowKey;
+                return (
+                  <NeighborCard
+                    key={rowKey}
+                    neighbor={neighbor}
+                    expanded={expanded}
+                    index={index}
+                    panelId={`${baseId}-${rowKey}`}
+                    registerRef={(element) => {
+                      if (element) cardRefs.current.set(rowKey, element);
+                      else cardRefs.current.delete(rowKey);
+                    }}
+                    onToggle={() => {
+                      setExpandedKey(expanded ? null : rowKey);
+                      if (!expanded) void loadNeighborhood(neighbor.id).catch(() => null);
+                    }}
+                    onPrefetch={() => void loadNeighborhood(neighbor.id).catch(() => null)}
+                    onChoose={() => void goToTrack(neighbor.id, cardRefs.current.get(rowKey))}
+                    fadingOut={swapping && choosingId !== neighbor.id}
+                    choosing={choosingId === neighbor.id}
+                  />
+                );
+              })}
+            </ul>
           )}
         </section>
       </div>
@@ -593,7 +650,7 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
         onOpenChange={setPickerOpen}
         onSelect={(track) => {
           setPickerOpen(false);
-          navigateWithMotion(router, `/tracks/${track.id}/graph`);
+          void goToTrack(track.id);
         }}
         title="Change starting track"
         description="Search your library and jump to that song’s neighborhood."
