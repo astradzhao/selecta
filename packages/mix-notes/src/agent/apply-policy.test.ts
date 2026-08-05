@@ -54,6 +54,7 @@ describe("applyNoteProcessingPolicy", () => {
     const services: NoteAgentServices = {
       searchLibraryTracks: async () => ({ results: [] }),
       searchSpotifyTracks: async () => ({ results: [] }),
+      findLibraryTrackByExternalId: async () => null,
       importSpotifyTrack: async (input) => {
         imports.push(input.providerId);
         return { trackId: `track-${input.providerId}`, created: true };
@@ -125,6 +126,7 @@ describe("applyNoteProcessingPolicy", () => {
     const services: NoteAgentServices = {
       searchLibraryTracks: async () => ({ results: [] }),
       searchSpotifyTracks: async () => ({ results: [] }),
+      findLibraryTrackByExternalId: async () => null,
       importSpotifyTrack: async () => {
         importCalls += 1;
         return { trackId: "x", created: true };

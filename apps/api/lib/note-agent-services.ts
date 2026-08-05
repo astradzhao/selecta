@@ -2,6 +2,7 @@ import { isCatalogConfigured, searchCatalog } from "@selecta/catalog";
 import {
   commitTransitionProposal,
   createTrack,
+  getTrackByExternalId,
   isNeo4jConfigured,
   listTracks,
 } from "@selecta/graph";
@@ -89,6 +90,30 @@ export function createNoteAgentServices(): NoteAgentServices {
         }),
       );
       return { results };
+    },
+
+    findLibraryTrackByExternalId: async ({ provider, providerId }) => {
+      if (!isNeo4jConfigured()) {
+        return null;
+      }
+      try {
+        const hit = await getTrackByExternalId(provider, providerId);
+        if (!hit) return null;
+        return {
+          handle: graphCandidateHandle(hit.track.id),
+          title: hit.track.title,
+          artists: hit.artists.map((artist) => artist.name),
+          durationMs:
+            hit.track.durationSec != null ? Math.round(hit.track.durationSec * 1000) : null,
+          artworkUrl: hit.track.artworkUrl,
+          trackId: hit.track.id,
+          provider: "graph",
+          providerId,
+        };
+      } catch (error) {
+        console.error("findLibraryTrackByExternalId failed", error);
+        return null;
+      }
     },
 
     importSpotifyTrack: async (input) => {

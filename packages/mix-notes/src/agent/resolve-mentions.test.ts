@@ -48,6 +48,21 @@ function plan(): NoteProcessingPlan {
   };
 }
 
+type ResolveServices = Pick<
+  NoteAgentServices,
+  "searchLibraryTracks" | "searchSpotifyTracks" | "findLibraryTrackByExternalId"
+>;
+
+function withExternalLookup(
+  partial: Omit<ResolveServices, "findLibraryTrackByExternalId"> &
+    Partial<Pick<ResolveServices, "findLibraryTrackByExternalId">>,
+): ResolveServices {
+  return {
+    findLibraryTrackByExternalId: async () => null,
+    ...partial,
+  };
+}
+
 describe("resolveNoteMentions", () => {
   it("prefers a unique local library hit over Spotify", async () => {
     const local: TrackCandidate = {
@@ -57,7 +72,7 @@ describe("resolveNoteMentions", () => {
       trackId: "t1",
       provider: "graph",
     };
-    const services: Pick<NoteAgentServices, "searchLibraryTracks" | "searchSpotifyTracks"> = {
+    const services = withExternalLookup({
       searchLibraryTracks: async () => ({
         results: [
           { mentionId: "m1", query: "Levels Avicii", candidates: [local] },
@@ -81,7 +96,7 @@ describe("resolveNoteMentions", () => {
           },
         ],
       }),
-    };
+    });
 
     const result = await resolveNoteMentions({ plan: plan(), services });
     assert.equal(result.plan.mentions[0]?.selectedCandidateId, "graph:t1");
@@ -90,8 +105,51 @@ describe("resolveNoteMentions", () => {
     assert.equal(result.plan.mentions[1]?.resolutionStatus, "catalog_match");
   });
 
+  it("reuses an existing graph Track when Spotify id already exists", async () => {
+    const existing: TrackCandidate = {
+      handle: "graph:existing",
+      title: "Love Someone (Alt Title)",
+      artists: ["Prospa"],
+      trackId: "existing",
+      provider: "graph",
+      providerId: "sp1",
+    };
+    const services = withExternalLookup({
+      searchLibraryTracks: async () => ({
+        results: [
+          { mentionId: "m1", query: "x", candidates: [] },
+          { mentionId: "m2", query: "y", candidates: [] },
+        ],
+      }),
+      searchSpotifyTracks: async () => ({
+        results: [
+          {
+            mentionId: "m2",
+            query: "Love Someone Prospa",
+            candidates: [
+              {
+                handle: "spotify:sp1",
+                title: "Love Someone",
+                artists: ["Prospa"],
+                provider: "spotify",
+                providerId: "sp1",
+              },
+            ],
+          },
+        ],
+      }),
+      findLibraryTrackByExternalId: async ({ providerId }) =>
+        providerId === "sp1" ? existing : null,
+    });
+
+    const result = await resolveNoteMentions({ plan: plan(), services });
+    assert.equal(result.plan.mentions[1]?.selectedCandidateId, "graph:existing");
+    assert.equal(result.plan.mentions[1]?.resolutionStatus, "resolved");
+    assert.equal(result.candidates.byHandle.get("graph:existing")?.trackId, "existing");
+  });
+
   it("picks the top Spotify hit when peers tie on score", async () => {
-    const services: Pick<NoteAgentServices, "searchLibraryTracks" | "searchSpotifyTracks"> = {
+    const services = withExternalLookup({
       searchLibraryTracks: async () => ({
         results: [
           { mentionId: "m1", query: "x", candidates: [] },
@@ -120,7 +178,7 @@ describe("resolveNoteMentions", () => {
           },
         ],
       }),
-    };
+    });
 
     const result = await resolveNoteMentions({ plan: plan(), services });
     assert.equal(result.plan.mentions[1]?.selectedCandidateId, "spotify:a");
@@ -128,7 +186,7 @@ describe("resolveNoteMentions", () => {
   });
 
   it("marks near-tied different scores as ambiguous", async () => {
-    const services: Pick<NoteAgentServices, "searchLibraryTracks" | "searchSpotifyTracks"> = {
+    const services = withExternalLookup({
       searchLibraryTracks: async () => ({
         results: [
           { mentionId: "m1", query: "x", candidates: [] },
@@ -157,7 +215,7 @@ describe("resolveNoteMentions", () => {
           },
         ],
       }),
-    };
+    });
 
     const result = await resolveNoteMentions({ plan: plan(), services });
     assert.equal(result.plan.mentions[1]?.selectedCandidateId, null);
