@@ -3,7 +3,7 @@ import { composeAgentSystemPrompt, type ComposedPrompt } from "@selecta/agentics
 import { EXTRACTION_PROMPT_EXAMPLES } from "../extraction-prompt";
 import { NoteProcessingPlanSchema } from "./schema";
 
-export const NOTE_AGENT_PROMPT_VERSION = "v2" as const;
+export const NOTE_AGENT_PROMPT_VERSION = "v3" as const;
 export const NOTE_AGENT_NAME = "note-processing" as const;
 
 export type BuildNoteAgentPromptInput = {
@@ -23,19 +23,23 @@ export function buildNoteAgentPrompt(input: BuildNoteAgentPromptInput): Composed
           mentions: example.expected.songMentions.map((song, index) => ({
             mentionId: `m${index + 1}`,
             mention: song.mention,
-            titleHint: song.titleHint,
-            artistHint: song.artistHint,
+            titleHint: song.titleHint ?? null,
+            artistHint: song.artistHint ?? null,
             selectedCandidateId: null,
             resolutionStatus: "unresolved",
+            confidence: null,
+            ambiguityReason: null,
           })),
           transitions: example.expected.transitionProposals.map((transition) => ({
             fromMentionId: "m1",
             toMentionId: "m2",
             fromBar: "fromBar" in transition ? (transition.fromBar ?? null) : null,
             toBar: "toBar" in transition ? (transition.toBar ?? null) : null,
-            technique: "technique" in transition ? transition.technique : undefined,
-            intent: "intent" in transition ? transition.intent : undefined,
-            quality: "quality" in transition ? transition.quality : undefined,
+            barsOverlap: null,
+            technique: "technique" in transition ? (transition.technique ?? null) : null,
+            intent: "intent" in transition ? (transition.intent ?? null) : null,
+            quality: "quality" in transition ? (transition.quality ?? null) : null,
+            notes: null,
           })),
           confidence: example.expected.confidence,
           ambiguities: example.expected.ambiguities,
@@ -80,6 +84,7 @@ export function buildNoteAgentPrompt(input: BuildNoteAgentPromptInput): Composed
           "- searchSpotifyTracks: Spotify catalog search (returns spotify:<providerId> handles)",
           "Batch up to 4 mention queries per call. At most 5 candidates each.",
           "Do not invent handles. selectedCandidateId must be null or a handle returned by tools in this run.",
+          "Include every schema key; use null for unknown optional fields (never omit keys).",
           "You cannot create tracks or write transitions — the application applies policy after your plan.",
         ].join("\n"),
       },

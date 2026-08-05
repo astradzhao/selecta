@@ -18,6 +18,8 @@ const plan: NoteProcessingPlan = {
       artistHint: "Artist",
       selectedCandidateId: "spotify:1",
       resolutionStatus: "catalog_match",
+      confidence: null,
+      ambiguityReason: null,
     },
     {
       mentionId: "m2",
@@ -26,9 +28,23 @@ const plan: NoteProcessingPlan = {
       artistHint: "Artist",
       selectedCandidateId: "spotify:2",
       resolutionStatus: "catalog_match",
+      confidence: null,
+      ambiguityReason: null,
     },
   ],
-  transitions: [{ fromMentionId: "m1", toMentionId: "m2" }],
+  transitions: [
+    {
+      fromMentionId: "m1",
+      toMentionId: "m2",
+      fromBar: null,
+      toBar: null,
+      barsOverlap: null,
+      technique: null,
+      intent: null,
+      quality: null,
+      notes: null,
+    },
+  ],
 };
 
 describe("applyNoteProcessingPolicy", () => {
