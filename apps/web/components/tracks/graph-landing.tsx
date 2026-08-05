@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { SearchIcon } from "lucide-react";
 
@@ -206,8 +205,7 @@ export function TrackPickerDialog({
   );
 }
 
-export function GraphLanding() {
-  const router = useRouter();
+export function GraphLanding({ onStart }: { onStart: (trackId: string) => void }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
@@ -215,7 +213,7 @@ export function GraphLanding() {
     setLeaving(true);
     setPickerOpen(false);
     window.setTimeout(() => {
-      router.push(`/tracks/${track.id}/graph`);
+      onStart(track.id);
     }, motionDelay(220));
   }
 
