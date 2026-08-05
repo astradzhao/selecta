@@ -24,7 +24,6 @@ import {
   type ApiNeighborhoodNeighbor,
   type ApiTransitionEdge,
 } from "@/lib/tracks/api";
-import { TrackPickerDialog } from "@/components/tracks/graph-landing";
 
 /** Copy/meta opacity during a hop — opacity only, never translate/scale (those snap). */
 type CopyPhase = "visible" | "out" | "hidden" | "in";
@@ -433,7 +432,6 @@ export function GraphExplorer({
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [pending, startLoad] = useTransition();
   const [choosingId, setChoosingId] = useState<string | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
   /** Hides the real hero artwork while its flying clone is mid-air. */
   const [artHidden, setArtHidden] = useState(false);
   /** Opacity-only fade of title/meta so it crossfades while the art flies. */
@@ -483,11 +481,7 @@ export function GraphExplorer({
     };
   }, [trackId]);
 
-  async function goToTrack(
-    nextId: string,
-    sourceElement?: HTMLElement | null,
-    options?: { resetTrail?: boolean },
-  ) {
+  async function goToTrack(nextId: string, sourceElement?: HTMLElement | null) {
     if (choosingId || nextId === trackId) return;
 
     const request = loadNeighborhood(nextId).catch(() => null);
@@ -507,8 +501,7 @@ export function GraphExplorer({
       await wait(prefersReducedMotion() ? 0 : HOP_COPY_OUT_MS);
 
       // Stay on /graph — only session memory moves.
-      if (options?.resetTrail) setTrail([]);
-      else setTrail((prev) => [...prev, trackId]);
+      setTrail((prev) => [...prev, trackId]);
       loadedIdRef.current = next ? nextId : null;
       onTrackIdChange(nextId);
       if (next) {
@@ -606,14 +599,8 @@ export function GraphExplorer({
               Previous
             </Button>
           ) : null}
-          <Button type="button" variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
-            Change start
-          </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={onExit}>
+          <Button type="button" variant="destructive" size="sm" onClick={onExit}>
             Exit
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link href={`/tracks/${current.id}`}>Detail</Link>
           </Button>
         </div>
       </div>
@@ -711,12 +698,7 @@ export function GraphExplorer({
                 song.
               </p>
               <div className="flex flex-wrap justify-center gap-2 pt-1">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setPickerOpen(true)}
-                >
+                <Button type="button" variant="secondary" size="sm" onClick={onExit}>
                   Choose another track
                 </Button>
                 <Button asChild variant="outline" size="sm">
@@ -762,18 +744,6 @@ export function GraphExplorer({
           )}
         </section>
       </div>
-
-      <TrackPickerDialog
-        open={pickerOpen}
-        onOpenChange={setPickerOpen}
-        onSelect={(track) => {
-          setPickerOpen(false);
-          void goToTrack(track.id, null, { resetTrail: true });
-        }}
-        title="Change starting track"
-        description="Search your library and jump to that song’s neighborhood."
-        confirmLabel="Open in graph"
-      />
     </div>
   );
 }
