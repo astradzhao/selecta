@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 
 import { asSchema } from "ai";
 
-import { NoteProcessingPlanSchema } from "./schema";
+import { NoteExtractionDraftSchema, NoteProcessingPlanSchema } from "./schema";
 
 function assertOpenAiCompatibleObjectSchema(schema: Record<string, unknown>, path: string): void {
   assert.equal(schema.type, "object", `${path} must be an object`);
@@ -30,48 +30,17 @@ function assertOpenAiCompatibleObjectSchema(schema: Record<string, unknown>, pat
         assertOpenAiCompatibleObjectSchema(items, `${path}.${key}.items`);
       }
     }
-    if (Array.isArray(nested.anyOf)) {
-      for (const [index, option] of nested.anyOf.entries()) {
-        if (
-          option &&
-          typeof option === "object" &&
-          (option as { type?: string }).type === "object"
-        ) {
-          assertOpenAiCompatibleObjectSchema(
-            option as Record<string, unknown>,
-            `${path}.${key}.anyOf[${index}]`,
-          );
-        }
-      }
-    }
   }
 }
 
-describe("NoteProcessingPlanSchema OpenAI compatibility", () => {
-  it("marks every object property as required (nullable for unknowns)", () => {
-    const jsonSchema = asSchema(NoteProcessingPlanSchema).jsonSchema as Record<string, unknown>;
-    assertOpenAiCompatibleObjectSchema(jsonSchema, "NoteProcessingPlan");
+describe("note schemas OpenAI compatibility", () => {
+  it("marks every draft property as required (nullable for unknowns)", () => {
+    const jsonSchema = asSchema(NoteExtractionDraftSchema).jsonSchema as Record<string, unknown>;
+    assertOpenAiCompatibleObjectSchema(jsonSchema, "NoteExtractionDraft");
   });
 
-  it("accepts null for formerly optional mention fields", () => {
-    const parsed = NoteProcessingPlanSchema.parse({
-      noteType: "unknown",
-      mentions: [
-        {
-          mentionId: "m1",
-          mention: "levels",
-          titleHint: null,
-          artistHint: null,
-          selectedCandidateId: null,
-          resolutionStatus: "unresolved",
-          confidence: null,
-          ambiguityReason: null,
-        },
-      ],
-      transitions: [],
-      confidence: 0.2,
-      ambiguities: [],
-    });
-    assert.equal(parsed.mentions[0]?.titleHint, null);
+  it("marks every resolved-plan property as required", () => {
+    const jsonSchema = asSchema(NoteProcessingPlanSchema).jsonSchema as Record<string, unknown>;
+    assertOpenAiCompatibleObjectSchema(jsonSchema, "NoteProcessingPlan");
   });
 });

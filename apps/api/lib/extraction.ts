@@ -7,7 +7,6 @@ import {
   startAgentRun,
   upsertTransitionCommit,
 } from "@selecta/db";
-import { formatAgentSafeGraphSchema } from "@selecta/graph";
 import {
   applyNoteProcessingPolicy,
   evaluateNoteProcessingPolicy,
@@ -29,8 +28,8 @@ function hasAiGatewayAuth(): boolean {
 }
 
 /**
- * Run the bounded note agent + deterministic policy for a note version.
- * No-ops when the note was edited (version mismatch) or is no longer extracting.
+ * Cheap note pipeline for a note version:
+ * one-shot LLM draft → deterministic library/Spotify resolve → policy import/commit.
  * Never throws to the caller — failures are written onto the note / agent-run rows.
  */
 export async function runNoteExtraction(noteId: string, version: number): Promise<void> {
@@ -75,7 +74,6 @@ export async function runNoteExtraction(noteId: string, version: number): Promis
   try {
     const agentResult = await runNoteAgent({
       rawText: note.rawText,
-      graphSchemaText: formatAgentSafeGraphSchema(),
       services,
       runId: agentRun.id,
       meta: { noteId, extractionVersion: version },

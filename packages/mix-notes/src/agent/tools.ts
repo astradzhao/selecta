@@ -1,3 +1,8 @@
+/**
+ * Reserved tool definitions for future `@selecta/agentics` tool-loop agents.
+ * Production note processing is one-shot extraction + deterministic resolve
+ * and does not expose these tools to the model.
+ */
 import { tool, type Tool } from "ai";
 
 import type { NoteAgentServices } from "./services";

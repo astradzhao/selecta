@@ -1,14 +1,10 @@
 import {
   parseCandidateHandle,
-  type NoteMentionPlan,
   type NoteProcessingPlan,
   type NoteTransitionPlan,
 } from "./schema";
+import { uniqueBestCandidate } from "./match";
 import type { TrackCandidate } from "./services";
-
-function normalizeName(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, " ");
-}
 
 export type PolicyGateCode =
   | "ok"
@@ -61,43 +57,6 @@ export type EvaluatePolicyInput = {
   maxImports?: number;
   maxTransitions?: number;
 };
-
-function scoreTitleArtist(mention: NoteMentionPlan, candidate: TrackCandidate): number {
-  const title = normalizeName(mention.titleHint ?? mention.mention);
-  const artist = normalizeName(mention.artistHint ?? "");
-  const candTitle = normalizeName(candidate.title);
-  const candArtists = candidate.artists.map(normalizeName);
-
-  let score = 0;
-  if (title && candTitle === title) score += 0.6;
-  else if (title && (candTitle.includes(title) || title.includes(candTitle))) score += 0.35;
-
-  if (artist) {
-    if (candArtists.some((name) => name === artist)) score += 0.4;
-    else if (candArtists.some((name) => name.includes(artist) || artist.includes(name)))
-      score += 0.2;
-  } else {
-    score += 0.1;
-  }
-  return Math.min(1, score);
-}
-
-function uniqueBestCandidate(
-  mention: NoteMentionPlan,
-  candidates: TrackCandidate[],
-  minScore = 0.75,
-  margin = 0.15,
-): TrackCandidate | null {
-  if (candidates.length === 0) return null;
-  const ranked = [...candidates]
-    .map((candidate) => ({ candidate, score: scoreTitleArtist(mention, candidate) }))
-    .sort((a, b) => b.score - a.score);
-  const best = ranked[0]!;
-  const second = ranked[1];
-  if (best.score < minScore) return null;
-  if (second && best.score - second.score < margin) return null;
-  return best.candidate;
-}
 
 /**
  * Deterministic post-agent policy. Model confidence alone cannot auto-commit.

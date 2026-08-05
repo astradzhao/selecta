@@ -24,7 +24,9 @@ function emptyResults(input: SearchQueriesInput): SearchCandidatesOutput {
 }
 
 /**
- * Concrete adapters for the note agent. Mutations are for the policy executor only.
+ * Concrete adapters for note processing.
+ * Search is used by the deterministic resolver; mutations by the policy executor only.
+ * Not exposed as LLM tools in the production one-shot path.
  */
 export function createNoteAgentServices(): NoteAgentServices {
   return {
