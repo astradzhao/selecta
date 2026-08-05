@@ -186,9 +186,50 @@ describe("evaluateNoteProcessingPolicy", () => {
     assert.equal(result.resolvedTrackIdsByMention.m1, "t1");
   });
 
-  it("sends ambiguous Spotify peers to needs_review", () => {
+  it("accepts tied Spotify peers by preferring the selected top hit", () => {
     const a = spotifyCandidate("a", "Love Someone", ["Prospa"]);
     const b = spotifyCandidate("b", "Love Someone", ["Prospa"]);
+    const result = evaluateNoteProcessingPolicy({
+      plan: plan({
+        noteType: "transition",
+        confidence: 0.95,
+        mentions: [
+          mention({
+            mentionId: "m1",
+            mention: "Levels",
+            titleHint: "Levels",
+            artistHint: "Avicii",
+            selectedCandidateId: "graph:t1",
+            resolutionStatus: "resolved",
+          }),
+          mention({
+            mentionId: "m2",
+            mention: "Love Someone",
+            titleHint: "Love Someone",
+            artistHint: "Prospa",
+            selectedCandidateId: a.handle,
+            resolutionStatus: "catalog_match",
+          }),
+        ],
+        transitions: [transition({ fromMentionId: "m1", toMentionId: "m2" })],
+      }),
+      candidatesByHandle: new Map([
+        ["graph:t1", graphCandidate("t1", "Levels", ["Avicii"])],
+        [a.handle, a],
+        [b.handle, b],
+      ]),
+      candidatesByMentionId: new Map([
+        ["m1", [graphCandidate("t1", "Levels", ["Avicii"])]],
+        ["m2", [a, b]],
+      ]),
+    });
+    assert.equal(result.decision, "auto_commit");
+    assert.equal(result.imports[0]?.providerId, "a");
+  });
+
+  it("sends near-tied Spotify peers to needs_review", () => {
+    const a = spotifyCandidate("a", "Love Someone (Edit)", ["Prospa"]);
+    const b = spotifyCandidate("b", "Love Someone", ["Prospa Band"]);
     const result = evaluateNoteProcessingPolicy({
       plan: plan({
         noteType: "transition",

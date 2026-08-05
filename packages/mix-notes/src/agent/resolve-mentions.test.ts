@@ -90,7 +90,7 @@ describe("resolveNoteMentions", () => {
     assert.equal(result.plan.mentions[1]?.resolutionStatus, "catalog_match");
   });
 
-  it("marks ambiguous Spotify peers without inventing a track", async () => {
+  it("picks the top Spotify hit when peers tie on score", async () => {
     const services: Pick<NoteAgentServices, "searchLibraryTracks" | "searchSpotifyTracks"> = {
       searchLibraryTracks: async () => ({
         results: [
@@ -114,6 +114,43 @@ describe("resolveNoteMentions", () => {
                 handle: "spotify:b",
                 title: "Love Someone",
                 artists: ["Prospa"],
+                providerId: "b",
+              },
+            ],
+          },
+        ],
+      }),
+    };
+
+    const result = await resolveNoteMentions({ plan: plan(), services });
+    assert.equal(result.plan.mentions[1]?.selectedCandidateId, "spotify:a");
+    assert.equal(result.plan.mentions[1]?.resolutionStatus, "catalog_match");
+  });
+
+  it("marks near-tied different scores as ambiguous", async () => {
+    const services: Pick<NoteAgentServices, "searchLibraryTracks" | "searchSpotifyTracks"> = {
+      searchLibraryTracks: async () => ({
+        results: [
+          { mentionId: "m1", query: "x", candidates: [] },
+          { mentionId: "m2", query: "y", candidates: [] },
+        ],
+      }),
+      searchSpotifyTracks: async () => ({
+        results: [
+          {
+            mentionId: "m2",
+            query: "Love Someone Prospa",
+            candidates: [
+              {
+                handle: "spotify:a",
+                title: "Love Someone (Edit)",
+                artists: ["Prospa"],
+                providerId: "a",
+              },
+              {
+                handle: "spotify:b",
+                title: "Love Someone",
+                artists: ["Prospa Band"],
                 providerId: "b",
               },
             ],

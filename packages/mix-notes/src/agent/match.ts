@@ -33,13 +33,17 @@ export function uniqueBestCandidate(
   margin = 0.15,
 ): TrackCandidate | null {
   if (candidates.length === 0) return null;
+  // Stable sort: equal scores keep search-result order (prefer the top hit).
   const ranked = [...candidates]
     .map((candidate) => ({ candidate, score: scoreTitleArtist(mention, candidate) }))
     .sort((a, b) => b.score - a.score);
   const best = ranked[0]!;
   const second = ranked[1];
   if (best.score < minScore) return null;
-  if (second && best.score - second.score < margin) return null;
+  // Exact score ties → take the first (top search result). Margin only applies when scores differ.
+  if (second && best.score !== second.score && best.score - second.score < margin) {
+    return null;
+  }
   return best.candidate;
 }
 
