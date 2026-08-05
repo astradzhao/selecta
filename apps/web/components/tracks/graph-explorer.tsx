@@ -18,11 +18,16 @@ import {
 } from "@/lib/tracks/api";
 import { TrackPickerDialog } from "@/components/tracks/graph-landing";
 
-/** Soft exit for the outgoing “now playing” panel — not a full fade to empty. */
-/** Outgoing track clears quickly so it never overlaps the incoming copy.
- *  Transform-only — no scale, so getBoundingClientRect never disagrees with layout. */
-const CURRENT_EXIT =
-  "pointer-events-none opacity-0 duration-200 ease-in motion-safe:-translate-x-5";
+/** Copy/meta opacity during a hop — opacity only, never translate/scale (those snap). */
+type CopyPhase = "visible" | "out" | "hidden" | "in";
+
+const COPY_PHASE_CLASS: Record<CopyPhase, string> = {
+  visible: "opacity-100",
+  out: "opacity-0 duration-200 ease-in",
+  // Instant hold at 0 so the remounted panel doesn't flash before the fade-in.
+  hidden: "opacity-0 duration-0",
+  in: "opacity-100 duration-300 ease-out",
+};
 
 type Neighborhood = {
   current: ApiNeighborhoodCurrent;
@@ -405,10 +410,10 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
   const [pending, startLoad] = useTransition();
   const [choosingId, setChoosingId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  /** When false, the hero mounts at full opacity (no fade/zoom) after a hop. */
-  const [heroEnter, setHeroEnter] = useState(true);
   /** Hides the real hero artwork while its flying clone is mid-air. */
   const [artHidden, setArtHidden] = useState(false);
+  /** Opacity-only fade of title/meta so it crossfades while the art flies. */
+  const [copyPhase, setCopyPhase] = useState<CopyPhase>("visible");
 
   const loadedIdRef = useRef<string | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
@@ -472,14 +477,14 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
     );
 
     setChoosingId(nextId);
-    setHeroEnter(false);
     setExpandedKey(null);
+    setCopyPhase("out");
     if (flight) setArtHidden(true);
 
     try {
       const next = await request;
-      // Let the outgoing panel clear before the new one takes its place.
-      await wait(prefersReducedMotion() ? 0 : 170);
+      // Let the outgoing copy finish fading before the panel remounts.
+      await wait(prefersReducedMotion() ? 0 : 200);
 
       window.history.pushState(null, "", `/tracks/${encodeURIComponent(nextId)}/graph`);
       loadedIdRef.current = next ? nextId : null;
@@ -490,18 +495,24 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
         setError(null);
       }
       setChoosingId(null);
+      // Remount holds at opacity 0 — no enter transform that could snap sideways.
+      setCopyPhase("hidden");
 
-      if (!flight) return;
-
-      // Measure only after the new panel has committed and painted: the landing
-      // rect is then the real layout, so there is nothing left to snap to.
       await nextFrame();
       const heroArt = panelRef.current?.querySelector<HTMLElement>('[data-art-role="hero"]');
-      if (heroArt) await flight.landOn(heroArt);
+
+      // Fade copy in while the art is in flight (same window, not after landing).
+      setCopyPhase("in");
+      if (flight && heroArt) {
+        await flight.landOn(heroArt);
+      } else if (!prefersReducedMotion()) {
+        await wait(300);
+      }
+      setCopyPhase("visible");
     } finally {
       setArtHidden(false);
+      setCopyPhase("visible");
       if (flight) {
-        // Reveal the real artwork first, then drop the identical clone.
         await nextFrame();
         flight.destroy();
       }
@@ -573,34 +584,22 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
             aria-labelledby="graph-current-heading"
             className="border-border bg-background sticky top-20 flex flex-col gap-5 rounded-3xl border p-5 sm:p-6"
           >
-            {/* Keyed so the outgoing panel is replaced outright — no transition
-                back from the exit transform once the morph covers it. */}
-            <div
-              key={current.id}
-              className={cn(
-                "flex flex-col gap-5 transition-[opacity,transform] duration-400 ease-[cubic-bezier(0.2,0,0,1)]",
-                heroEnter &&
-                  "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 duration-500",
-                swapping && CURRENT_EXIT,
-              )}
-            >
-              {/* Artwork leads the panel so the morph destination does not shift
-                  with title length. */}
+            {/* Keyed remount on hop. Opacity-only fades — no zoom/slide (those
+                read as a sideways snap once layout settles). */}
+            <div key={current.id} className="flex flex-col gap-5">
               <Artwork
                 url={current.artworkUrl}
                 size={220}
                 artRole="hero"
                 className={cn("mx-auto w-full max-w-[220px] sm:mx-0", artHidden && "opacity-0")}
               />
-              {/* Copy fades in on its own now that only the artwork flies. */}
               <div
                 data-hero-text
                 className={cn(
-                  "space-y-1",
-                  !heroEnter &&
-                    "motion-safe:animate-in motion-safe:fade-in-0 fill-mode-both duration-300",
+                  "space-y-1 transition-opacity",
+                  COPY_PHASE_CLASS[copyPhase],
+                  copyPhase !== "visible" && "pointer-events-none",
                 )}
-                style={!heroEnter ? { animationDelay: "40ms" } : undefined}
               >
                 <p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
                   Now playing
@@ -608,7 +607,7 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
                 <h1
                   id="graph-current-heading"
                   data-hero-title
-                  className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl"
+                  className="text-2xl font-semibold tracking-tight sm:text-3xl"
                 >
                   {current.title}
                 </h1>
@@ -618,11 +617,10 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
               </div>
               <div
                 className={cn(
-                  "flex flex-col gap-5",
-                  !heroEnter &&
-                    "motion-safe:animate-in motion-safe:fade-in-0 fill-mode-both duration-300",
+                  "flex flex-col gap-5 transition-opacity",
+                  COPY_PHASE_CLASS[copyPhase],
+                  copyPhase !== "visible" && "pointer-events-none",
                 )}
-                style={!heroEnter ? { animationDelay: "120ms" } : undefined}
               >
                 <dl className="text-muted-foreground grid grid-cols-2 gap-3 text-xs">
                   <div>
