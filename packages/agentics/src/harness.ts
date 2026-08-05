@@ -1,11 +1,18 @@
 import { randomUUID } from "node:crypto";
 
-import { generateText, isStepCount, Output, type PrepareStepFunction, type ToolSet } from "ai";
+import {
+  generateText,
+  isStepCount,
+  NoOutputGeneratedError,
+  Output,
+  type PrepareStepFunction,
+  type ToolSet,
+} from "ai";
 import type { z } from "zod";
 
 import { AgentError } from "./errors";
 import { clampAgentLimits } from "./limits";
-import { createConsoleAgentLogger, type AgentLogger } from "./logging";
+import { createAgentLogger, type AgentLogger } from "./logging";
 import type { AgentUsage, BoundedAgentResult, RunBoundedAgentInput } from "./types";
 
 function modelLabel(model: import("ai").LanguageModel): string {
@@ -37,11 +44,18 @@ function toUsage(raw: unknown): AgentUsage | undefined {
   };
 }
 
+/**
+ * Tools are available for early steps only. The final step always disables tools
+ * so the model can finish with `stop` and produce structured output.
+ *
+ * AI SDK only parses `output` when the last step's finishReason is `stop`.
+ */
 function defaultPrepareStep<TOOLS extends ToolSet>(
-  maxToolSteps: number,
+  maxSteps: number,
 ): PrepareStepFunction<TOOLS, Record<string, never>> {
+  const maxToolSteps = Math.min(2, Math.max(0, maxSteps - 1));
   return ({ stepNumber }) => {
-    if (stepNumber >= maxToolSteps) {
+    if (stepNumber >= maxToolSteps || stepNumber >= maxSteps - 1) {
       return {
         activeTools: [] as Array<keyof TOOLS & string>,
         toolChoice: "none" as const,
@@ -49,6 +63,24 @@ function defaultPrepareStep<TOOLS extends ToolSet>(
     }
     return {};
   };
+}
+
+function readStructuredOutput<TOutput>(result: {
+  output: TOutput;
+  finishReason?: string;
+  text?: string;
+}): { ok: true; output: TOutput } | { ok: false; message: string } {
+  try {
+    return { ok: true, output: result.output };
+  } catch (error) {
+    if (NoOutputGeneratedError.isInstance(error)) {
+      return {
+        ok: false,
+        message: `No structured output generated (finishReason=${result.finishReason ?? "unknown"}). The final model step must finish with stop, not tool-calls.`,
+      };
+    }
+    throw error;
+  }
 }
 
 /**
@@ -62,7 +94,7 @@ export async function runBoundedAgent<TOutput, TOOLS extends ToolSet = ToolSet>(
   input: RunBoundedAgentInput<TOutput, TOOLS>,
 ): Promise<BoundedAgentResult<TOutput>> {
   const limits = clampAgentLimits(input.limits);
-  const logger: AgentLogger = input.logger ?? createConsoleAgentLogger();
+  const logger: AgentLogger = input.logger ?? createAgentLogger();
   const runId = input.runId ?? randomUUID();
   const started = Date.now();
   const modelId = modelLabel(input.model);
@@ -95,8 +127,7 @@ export async function runBoundedAgent<TOutput, TOOLS extends ToolSet = ToolSet>(
   });
 
   const tools = (input.tools ?? {}) as TOOLS;
-  const prepareStep =
-    input.prepareStep ?? defaultPrepareStep<TOOLS>(Math.min(2, Math.max(1, limits.maxSteps - 1)));
+  const prepareStep = input.prepareStep ?? defaultPrepareStep<TOOLS>(limits.maxSteps);
 
   try {
     const result = await generateText({
@@ -199,7 +230,43 @@ export async function runBoundedAgent<TOutput, TOOLS extends ToolSet = ToolSet>(
       };
     }
 
-    const parsed = input.outputSchema.safeParse(result.output);
+    const outputRead = readStructuredOutput(result);
+    if (!outputRead.ok) {
+      logger.log("error", {
+        type: "run_end",
+        runId,
+        status: "failed",
+        stepCount,
+        toolCallCount,
+        finishReason: result.finishReason,
+        usage: usage as Record<string, number> | undefined,
+        errorCode: "invalid_output",
+        errorMessage: outputRead.message,
+        durationMs,
+      });
+      return {
+        ok: false,
+        error: {
+          code: "invalid_output",
+          message: outputRead.message,
+          details: {
+            finishReason: result.finishReason,
+            stepCount,
+            toolCallCount,
+          },
+        },
+        stepCount,
+        toolCallCount,
+        finishReason: result.finishReason,
+        usage,
+        promptVersion: input.promptVersion,
+        promptHash: input.promptHash,
+        model: modelId,
+        durationMs,
+      };
+    }
+
+    const parsed = input.outputSchema.safeParse(outputRead.output);
     if (!parsed.success) {
       logger.log("error", {
         type: "run_end",
@@ -210,6 +277,7 @@ export async function runBoundedAgent<TOutput, TOOLS extends ToolSet = ToolSet>(
         finishReason: result.finishReason,
         usage: usage as Record<string, number> | undefined,
         errorCode: "invalid_output",
+        errorMessage: "Agent output failed schema validation.",
         durationMs,
       });
       return {
@@ -233,7 +301,7 @@ export async function runBoundedAgent<TOutput, TOOLS extends ToolSet = ToolSet>(
     if (
       stepCount >= limits.maxSteps &&
       result.finishReason === "tool-calls" &&
-      result.output == null
+      outputRead.output == null
     ) {
       logger.log("warn", {
         type: "run_end",
@@ -290,7 +358,13 @@ export async function runBoundedAgent<TOutput, TOOLS extends ToolSet = ToolSet>(
     const durationMs = Date.now() - started;
     const message = error instanceof Error ? error.message : "Agent run failed.";
     const code =
-      error instanceof AgentError ? error.code : /timeout/i.test(message) ? "timeout" : "internal";
+      error instanceof AgentError
+        ? error.code
+        : NoOutputGeneratedError.isInstance(error)
+          ? "invalid_output"
+          : /timeout/i.test(message)
+            ? "timeout"
+            : "internal";
 
     logger.log("error", {
       type: "run_end",
@@ -299,6 +373,7 @@ export async function runBoundedAgent<TOutput, TOOLS extends ToolSet = ToolSet>(
       stepCount,
       toolCallCount,
       errorCode: code,
+      errorMessage: message.slice(0, 500),
       durationMs,
     });
 

@@ -20,6 +20,7 @@ export type AgentLogEvent =
       finishReason?: string;
       usage?: Record<string, number>;
       errorCode?: string;
+      errorMessage?: string;
       durationMs: number;
     }
   | {
@@ -56,11 +57,35 @@ export type AgentLogEvent =
       runId: string;
       decision: string;
       reasons: string[];
+    }
+  | {
+      type: "coordinator";
+      runId: string;
+      noteId?: string;
+      extractionVersion?: number;
+      phase: string;
+      detail?: string;
+    }
+  | {
+      type: "retry";
+      runId: string;
+      reason: string;
     };
 
 export type AgentLogger = {
   log(level: AgentLogLevel, event: AgentLogEvent): void;
 };
+
+/** True when local verbose agent logging is enabled. */
+export function isDevModeLoggingEnabled(): boolean {
+  const value = process.env.DEV_MODE?.trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes";
+}
+
+/** No-op logger used when DEV_MODE is off. */
+export function createNoopAgentLogger(): AgentLogger {
+  return { log() {} };
+}
 
 /** Default logger — structured JSON to stdout; never dumps raw payloads. */
 export function createConsoleAgentLogger(): AgentLogger {
@@ -76,4 +101,15 @@ export function createConsoleAgentLogger(): AgentLogger {
       }
     },
   };
+}
+
+/**
+ * Logger for agent/coordinator runs.
+ * Quiet by default; set `DEV_MODE=true` to print structured events.
+ */
+export function createAgentLogger(options?: { force?: boolean }): AgentLogger {
+  if (options?.force || isDevModeLoggingEnabled()) {
+    return createConsoleAgentLogger();
+  }
+  return createNoopAgentLogger();
 }

@@ -3,7 +3,10 @@
 export { AgentError, isAgentError, type AgentErrorCode } from "./errors";
 export { DEFAULT_AGENT_LIMITS, clampAgentLimits, type AgentLimits } from "./limits";
 export {
+  createAgentLogger,
   createConsoleAgentLogger,
+  createNoopAgentLogger,
+  isDevModeLoggingEnabled,
   type AgentLogEvent,
   type AgentLogLevel,
   type AgentLogger,

@@ -1,11 +1,16 @@
-import { runBoundedAgent, type AgentLogger, type BoundedAgentResult } from "@selecta/agentics";
+import {
+  createAgentLogger,
+  runBoundedAgent,
+  type AgentLogger,
+  type BoundedAgentResult,
+} from "@selecta/agentics";
 
+import { providerFromModel } from "../extract-note";
 import { CandidateRegistry, withCandidateRegistry } from "./candidate-registry";
 import { buildNoteAgentPrompt, buildNoteAgentUserPrompt, NOTE_AGENT_NAME } from "./prompt";
 import { NoteProcessingPlanSchema, type NoteProcessingPlan } from "./schema";
 import type { NoteAgentServices } from "./services";
 import { createNoteAgentTools } from "./tools";
-import { providerFromModel } from "../extract-note";
 
 export const DEFAULT_NOTE_AGENT_MODEL = "openai/gpt-4.1-mini" as const;
 
@@ -50,8 +55,17 @@ export type RunNoteAgentFailure = {
 
 export type RunNoteAgentResult = RunNoteAgentSuccess | RunNoteAgentFailure;
 
+function needsStructuredOutputRetry(result: BoundedAgentResult<NoteProcessingPlan>): boolean {
+  if (result.ok) return false;
+  if (result.error.code !== "invalid_output") return false;
+  return /No structured output|No output generated/i.test(result.error.message);
+}
+
 /**
  * Bounded note-processing agent: read-only library + Spotify tools, structured plan output.
+ *
+ * If a tool-loop ends without a `stop` structured-output step (common provider quirk),
+ * retries once with tools disabled so the model must emit the JSON plan.
  */
 export async function runNoteAgent(input: RunNoteAgentInput): Promise<RunNoteAgentResult> {
   const rawText = input.rawText.trim();
@@ -71,23 +85,68 @@ export async function runNoteAgent(input: RunNoteAgentInput): Promise<RunNoteAge
   const registry = new CandidateRegistry();
   const services = withCandidateRegistry(input.services, registry);
   const tools = createNoteAgentTools(services);
+  const logger = input.logger ?? createAgentLogger();
+  const userPrompt = buildNoteAgentUserPrompt(rawText);
+  const provider = providerFromModel(model);
 
-  const result = await runBoundedAgent({
+  const common = {
     agentName: NOTE_AGENT_NAME,
     model,
     promptVersion: prompt.promptVersion,
     promptHash: prompt.promptHash,
     instructions: prompt.system,
-    userPrompt: buildNoteAgentUserPrompt(rawText),
-    tools,
+    userPrompt,
     outputSchema: NoteProcessingPlanSchema,
     limits: { maxSteps },
-    logger: input.logger,
+    logger,
     runId: input.runId,
     meta: input.meta,
+  } as const;
+
+  let result = await runBoundedAgent({
+    ...common,
+    tools,
   });
 
-  const provider = providerFromModel(model);
+  if (!result.ok && needsStructuredOutputRetry(result)) {
+    const firstError = result.error;
+    logger.log("warn", {
+      type: "retry",
+      runId: input.runId ?? "note-agent",
+      reason: "Tool loop finished without structured output; retrying with tools disabled.",
+    });
+
+    const retry = await runBoundedAgent({
+      ...common,
+      tools: {},
+      limits: { maxSteps: Math.min(2, maxSteps) },
+      runId: input.runId ? `${input.runId}:retry` : undefined,
+    });
+
+    const combinedSteps = result.stepCount + retry.stepCount;
+    const combinedTools = result.toolCallCount + retry.toolCallCount;
+    const combinedDuration = result.durationMs + retry.durationMs;
+
+    if (retry.ok) {
+      result = {
+        ...retry,
+        stepCount: combinedSteps,
+        toolCallCount: combinedTools,
+        durationMs: combinedDuration,
+      };
+    } else {
+      result = {
+        ...retry,
+        stepCount: combinedSteps,
+        toolCallCount: combinedTools,
+        durationMs: combinedDuration,
+        error: {
+          ...retry.error,
+          message: `${firstError.message} | Retry: ${retry.error.message}`,
+        },
+      };
+    }
+  }
 
   if (!result.ok) {
     return {
