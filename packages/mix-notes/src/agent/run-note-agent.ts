@@ -8,11 +8,12 @@ import { resolveNoteMentions } from "./resolve-mentions";
 import {
   draftToUnresolvedPlan,
   NoteExtractionDraftSchema,
+  type NoteExtractionDraft,
   type NoteProcessingPlan,
 } from "./schema";
 import type { NoteAgentServices } from "./services";
 
-export const DEFAULT_NOTE_AGENT_MODEL = "anthropic/claude-haiku-4.5" as const;
+export const DEFAULT_NOTE_AGENT_MODEL = "openai/gpt-5.4-mini" as const;
 
 export type RunNoteAgentInput = {
   rawText: string;
@@ -25,6 +26,8 @@ export type RunNoteAgentInput = {
 
 export type RunNoteAgentSuccess = {
   ok: true;
+  /** Raw structured LLM output before deterministic resolve. */
+  draft: NoteExtractionDraft;
   plan: NoteProcessingPlan;
   candidates: CandidateRegistry;
   model: string;
@@ -185,6 +188,7 @@ export async function runNoteAgent(input: RunNoteAgentInput): Promise<RunNoteAge
 
     return {
       ok: true,
+      draft: parsed.data,
       plan: resolved.plan,
       candidates: resolved.candidates,
       model,
