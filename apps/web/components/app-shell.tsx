@@ -4,6 +4,7 @@ import { cn } from "@selecta/ui/lib/utils";
 
 const links = [
   { href: "/library", label: "Library" },
+  { href: "/graph", label: "Graph" },
   { href: "/notes", label: "Notes" },
   { href: "/tracks/new", label: "Add track" },
 ] as const;

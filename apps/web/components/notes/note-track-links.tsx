@@ -9,14 +9,9 @@ import { Button } from "@selecta/ui/components/button";
 import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
 
-import {
-  ApiClientError,
-  addNoteTrackLink,
-  listTracks,
-  removeNoteTrackLink,
-  type ApiNoteTrackLink,
-  type ApiTrack,
-} from "@/lib/api";
+import { ApiClientError } from "@/lib/api/client";
+import { addNoteTrackLink, removeNoteTrackLink, type ApiNoteTrackLink } from "@/lib/notes/api";
+import { listTracks, type ApiTrack } from "@/lib/tracks/api";
 
 export function NoteTrackLinks({
   noteId,

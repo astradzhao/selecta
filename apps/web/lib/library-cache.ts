@@ -1,4 +1,4 @@
-import type { ApiTrack } from "@/lib/api";
+import type { ApiTrack } from "@/lib/tracks/types";
 
 export type LibraryCacheEntry = {
   tracks: ApiTrack[];

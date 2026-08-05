@@ -7,7 +7,8 @@ import { useEffect, useState, useTransition } from "react";
 import { Button } from "@selecta/ui/components/button";
 import { Separator } from "@selecta/ui/components/separator";
 
-import { ApiClientError, getTrack, type ApiTrack } from "@/lib/api";
+import { ApiClientError } from "@/lib/api/client";
+import { getTrack, type ApiTrack } from "@/lib/tracks/api";
 import { TrackChips } from "@/components/tracks/track-chips";
 
 function formatDuration(sec: number | null): string | null {
@@ -80,8 +81,8 @@ export function TrackDetail({ trackId }: { trackId: string }) {
             <Button asChild variant="outline">
               <Link href="/library">Back to library</Link>
             </Button>
-            <Button asChild variant="secondary" disabled title="Graph explorer lands in M4">
-              <span>Open in graph (soon)</span>
+            <Button asChild>
+              <Link href={`/tracks/${track.id}/graph`}>Open in graph</Link>
             </Button>
           </div>
         </div>

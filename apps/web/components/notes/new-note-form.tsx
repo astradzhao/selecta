@@ -8,7 +8,8 @@ import { Button } from "@selecta/ui/components/button";
 import { Label } from "@selecta/ui/components/label";
 import { Textarea } from "@selecta/ui/components/textarea";
 
-import { ApiClientError, createNote } from "@/lib/api";
+import { ApiClientError } from "@/lib/api/client";
+import { createNote } from "@/lib/notes/api";
 
 export function NewNoteForm() {
   const router = useRouter();
