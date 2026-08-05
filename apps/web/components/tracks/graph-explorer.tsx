@@ -17,6 +17,7 @@ import {
   type ApiTransitionEdge,
 } from "@/lib/tracks/api";
 import { TrackPickerDialog } from "@/components/tracks/graph-landing";
+import { NeighborhoodGraph } from "@/components/tracks/neighborhood-graph";
 
 /** Copy/meta opacity during a hop — opacity only, never translate/scale (those snap). */
 type CopyPhase = "visible" | "out" | "hidden" | "in";
@@ -252,6 +253,8 @@ function NeighborCard({
   onToggle,
   onChoose,
   onPrefetch,
+  onHighlight,
+  highlighted,
   fadingOut,
   choosing,
   index,
@@ -263,6 +266,8 @@ function NeighborCard({
   onToggle: () => void;
   onChoose: () => void;
   onPrefetch: () => void;
+  onHighlight: (active: boolean) => void;
+  highlighted: boolean;
   fadingOut: boolean;
   choosing: boolean;
   index: number;
@@ -277,9 +282,10 @@ function NeighborCard({
     <li
       className={cn(
         "border-border bg-background overflow-hidden rounded-2xl border",
-        "transition-[opacity,transform] duration-400 ease-[cubic-bezier(0.2,0,0,1)]",
+        "transition-[opacity,transform,border-color] duration-400 ease-[cubic-bezier(0.2,0,0,1)]",
         "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 fill-mode-both",
         "hover:border-foreground/20",
+        highlighted && "border-foreground/35",
         fadingOut && "pointer-events-none opacity-0 motion-safe:translate-x-6",
         choosing && "pointer-events-none opacity-0",
       )}
@@ -295,13 +301,21 @@ function NeighborCard({
         aria-expanded={expanded}
         aria-controls={panelId}
         onClick={onToggle}
-        onPointerEnter={onPrefetch}
-        onFocus={onPrefetch}
+        onPointerEnter={() => {
+          onPrefetch();
+          onHighlight(true);
+        }}
+        onPointerLeave={() => onHighlight(false)}
+        onFocus={() => {
+          onPrefetch();
+          onHighlight(true);
+        }}
+        onBlur={() => onHighlight(false)}
         className={cn(
           "bg-background flex w-full items-start gap-3 px-4 py-3.5 text-left",
           "transition-colors duration-300",
           "hover:bg-muted/50 focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
-          expanded && "bg-muted/30",
+          (expanded || highlighted) && "bg-muted/30",
         )}
       >
         <Artwork
@@ -414,6 +428,8 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
   const [artHidden, setArtHidden] = useState(false);
   /** Opacity-only fade of title/meta so it crossfades while the art flies. */
   const [copyPhase, setCopyPhase] = useState<CopyPhase>("visible");
+  /** Shared highlight between the neighborhood viz and the next-song list. */
+  const [activeNeighborId, setActiveNeighborId] = useState<string | null>(null);
 
   const loadedIdRef = useRef<string | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
@@ -478,6 +494,7 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
 
     setChoosingId(nextId);
     setExpandedKey(null);
+    setActiveNeighborId(null);
     setCopyPhase("out");
     if (flight) setArtHidden(true);
 
@@ -568,6 +585,23 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
           </Button>
         </div>
       </div>
+
+      <NeighborhoodGraph
+        current={current}
+        neighbors={neighbors}
+        activeNeighborId={activeNeighborId}
+        onActiveNeighborChange={setActiveNeighborId}
+        disabled={swapping}
+        onSelectNeighbor={(neighborId) => {
+          const neighbor = neighbors.find((n) => n.id === neighborId);
+          const rowKey = neighbor?.transition.proposalKey ?? neighborId;
+          void goToTrack(neighborId, cardRefs.current.get(rowKey));
+        }}
+        className={cn(
+          "motion-safe:animate-in motion-safe:fade-in-0 duration-500",
+          swapping && "pointer-events-none opacity-60 transition-opacity duration-300",
+        )}
+      />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(240px,0.9fr)_minmax(0,1.4fr)] lg:gap-8">
         <div className="relative">
@@ -692,15 +726,18 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
                     expanded={expanded}
                     index={index}
                     panelId={`${baseId}-${rowKey}`}
+                    highlighted={activeNeighborId === neighbor.id || expanded}
                     registerRef={(element) => {
                       if (element) cardRefs.current.set(rowKey, element);
                       else cardRefs.current.delete(rowKey);
                     }}
                     onToggle={() => {
                       setExpandedKey(expanded ? null : rowKey);
+                      setActiveNeighborId(expanded ? null : neighbor.id);
                       if (!expanded) void loadNeighborhood(neighbor.id).catch(() => null);
                     }}
                     onPrefetch={() => void loadNeighborhood(neighbor.id).catch(() => null)}
+                    onHighlight={(active) => setActiveNeighborId(active ? neighbor.id : null)}
                     onChoose={() => void goToTrack(neighbor.id, cardRefs.current.get(rowKey))}
                     fadingOut={swapping && choosingId !== neighbor.id}
                     choosing={choosingId === neighbor.id}
