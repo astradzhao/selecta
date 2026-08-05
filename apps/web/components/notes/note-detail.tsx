@@ -8,15 +8,15 @@ import { Label } from "@selecta/ui/components/label";
 import { Textarea } from "@selecta/ui/components/textarea";
 
 import { NoteTrackLinks } from "@/components/notes/note-track-links";
+import { ApiClientError } from "@/lib/api/client";
 import {
-  ApiClientError,
   extractNote,
   getNote,
   updateNote,
   type ApiNote,
   type ApiNoteTrackLink,
   type NoteExtractionStatus,
-} from "@/lib/api";
+} from "@/lib/notes/api";
 
 function formatTimestamp(iso: string): string {
   const date = new Date(iso);

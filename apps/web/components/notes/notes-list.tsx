@@ -6,7 +6,8 @@ import { PlusIcon } from "lucide-react";
 
 import { Button } from "@selecta/ui/components/button";
 
-import { ApiClientError, listNotes, type ApiNote } from "@/lib/api";
+import { ApiClientError } from "@/lib/api/client";
+import { listNotes, type ApiNote } from "@/lib/notes/api";
 
 function formatTimestamp(iso: string): string {
   const date = new Date(iso);

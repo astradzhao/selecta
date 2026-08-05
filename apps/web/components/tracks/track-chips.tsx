@@ -1,6 +1,6 @@
 import { Badge } from "@selecta/ui/components/badge";
 
-import type { ApiFolderNode, ApiNamedNode } from "@/lib/api";
+import type { ApiFolderNode, ApiNamedNode } from "@/lib/tracks/types";
 
 export function TrackChips({
   subgenres,

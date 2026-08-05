@@ -9,13 +9,13 @@ import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
 import { cn } from "@selecta/ui/lib/utils";
 
+import { ApiClientError } from "@/lib/api/client";
 import {
-  ApiClientError,
   getTrackNeighborhood,
   type ApiNeighborhoodCurrent,
   type ApiNeighborhoodNeighbor,
   type ApiTransitionEdge,
-} from "@/lib/api";
+} from "@/lib/tracks/api";
 
 function artistLine(artists: { name: string }[]): string {
   return artists.map((a) => a.name).join(", ") || "Unknown artist";

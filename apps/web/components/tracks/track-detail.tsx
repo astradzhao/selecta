@@ -7,7 +7,8 @@ import { useEffect, useState, useTransition } from "react";
 import { Button } from "@selecta/ui/components/button";
 import { Separator } from "@selecta/ui/components/separator";
 
-import { ApiClientError, getTrack, type ApiTrack } from "@/lib/api";
+import { ApiClientError } from "@/lib/api/client";
+import { getTrack, type ApiTrack } from "@/lib/tracks/api";
 import { TrackChips } from "@/components/tracks/track-chips";
 
 function formatDuration(sec: number | null): string | null {

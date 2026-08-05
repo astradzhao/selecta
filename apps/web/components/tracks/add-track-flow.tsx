@@ -10,7 +10,9 @@ import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
 import { Separator } from "@selecta/ui/components/separator";
 
-import { ApiClientError, createTrack, searchCatalog, type CatalogTrack } from "@/lib/api";
+import { ApiClientError } from "@/lib/api/client";
+import { searchCatalog, type CatalogTrack } from "@/lib/catalog/api";
+import { createTrack } from "@/lib/tracks/api";
 import { invalidateLibraryCache } from "@/lib/library-cache";
 import { FolderTagEditor, type FolderTag } from "@/components/tracks/folder-tag-editor";
 import { TagEditor, type TagItem } from "@/components/tracks/tag-editor";
