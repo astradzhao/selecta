@@ -169,6 +169,43 @@ export async function getTrack(id: string): Promise<{ ok: true; track: ApiTrack 
   return apiFetch(`/tracks/${encodeURIComponent(id)}`);
 }
 
+/** Transition edge fields on neighborhood neighbors (DJ-40). */
+export type ApiTransitionEdge = {
+  proposalKey: string | null;
+  sourceNoteId: string | null;
+  sourceNoteVersion: number | null;
+  confidence: number | null;
+  fromBar: number | null;
+  toBar: number | null;
+  barsOverlap: number | null;
+  technique: string | null;
+  intent: string | null;
+  quality: string | null;
+  notes: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export type ApiNeighborhoodNeighbor = Omit<
+  ApiTrack,
+  "created" | "hasOutboundTransitions" | "hasInboundTransitions"
+> & {
+  transition: ApiTransitionEdge;
+};
+
+export type ApiNeighborhoodCurrent = Omit<
+  ApiTrack,
+  "created" | "hasOutboundTransitions" | "hasInboundTransitions"
+>;
+
+export async function getTrackNeighborhood(id: string): Promise<{
+  ok: true;
+  current: ApiNeighborhoodCurrent;
+  neighbors: ApiNeighborhoodNeighbor[];
+}> {
+  return apiFetch(`/tracks/${encodeURIComponent(id)}/neighborhood`);
+}
+
 export async function createTrack(body: CreateTrackBody): Promise<{ ok: true; track: ApiTrack }> {
   return apiFetch("/tracks", {
     method: "POST",

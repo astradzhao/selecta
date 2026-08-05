@@ -80,8 +80,8 @@ export function TrackDetail({ trackId }: { trackId: string }) {
             <Button asChild variant="outline">
               <Link href="/library">Back to library</Link>
             </Button>
-            <Button asChild variant="secondary" disabled title="Graph explorer lands in M4">
-              <span>Open in graph (soon)</span>
+            <Button asChild>
+              <Link href={`/tracks/${track.id}/graph`}>Open in graph</Link>
             </Button>
           </div>
         </div>
