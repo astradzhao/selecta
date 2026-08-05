@@ -1,8 +1,4 @@
-import {
-  parseCandidateHandle,
-  type NoteProcessingPlan,
-  type NoteTransitionPlan,
-} from "./schema";
+import { parseCandidateHandle, type NoteProcessingPlan, type NoteTransitionPlan } from "./schema";
 import { uniqueBestCandidate } from "./match";
 import type { TrackCandidate } from "./services";
 

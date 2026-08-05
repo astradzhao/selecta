@@ -8,6 +8,7 @@ import { Label } from "@selecta/ui/components/label";
 import { Textarea } from "@selecta/ui/components/textarea";
 
 import { NoteTrackLinks } from "@/components/notes/note-track-links";
+import { NoteExtractionDebug } from "@/components/notes/note-extraction-debug";
 import {
   ApiClientError,
   extractNote,
@@ -63,7 +64,7 @@ function reviewReasonsFromNote(note: ApiNote): string[] {
     .filter((message): message is string => Boolean(message));
 }
 
-export function NoteDetail({ noteId }: { noteId: string }) {
+export function NoteDetail({ noteId, devMode = false }: { noteId: string; devMode?: boolean }) {
   const [note, setNote] = useState<ApiNote | null>(null);
   const [rawText, setRawText] = useState("");
   const [trackLinks, setTrackLinks] = useState<ApiNoteTrackLink[]>([]);
@@ -258,6 +259,10 @@ export function NoteDetail({ noteId }: { noteId: string }) {
           </Button>
         ) : null}
       </section>
+
+      {devMode ? (
+        <NoteExtractionDebug extraction={note.extraction} rawResponse={note.rawResponse} />
+      ) : null}
 
       <form onSubmit={onSubmit} className="space-y-6">
         <div className="space-y-2">

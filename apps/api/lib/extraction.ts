@@ -191,7 +191,21 @@ export async function runNoteExtraction(noteId: string, version: number): Promis
       .map((reason) => ({ code: reason.code, message: reason.message }));
 
     const extractionPayload: Record<string, unknown> = {
+      draft: agentResult.draft,
       plan: agentResult.plan,
+      candidatesByMentionId: Object.fromEntries(
+        [...agentResult.candidates.byMentionId.entries()].map(([mentionId, candidates]) => [
+          mentionId,
+          candidates.map((candidate) => ({
+            handle: candidate.handle,
+            title: candidate.title,
+            artists: candidate.artists,
+            provider: candidate.provider,
+            providerId: candidate.providerId ?? null,
+            trackId: candidate.trackId ?? null,
+          })),
+        ]),
+      ),
       policy: {
         decision: applied.decision,
         reasons: applied.reasons,
