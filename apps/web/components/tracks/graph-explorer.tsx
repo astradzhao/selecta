@@ -53,11 +53,6 @@ function qualityTone(quality: string | null): "default" | "secondary" | "outline
   return "outline";
 }
 
-function trackIdFromPath(pathname: string): string | null {
-  const match = /^\/tracks\/([^/]+)\/graph\/?$/.exec(pathname);
-  return match?.[1] ? decodeURIComponent(match[1]) : null;
-}
-
 function Artwork({
   url,
   size,
@@ -400,9 +395,16 @@ function NeighborCard({
   );
 }
 
-export function GraphExplorer({ trackId }: { trackId: string }) {
+export function GraphExplorer({
+  trackId,
+  onTrackIdChange,
+  onExit,
+}: {
+  trackId: string;
+  onTrackIdChange: (trackId: string) => void;
+  onExit: () => void;
+}) {
   const baseId = useId();
-  const [activeId, setActiveId] = useState(trackId);
   const [current, setCurrent] = useState<ApiNeighborhoodCurrent | null>(null);
   const [neighbors, setNeighbors] = useState<ApiNeighborhoodNeighbor[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -414,6 +416,8 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
   const [artHidden, setArtHidden] = useState(false);
   /** Opacity-only fade of title/meta so it crossfades while the art flies. */
   const [copyPhase, setCopyPhase] = useState<CopyPhase>("visible");
+  /** In-session hop stack for stepping back without leaving /graph. */
+  const [trail, setTrail] = useState<string[]>([]);
 
   const loadedIdRef = useRef<string | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
@@ -433,13 +437,13 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
   }
 
   useEffect(() => {
-    if (loadedIdRef.current === activeId) return;
+    if (loadedIdRef.current === trackId) return;
     let cancelled = false;
     startLoad(async () => {
       try {
-        const next = await loadNeighborhood(activeId);
+        const next = await loadNeighborhood(trackId);
         if (cancelled) return;
-        loadedIdRef.current = activeId;
+        loadedIdRef.current = trackId;
         setCurrent(next.current);
         setNeighbors(next.neighbors);
         setError(null);
@@ -455,20 +459,14 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [activeId]);
+  }, [trackId]);
 
-  // Traversal updates the URL without a route change, so back/forward is ours to honor.
-  useEffect(() => {
-    function syncFromUrl() {
-      const id = trackIdFromPath(window.location.pathname);
-      if (id) setActiveId(id);
-    }
-    window.addEventListener("popstate", syncFromUrl);
-    return () => window.removeEventListener("popstate", syncFromUrl);
-  }, []);
-
-  async function goToTrack(nextId: string, sourceElement?: HTMLElement | null) {
-    if (choosingId || nextId === activeId) return;
+  async function goToTrack(
+    nextId: string,
+    sourceElement?: HTMLElement | null,
+    options?: { resetTrail?: boolean },
+  ) {
+    if (choosingId || nextId === trackId) return;
 
     const request = loadNeighborhood(nextId).catch(() => null);
     // Lift the thumbnail out of the list before the DOM is swapped under it.
@@ -486,9 +484,11 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
       // Let the outgoing copy finish fading before the panel remounts.
       await wait(prefersReducedMotion() ? 0 : 200);
 
-      window.history.pushState(null, "", `/tracks/${encodeURIComponent(nextId)}/graph`);
+      // Stay on /graph — only session memory moves.
+      if (options?.resetTrail) setTrail([]);
+      else setTrail((prev) => [...prev, trackId]);
       loadedIdRef.current = next ? nextId : null;
-      setActiveId(nextId);
+      onTrackIdChange(nextId);
       if (next) {
         setCurrent(next.current);
         setNeighbors(next.neighbors);
@@ -519,6 +519,16 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
     }
   }
 
+  function goBackInTrail() {
+    const previous = trail[trail.length - 1];
+    if (!previous || choosingId) return;
+    setTrail((prev) => prev.slice(0, -1));
+    loadedIdRef.current = null;
+    setExpandedKey(null);
+    setCopyPhase("visible");
+    onTrackIdChange(previous);
+  }
+
   if (pending && !current) {
     return (
       <p className="text-muted-foreground motion-safe:animate-in motion-safe:fade-in-0 text-sm duration-300">
@@ -534,11 +544,11 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
           {error ?? "Track not found."}
         </p>
         <div className="flex flex-wrap gap-3">
-          <Button asChild variant="outline">
-            <Link href="/graph">Back to Graph</Link>
+          <Button type="button" variant="outline" onClick={onExit}>
+            Back to Graph
           </Button>
           <Button asChild variant="secondary">
-            <Link href={`/tracks/${activeId}`}>Track detail</Link>
+            <Link href={`/tracks/${trackId}`}>Track detail</Link>
           </Button>
         </div>
       </div>
@@ -560,8 +570,22 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {trail.length > 0 ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={swapping}
+              onClick={goBackInTrail}
+            >
+              Previous
+            </Button>
+          ) : null}
           <Button type="button" variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
             Change start
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={onExit}>
+            Exit
           </Button>
           <Button asChild variant="ghost" size="sm">
             <Link href={`/tracks/${current.id}`}>Detail</Link>
@@ -717,7 +741,7 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
         onOpenChange={setPickerOpen}
         onSelect={(track) => {
           setPickerOpen(false);
-          void goToTrack(track.id);
+          void goToTrack(track.id, null, { resetTrail: true });
         }}
         title="Change starting track"
         description="Search your library and jump to that song’s neighborhood."

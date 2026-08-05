@@ -82,7 +82,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
               <Link href="/library">Back to library</Link>
             </Button>
             <Button asChild>
-              <Link href={`/tracks/${track.id}/graph`}>Open in graph</Link>
+              <Link href={`/graph?track=${track.id}`}>Open in graph</Link>
             </Button>
           </div>
         </div>

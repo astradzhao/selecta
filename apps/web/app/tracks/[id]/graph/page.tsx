@@ -1,15 +1,11 @@
-import { AppShell } from "@/components/app-shell";
-import { GraphExplorer } from "@/components/tracks/graph-explorer";
+import { redirect } from "next/navigation";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
 
-export default async function TrackGraphPage({ params }: PageProps) {
+/** Compat: old per-track graph URLs seed the single `/graph` session. */
+export default async function TrackGraphRedirectPage({ params }: PageProps) {
   const { id } = await params;
-  return (
-    <AppShell currentPath="/graph">
-      <GraphExplorer trackId={id} />
-    </AppShell>
-  );
+  redirect(`/graph?track=${encodeURIComponent(id)}`);
 }
