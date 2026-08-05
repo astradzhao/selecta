@@ -10,12 +10,14 @@ import { Button } from "@selecta/ui/components/button";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { ApiClientError } from "@/lib/api/client";
+import { motionDelay, navigateWithMotion } from "@/lib/motion";
 import {
   getTrackNeighborhood,
   type ApiNeighborhoodCurrent,
   type ApiNeighborhoodNeighbor,
   type ApiTransitionEdge,
 } from "@/lib/tracks/api";
+import { TrackPickerDialog } from "@/components/tracks/graph-landing";
 
 function artistLine(artists: { name: string }[]): string {
   return artists.map((a) => a.name).join(", ") || "Unknown artist";
@@ -47,7 +49,10 @@ function Artwork({
 }) {
   return (
     <div
-      className={cn("bg-muted relative shrink-0 overflow-hidden rounded-2xl", className)}
+      className={cn(
+        "bg-muted relative shrink-0 overflow-hidden rounded-2xl transition-transform duration-300",
+        className,
+      )}
       style={{ width: size, height: size }}
     >
       {url ? (
@@ -73,7 +78,7 @@ function BarStrip({ transition }: { transition: ApiTransitionEdge }) {
   const ticks = Math.min(32, Math.max(8, Math.ceil(maxBar / 4) * 4));
 
   return (
-    <div className="space-y-2">
+    <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 space-y-2 duration-500">
       <p className="text-muted-foreground text-xs tracking-[0.14em] uppercase">Bars</p>
       <div
         className="border-border bg-muted/40 relative flex h-10 items-end gap-px overflow-hidden rounded-lg border px-1.5 py-1.5"
@@ -99,7 +104,7 @@ function BarStrip({ transition }: { transition: ApiTransitionEdge }) {
             <div
               key={bar}
               className={cn(
-                "min-w-0 flex-1 rounded-sm transition-colors",
+                "min-w-0 flex-1 rounded-sm transition-all duration-500 ease-out",
                 isFrom || isTo
                   ? "bg-foreground h-full"
                   : inOverlap
@@ -108,6 +113,7 @@ function BarStrip({ transition }: { transition: ApiTransitionEdge }) {
                       ? "bg-foreground/20 h-[45%]"
                       : "bg-foreground/10 h-[28%]",
               )}
+              style={{ transitionDelay: `${i * 12}ms` }}
             />
           );
         })}
@@ -144,7 +150,7 @@ function TransitionMeters({ transition }: { transition: ApiTransitionEdge }) {
       : null;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 grid gap-4 duration-500 sm:grid-cols-2">
       <div className="space-y-2">
         <p className="text-muted-foreground text-xs tracking-[0.14em] uppercase">Preference</p>
         <div className="space-y-2">
@@ -172,8 +178,11 @@ function TransitionMeters({ transition }: { transition: ApiTransitionEdge }) {
           {[0.35, 0.55, 0.7, 0.45, 0.6, 0.4, 0.5].map((height, index) => (
             <div
               key={index}
-              className="bg-foreground/15 w-full max-w-2 rounded-sm"
-              style={{ height: `${height * 100}%` }}
+              className="bg-foreground/15 w-full max-w-2 origin-bottom rounded-sm transition-transform duration-700 ease-out motion-safe:scale-y-100"
+              style={{
+                height: `${height * 100}%`,
+                transitionDelay: `${120 + index * 40}ms`,
+              }}
             />
           ))}
         </div>
@@ -201,7 +210,7 @@ function MeterRow({
       <div className="bg-muted h-1.5 overflow-hidden rounded-full">
         <div
           className={cn(
-            "h-full rounded-full transition-[width] duration-300",
+            "h-full rounded-full transition-[width] duration-700 ease-out",
             fill == null ? "bg-foreground/15" : "bg-foreground/70",
           )}
           style={{ width: `${Math.round((fill ?? 0.08) * 100)}%` }}
@@ -213,18 +222,21 @@ function MeterRow({
 
 function CurrentTrackPanel({
   track,
-  animating,
+  phase,
 }: {
   track: ApiNeighborhoodCurrent;
-  animating: boolean;
+  phase: "idle" | "exiting" | "receiving";
 }) {
   return (
     <section
       aria-labelledby="graph-current-heading"
       className={cn(
         "border-border bg-background sticky top-20 flex flex-col gap-5 rounded-3xl border p-5 sm:p-6",
-        "transition-transform duration-300 ease-out",
-        animating && "motion-safe:translate-x-1",
+        "transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        phase === "idle" &&
+          "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-left-4 duration-500",
+        phase === "exiting" && "pointer-events-none opacity-0 motion-safe:-translate-x-8",
+        phase === "receiving" && "motion-safe:scale-[1.01]",
       )}
     >
       <div className="space-y-1">
@@ -237,7 +249,14 @@ function CurrentTrackPanel({
         </h1>
         <p className="text-muted-foreground text-sm">{artistLine(track.artists)}</p>
       </div>
-      <Artwork url={track.artworkUrl} size={220} className="mx-auto w-full max-w-[220px] sm:mx-0" />
+      <Artwork
+        url={track.artworkUrl}
+        size={220}
+        className={cn(
+          "mx-auto w-full max-w-[220px] sm:mx-0",
+          phase === "receiving" && "motion-safe:scale-105",
+        )}
+      />
       <dl className="text-muted-foreground grid grid-cols-2 gap-3 text-xs">
         <div>
           <dt className="uppercase tracking-[0.12em]">BPM</dt>
@@ -262,6 +281,7 @@ function NeighborCard({
   onChoose,
   fadingOut,
   choosing,
+  index,
   panelId,
 }: {
   neighbor: ApiNeighborhoodNeighbor;
@@ -270,6 +290,7 @@ function NeighborCard({
   onChoose: () => void;
   fadingOut: boolean;
   choosing: boolean;
+  index: number;
   panelId: string;
 }) {
   const t = neighbor.transition;
@@ -279,10 +300,19 @@ function NeighborCard({
   return (
     <li
       className={cn(
-        "border-border bg-background overflow-hidden rounded-2xl border transition-all duration-300 ease-out",
-        fadingOut && "pointer-events-none opacity-0 motion-safe:translate-x-4",
-        choosing && "border-foreground/40 shadow-sm",
+        "border-border bg-background overflow-hidden rounded-2xl border",
+        "transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-3 fill-mode-both",
+        "hover:border-foreground/20 hover:shadow-sm",
+        fadingOut &&
+          "pointer-events-none max-h-0 opacity-0 motion-safe:translate-x-6 motion-safe:scale-95",
+        choosing &&
+          "border-foreground/50 shadow-md motion-safe:-translate-x-3 motion-safe:scale-[1.02]",
       )}
+      style={{
+        animationDelay: `${Math.min(index, 10) * 45}ms`,
+        animationDuration: "480ms",
+      }}
     >
       <button
         type="button"
@@ -290,12 +320,17 @@ function NeighborCard({
         aria-controls={panelId}
         onClick={onToggle}
         className={cn(
-          "flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors",
+          "flex w-full items-start gap-3 px-4 py-3.5 text-left",
+          "transition-colors duration-300",
           "hover:bg-muted/50 focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
           expanded && "bg-muted/30",
         )}
       >
-        <Artwork url={neighbor.artworkUrl} size={56} className="rounded-xl" />
+        <Artwork
+          url={neighbor.artworkUrl}
+          size={56}
+          className={cn("rounded-xl", expanded && "motion-safe:scale-105")}
+        />
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
@@ -322,32 +357,62 @@ function NeighborCard({
               .join(" · ") || "Transition details"}
           </p>
         </div>
-        <span className="text-muted-foreground mt-1 shrink-0 text-xs" aria-hidden>
-          {expanded ? "▾" : "▸"}
+        <span
+          className={cn(
+            "text-muted-foreground mt-1 shrink-0 text-xs transition-transform duration-300",
+            expanded && "rotate-90",
+          )}
+          aria-hidden
+        >
+          ▸
         </span>
       </button>
 
-      <div id={panelId} hidden={!expanded} className="border-border space-y-4 border-t px-4 py-4">
-        <div className="flex flex-wrap gap-2">
-          {technique ? <Badge variant="outline">{technique}</Badge> : null}
-          {intent ? <Badge variant="secondary">{intent}</Badge> : null}
-          {!technique && !intent && !t.quality ? (
-            <span className="text-muted-foreground text-xs">No technique / intent recorded</span>
-          ) : null}
-        </div>
-
-        {t.notes ? (
-          <p className="text-sm leading-relaxed text-pretty">{t.notes}</p>
-        ) : (
-          <p className="text-muted-foreground text-sm">No free-text notes on this transition.</p>
+      <div
+        id={panelId}
+        className={cn(
+          "grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+          expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         )}
+      >
+        <div className="overflow-hidden">
+          <div
+            className={cn(
+              "border-border space-y-4 border-t px-4 py-4 transition-opacity duration-300",
+              expanded ? "opacity-100" : "opacity-0",
+            )}
+          >
+            <div className="flex flex-wrap gap-2">
+              {technique ? <Badge variant="outline">{technique}</Badge> : null}
+              {intent ? <Badge variant="secondary">{intent}</Badge> : null}
+              {!technique && !intent && !t.quality ? (
+                <span className="text-muted-foreground text-xs">
+                  No technique / intent recorded
+                </span>
+              ) : null}
+            </div>
 
-        <BarStrip transition={t} />
-        <TransitionMeters transition={t} />
+            {t.notes ? (
+              <p className="text-sm leading-relaxed text-pretty">{t.notes}</p>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                No free-text notes on this transition.
+              </p>
+            )}
 
-        <Button type="button" onClick={onChoose} disabled={choosing} className="w-full sm:w-auto">
-          {choosing ? "Moving…" : "Choose this track"}
-        </Button>
+            <BarStrip transition={t} />
+            <TransitionMeters transition={t} />
+
+            <Button
+              type="button"
+              onClick={onChoose}
+              disabled={choosing}
+              className="w-full transition-transform duration-200 active:scale-[0.98] sm:w-auto"
+            >
+              {choosing ? "Moving…" : "Choose this track"}
+            </Button>
+          </div>
+        </div>
       </div>
     </li>
   );
@@ -363,6 +428,8 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
   const [pending, startLoad] = useTransition();
   const [choosingId, setChoosingId] = useState<string | null>(null);
   const [fading, setFading] = useState(false);
+  const [panelPhase, setPanelPhase] = useState<"idle" | "exiting" | "receiving">("idle");
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -373,6 +440,7 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
         setCurrent(response.current);
         setNeighbors(response.neighbors);
         setError(null);
+        setPanelPhase("idle");
       } catch (err) {
         if (cancelled) return;
         setCurrent(null);
@@ -391,28 +459,30 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
     if (choosingId) return;
     setChoosingId(neighbor.id);
     setFading(true);
-    const reduceMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const delay = reduceMotion ? 0 : 280;
+    setPanelPhase("receiving");
+    window.setTimeout(() => setPanelPhase("exiting"), motionDelay(180));
     window.setTimeout(() => {
-      router.push(`/tracks/${neighbor.id}/graph`);
-    }, delay);
+      navigateWithMotion(router, `/tracks/${neighbor.id}/graph`);
+    }, motionDelay(520));
   }
 
   if (pending && !current) {
-    return <p className="text-muted-foreground text-sm">Loading neighborhood…</p>;
+    return (
+      <p className="text-muted-foreground motion-safe:animate-in motion-safe:fade-in-0 text-sm duration-300">
+        Loading neighborhood…
+      </p>
+    );
   }
 
   if (error || !current) {
     return (
-      <div className="space-y-4">
+      <div className="motion-safe:animate-in motion-safe:fade-in-0 space-y-4 duration-500">
         <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm">
           {error ?? "Track not found."}
         </p>
         <div className="flex flex-wrap gap-3">
           <Button asChild variant="outline">
-            <Link href="/library">Back to library</Link>
+            <Link href="/graph">Back to Graph</Link>
           </Button>
           <Button asChild variant="secondary">
             <Link href={`/tracks/${trackId}`}>Track detail</Link>
@@ -424,7 +494,7 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-2 flex flex-wrap items-end justify-between gap-3 duration-500">
         <div className="space-y-1">
           <p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
             Graph explorer
@@ -434,22 +504,31 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
             then choose it to traverse.
           </p>
         </div>
-        <Button asChild variant="ghost" size="sm">
-          <Link href={`/tracks/${current.id}`}>← Detail</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
+            Change start
+          </Button>
+          <Button asChild variant="ghost" size="sm">
+            <Link href={`/tracks/${current.id}`}>Detail</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(240px,0.9fr)_minmax(0,1.4fr)] lg:gap-8">
         <div className="relative">
           <div
-            className="from-foreground/25 via-foreground/10 pointer-events-none absolute top-28 right-[-1.25rem] bottom-28 hidden w-8 bg-gradient-to-r to-transparent lg:block"
+            className={cn(
+              "from-foreground/30 via-foreground/10 pointer-events-none absolute top-28 right-[-1.25rem] bottom-28 hidden w-10 bg-gradient-to-r to-transparent lg:block",
+              "transition-opacity duration-500",
+              fading ? "opacity-0" : "opacity-100",
+            )}
             aria-hidden
           />
-          <CurrentTrackPanel track={current} animating={Boolean(choosingId)} />
+          <CurrentTrackPanel track={current} phase={panelPhase} />
         </div>
 
         <section aria-labelledby="graph-next-heading" className="min-w-0 space-y-3">
-          <div className="flex items-baseline justify-between gap-3">
+          <div className="motion-safe:animate-in motion-safe:fade-in-0 flex items-baseline justify-between gap-3 duration-500">
             <h2 id="graph-next-heading" className="text-sm font-medium tracking-tight">
               Next transitions
             </h2>
@@ -457,18 +536,23 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
           </div>
 
           {neighbors.length === 0 ? (
-            <div className="border-border bg-muted/20 space-y-3 rounded-2xl border border-dashed px-5 py-10 text-center">
+            <div className="border-border bg-muted/20 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 space-y-3 rounded-2xl border border-dashed px-5 py-10 text-center duration-500">
               <p className="text-sm font-medium">No outbound transitions yet</p>
               <p className="text-muted-foreground mx-auto max-w-sm text-sm text-pretty">
                 Capture a mix note that links this track to another, or pick a different starting
-                song from the library.
+                song.
               </p>
               <div className="flex flex-wrap justify-center gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setPickerOpen(true)}
+                >
+                  Choose another track
+                </Button>
                 <Button asChild variant="outline" size="sm">
                   <Link href="/notes">Open notes</Link>
-                </Button>
-                <Button asChild variant="secondary" size="sm">
-                  <Link href="/library">Browse library</Link>
                 </Button>
               </div>
             </div>
@@ -477,11 +561,11 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
               <ul
                 className={cn(
                   "max-h-[min(70vh,40rem)] space-y-2 overflow-y-auto pe-1",
-                  "[mask-image:linear-gradient(to_bottom,transparent_0%,black_12px,black_calc(100%-28px),transparent_100%)]",
-                  "pb-6 pt-2",
+                  "[mask-image:linear-gradient(to_bottom,transparent_0%,black_14px,black_calc(100%-32px),transparent_100%)]",
+                  "pt-2 pb-6",
                 )}
               >
-                {neighbors.map((neighbor) => {
+                {neighbors.map((neighbor, index) => {
                   const rowKey = neighbor.transition.proposalKey ?? neighbor.id;
                   const expanded = expandedId === rowKey;
                   return (
@@ -489,6 +573,7 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
                       key={rowKey}
                       neighbor={neighbor}
                       expanded={expanded}
+                      index={index}
                       panelId={`${baseId}-${rowKey}`}
                       onToggle={() => setExpandedId(expanded ? null : rowKey)}
                       onChoose={() => chooseNeighbor(neighbor)}
@@ -502,6 +587,18 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
           )}
         </section>
       </div>
+
+      <TrackPickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        onSelect={(track) => {
+          setPickerOpen(false);
+          navigateWithMotion(router, `/tracks/${track.id}/graph`);
+        }}
+        title="Change starting track"
+        description="Search your library and jump to that song’s neighborhood."
+        confirmLabel="Open in graph"
+      />
     </div>
   );
 }

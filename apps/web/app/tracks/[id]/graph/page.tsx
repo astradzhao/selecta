@@ -8,7 +8,7 @@ type PageProps = {
 export default async function TrackGraphPage({ params }: PageProps) {
   const { id } = await params;
   return (
-    <AppShell currentPath="/library">
+    <AppShell currentPath="/graph">
       <GraphExplorer key={id} trackId={id} />
     </AppShell>
   );
