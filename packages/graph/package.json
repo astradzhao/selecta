@@ -9,6 +9,7 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/**/*.test.ts",
     "graph:migrate": "tsx src/migrate.ts"
   },
   "dependencies": {
