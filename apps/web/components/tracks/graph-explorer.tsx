@@ -11,6 +11,7 @@ import { cn } from "@selecta/ui/lib/utils";
 import { ApiClientError } from "@/lib/api/client";
 import {
   beginArtFlight,
+  HERO_ART_SIZE,
   HOP_COPY_IN_MS,
   HOP_COPY_OUT_MS,
   HOP_FLIGHT_MS,
@@ -517,12 +518,13 @@ export function GraphExplorer({
       const heroArt = panelRef.current?.querySelector<HTMLElement>('[data-art-role="hero"]');
 
       if (flight && heroArt) {
-        await flight.landOn(heroArt, HOP_FLIGHT_MS);
+        await flight.landOn(heroArt, { duration: HOP_FLIGHT_MS, size: HERO_ART_SIZE });
       } else {
         await wait(prefersReducedMotion() ? 0 : HOP_FLIGHT_MS);
       }
 
-      // Reveal real art and fade copy in together — only after the slot is filled.
+      // Drop the clone first, then reveal the real square — same size, no snap.
+      if (flight) flight.destroy();
       setArtHidden(false);
       await nextFrame();
       setCopyPhase("in");
@@ -531,9 +533,7 @@ export function GraphExplorer({
     } finally {
       setArtHidden(false);
       setCopyPhase("visible");
-      if (flight) {
-        flight.destroy();
-      }
+      if (flight) flight.destroy();
     }
   }
 
@@ -588,17 +588,6 @@ export function GraphExplorer({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {trail.length > 0 ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={swapping}
-              onClick={goBackInTrail}
-            >
-              Previous
-            </Button>
-          ) : null}
           <Button type="button" variant="destructive" size="sm" onClick={onExit}>
             Exit
           </Button>
@@ -625,9 +614,9 @@ export function GraphExplorer({
             <div key={current.id} className="flex flex-col gap-5">
               <Artwork
                 url={current.artworkUrl}
-                size={220}
+                size={HERO_ART_SIZE}
                 artRole="hero"
-                className={cn("mx-auto w-full max-w-[220px] sm:mx-0", artHidden && "opacity-0")}
+                className={cn("mx-auto sm:mx-0", artHidden && "opacity-0")}
               />
               <div
                 data-hero-text
@@ -674,9 +663,25 @@ export function GraphExplorer({
                     </dd>
                   </div>
                 </dl>
-                <Button asChild variant="outline" size="sm" className="w-fit">
-                  <Link href={`/tracks/${current.id}`}>Track detail</Link>
-                </Button>
+                <div className="flex items-center justify-between gap-3">
+                  {trail.length > 0 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={swapping}
+                      aria-label="Previous track"
+                      onClick={goBackInTrail}
+                    >
+                      ←
+                    </Button>
+                  ) : (
+                    <span className="size-8" aria-hidden />
+                  )}
+                  <Button asChild variant="outline" size="sm" className="w-fit">
+                    <Link href={`/tracks/${current.id}`}>Track detail</Link>
+                  </Button>
+                </div>
               </div>
             </div>
           </section>
