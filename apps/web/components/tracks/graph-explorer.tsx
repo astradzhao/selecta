@@ -9,7 +9,7 @@ import { Button } from "@selecta/ui/components/button";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { ApiClientError } from "@/lib/api/client";
-import { morphCardIntoPanel, prefersReducedMotion, wait } from "@/lib/motion";
+import { beginArtFlight, nextFrame, prefersReducedMotion, wait } from "@/lib/motion";
 import {
   getTrackNeighborhood,
   type ApiNeighborhoodCurrent,
@@ -19,9 +19,10 @@ import {
 import { TrackPickerDialog } from "@/components/tracks/graph-landing";
 
 /** Soft exit for the outgoing “now playing” panel — not a full fade to empty. */
-/** Outgoing track clears quickly so it never overlaps the incoming copy. */
+/** Outgoing track clears quickly so it never overlaps the incoming copy.
+ *  Transform-only — no scale, so getBoundingClientRect never disagrees with layout. */
 const CURRENT_EXIT =
-  "pointer-events-none opacity-0 duration-200 ease-in motion-safe:-translate-x-6 motion-safe:scale-[0.98]";
+  "pointer-events-none opacity-0 duration-200 ease-in motion-safe:-translate-x-5";
 
 type Neighborhood = {
   current: ApiNeighborhoodCurrent;
@@ -274,8 +275,8 @@ function NeighborCard({
         "transition-[opacity,transform] duration-400 ease-[cubic-bezier(0.2,0,0,1)]",
         "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 fill-mode-both",
         "hover:border-foreground/20",
-        fadingOut && "pointer-events-none opacity-0 motion-safe:translate-x-6 motion-safe:scale-95",
-        choosing && "opacity-0",
+        fadingOut && "pointer-events-none opacity-0 motion-safe:translate-x-6",
+        choosing && "pointer-events-none opacity-0",
       )}
       style={{
         animationDelay: `${Math.min(index, 8) * 30}ms`,
@@ -406,6 +407,8 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   /** When false, the hero mounts at full opacity (no fade/zoom) after a hop. */
   const [heroEnter, setHeroEnter] = useState(true);
+  /** Hides the real hero artwork while its flying clone is mid-air. */
+  const [artHidden, setArtHidden] = useState(false);
 
   const loadedIdRef = useRef<string | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
@@ -459,21 +462,27 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
     return () => window.removeEventListener("popstate", syncFromUrl);
   }, []);
 
-  async function goToTrack(
-    nextId: string,
-    sourceElement?: HTMLElement | null,
-    preview?: { title: string; artists: { name: string }[] },
-  ) {
+  async function goToTrack(nextId: string, sourceElement?: HTMLElement | null) {
     if (choosingId || nextId === activeId) return;
 
-    const panel = panelRef.current;
     const request = loadNeighborhood(nextId).catch(() => null);
+    // Lift the thumbnail out of the list before the DOM is swapped under it.
+    const flight = beginArtFlight(
+      sourceElement?.querySelector<HTMLElement>('[data-art-role="card"]'),
+    );
 
-    async function commit() {
+    setChoosingId(nextId);
+    setHeroEnter(false);
+    setExpandedKey(null);
+    if (flight) setArtHidden(true);
+
+    try {
       const next = await request;
+      // Let the outgoing panel clear before the new one takes its place.
+      await wait(prefersReducedMotion() ? 0 : 170);
+
       window.history.pushState(null, "", `/tracks/${encodeURIComponent(nextId)}/graph`);
       loadedIdRef.current = next ? nextId : null;
-      setExpandedKey(null);
       setActiveId(nextId);
       if (next) {
         setCurrent(next.current);
@@ -481,34 +490,21 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
         setError(null);
       }
       setChoosingId(null);
-    }
 
-    setChoosingId(nextId);
-    // The morph covers the panel, so the incoming hero must not fade in behind it.
-    setHeroEnter(false);
+      if (!flight) return;
 
-    if (sourceElement && panel) {
-      // Called before React paints the exit state so both ends measure at rest.
-      await morphCardIntoPanel({
-        sourceCard: sourceElement,
-        targetPanel: panel,
-        sourceArt: sourceElement.querySelector<HTMLElement>('[data-art-role="card"]'),
-        targetArt: panel.querySelector<HTMLElement>('[data-art-role="hero"]'),
-        sourceText: sourceElement.querySelector<HTMLElement>("[data-card-text]"),
-        targetText: preview ? panel.querySelector<HTMLElement>("[data-hero-text]") : null,
-        prepareTargetText: preview
-          ? (ghost) => {
-              const title = ghost.querySelector("[data-hero-title]");
-              if (title) title.textContent = preview.title;
-              const artist = ghost.querySelector("[data-hero-artist]");
-              if (artist) artist.textContent = artistLine(preview.artists);
-            }
-          : undefined,
-        onCover: commit,
-      });
-    } else {
-      await wait(prefersReducedMotion() ? 0 : 160);
-      await commit();
+      // Measure only after the new panel has committed and painted: the landing
+      // rect is then the real layout, so there is nothing left to snap to.
+      await nextFrame();
+      const heroArt = panelRef.current?.querySelector<HTMLElement>('[data-art-role="hero"]');
+      if (heroArt) await flight.landOn(heroArt);
+    } finally {
+      setArtHidden(false);
+      if (flight) {
+        // Reveal the real artwork first, then drop the identical clone.
+        await nextFrame();
+        flight.destroy();
+      }
     }
   }
 
@@ -594,11 +590,18 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
                 url={current.artworkUrl}
                 size={220}
                 artRole="hero"
-                className="mx-auto w-full max-w-[220px] sm:mx-0"
+                className={cn("mx-auto w-full max-w-[220px] sm:mx-0", artHidden && "opacity-0")}
               />
-              {/* The morph overlay fades a ghost of this block in mid-flight,
-                  so the real copy must land without its own entrance. */}
-              <div data-hero-text className="space-y-1">
+              {/* Copy fades in on its own now that only the artwork flies. */}
+              <div
+                data-hero-text
+                className={cn(
+                  "space-y-1",
+                  !heroEnter &&
+                    "motion-safe:animate-in motion-safe:fade-in-0 fill-mode-both duration-300",
+                )}
+                style={!heroEnter ? { animationDelay: "40ms" } : undefined}
+              >
                 <p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
                   Now playing
                 </p>
@@ -613,21 +616,32 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
                   {artistLine(current.artists)}
                 </p>
               </div>
-              <dl className="text-muted-foreground grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <dt className="tracking-[0.12em] uppercase">BPM</dt>
-                  <dd className="text-foreground mt-0.5 font-mono text-sm">{current.bpm ?? "—"}</dd>
-                </div>
-                <div>
-                  <dt className="tracking-[0.12em] uppercase">Key</dt>
-                  <dd className="text-foreground mt-0.5 font-mono text-sm">
-                    {current.musicalKey ?? "—"}
-                  </dd>
-                </div>
-              </dl>
-              <Button asChild variant="outline" size="sm" className="w-fit">
-                <Link href={`/tracks/${current.id}`}>Track detail</Link>
-              </Button>
+              <div
+                className={cn(
+                  "flex flex-col gap-5",
+                  !heroEnter &&
+                    "motion-safe:animate-in motion-safe:fade-in-0 fill-mode-both duration-300",
+                )}
+                style={!heroEnter ? { animationDelay: "120ms" } : undefined}
+              >
+                <dl className="text-muted-foreground grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <dt className="tracking-[0.12em] uppercase">BPM</dt>
+                    <dd className="text-foreground mt-0.5 font-mono text-sm">
+                      {current.bpm ?? "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="tracking-[0.12em] uppercase">Key</dt>
+                    <dd className="text-foreground mt-0.5 font-mono text-sm">
+                      {current.musicalKey ?? "—"}
+                    </dd>
+                  </div>
+                </dl>
+                <Button asChild variant="outline" size="sm" className="w-fit">
+                  <Link href={`/tracks/${current.id}`}>Track detail</Link>
+                </Button>
+              </div>
             </div>
           </section>
         </div>
@@ -665,7 +679,7 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
             <ul
               key={current.id}
               className={cn(
-                "max-h-[min(70vh,40rem)] space-y-2 overflow-y-auto pe-1",
+                "relative max-h-[min(70vh,40rem)] space-y-2 overflow-y-auto pe-1",
                 "[mask-image:linear-gradient(to_bottom,transparent_0%,black_14px,black_calc(100%-32px),transparent_100%)]",
                 "pt-2 pb-6",
               )}
@@ -689,12 +703,7 @@ export function GraphExplorer({ trackId }: { trackId: string }) {
                       if (!expanded) void loadNeighborhood(neighbor.id).catch(() => null);
                     }}
                     onPrefetch={() => void loadNeighborhood(neighbor.id).catch(() => null)}
-                    onChoose={() =>
-                      void goToTrack(neighbor.id, cardRefs.current.get(rowKey), {
-                        title: neighbor.title,
-                        artists: neighbor.artists,
-                      })
-                    }
+                    onChoose={() => void goToTrack(neighbor.id, cardRefs.current.get(rowKey))}
                     fadingOut={swapping && choosingId !== neighbor.id}
                     choosing={choosingId === neighbor.id}
                   />

@@ -17,13 +17,17 @@ export function wait(ms: number): Promise<void> {
   });
 }
 
-function nextFrame(): Promise<void> {
+export function nextFrame(): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
   });
 }
 
 type Box = { left: number; top: number; width: number; height: number };
+
+function toBox(rect: DOMRectReadOnly): Box {
+  return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+}
 
 function placeAt(element: HTMLElement, box: Box): void {
   Object.assign(element.style, {
@@ -51,12 +55,11 @@ function cloneForOverlay(element: HTMLElement): HTMLElement {
 }
 
 /**
- * Keyframes that move an element sized at `to` so it *starts* looking like `from`.
+ * Keyframes that move an element laid out at `to` so it *starts* looking like `from`.
  *
- * Laying the element out at its destination and scaling down means the browser
- * rasterizes at final size (no blur on the way up) and only transform/opacity
- * animate, which stays on the compositor. Radii are pre-divided by the scale so
- * the corners read correctly while stretched.
+ * Sizing at the destination and scaling down keeps the animation on the
+ * compositor and rasterizes at final size, so scaling up never blurs. Radii are
+ * pre-divided by the scale so corners read correctly while stretched.
  */
 function flipFrames(from: Box, to: Box, fromRadius: number, toRadius: number): Keyframe[] {
   const scaleX = from.width / to.width;
@@ -73,67 +76,27 @@ function flipFrames(from: Box, to: Box, fromRadius: number, toRadius: number): K
   ];
 }
 
-export type MorphCardOptions = {
-  /** Row element the morph grows out of. */
-  sourceCard: HTMLElement;
-  /** Panel the row expands into. */
-  targetPanel: HTMLElement;
-  /** Thumbnail inside the row, morphed into `targetArt`'s slot. */
-  sourceArt?: HTMLElement | null;
-  /** Hero artwork slot; its geometry is the thumbnail's destination. */
-  targetArt?: HTMLElement | null;
-  /** Row text, carried a short distance and released rather than stretched. */
-  sourceText?: HTMLElement | null;
-  /** Hero text block; a ghost of it fades in at the destination mid-flight. */
-  targetText?: HTMLElement | null;
-  /** Rewrites the ghost with the incoming copy before it fades in. */
-  prepareTargetText?: (ghost: HTMLElement) => void;
-  duration?: number;
+export type ArtFlight = {
   /**
-   * Runs once the morph covers the panel, while the overlay is still opaque.
-   * Swap state here so the real panel renders underneath and the overlay can
-   * be dropped without any crossfade.
+   * Fly onto `target`'s current rect. Call *after* the destination has been
+   * committed and painted so the landing geometry is the real final layout —
+   * measuring a predicted destination is what causes end-of-animation snapping.
    */
-  onCover?: () => void | Promise<void>;
+  landOn(target: HTMLElement, duration?: number): Promise<void>;
+  destroy(): void;
 };
 
 /**
- * Expand a list row into a panel: the row's shell grows into the panel rect
- * while its thumbnail scales into the hero artwork slot. Geometry is read
- * before the caller mutates state, so measure-then-animate stays accurate.
+ * Lift a copy of `source` into a fixed overlay so it survives the DOM being
+ * swapped underneath it. The clone holds the source's position until `landOn`.
  */
-export async function morphCardIntoPanel(options: MorphCardOptions): Promise<void> {
-  const {
-    sourceCard,
-    targetPanel,
-    sourceArt,
-    targetArt,
-    sourceText,
-    targetText,
-    prepareTargetText,
-    duration = 440,
-    onCover,
-  } = options;
+export function beginArtFlight(source: HTMLElement | null | undefined): ArtFlight | null {
+  if (!source || typeof document === "undefined") return null;
+  if (typeof source.animate !== "function" || prefersReducedMotion()) return null;
 
-  const canAnimate =
-    typeof document !== "undefined" &&
-    typeof sourceCard.animate === "function" &&
-    !prefersReducedMotion();
-  if (!canAnimate) {
-    await onCover?.();
-    return;
-  }
-
-  const from = sourceCard.getBoundingClientRect();
-  const to = targetPanel.getBoundingClientRect();
-  if (!from.width || !to.width) {
-    await onCover?.();
-    return;
-  }
-
-  const easing = "cubic-bezier(0.2, 0, 0, 1)";
-  const timing: KeyframeAnimationOptions = { duration, easing, fill: "forwards" };
-  const animations: Animation[] = [];
+  const from = toBox(source.getBoundingClientRect());
+  if (!from.width || !from.height) return null;
+  const fromRadius = cornerRadius(source);
 
   const layer = document.createElement("div");
   layer.setAttribute("aria-hidden", "true");
@@ -142,94 +105,46 @@ export async function morphCardIntoPanel(options: MorphCardOptions): Promise<voi
     inset: "0",
     zIndex: "60",
     pointerEvents: "none",
-    contain: "strict",
   } satisfies Partial<CSSStyleDeclaration>);
 
-  // Borderless slab: a 1px border would visibly thicken under non-uniform scale.
-  const shell = document.createElement("div");
-  placeAt(shell, to);
-  Object.assign(shell.style, {
-    background: window.getComputedStyle(targetPanel).backgroundColor,
+  const clone = cloneForOverlay(source);
+  placeAt(clone, from);
+  Object.assign(clone.style, {
+    overflow: "hidden",
+    borderRadius: `${fromRadius}px`,
     willChange: "transform",
   } satisfies Partial<CSSStyleDeclaration>);
-  layer.appendChild(shell);
-  animations.push(shell.animate(flipFrames(from, to, 16, cornerRadius(targetPanel)), timing));
-
-  if (sourceText) {
-    const textFrom = sourceText.getBoundingClientRect();
-    const ghost = cloneForOverlay(sourceText);
-    placeAt(ghost, textFrom);
-    ghost.style.willChange = "transform, opacity";
-    layer.appendChild(ghost);
-    animations.push(
-      ghost.animate(
-        [
-          { opacity: 1, transform: "translate(0px, 0px)" },
-          { opacity: 0, transform: "translate(-10px, -6px)" },
-        ],
-        { duration: Math.round(duration * 0.4), easing: "ease-out", fill: "forwards" },
-      ),
-    );
-  }
-
-  if (sourceArt && targetArt) {
-    const artFrom = sourceArt.getBoundingClientRect();
-    const artTo = targetArt.getBoundingClientRect();
-    if (artFrom.width && artTo.width) {
-      const artClone = cloneForOverlay(sourceArt);
-      placeAt(artClone, artTo);
-      Object.assign(artClone.style, {
-        overflow: "hidden",
-        willChange: "transform",
-      } satisfies Partial<CSSStyleDeclaration>);
-      layer.appendChild(artClone);
-      animations.push(
-        artClone.animate(
-          flipFrames(artFrom, artTo, cornerRadius(sourceArt), cornerRadius(targetArt)),
-          timing,
-        ),
-      );
-    }
-  }
-
-  // Incoming copy rides the tail of the morph so the panel is never a blank
-  // slab waiting on the state swap.
-  if (targetText) {
-    const ghost = cloneForOverlay(targetText);
-    prepareTargetText?.(ghost);
-    placeAt(ghost, targetText.getBoundingClientRect());
-    Object.assign(ghost.style, {
-      height: "auto",
-      willChange: "transform, opacity",
-    } satisfies Partial<CSSStyleDeclaration>);
-    layer.appendChild(ghost);
-    animations.push(
-      ghost.animate(
-        [
-          { opacity: 0, transform: "translate(0px, 8px)" },
-          { opacity: 1, transform: "translate(0px, 0px)" },
-        ],
-        {
-          duration: Math.round(duration * 0.55),
-          delay: Math.round(duration * 0.45),
-          easing,
-          fill: "both",
-        },
-      ),
-    );
-  }
-
+  layer.appendChild(clone);
   document.body.appendChild(layer);
 
-  try {
-    await Promise.all(animations.map((animation) => animation.finished));
-    await onCover?.();
-    // Hold opaque until the swapped panel has actually painted underneath.
-    await nextFrame();
-  } catch {
-    // Interrupted (unmount, navigation) — still hand control back to the caller.
-    await onCover?.();
-  } finally {
-    layer.remove();
-  }
+  let destroyed = false;
+
+  return {
+    async landOn(target, duration = 420) {
+      if (destroyed) return;
+      const to = toBox(target.getBoundingClientRect());
+      if (!to.width || !to.height) return;
+
+      const frames = flipFrames(from, to, fromRadius, cornerRadius(target));
+      // Re-anchor to the destination and pre-apply the "from" transform in the
+      // same tick, so the clone never paints at the wrong place.
+      placeAt(clone, to);
+      clone.style.transform = String(frames[0].transform);
+      clone.style.borderRadius = String(frames[0].borderRadius);
+
+      try {
+        await clone.animate(frames, {
+          duration,
+          easing: "cubic-bezier(0.2, 0, 0, 1)",
+          fill: "forwards",
+        }).finished;
+      } catch {
+        // Interrupted — caller still reveals the real element.
+      }
+    },
+    destroy() {
+      destroyed = true;
+      layer.remove();
+    },
+  };
 }
