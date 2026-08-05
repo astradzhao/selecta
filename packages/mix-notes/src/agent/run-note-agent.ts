@@ -12,7 +12,7 @@ import {
 } from "./schema";
 import type { NoteAgentServices } from "./services";
 
-export const DEFAULT_NOTE_AGENT_MODEL = "openai/gpt-4.1-mini" as const;
+export const DEFAULT_NOTE_AGENT_MODEL = "anthropic/claude-haiku-4.5" as const;
 
 export type RunNoteAgentInput = {
   rawText: string;
