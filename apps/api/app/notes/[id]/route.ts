@@ -1,11 +1,11 @@
-import { after, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getNoteById, isNotesError, isPostgresConfigured, updateNote } from "@selecta/db";
 
-import { runNoteExtraction } from "@/lib/extraction";
 import { loadSerializedTrackLinks, serializeNote } from "@/lib/notes";
+import { startSubmissionWorkflow } from "@/lib/start-submission-workflow";
 
-/** Allow AI Gateway extraction to finish after the update response. */
-export const maxDuration = 60;
+/** Durable workflow continues after the update response. */
+export const maxDuration = 300;
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -124,14 +124,16 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   try {
     const { note, extractionQueued } = await updateNote(id, body);
+    let workflowRunId: string | undefined;
     if (extractionQueued) {
-      const version = note.extractionVersion;
-      after(() => {
-        void runNoteExtraction(note.id, version);
-      });
+      ({ workflowRunId } = await startSubmissionWorkflow(note.id, note.extractionVersion));
     }
     const trackLinks = await loadSerializedTrackLinks(note.id);
-    return NextResponse.json({ ok: true, note: serializeNote(note, trackLinks) });
+    return NextResponse.json({
+      ok: true,
+      note: serializeNote(note, trackLinks),
+      ...(workflowRunId ? { workflowRunId } : {}),
+    });
   } catch (error) {
     if (isNotesError(error)) {
       return NextResponse.json(

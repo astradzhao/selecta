@@ -57,11 +57,35 @@ export {
 } from "./agent/schema";
 
 export {
+  SingleTransitionDraftSchema,
+  ParseSingleTransitionReceiptSchema,
+  ParseSingleTransitionInputSchema,
+  draftToSingleUnresolvedPlan,
+  OrchestratorFinishSchema,
+  type SingleTransitionDraft,
+  type ParseSingleTransitionReceipt,
+  type ParseSingleTransitionInput,
+  type OrchestratorFinish,
+} from "./agent/single-transition-schema";
+
+export {
   NOTE_AGENT_NAME,
   NOTE_AGENT_PROMPT_VERSION,
   buildNoteAgentPrompt,
   buildNoteAgentUserPrompt,
 } from "./agent/prompt";
+
+export {
+  ORCHESTRATOR_AGENT_NAME,
+  ORCHESTRATOR_PROMPT_VERSION,
+  SINGLE_TRANSITION_PROMPT_VERSION,
+  DEFAULT_ORCHESTRATOR_MODEL,
+  DEFAULT_SINGLE_TRANSITION_MODEL,
+  buildOrchestratorPrompt,
+  buildOrchestratorUserPrompt,
+  buildSingleTransitionPrompt,
+  buildSingleTransitionUserPrompt,
+} from "./agent/orchestrator-prompt";
 
 export {
   TrackCandidateSchema,
@@ -73,7 +97,7 @@ export {
   type NoteAgentServices,
 } from "./agent/services";
 
-/** Reserved for future `@selecta/agentics` tool-loop agents; production path is one-shot. */
+/** Reserved for future `@selecta/agentics` tool-loop agents; production path is durable orchestration. */
 export { createNoteAgentTools } from "./agent/tools";
 export { CandidateRegistry, withCandidateRegistry } from "./agent/candidate-registry";
 export {
@@ -83,6 +107,13 @@ export {
   type PolicyGateCode,
   type EvaluatePolicyInput,
 } from "./agent/policy";
+export {
+  evaluateProposalPolicy,
+  proposalPolicyToPlanPolicy,
+  type ProposalPolicyDecision,
+  type ProposalPolicyResult,
+  type EvaluateProposalPolicyInput,
+} from "./agent/proposal-policy";
 export {
   validateNoteProcessingPlan,
   type ValidatePlanInput,
@@ -95,10 +126,34 @@ export {
   type ApplyPolicyResult,
 } from "./agent/apply-policy";
 export {
+  applyProposalPolicy,
+  type ApplyProposalPolicyInput,
+  type ApplyProposalPolicyResult,
+} from "./agent/apply-proposal-policy";
+export {
   resolveNoteMentions,
   type ResolveMentionsInput,
   type ResolveMentionsResult,
 } from "./agent/resolve-mentions";
+export {
+  resolveProposalsBatch,
+  type ProposalResolveItem,
+  type ResolveProposalsBatchInput,
+  type ResolveProposalsBatchResult,
+  type ResolvedProposalItem,
+} from "./agent/resolve-proposals-batch";
+export {
+  parseSingleTransitionDraft,
+  type ParseSingleTransitionDraftInput,
+  type ParseSingleTransitionDraftResult,
+} from "./agent/parse-single-transition";
+export { sourceFingerprint, spanProposalKey, legacyProposalKey } from "./agent/proposal-key";
+export {
+  SUBMISSION_LIMITS,
+  utf8ByteLength,
+  assertRawTextWithinLimit,
+  type SubmissionLimits,
+} from "./agent/limits";
 export {
   runNoteAgent,
   DEFAULT_NOTE_AGENT_MODEL,

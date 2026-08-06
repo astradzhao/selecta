@@ -2,6 +2,7 @@ import { and, desc, eq, max } from "drizzle-orm";
 
 import { getDb } from "./client";
 import { NotesError } from "./errors";
+import { supersedeProposalsForNote } from "./proposals";
 import {
   noteAgentRuns,
   notes,
@@ -17,6 +18,8 @@ import {
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
+/** UTF-8 byte cap for immutable submission intake (DJ-66). */
+export const MAX_SUBMISSION_RAW_BYTES = 64 * 1024;
 
 export type CreateNoteInput = {
   rawText: string;
@@ -39,7 +42,13 @@ export type CompleteExtractionInput = {
   extractionConfidence: number;
   extractionStatus: Extract<
     NoteExtractionStatus,
-    "no_proposal" | "needs_review" | "committed" | "commit_failed" | "resolving"
+    | "no_proposal"
+    | "needs_review"
+    | "committed"
+    | "partially_committed"
+    | "commit_failed"
+    | "resolving"
+    | "failed"
   >;
   /** Lifecycle status after a successful extract. */
   status: Extract<NoteStatus, "draft" | "preview" | "committed">;
@@ -56,6 +65,13 @@ function requireRawText(rawText: string): string {
   const trimmed = rawText.trim();
   if (!trimmed) {
     throw new NotesError("invalid_input", "rawText is required.");
+  }
+  const bytes = new TextEncoder().encode(trimmed).byteLength;
+  if (bytes > MAX_SUBMISSION_RAW_BYTES) {
+    throw new NotesError(
+      "invalid_input",
+      `Submission exceeds max raw size (${bytes} bytes > ${MAX_SUBMISSION_RAW_BYTES} bytes). Shorten the note and retry.`,
+    );
   }
   return trimmed;
 }
@@ -154,6 +170,7 @@ export async function updateNote(id: string, input: UpdateNoteInput): Promise<Up
   if (!row) {
     throw new NotesError("not_found", `Note "${noteId}" was not found.`);
   }
+  await supersedeProposalsForNote(noteId, row.extractionVersion);
   return { note: row, extractionQueued: true };
 }
 
@@ -260,6 +277,7 @@ export type StartAgentRunInput = {
   provider?: string | null;
   promptVersion?: string | null;
   promptHash?: string | null;
+  workflowRunId?: string | null;
 };
 
 export async function startAgentRun(input: StartAgentRunInput): Promise<NoteAgentRun> {
@@ -282,6 +300,7 @@ export async function startAgentRun(input: StartAgentRunInput): Promise<NoteAgen
       attempt: nextAttempt,
       agentName: input.agentName,
       status: "running",
+      workflowRunId: input.workflowRunId ?? null,
       model: input.model ?? null,
       provider: input.provider ?? null,
       promptVersion: input.promptVersion ?? null,
@@ -293,6 +312,18 @@ export async function startAgentRun(input: StartAgentRunInput): Promise<NoteAgen
     throw new NotesError("invalid_input", "Failed to start agent run.");
   }
   return row;
+}
+
+export async function attachWorkflowRunId(
+  runId: string,
+  workflowRunId: string,
+): Promise<NoteAgentRun | null> {
+  const [row] = await getDb()
+    .update(noteAgentRuns)
+    .set({ workflowRunId })
+    .where(eq(noteAgentRuns.id, runId))
+    .returning();
+  return row ?? null;
 }
 
 export type FinishAgentRunInput = {

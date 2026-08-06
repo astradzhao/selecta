@@ -4,7 +4,7 @@ import { requireTrimmed, runWrite } from "./shared";
 export type CommitTransitionInput = {
   fromTrackId: string;
   toTrackId: string;
-  /** Deterministic idempotency key: noteId:extractionVersion:transitionIndex */
+  /** Deterministic idempotency key: noteId:extractionVersion:span:fingerprint (or legacy index). */
   proposalKey: string;
   sourceNoteId: string;
   sourceNoteVersion: number;

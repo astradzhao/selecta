@@ -29,6 +29,13 @@
       "when": 1785820299453,
       "tag": "0003_blue_maggott",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785870000000,
+      "tag": "0004_note_proposals",
+      "breakpoints": true
     }
   ]
 }

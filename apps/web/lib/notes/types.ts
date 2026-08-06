@@ -9,6 +9,7 @@ export type NoteExtractionStatus =
   | "resolving"
   | "needs_review"
   | "committed"
+  | "partially_committed"
   | "commit_failed"
   | "failed";
 

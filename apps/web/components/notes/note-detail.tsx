@@ -34,11 +34,13 @@ function extractionStatusLabel(status: NoteExtractionStatus): string {
     case "no_proposal":
       return "No graph proposal";
     case "resolving":
-      return "Proposals ready (legacy)";
+      return "Resolving tracks…";
     case "needs_review":
       return "Needs review";
     case "committed":
       return "Auto-committed";
+    case "partially_committed":
+      return "Partially committed";
     case "commit_failed":
       return "Commit failed";
     case "failed":
@@ -52,15 +54,49 @@ function extractionStatusLabel(status: NoteExtractionStatus): string {
 function reviewReasonsFromNote(note: ApiNote): string[] {
   const extraction = note.extraction;
   if (!extraction || typeof extraction !== "object") return [];
-  const reasons = (extraction as { reviewReasons?: unknown }).reviewReasons;
-  if (!Array.isArray(reasons)) return [];
-  return reasons
-    .map((reason) => {
-      if (!reason || typeof reason !== "object") return null;
+  const record = extraction as {
+    reviewReasons?: unknown;
+    proposals?: unknown;
+    applySummary?: { needsReview?: unknown; failed?: unknown; committed?: unknown };
+  };
+  const reasons: string[] = [];
+  if (Array.isArray(record.reviewReasons)) {
+    for (const reason of record.reviewReasons) {
+      if (!reason || typeof reason !== "object") continue;
       const message = (reason as { message?: unknown }).message;
-      return typeof message === "string" ? message : null;
-    })
-    .filter((message): message is string => Boolean(message));
+      if (typeof message === "string") reasons.push(message);
+    }
+  }
+  if (Array.isArray(record.proposals)) {
+    for (const proposal of record.proposals) {
+      if (!proposal || typeof proposal !== "object") continue;
+      const status = (proposal as { status?: unknown }).status;
+      const error = (proposal as { error?: unknown }).error;
+      if (status === "needs_review" || status === "failed") {
+        if (typeof error === "string" && error) reasons.push(error);
+        const reviewReasons = (proposal as { reviewReasons?: unknown }).reviewReasons;
+        if (Array.isArray(reviewReasons)) {
+          for (const reason of reviewReasons) {
+            if (!reason || typeof reason !== "object") continue;
+            const message = (reason as { message?: unknown }).message;
+            if (typeof message === "string") reasons.push(message);
+          }
+        }
+      }
+    }
+  }
+  const summary = record.applySummary;
+  if (summary && typeof summary === "object") {
+    const committed = typeof summary.committed === "number" ? summary.committed : null;
+    const needsReview = typeof summary.needsReview === "number" ? summary.needsReview : null;
+    const failed = typeof summary.failed === "number" ? summary.failed : null;
+    if (committed != null && (needsReview || failed)) {
+      reasons.unshift(
+        `Partial result: ${committed} committed, ${needsReview ?? 0} need review, ${failed ?? 0} failed.`,
+      );
+    }
+  }
+  return [...new Set(reasons)];
 }
 
 export function NoteDetail({ noteId }: { noteId: string }) {
@@ -224,7 +260,9 @@ export function NoteDetail({ noteId }: { noteId: string }) {
             {note.extractionError}
           </p>
         ) : null}
-        {note.extractionStatus === "needs_review" || note.extractionStatus === "commit_failed"
+        {note.extractionStatus === "needs_review" ||
+        note.extractionStatus === "partially_committed" ||
+        note.extractionStatus === "commit_failed"
           ? reviewReasonsFromNote(note).map((reason) => (
               <p key={reason} className="text-muted-foreground text-sm">
                 {reason}
@@ -246,6 +284,7 @@ export function NoteDetail({ noteId }: { noteId: string }) {
         {note.extractionStatus === "failed" ||
         note.extractionStatus === "idle" ||
         note.extractionStatus === "needs_review" ||
+        note.extractionStatus === "partially_committed" ||
         note.extractionStatus === "commit_failed" ? (
           <Button
             type="button"

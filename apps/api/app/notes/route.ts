@@ -1,11 +1,11 @@
-import { after, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createNote, isNotesError, isPostgresConfigured, listNotes } from "@selecta/db";
 
-import { runNoteExtraction } from "@/lib/extraction";
 import { serializeNote } from "@/lib/notes";
+import { startSubmissionWorkflow } from "@/lib/start-submission-workflow";
 
-/** Allow AI Gateway extraction to finish after the create response. */
-export const maxDuration = 60;
+/** Durable workflow continues after the create response. */
+export const maxDuration = 300;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -67,7 +67,7 @@ export async function GET(request: Request) {
 }
 
 /**
- * Create a free-form note from raw text alone, then extract in the background.
+ * Create a free-form note from raw text alone, then extract via durable workflow.
  * POST /notes
  */
 export async function POST(request: Request) {
@@ -108,11 +108,11 @@ export async function POST(request: Request) {
 
   try {
     const note = await createNote(body);
-    const version = note.extractionVersion;
-    after(() => {
-      void runNoteExtraction(note.id, version);
-    });
-    return NextResponse.json({ ok: true, note: serializeNote(note, []) }, { status: 201 });
+    const { workflowRunId } = await startSubmissionWorkflow(note.id, note.extractionVersion);
+    return NextResponse.json(
+      { ok: true, note: serializeNote(note, []), workflowRunId },
+      { status: 201 },
+    );
   } catch (error) {
     if (isNotesError(error)) {
       return NextResponse.json(

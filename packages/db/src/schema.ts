@@ -17,8 +17,9 @@ import {
 export const noteStatusEnum = pgEnum("note_status", ["draft", "preview", "committed"]);
 
 /**
- * Async extraction / agent pipeline state (DJ-34).
+ * Async extraction / agent pipeline state (DJ-34 / DJ-66).
  * Independent of lifecycle `note_status`.
+ * `partially_committed` = some proposals committed while siblings need review/failed.
  */
 export const noteExtractionStatusEnum = pgEnum("note_extraction_status", [
   "idle",
@@ -27,6 +28,7 @@ export const noteExtractionStatusEnum = pgEnum("note_extraction_status", [
   "resolving",
   "needs_review",
   "committed",
+  "partially_committed",
   "commit_failed",
   "failed",
 ]);
@@ -43,6 +45,22 @@ export const noteTransitionCommitStatusEnum = pgEnum("note_transition_commit_sta
   "committed",
   "commit_failed",
   "rejected",
+]);
+
+/**
+ * Per-transition proposal lifecycle (DJ-66).
+ * Clear proposals may commit independently of siblings that need review.
+ */
+export const noteProposalStatusEnum = pgEnum("note_proposal_status", [
+  "queued",
+  "parsing",
+  "resolving",
+  "ready",
+  "needs_review",
+  "committed",
+  "failed",
+  "rejected",
+  "superseded",
 ]);
 
 /**
@@ -107,7 +125,7 @@ export const noteTrackLinks = pgTable(
   ],
 );
 
-/** One agent attempt for a note extraction version. */
+/** One agent / workflow attempt for a note extraction version. */
 export const noteAgentRuns = pgTable(
   "note_agent_runs",
   {
@@ -121,6 +139,8 @@ export const noteAgentRuns = pgTable(
     attempt: integer("attempt").notNull().default(1),
     agentName: text("agent_name").notNull(),
     status: noteAgentRunStatusEnum("status").notNull().default("running"),
+    /** Durable Workflow DevKit run id when launched via `start()`. */
+    workflowRunId: text("workflow_run_id"),
     model: text("model"),
     provider: text("provider"),
     promptVersion: text("prompt_version"),
@@ -145,6 +165,58 @@ export const noteAgentRuns = pgTable(
       table.noteId,
       table.extractionVersion,
       table.attempt,
+    ),
+  ],
+);
+
+/**
+ * First-class per-transition proposal (DJ-66).
+ * Idempotency key = submissionId:version:span:sourceFingerprint.
+ */
+export const noteProposals = pgTable(
+  "note_proposals",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    noteId: text("note_id")
+      .notNull()
+      .references(() => notes.id, { onDelete: "cascade" }),
+    extractionVersion: integer("extraction_version").notNull(),
+    workflowRunId: text("workflow_run_id"),
+    agentRunId: text("agent_run_id").references(() => noteAgentRuns.id, { onDelete: "set null" }),
+    /** Display ordinal from orchestrator (not stable across resegmentation). */
+    ordinal: integer("ordinal").notNull().default(0),
+    sourceStart: integer("source_start").notNull(),
+    sourceEnd: integer("source_end").notNull(),
+    sourceText: text("source_text").notNull(),
+    sourceFingerprint: text("source_fingerprint").notNull(),
+    /** Stable idempotency key: `{noteId}:{version}:span:{fingerprint}`. */
+    proposalKey: text("proposal_key").notNull(),
+    status: noteProposalStatusEnum("status").notNull().default("queued"),
+    draft: jsonb("draft").$type<Record<string, unknown>>(),
+    resolution: jsonb("resolution").$type<Record<string, unknown>>(),
+    policyResult: jsonb("policy_result").$type<Record<string, unknown>>(),
+    reviewReasons: jsonb("review_reasons").$type<Array<Record<string, unknown>>>(),
+    model: text("model"),
+    promptVersion: text("prompt_version"),
+    usage: jsonb("usage").$type<Record<string, unknown>>(),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    /** Neo4j TRANSITION.proposalKey after successful commit (same as proposalKey). */
+    transitionId: text("transition_id"),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("note_proposals_proposal_key_uidx").on(table.proposalKey),
+    uniqueIndex("note_proposals_note_version_fingerprint_uidx").on(
+      table.noteId,
+      table.extractionVersion,
+      table.sourceFingerprint,
     ),
   ],
 );
@@ -179,6 +251,7 @@ export const noteTransitionCommits = pgTable(
 export const notesRelations = relations(notes, ({ many }) => ({
   trackLinks: many(noteTrackLinks),
   agentRuns: many(noteAgentRuns),
+  proposals: many(noteProposals),
   transitionCommits: many(noteTransitionCommits),
 }));
 
@@ -189,10 +262,22 @@ export const noteTrackLinksRelations = relations(noteTrackLinks, ({ one }) => ({
   }),
 }));
 
-export const noteAgentRunsRelations = relations(noteAgentRuns, ({ one }) => ({
+export const noteAgentRunsRelations = relations(noteAgentRuns, ({ one, many }) => ({
   note: one(notes, {
     fields: [noteAgentRuns.noteId],
     references: [notes.id],
+  }),
+  proposals: many(noteProposals),
+}));
+
+export const noteProposalsRelations = relations(noteProposals, ({ one }) => ({
+  note: one(notes, {
+    fields: [noteProposals.noteId],
+    references: [notes.id],
+  }),
+  agentRun: one(noteAgentRuns, {
+    fields: [noteProposals.agentRunId],
+    references: [noteAgentRuns.id],
   }),
 }));
 
@@ -212,6 +297,9 @@ export type NewNoteTrackLink = typeof noteTrackLinks.$inferInsert;
 export type NoteAgentRun = typeof noteAgentRuns.$inferSelect;
 export type NewNoteAgentRun = typeof noteAgentRuns.$inferInsert;
 export type NoteAgentRunStatus = (typeof noteAgentRunStatusEnum.enumValues)[number];
+export type NoteProposal = typeof noteProposals.$inferSelect;
+export type NewNoteProposal = typeof noteProposals.$inferInsert;
+export type NoteProposalStatus = (typeof noteProposalStatusEnum.enumValues)[number];
 export type NoteTransitionCommit = typeof noteTransitionCommits.$inferSelect;
 export type NewNoteTransitionCommit = typeof noteTransitionCommits.$inferInsert;
 export type NoteTransitionCommitStatus = (typeof noteTransitionCommitStatusEnum.enumValues)[number];

@@ -1,11 +1,11 @@
-import { after, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { isNotesError, isPostgresConfigured, requeueExtraction } from "@selecta/db";
 
-import { runNoteExtraction } from "@/lib/extraction";
 import { loadSerializedTrackLinks, serializeNote } from "@/lib/notes";
+import { startSubmissionWorkflow } from "@/lib/start-submission-workflow";
 
-/** Allow AI Gateway extraction to finish after the retry response. */
-export const maxDuration = 60;
+/** Durable workflow continues after the retry response. */
+export const maxDuration = 300;
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -37,12 +37,13 @@ export async function POST(_request: Request, context: RouteContext) {
 
   try {
     const note = await requeueExtraction(id);
-    const version = note.extractionVersion;
-    after(() => {
-      void runNoteExtraction(note.id, version);
-    });
+    const { workflowRunId } = await startSubmissionWorkflow(note.id, note.extractionVersion);
     const trackLinks = await loadSerializedTrackLinks(note.id);
-    return NextResponse.json({ ok: true, note: serializeNote(note, trackLinks) });
+    return NextResponse.json({
+      ok: true,
+      note: serializeNote(note, trackLinks),
+      workflowRunId,
+    });
   } catch (error) {
     if (isNotesError(error)) {
       return NextResponse.json(

@@ -21,7 +21,7 @@ export const SearchQueriesInputSchema = z.object({
       }),
     )
     .min(1)
-    .max(4),
+    .max(16),
 });
 export type SearchQueriesInput = z.infer<typeof SearchQueriesInputSchema>;
 
