@@ -20,9 +20,12 @@ export const GRAPH_SCHEMA_STATEMENTS = [
   // Indexes — Track lookup
   "CREATE INDEX track_title IF NOT EXISTS FOR (n:Track) ON (n.title)",
   "CREATE INDEX track_bpm IF NOT EXISTS FOR (n:Track) ON (n.bpm)",
-  // Indexes — TRANSITION filters (Live Mode)
+  // Uniqueness — TRANSITION edge identity (DJ-73)
+  "CREATE CONSTRAINT transition_id IF NOT EXISTS FOR ()-[r:TRANSITION]-() REQUIRE r.id IS UNIQUE",
+  // Indexes — TRANSITION filters (Live Mode) + AI idempotency lookup
   "CREATE INDEX transition_intent IF NOT EXISTS FOR ()-[r:TRANSITION]-() ON (r.intent)",
   "CREATE INDEX transition_technique IF NOT EXISTS FOR ()-[r:TRANSITION]-() ON (r.technique)",
+  "CREATE INDEX transition_proposal_key IF NOT EXISTS FOR ()-[r:TRANSITION]-() ON (r.proposalKey)",
 ] as const;
 
 export type EnsureConstraintsResult = {

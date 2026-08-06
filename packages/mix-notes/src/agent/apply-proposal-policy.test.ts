@@ -50,7 +50,7 @@ const plan: NoteProcessingPlan = {
 
 describe("applyProposalPolicy", () => {
   it("commits with fingerprint proposal keys independently", async () => {
-    const commits: string[] = [];
+    const commits: Array<{ proposalKey: string; sourceProposalId?: string | null }> = [];
     const services: NoteAgentServices = {
       searchLibraryTracks: async () => ({ results: [] }),
       searchSpotifyTracks: async () => ({ results: [] }),
@@ -59,8 +59,11 @@ describe("applyProposalPolicy", () => {
         throw new Error("should not import");
       },
       commitTransition: async (input) => {
-        commits.push(input.proposalKey);
-        return { proposalKey: input.proposalKey, created: true };
+        commits.push({
+          proposalKey: input.proposalKey,
+          sourceProposalId: input.sourceProposalId,
+        });
+        return { id: "edge-1", proposalKey: input.proposalKey, created: true };
       },
     };
 
@@ -87,10 +90,12 @@ describe("applyProposalPolicy", () => {
       noteId: "note-1",
       extractionVersion: 2,
       proposalKey: key,
+      sourceProposalId: "proposal-99",
     });
 
     assert.equal(result.committed, true);
-    assert.deepEqual(commits, [key]);
+    assert.equal(result.transitionId, "edge-1");
+    assert.deepEqual(commits, [{ proposalKey: key, sourceProposalId: "proposal-99" }]);
   });
 
   it("commits both directions when bidirectional is true", async () => {
@@ -104,7 +109,7 @@ describe("applyProposalPolicy", () => {
       },
       commitTransition: async (input) => {
         commits.push(`${input.proposalKey}:${input.fromTrackId}->${input.toTrackId}`);
-        return { proposalKey: input.proposalKey, created: true };
+        return { id: `edge-${commits.length}`, proposalKey: input.proposalKey, created: true };
       },
     };
 
@@ -146,7 +151,7 @@ describe("applyProposalPolicy", () => {
       importSpotifyTrack: async () => ({ trackId: "x", created: true }),
       commitTransition: async () => {
         commitCalls += 1;
-        return { proposalKey: "x", created: true };
+        return { id: "x", proposalKey: "x", created: true };
       },
     };
 

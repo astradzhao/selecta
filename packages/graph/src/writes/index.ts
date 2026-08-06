@@ -11,3 +11,15 @@ export {
   type CommitTransitionInput,
   type CommitTransitionResult,
 } from "./transition-writes";
+export {
+  createTransition,
+  getTransitionById,
+  listTransitions,
+  updateTransitionById,
+  deleteTransitionById,
+  type CreateTransitionInput,
+  type UpdateTransitionInput,
+  type ListTransitionsInput,
+  type TransitionRecord,
+  type TransitionEndpointSummary,
+} from "./transition-crud";

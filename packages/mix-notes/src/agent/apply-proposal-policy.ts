@@ -11,6 +11,8 @@ export type ApplyProposalPolicyInput = {
   extractionVersion: number;
   /** Fingerprint-based key: `{noteId}:{version}:span:{fingerprint}`. */
   proposalKey: string;
+  /** Postgres note_proposals.id for Neo4j provenance. */
+  sourceProposalId?: string | null;
 };
 
 export type ApplyProposalPolicyResult = {
@@ -21,6 +23,8 @@ export type ApplyProposalPolicyResult = {
   commitError: string | null;
   fromTrackId: string | null;
   toTrackId: string | null;
+  transitionId: string | null;
+  reverseTransitionId: string | null;
   resolvedTrackIdsByMention: Record<string, string>;
 };
 
@@ -31,7 +35,8 @@ export type ApplyProposalPolicyResult = {
 export async function applyProposalPolicy(
   input: ApplyProposalPolicyInput,
 ): Promise<ApplyProposalPolicyResult> {
-  const { plan, policy, services, noteId, extractionVersion, proposalKey } = input;
+  const { plan, policy, services, noteId, extractionVersion, proposalKey, sourceProposalId } =
+    input;
   const resolved = { ...policy.resolvedTrackIdsByMention };
   const importedTrackIds: string[] = [];
 
@@ -44,6 +49,8 @@ export async function applyProposalPolicy(
       commitError: null,
       fromTrackId: null,
       toTrackId: null,
+      transitionId: null,
+      reverseTransitionId: null,
       resolvedTrackIdsByMention: resolved,
     };
   }
@@ -57,6 +64,8 @@ export async function applyProposalPolicy(
       commitError: null,
       fromTrackId: null,
       toTrackId: null,
+      transitionId: null,
+      reverseTransitionId: null,
       resolvedTrackIdsByMention: resolved,
     };
   }
@@ -94,6 +103,8 @@ export async function applyProposalPolicy(
       commitError: "Missing resolved endpoints after import.",
       fromTrackId,
       toTrackId,
+      transitionId: null,
+      reverseTransitionId: null,
       resolvedTrackIdsByMention: resolved,
     };
   }
@@ -101,6 +112,7 @@ export async function applyProposalPolicy(
   const shared = {
     sourceNoteId: noteId,
     sourceNoteVersion: extractionVersion,
+    sourceProposalId: sourceProposalId ?? null,
     confidence: confidenceToUnitInterval(plan.confidence),
     fromBar: policy.commit.transition.fromBar ?? null,
     toBar: policy.commit.transition.toBar ?? null,
@@ -112,19 +124,21 @@ export async function applyProposalPolicy(
   };
 
   try {
-    await services.commitTransition({
+    const forward = await services.commitTransition({
       fromTrackId,
       toTrackId,
       proposalKey,
       ...shared,
     });
+    let reverseTransitionId: string | null = null;
     if (plan.bidirectional) {
-      await services.commitTransition({
+      const reverse = await services.commitTransition({
         fromTrackId: toTrackId,
         toTrackId: fromTrackId,
         proposalKey: `${proposalKey}:rev`,
         ...shared,
       });
+      reverseTransitionId = reverse.id;
     }
     return {
       decision: "auto_commit",
@@ -134,6 +148,8 @@ export async function applyProposalPolicy(
       commitError: null,
       fromTrackId,
       toTrackId,
+      transitionId: forward.id,
+      reverseTransitionId,
       resolvedTrackIdsByMention: resolved,
     };
   } catch (error) {
@@ -146,6 +162,8 @@ export async function applyProposalPolicy(
       commitError: message,
       fromTrackId,
       toTrackId,
+      transitionId: null,
+      reverseTransitionId: null,
       resolvedTrackIdsByMention: resolved,
     };
   }

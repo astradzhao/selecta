@@ -66,11 +66,13 @@ export type CreateTrackBody = {
   energy?: number | null;
 };
 
-/** Transition edge fields on neighborhood neighbors (DJ-40). */
+/** Transition edge fields on neighborhood neighbors (DJ-40 / DJ-73). */
 export type ApiTransitionEdge = {
+  id: string | null;
   proposalKey: string | null;
   sourceNoteId: string | null;
   sourceNoteVersion: number | null;
+  sourceProposalId: string | null;
   confidence: number | null;
   fromBar: number | null;
   toBar: number | null;

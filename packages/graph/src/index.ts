@@ -37,8 +37,18 @@ export { mergeArtist, mergeGenre, mergeSubgenre, mergeFolder, createTrack } from
 export {
   commitTransitionProposal,
   commitTransitionProposals,
+  createTransition,
+  getTransitionById,
+  listTransitions,
+  updateTransitionById,
+  deleteTransitionById,
   type CommitTransitionInput,
   type CommitTransitionResult,
+  type CreateTransitionInput,
+  type UpdateTransitionInput,
+  type ListTransitionsInput,
+  type TransitionRecord,
+  type TransitionEndpointSummary,
 } from "./writes";
 
 export {

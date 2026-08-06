@@ -251,7 +251,8 @@ Every transition edge needs a stable `id` independent of endpoint pair:
 (:Track)-[:TRANSITION {
   id,
   proposalKey?,
-  sourceSubmissionId?,
+  sourceNoteId?,
+  sourceNoteVersion?,
   sourceProposalId?,
   fromBar?,
   toBar?,
@@ -269,8 +270,8 @@ Rules:
 
 - `(fromTrackId, toTrackId)` is not unique.
 - technique/intent is not identity.
-- AI-created edges retain an idempotency/proposal key.
-- manual edges use the same stable edge ID and domain fields without requiring submission provenance.
+- AI-created edges retain an idempotency/proposal key and note provenance (`sourceNoteId`, `sourceProposalId`).
+- manual edges use the same stable edge ID and domain fields without requiring note provenance.
 - update/delete APIs address one edge by ID.
 - deleting one parallel edge must not affect siblings.
 
