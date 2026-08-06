@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useId, useState, useTransition } from "react";
 
 import { Button } from "@selecta/ui/components/button";
 import { Label } from "@selecta/ui/components/label";
 import { Textarea } from "@selecta/ui/components/textarea";
+import { cn } from "@selecta/ui/lib/utils";
 
 import { NoteTrackLinks } from "@/components/notes/note-track-links";
 import { ApiClientError } from "@/lib/api/client";
@@ -72,9 +73,12 @@ type ExtractionProposalSummary = {
   transition: {
     fromMentionId?: string;
     toMentionId?: string;
-    technique?: string | null;
     fromBar?: number | null;
     toBar?: number | null;
+    barsOverlap?: number | null;
+    technique?: string | null;
+    intent?: string | null;
+    quality?: string | null;
     notes?: string | null;
   } | null;
   decision: string | null;
@@ -130,10 +134,28 @@ function proposalsFromNote(note: ApiNote): ExtractionProposalSummary[] {
           ];
         })
       : null;
-    const transition =
+    const transitionRaw =
       p.transition && typeof p.transition === "object"
-        ? (p.transition as ExtractionProposalSummary["transition"])
+        ? (p.transition as Record<string, unknown>)
         : null;
+    const transition: ExtractionProposalSummary["transition"] = transitionRaw
+      ? {
+          fromMentionId:
+            typeof transitionRaw.fromMentionId === "string"
+              ? transitionRaw.fromMentionId
+              : undefined,
+          toMentionId:
+            typeof transitionRaw.toMentionId === "string" ? transitionRaw.toMentionId : undefined,
+          fromBar: typeof transitionRaw.fromBar === "number" ? transitionRaw.fromBar : null,
+          toBar: typeof transitionRaw.toBar === "number" ? transitionRaw.toBar : null,
+          barsOverlap:
+            typeof transitionRaw.barsOverlap === "number" ? transitionRaw.barsOverlap : null,
+          technique: typeof transitionRaw.technique === "string" ? transitionRaw.technique : null,
+          intent: typeof transitionRaw.intent === "string" ? transitionRaw.intent : null,
+          quality: typeof transitionRaw.quality === "string" ? transitionRaw.quality : null,
+          notes: typeof transitionRaw.notes === "string" ? transitionRaw.notes : null,
+        }
+      : null;
     const ambiguities = Array.isArray(p.ambiguities)
       ? p.ambiguities.filter((item): item is string => typeof item === "string")
       : [];
@@ -213,6 +235,177 @@ function emptyMention(): ExtractionProposalSummary["mentions"][number] {
   };
 }
 
+function transitionMetadataParts(
+  transition: NonNullable<ExtractionProposalSummary["transition"]>,
+): string[] {
+  const parts: string[] = [];
+  if (transition.fromBar != null || transition.toBar != null) {
+    parts.push(`bars ${transition.fromBar ?? "—"} → ${transition.toBar ?? "—"}`);
+  }
+  if (transition.barsOverlap != null) {
+    parts.push(`overlap ${transition.barsOverlap}`);
+  }
+  if (transition.technique?.trim()) {
+    parts.push(`technique ${transition.technique.trim()}`);
+  }
+  if (transition.intent?.trim()) {
+    parts.push(`intent ${transition.intent.trim()}`);
+  }
+  if (transition.quality?.trim()) {
+    parts.push(`quality ${transition.quality.trim()}`);
+  }
+  return parts;
+}
+
+function ProposalCard({ proposal, index }: { proposal: ExtractionProposalSummary; index: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const panelId = useId();
+
+  const fromMention =
+    proposal.mentions.find((m) => m.mentionId === proposal.transition?.fromMentionId) ??
+    emptyMention();
+  const toMention =
+    proposal.mentions.find((m) => m.mentionId === proposal.transition?.toMentionId) ??
+    emptyMention();
+  const edgeLabel = proposal.transition
+    ? `${mentionLabel(fromMention)} → ${mentionLabel(toMention)}`
+    : null;
+  const title = proposal.sourceText?.trim() || edgeLabel || `Proposal ${index + 1}`;
+  const metadataParts = proposal.transition ? transitionMetadataParts(proposal.transition) : [];
+  const transitionNotes = proposal.transition?.notes?.trim() || null;
+  const hasIssues = Boolean(
+    proposal.reviewReasons?.length ||
+    proposal.error ||
+    proposal.commitError ||
+    proposal.ambiguities.length > 0,
+  );
+
+  return (
+    <li className="border-border bg-background overflow-hidden rounded-md border">
+      <button
+        type="button"
+        aria-expanded={expanded}
+        aria-controls={panelId}
+        onClick={() => setExpanded((value) => !value)}
+        className="hover:bg-muted/40 flex w-full items-start gap-2 px-3 py-2.5 text-left transition-colors"
+      >
+        <span
+          className={cn(
+            "text-muted-foreground mt-0.5 shrink-0 text-xs transition-transform duration-300",
+            expanded && "rotate-90",
+          )}
+          aria-hidden
+        >
+          ▸
+        </span>
+        <span className="min-w-0 flex-1 space-y-0.5">
+          <span className="text-muted-foreground flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
+            <span className="text-foreground font-medium">
+              #{index + 1} · {proposalStatusLabel(proposal.status)}
+              {proposal.bidirectional ? " · bidirectional" : null}
+            </span>
+            {proposal.confidence ? <span>confidence {proposal.confidence}</span> : null}
+            {proposal.decision ? <span>decision {proposal.decision}</span> : null}
+          </span>
+          <span className="block text-sm leading-snug text-pretty">{title}</span>
+        </span>
+      </button>
+
+      <div
+        id={panelId}
+        inert={!expanded}
+        className={cn(
+          "grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+          expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
+      >
+        <div className="overflow-hidden">
+          <div
+            className={cn(
+              "border-border space-y-2 border-t px-3 py-2.5 pl-7 transition-opacity duration-300",
+              expanded ? "opacity-100" : "opacity-0",
+            )}
+          >
+            {edgeLabel && edgeLabel !== title ? <p className="text-sm">{edgeLabel}</p> : null}
+
+            {metadataParts.length > 0 ? (
+              <p className="text-muted-foreground text-xs">{metadataParts.join(" · ")}</p>
+            ) : null}
+            {transitionNotes ? (
+              <p className="text-muted-foreground text-xs">notes: {transitionNotes}</p>
+            ) : null}
+
+            {proposal.fromTrackId || proposal.toTrackId ? (
+              <p className="text-muted-foreground font-mono text-xs">
+                tracks {proposal.fromTrackId ?? "?"} → {proposal.toTrackId ?? "?"}
+                {proposal.bidirectional ? " (+ reverse)" : null}
+              </p>
+            ) : null}
+
+            {proposal.mentions.length > 0 ? (
+              <ul className="text-muted-foreground space-y-0.5 text-xs">
+                {proposal.mentions.map((mention) => (
+                  <li key={`${proposal.id}-${mention.mentionId ?? mention.mention}`}>
+                    {mention.mentionId ?? "?"}: {mentionLabel(mention)}
+                    {mention.resolutionStatus ? ` · ${mention.resolutionStatus}` : null}
+                    {mention.selectedCandidateId ? ` · ${mention.selectedCandidateId}` : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            {hasIssues ? (
+              <ul className="space-y-1 text-xs">
+                {proposal.reviewReasons?.map((reason, reasonIndex) =>
+                  reason.message ? (
+                    <li
+                      key={`${proposal.id}-reason-${reasonIndex}`}
+                      className="text-amber-700 dark:text-amber-400"
+                    >
+                      {reason.code ? `${reason.code}: ` : null}
+                      {reason.message}
+                    </li>
+                  ) : null,
+                )}
+                {proposal.error ? (
+                  <li className="text-red-700 dark:text-red-400" role="alert">
+                    {proposal.error}
+                  </li>
+                ) : null}
+                {proposal.commitError ? (
+                  <li className="text-red-700 dark:text-red-400" role="alert">
+                    commit: {proposal.commitError}
+                  </li>
+                ) : null}
+                {proposal.ambiguities.map((ambiguity) => (
+                  <li key={`${proposal.id}-amb-${ambiguity}`} className="text-muted-foreground">
+                    note: {ambiguity}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            {(proposal.model || proposal.promptVersion || proposal.attemptCount != null) && (
+              <p className="text-muted-foreground text-[11px]">
+                {[
+                  proposal.promptVersion ? `prompt ${proposal.promptVersion}` : null,
+                  proposal.model,
+                  proposal.attemptCount != null ? `parse attempts ${proposal.attemptCount}` : null,
+                  proposal.sourceStart != null && proposal.sourceEnd != null
+                    ? `chars ${proposal.sourceStart}–${proposal.sourceEnd}`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </li>
+  );
+}
+
 function ExtractionDebug({ note }: { note: ApiNote }) {
   const proposals = proposalsFromNote(note);
   const summary = applySummaryFromNote(note);
@@ -247,121 +440,10 @@ function ExtractionDebug({ note }: { note: ApiNote }) {
           <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
             Proposals ({proposals.length})
           </p>
-          <ul className="space-y-3">
-            {proposals.map((proposal, index) => {
-              const fromMention =
-                proposal.mentions.find((m) => m.mentionId === proposal.transition?.fromMentionId) ??
-                emptyMention();
-              const toMention =
-                proposal.mentions.find((m) => m.mentionId === proposal.transition?.toMentionId) ??
-                emptyMention();
-              const edgeLabel = proposal.transition
-                ? `${mentionLabel(fromMention)} → ${mentionLabel(toMention)}`
-                : null;
-
-              return (
-                <li
-                  key={proposal.id}
-                  className="border-border bg-background space-y-2 rounded-md border px-3 py-2"
-                >
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="text-sm font-medium">
-                      #{index + 1} · {proposalStatusLabel(proposal.status)}
-                      {proposal.bidirectional ? " · bidirectional" : null}
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      {[
-                        proposal.confidence ? `confidence ${proposal.confidence}` : null,
-                        proposal.decision ? `decision ${proposal.decision}` : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  </div>
-
-                  {proposal.sourceText ? (
-                    <pre className="bg-muted/50 overflow-x-auto rounded px-2 py-1.5 font-mono text-xs whitespace-pre-wrap">
-                      {proposal.sourceText}
-                    </pre>
-                  ) : null}
-
-                  {edgeLabel ? <p className="text-sm">{edgeLabel}</p> : null}
-
-                  {proposal.fromTrackId || proposal.toTrackId ? (
-                    <p className="text-muted-foreground font-mono text-xs">
-                      tracks {proposal.fromTrackId ?? "?"} → {proposal.toTrackId ?? "?"}
-                      {proposal.bidirectional ? " (+ reverse)" : null}
-                    </p>
-                  ) : null}
-
-                  {proposal.mentions.length > 0 ? (
-                    <ul className="text-muted-foreground space-y-0.5 text-xs">
-                      {proposal.mentions.map((mention) => (
-                        <li key={`${proposal.id}-${mention.mentionId ?? mention.mention}`}>
-                          {mention.mentionId ?? "?"}: {mentionLabel(mention)}
-                          {mention.resolutionStatus ? ` · ${mention.resolutionStatus}` : null}
-                          {mention.selectedCandidateId ? ` · ${mention.selectedCandidateId}` : null}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-
-                  {(proposal.reviewReasons?.length ||
-                    proposal.error ||
-                    proposal.commitError ||
-                    proposal.ambiguities.length > 0) && (
-                    <ul className="space-y-1 text-xs">
-                      {proposal.reviewReasons?.map((reason, reasonIndex) =>
-                        reason.message ? (
-                          <li
-                            key={`${proposal.id}-reason-${reasonIndex}`}
-                            className="text-amber-700 dark:text-amber-400"
-                          >
-                            {reason.code ? `${reason.code}: ` : null}
-                            {reason.message}
-                          </li>
-                        ) : null,
-                      )}
-                      {proposal.error ? (
-                        <li className="text-red-700 dark:text-red-400" role="alert">
-                          {proposal.error}
-                        </li>
-                      ) : null}
-                      {proposal.commitError ? (
-                        <li className="text-red-700 dark:text-red-400" role="alert">
-                          commit: {proposal.commitError}
-                        </li>
-                      ) : null}
-                      {proposal.ambiguities.map((ambiguity) => (
-                        <li
-                          key={`${proposal.id}-amb-${ambiguity}`}
-                          className="text-muted-foreground"
-                        >
-                          note: {ambiguity}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  {(proposal.model || proposal.promptVersion || proposal.attemptCount != null) && (
-                    <p className="text-muted-foreground text-[11px]">
-                      {[
-                        proposal.promptVersion ? `prompt ${proposal.promptVersion}` : null,
-                        proposal.model,
-                        proposal.attemptCount != null
-                          ? `parse attempts ${proposal.attemptCount}`
-                          : null,
-                        proposal.sourceStart != null && proposal.sourceEnd != null
-                          ? `chars ${proposal.sourceStart}–${proposal.sourceEnd}`
-                          : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  )}
-                </li>
-              );
-            })}
+          <ul className="space-y-2">
+            {proposals.map((proposal, index) => (
+              <ProposalCard key={proposal.id} proposal={proposal} index={index} />
+            ))}
           </ul>
         </div>
       ) : null}
@@ -517,28 +599,6 @@ export function NoteDetail({ noteId }: { noteId: string }) {
         </p>
       </header>
 
-      <ExtractionDebug note={note} />
-      {retryError ? (
-        <p className="text-sm" role="alert">
-          {retryError}
-        </p>
-      ) : null}
-      {note.extractionStatus === "failed" ||
-      note.extractionStatus === "idle" ||
-      note.extractionStatus === "needs_review" ||
-      note.extractionStatus === "partially_committed" ||
-      note.extractionStatus === "commit_failed" ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={retrying}
-          onClick={onRetryExtraction}
-        >
-          {retrying ? "Retrying…" : "Retry processing"}
-        </Button>
-      ) : null}
-
       <form onSubmit={onSubmit} className="space-y-6">
         <div className="space-y-2">
           <Label htmlFor="note-edit-raw-text">Note</Label>
@@ -576,6 +636,30 @@ export function NoteDetail({ noteId }: { noteId: string }) {
           </Button>
         </div>
       </form>
+
+      <div className="space-y-3">
+        <ExtractionDebug note={note} />
+        {retryError ? (
+          <p className="text-sm" role="alert">
+            {retryError}
+          </p>
+        ) : null}
+        {note.extractionStatus === "failed" ||
+        note.extractionStatus === "idle" ||
+        note.extractionStatus === "needs_review" ||
+        note.extractionStatus === "partially_committed" ||
+        note.extractionStatus === "commit_failed" ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={retrying}
+            onClick={onRetryExtraction}
+          >
+            {retrying ? "Retrying…" : "Retry processing"}
+          </Button>
+        ) : null}
+      </div>
 
       <NoteTrackLinks
         noteId={note.id}

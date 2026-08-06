@@ -604,9 +604,12 @@ function summarizeProposal(proposal: NoteProposal): Record<string, unknown> {
     transition?: {
       fromMentionId?: string;
       toMentionId?: string;
-      technique?: string | null;
       fromBar?: number | null;
       toBar?: number | null;
+      barsOverlap?: number | null;
+      technique?: string | null;
+      intent?: string | null;
+      quality?: string | null;
       notes?: string | null;
     };
   } | null;
@@ -636,9 +639,12 @@ function summarizeProposal(proposal: NoteProposal): Record<string, unknown> {
       transitions?: Array<{
         fromMentionId?: string;
         toMentionId?: string;
-        technique?: string | null;
         fromBar?: number | null;
         toBar?: number | null;
+        barsOverlap?: number | null;
+        technique?: string | null;
+        intent?: string | null;
+        quality?: string | null;
         notes?: string | null;
       }>;
     };
