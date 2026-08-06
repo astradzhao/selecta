@@ -25,6 +25,7 @@ import {
   type ApiNeighborhoodNeighbor,
   type ApiTransitionEdge,
 } from "@/lib/tracks/api";
+import { hopGraphSession, popGraphTrail, useGraphSession } from "@/lib/tracks/graph-session-store";
 
 /** Copy/meta opacity during a hop — opacity only, never translate/scale (those snap). */
 type CopyPhase = "visible" | "out" | "hidden" | "in";
@@ -80,6 +81,7 @@ function Artwork({
   className,
   artRole,
   sizes,
+  priority = false,
 }: {
   url: string | null;
   size: number;
@@ -87,18 +89,26 @@ function Artwork({
   /** Morph anchor: the card thumbnail expands into the hero slot. */
   artRole?: "card" | "hero";
   sizes?: string;
+  priority?: boolean;
 }) {
   return (
     <div
       data-art-role={artRole}
       className={cn(
-        "bg-muted relative shrink-0 overflow-hidden rounded-2xl transition-transform duration-300",
+        "bg-muted relative shrink-0 overflow-hidden rounded-2xl",
         className,
       )}
       style={{ width: size, height: size }}
     >
       {url ? (
-        <Image src={url} alt="" fill className="object-cover" sizes={sizes ?? `${size}px`} />
+        <Image
+          src={url}
+          alt=""
+          fill
+          priority={priority}
+          className="object-cover"
+          sizes={sizes ?? `${size}px`}
+        />
       ) : (
         <div className="text-muted-foreground/40 flex h-full w-full items-center justify-center text-xs tracking-[0.14em] uppercase">
           No art
@@ -417,15 +427,8 @@ function NeighborCard({
   );
 }
 
-export function GraphExplorer({
-  trackId,
-  onTrackIdChange,
-  onExit,
-}: {
-  trackId: string;
-  onTrackIdChange: (trackId: string) => void;
-  onExit: () => void;
-}) {
+export function GraphExplorer({ onExit }: { onExit: () => void }) {
+  const { activeId: trackId, trail } = useGraphSession();
   const baseId = useId();
   const [current, setCurrent] = useState<ApiNeighborhoodCurrent | null>(null);
   const [neighbors, setNeighbors] = useState<ApiNeighborhoodNeighbor[]>([]);
@@ -437,8 +440,6 @@ export function GraphExplorer({
   const [artHidden, setArtHidden] = useState(false);
   /** Opacity-only fade of title/meta so it crossfades while the art flies. */
   const [copyPhase, setCopyPhase] = useState<CopyPhase>("visible");
-  /** In-session hop stack for stepping back without leaving /graph. */
-  const [trail, setTrail] = useState<string[]>([]);
 
   const loadedIdRef = useRef<string | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
@@ -458,7 +459,7 @@ export function GraphExplorer({
   }
 
   useEffect(() => {
-    if (loadedIdRef.current === trackId) return;
+    if (!trackId || loadedIdRef.current === trackId) return;
     let cancelled = false;
     startLoad(async () => {
       try {
@@ -483,7 +484,7 @@ export function GraphExplorer({
   }, [trackId]);
 
   async function goToTrack(nextId: string, sourceElement?: HTMLElement | null) {
-    if (choosingId || nextId === trackId) return;
+    if (!trackId || choosingId || nextId === trackId) return;
 
     const request = loadNeighborhood(nextId).catch(() => null);
     // Lift the thumbnail out of the list before the DOM is swapped under it.
@@ -501,10 +502,9 @@ export function GraphExplorer({
       // Hold until the outgoing copy has fully faded — same clock as the flight.
       await wait(prefersReducedMotion() ? 0 : HOP_COPY_OUT_MS);
 
-      // Stay on /graph — only session memory moves.
-      setTrail((prev) => [...prev, trackId]);
+      // Persist hop in the shared session (survives leaving /graph).
       loadedIdRef.current = next ? nextId : null;
-      onTrackIdChange(nextId);
+      hopGraphSession(trackId, nextId);
       if (next) {
         setCurrent(next.current);
         setNeighbors(next.neighbors);
@@ -523,10 +523,27 @@ export function GraphExplorer({
         await wait(prefersReducedMotion() ? 0 : HOP_FLIGHT_MS);
       }
 
-      // Drop the clone first, then reveal the real square — same size, no snap.
-      if (flight) flight.destroy();
+      // Reveal under the clone, wait for the real <img> to be paint-ready, then
+      // dissolve the overlay — avoids a muted-box flash between clone and hero.
       setArtHidden(false);
       await nextFrame();
+      const heroImg = panelRef.current?.querySelector<HTMLImageElement>(
+        '[data-art-role="hero"] img',
+      );
+      if (heroImg && !(heroImg.complete && heroImg.naturalWidth > 0)) {
+        await Promise.race([
+          new Promise<void>((resolve) => {
+            heroImg.addEventListener("load", () => resolve(), { once: true });
+            heroImg.addEventListener("error", () => resolve(), { once: true });
+          }),
+          wait(400),
+        ]);
+      }
+      await nextFrame();
+      if (flight) {
+        await flight.fadeOut(prefersReducedMotion() ? 0 : 160);
+        flight.destroy();
+      }
       setCopyPhase("in");
       await wait(prefersReducedMotion() ? 0 : HOP_COPY_IN_MS);
       setCopyPhase("visible");
@@ -538,14 +555,15 @@ export function GraphExplorer({
   }
 
   function goBackInTrail() {
-    const previous = trail[trail.length - 1];
-    if (!previous || choosingId) return;
-    setTrail((prev) => prev.slice(0, -1));
+    if (choosingId) return;
+    const previous = popGraphTrail();
+    if (!previous) return;
     loadedIdRef.current = null;
     setExpandedKey(null);
     setCopyPhase("visible");
-    onTrackIdChange(previous);
   }
+
+  if (!trackId) return null;
 
   if (pending && !current) {
     return (
@@ -616,6 +634,7 @@ export function GraphExplorer({
                 url={current.artworkUrl}
                 size={HERO_ART_SIZE}
                 artRole="hero"
+                priority
                 className={cn("mx-auto sm:mx-0", artHidden && "opacity-0")}
               />
               <div
@@ -665,18 +684,20 @@ export function GraphExplorer({
                 </dl>
                 <div className="flex items-center justify-between gap-3">
                   {trail.length > 0 ? (
-                    <Button
+                    <button
                       type="button"
-                      variant="outline"
-                      size="sm"
                       disabled={swapping}
-                      aria-label="Previous track"
                       onClick={goBackInTrail}
+                      className={cn(
+                        "text-muted-foreground text-sm underline-offset-4",
+                        "hover:text-foreground hover:underline",
+                        "disabled:pointer-events-none disabled:opacity-40",
+                      )}
                     >
-                      ←
-                    </Button>
+                      ← Previous
+                    </button>
                   ) : (
-                    <span className="size-8" aria-hidden />
+                    <span aria-hidden />
                   )}
                   <Button asChild variant="outline" size="sm" className="w-fit">
                     <Link href={`/tracks/${current.id}`}>Track detail</Link>
