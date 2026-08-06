@@ -599,28 +599,6 @@ export function NoteDetail({ noteId }: { noteId: string }) {
         </p>
       </header>
 
-      <ExtractionDebug note={note} />
-      {retryError ? (
-        <p className="text-sm" role="alert">
-          {retryError}
-        </p>
-      ) : null}
-      {note.extractionStatus === "failed" ||
-      note.extractionStatus === "idle" ||
-      note.extractionStatus === "needs_review" ||
-      note.extractionStatus === "partially_committed" ||
-      note.extractionStatus === "commit_failed" ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={retrying}
-          onClick={onRetryExtraction}
-        >
-          {retrying ? "Retrying…" : "Retry processing"}
-        </Button>
-      ) : null}
-
       <form onSubmit={onSubmit} className="space-y-6">
         <div className="space-y-2">
           <Label htmlFor="note-edit-raw-text">Note</Label>
@@ -658,6 +636,30 @@ export function NoteDetail({ noteId }: { noteId: string }) {
           </Button>
         </div>
       </form>
+
+      <div className="space-y-3">
+        <ExtractionDebug note={note} />
+        {retryError ? (
+          <p className="text-sm" role="alert">
+            {retryError}
+          </p>
+        ) : null}
+        {note.extractionStatus === "failed" ||
+        note.extractionStatus === "idle" ||
+        note.extractionStatus === "needs_review" ||
+        note.extractionStatus === "partially_committed" ||
+        note.extractionStatus === "commit_failed" ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={retrying}
+            onClick={onRetryExtraction}
+          >
+            {retrying ? "Retrying…" : "Retry processing"}
+          </Button>
+        ) : null}
+      </div>
 
       <NoteTrackLinks
         noteId={note.id}
