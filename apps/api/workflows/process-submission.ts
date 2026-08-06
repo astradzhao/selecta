@@ -26,6 +26,8 @@ import {
   finishAgentRun,
   getNoteById,
   getProposalById,
+  getProposalByKey,
+  getTransitionCommitByKey,
   isPostgresConfigured,
   listProposalsForVersion,
   startAgentRun,
@@ -120,13 +122,11 @@ async function beginOrchestration(
 async function parseSingleTransitionTool(rawInput: {
   submissionId: string;
   extractionVersion: number;
-  ordinal: number;
   sourceStart: number;
   sourceEnd: number;
   sourceText: string;
   sourceFingerprint?: string;
   agentRunId: string;
-  workflowRunId: string;
 }): Promise<ParseSingleTransitionReceipt> {
   "use step";
 
@@ -140,14 +140,7 @@ async function parseSingleTransitionTool(rawInput: {
     };
   }
 
-  const { submissionId, extractionVersion, ordinal, sourceStart, sourceEnd, sourceText } =
-    parsedInput.data;
-
-  if (ordinal >= SUBMISSION_LIMITS.maxTransitions) {
-    const message = `Dispatch limit exceeded (ordinal ${ordinal} >= ${SUBMISSION_LIMITS.maxTransitions}).`;
-    console.error(`[submission-workflow] ${message}`);
-    return { ok: false, proposalId: null, retryable: false, error: message };
-  }
+  const { submissionId, extractionVersion, sourceStart, sourceEnd, sourceText } = parsedInput.data;
 
   if (sourceEnd < sourceStart || sourceText.length === 0) {
     return {
@@ -163,18 +156,41 @@ async function parseSingleTransitionTool(rawInput: {
     sourceFingerprint(sourceStart, sourceEnd, sourceText);
   const proposalKey = spanProposalKey(submissionId, extractionVersion, fingerprint);
 
+  const existingCounts = await countProposalsForVersion(submissionId, extractionVersion);
+  const existing = await getProposalByKey(proposalKey);
+  if (!existing && existingCounts.total >= SUBMISSION_LIMITS.maxTransitions) {
+    const message = `Dispatch limit exceeded (${SUBMISSION_LIMITS.maxTransitions} transitions).`;
+    console.error(`[submission-workflow] ${message}`);
+    return { ok: false, proposalId: null, retryable: false, error: message };
+  }
+
   const claimed = await claimProposal({
     noteId: submissionId,
     extractionVersion,
-    workflowRunId: rawInput.workflowRunId,
     agentRunId: rawInput.agentRunId,
-    ordinal,
     sourceStart,
     sourceEnd,
     sourceText,
     sourceFingerprint: fingerprint,
     proposalKey,
   });
+
+  if (claimed.created) {
+    const afterClaim = await countProposalsForVersion(submissionId, extractionVersion);
+    if (afterClaim.total > SUBMISSION_LIMITS.maxTransitions) {
+      const message = `Dispatch limit exceeded (${SUBMISSION_LIMITS.maxTransitions} transitions).`;
+      await updateProposal(claimed.proposal.id, {
+        status: "failed",
+        error: message,
+      });
+      return {
+        ok: false,
+        proposalId: claimed.proposal.id,
+        retryable: false,
+        error: message,
+      };
+    }
+  }
 
   if (
     claimed.proposal.draft &&
@@ -237,9 +253,7 @@ async function parseSingleTransitionTool(rawInput: {
     attemptCount: Math.max(attemptCount, 1),
   });
 
-  console.log(
-    `[submission-workflow] parsed proposal=${claimed.proposal.id} ordinal=${ordinal} key=${proposalKey}`,
-  );
+  console.log(`[submission-workflow] parsed proposal=${claimed.proposal.id} key=${proposalKey}`);
 
   return { ok: true, proposalId: claimed.proposal.id, retryable: false, error: null };
 }
@@ -305,7 +319,8 @@ async function resolveAndApplyProposals(ctx: OrchestratorContext): Promise<{
       continue;
     }
 
-    if (proposal.transitionId) {
+    const existingCommit = await getTransitionCommitByKey(proposal.proposalKey);
+    if (existingCommit?.status === "committed") {
       await updateProposal(proposal.id, { status: "committed", error: null });
       committed += 1;
       continue;
@@ -317,6 +332,8 @@ async function resolveAndApplyProposals(ctx: OrchestratorContext): Promise<{
       candidatesByMentionId: item.candidatesByMentionId,
     });
 
+    const reviewReasons = policy.reasons.filter((reason) => reason.code !== "ok");
+
     await updateProposal(proposal.id, {
       resolution: {
         plan: item.plan,
@@ -327,10 +344,10 @@ async function resolveAndApplyProposals(ctx: OrchestratorContext): Promise<{
           ]),
         ),
       },
-      policyResult: policy as unknown as Record<string, unknown>,
-      reviewReasons: policy.reasons.filter((reason) => reason.code !== "ok") as unknown as Array<
-        Record<string, unknown>
-      >,
+      policyResult: {
+        ...policy,
+        reviewReasons,
+      } as unknown as Record<string, unknown>,
     });
 
     if (policy.decision !== "auto_commit") {
@@ -366,10 +383,10 @@ async function resolveAndApplyProposals(ctx: OrchestratorContext): Promise<{
       });
       await updateProposal(proposal.id, {
         status: "committed",
-        transitionId: proposal.proposalKey,
         error: null,
         policyResult: {
           ...policy,
+          reviewReasons,
           applied,
         } as unknown as Record<string, unknown>,
       });
@@ -394,6 +411,7 @@ async function resolveAndApplyProposals(ctx: OrchestratorContext): Promise<{
         status: "needs_review",
         policyResult: {
           ...policy,
+          reviewReasons,
           applied,
         } as unknown as Record<string, unknown>,
       });
@@ -427,20 +445,15 @@ async function finalizeSubmission(
   "use step";
 
   const counts = await countProposalsForVersion(ctx.noteId, ctx.extractionVersion);
-  const derived = deriveSubmissionExtractionStatus(counts);
-
-  let extractionStatus = derived.extractionStatus;
-  let noteStatus = derived.noteStatus;
+  let extractionStatus = deriveSubmissionExtractionStatus(counts);
   let extractionError: string | null = null;
 
   if (orchestrator.dispatchLimitHit) {
     extractionError = `Hard dispatch limit hit (${SUBMISSION_LIMITS.maxTransitions} transitions). Extra spans were not processed.`;
     if (counts.committed > 0) {
       extractionStatus = "partially_committed";
-      noteStatus = "preview";
     } else if (extractionStatus === "no_proposal") {
       extractionStatus = "failed";
-      noteStatus = "draft";
     }
   }
 
@@ -521,7 +534,6 @@ async function finalizeSubmission(
       | "commit_failed"
       | "resolving"
       | "failed",
-    status: noteStatus,
   });
 
   console.log(
@@ -530,17 +542,16 @@ async function finalizeSubmission(
 }
 
 function summarizeProposal(proposal: NoteProposal): Record<string, unknown> {
+  const policyResult = proposal.policyResult as { reviewReasons?: unknown } | null;
   return {
     id: proposal.id,
     proposalKey: proposal.proposalKey,
-    ordinal: proposal.ordinal,
     status: proposal.status,
     sourceStart: proposal.sourceStart,
     sourceEnd: proposal.sourceEnd,
     sourceFingerprint: proposal.sourceFingerprint,
-    transitionId: proposal.transitionId,
     error: proposal.error,
-    reviewReasons: proposal.reviewReasons,
+    reviewReasons: policyResult?.reviewReasons ?? null,
   };
 }
 
@@ -598,7 +609,6 @@ export async function processSubmissionWorkflow(input: ProcessSubmissionInput) {
           inputSchema: z.object({
             submissionId: z.string(),
             extractionVersion: z.number().int().nonnegative(),
-            ordinal: z.number().int().nonnegative(),
             sourceStart: z.number().int().nonnegative(),
             sourceEnd: z.number().int().nonnegative(),
             sourceText: z.string().min(1),
@@ -607,7 +617,6 @@ export async function processSubmissionWorkflow(input: ProcessSubmissionInput) {
           execute: async (toolInput: {
             submissionId: string;
             extractionVersion: number;
-            ordinal: number;
             sourceStart: number;
             sourceEnd: number;
             sourceText: string;
@@ -618,7 +627,6 @@ export async function processSubmissionWorkflow(input: ProcessSubmissionInput) {
               submissionId: ctx.noteId,
               extractionVersion: ctx.extractionVersion,
               agentRunId: ctx.agentRunId,
-              workflowRunId: ctx.workflowRunId,
             }),
         },
       },

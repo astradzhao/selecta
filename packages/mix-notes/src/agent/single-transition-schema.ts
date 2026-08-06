@@ -47,7 +47,6 @@ export type ParseSingleTransitionReceipt = z.infer<typeof ParseSingleTransitionR
 export const ParseSingleTransitionInputSchema = z.object({
   submissionId: z.string().min(1),
   extractionVersion: z.number().int().nonnegative(),
-  ordinal: z.number().int().nonnegative(),
   sourceStart: z.number().int().nonnegative(),
   sourceEnd: z.number().int().nonnegative(),
   sourceText: z.string().min(1),

@@ -20,7 +20,6 @@ export type SerializedNoteTrackLink = {
 export type SerializedNote = {
   id: string;
   rawText: string;
-  status: Note["status"];
   extractionStatus: Note["extractionStatus"];
   extractionVersion: number;
   extractionError: string | null;
@@ -50,7 +49,6 @@ export function serializeNote(note: Note, trackLinks?: SerializedNoteTrackLink[]
   return {
     id: note.id,
     rawText: note.rawText,
-    status: note.status,
     extractionStatus: note.extractionStatus,
     extractionVersion: note.extractionVersion,
     extractionError: note.extractionError,

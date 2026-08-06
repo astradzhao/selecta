@@ -78,7 +78,6 @@ For the first version, the agent receives the entire submission within a configu
 parse_single_transition({
   submissionId,
   extractionVersion,
-  ordinal,
   sourceStart,
   sourceEnd,
   sourceText,
@@ -182,33 +181,33 @@ The existing proposal key `{noteId}:{extractionVersion}:{transitionIndex}` is sa
 
 ## 4. Proposal and status model
 
-Add a first-class Postgres proposal record. Suggested fields:
+Proposals are the durable per-transition units. Submissions (`notes` table for now) are parent containers of immutable raw text. Do not confuse:
+
+| Term       | Meaning                                    | Storage            |
+| ---------- | ------------------------------------------ | ------------------ |
+| Submission | Immutable raw text the user pasted         | `notes`            |
+| Proposal   | One parsed transition from that submission | `note_proposals`   |
+| Transition | Committed Neo4j edge                       | Neo4j `TRANSITION` |
+
+### Proposal record (minimal)
 
 - `id`
-- `submissionId`
+- `noteId` / submission id
 - `extractionVersion`
-- `workflowRunId`
-- `ordinal`
-- `sourceStart`
-- `sourceEnd`
-- `sourceText`
-- `sourceFingerprint`
-- `status`
-- `draft`
-- `resolution`
-- `policyResult`
-- `reviewReasons`
-- `model`
-- `promptVersion`
-- `usage`
-- `attemptCount`
-- `transitionId`
+- `agentRunId` (optional join to parent `note_agent_runs`)
+- `sourceStart`, `sourceEnd`, `sourceText`, `sourceFingerprint`
+- `proposalKey` — keep this name end-to-end (`{noteId}:{version}:span:{fingerprint}`)
+- `status` — source of truth (`note_proposal_status`)
+- `draft`, `resolution`
+- `policyResult` — includes nested `reviewReasons`
+- `model`, `promptVersion`, `usage` (per-child audit when the workflow writes them)
+- `attemptCount` — child parse retry source of truth
 - `error`
 - timestamps
 
-Require a unique idempotency key derived from submission/version and stable source fingerprint. Ordinal alone is useful for display but is not stable enough after changed segmentation.
+Sort proposals by `sourceStart` then `createdAt`. Do not store display-only `ordinal`, a redundant `transitionId` copy of `proposalKey`, or proposal-level `workflowRunId` (keep workflow identity on `note_agent_runs`).
 
-Proposal states:
+### Proposal states
 
 ```text
 queued
@@ -223,14 +222,22 @@ parsing/resolving/ready
   -> rejected
 ```
 
-Submission status is derived from child counts rather than used as the only policy result:
+(`superseded` when a newer extraction version replaces older in-flight proposals.)
 
-- `processing`
+### Submission extraction status (derived cache only)
+
+`notes.extractionStatus` (`note_extraction_status`) is **not** independent business logic. Always write it via `deriveSubmissionExtractionStatus` after proposal status changes. Used for list badges / filters / “still extracting?” CAS.
+
+Derived outcomes include:
+
+- `extracting` / `resolving`
 - `committed`
 - `partially_committed`
 - `needs_review`
 - `no_proposal`
-- `failed`
+- `failed` / `commit_failed`
+
+There is no separate `note_status` (draft / preview / committed). Lifecycle UX reads `extractionStatus`.
 
 Partial writes are required. One ambiguous proposal must never roll back or block a clear sibling.
 

@@ -11,7 +11,6 @@ import {
   type NoteAgentRun,
   type NoteAgentRunStatus,
   type NoteExtractionStatus,
-  type NoteStatus,
   type NoteTransitionCommit,
   type NoteTransitionCommitStatus,
 } from "./schema";
@@ -50,8 +49,6 @@ export type CompleteExtractionInput = {
     | "resolving"
     | "failed"
   >;
-  /** Lifecycle status after a successful extract. */
-  status: Extract<NoteStatus, "draft" | "preview" | "committed">;
 };
 
 function clampLimit(limit: number | undefined): number {
@@ -98,7 +95,6 @@ export async function createNote(input: CreateNoteInput): Promise<Note> {
     .insert(notes)
     .values({
       rawText,
-      status: "draft",
       extractionStatus: "extracting",
       extractionVersion: 1,
       extractionStartedAt: now,
@@ -158,7 +154,6 @@ export async function updateNote(id: string, input: UpdateNoteInput): Promise<Up
     .update(notes)
     .set({
       rawText,
-      status: "draft",
       extractionStatus: "extracting",
       extractionVersion: existing.extractionVersion + 1,
       extractionStartedAt: now,
@@ -189,7 +184,6 @@ export async function requeueExtraction(id: string): Promise<Note> {
   const [row] = await getDb()
     .update(notes)
     .set({
-      status: existing.status === "committed" ? existing.status : "draft",
       extractionStatus: "extracting",
       extractionVersion: version,
       extractionStartedAt: now,
@@ -225,7 +219,6 @@ export async function completeExtraction(
       promptVersion: input.promptVersion,
       extractionConfidence: input.extractionConfidence,
       extractionStatus: input.extractionStatus,
-      status: input.status,
       extractionError: null,
       extractionFinishedAt: now,
     })

@@ -127,10 +127,7 @@ export async function applyProposalPolicy(
     const message = error instanceof Error ? error.message : "Transition commit failed.";
     return {
       decision: "reject",
-      reasons: [
-        ...policy.reasons,
-        { code: "missing_required_fields", message },
-      ],
+      reasons: [...policy.reasons, { code: "missing_required_fields", message }],
       importedTrackIds,
       committed: false,
       commitError: message,

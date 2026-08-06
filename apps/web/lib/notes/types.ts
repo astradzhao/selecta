@@ -1,7 +1,5 @@
 import type { ApiNamedNode } from "@/lib/tracks/types";
 
-export type NoteStatus = "draft" | "preview" | "committed";
-
 export type NoteExtractionStatus =
   | "idle"
   | "extracting"
@@ -30,7 +28,6 @@ export type ApiNoteTrackLink = {
 export type ApiNote = {
   id: string;
   rawText: string;
-  status: NoteStatus;
   extractionStatus: NoteExtractionStatus;
   extractionVersion: number;
   extractionError: string | null;

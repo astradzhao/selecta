@@ -1,11 +1,7 @@
 import { parseCandidateHandle, type NoteProcessingPlan, type NoteTransitionPlan } from "./schema";
 import { uniqueBestCandidate } from "./match";
 import { SUBMISSION_LIMITS } from "./limits";
-import type {
-  PolicyCommitAction,
-  PolicyGateCode,
-  PolicyImportAction,
-} from "./policy";
+import type { PolicyCommitAction, PolicyGateCode, PolicyImportAction } from "./policy";
 import type { TrackCandidate } from "./services";
 
 export type ProposalPolicyDecision = "auto_commit" | "needs_review" | "no_proposal" | "reject";

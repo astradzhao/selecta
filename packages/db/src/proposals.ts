@@ -7,15 +7,12 @@ import {
   type NoteExtractionStatus,
   type NoteProposal,
   type NoteProposalStatus,
-  type NoteStatus,
 } from "./schema";
 
 export type ClaimProposalInput = {
   noteId: string;
   extractionVersion: number;
-  workflowRunId?: string | null;
   agentRunId?: string | null;
-  ordinal: number;
   sourceStart: number;
   sourceEnd: number;
   sourceText: string;
@@ -40,12 +37,8 @@ export async function claimProposal(input: ClaimProposalInput): Promise<ClaimPro
       existing.noteId !== input.noteId ||
       existing.extractionVersion !== input.extractionVersion
     ) {
-      throw new NotesError(
-        "invalid_input",
-        `Proposal key collision for "${input.proposalKey}".`,
-      );
+      throw new NotesError("invalid_input", `Proposal key collision for "${input.proposalKey}".`);
     }
-    // Do not rewind terminal / in-flight states on replay.
     if (existing.status === "superseded") {
       throw new NotesError(
         "invalid_input",
@@ -61,9 +54,7 @@ export async function claimProposal(input: ClaimProposalInput): Promise<ClaimPro
       .values({
         noteId: input.noteId,
         extractionVersion: input.extractionVersion,
-        workflowRunId: input.workflowRunId ?? null,
         agentRunId: input.agentRunId ?? null,
-        ordinal: input.ordinal,
         sourceStart: input.sourceStart,
         sourceEnd: input.sourceEnd,
         sourceText: input.sourceText,
@@ -78,7 +69,6 @@ export async function claimProposal(input: ClaimProposalInput): Promise<ClaimPro
     }
     return { proposal: row, created: true };
   } catch (error) {
-    // Unique race: another worker claimed first — return that row.
     const raced = await getProposalByKey(input.proposalKey);
     if (raced) {
       return { proposal: raced, created: false };
@@ -115,7 +105,7 @@ export async function listProposalsForVersion(
         ne(noteProposals.status, "superseded"),
       ),
     )
-    .orderBy(asc(noteProposals.ordinal), asc(noteProposals.createdAt));
+    .orderBy(asc(noteProposals.sourceStart), asc(noteProposals.createdAt));
 }
 
 export type UpdateProposalInput = {
@@ -123,14 +113,11 @@ export type UpdateProposalInput = {
   draft?: Record<string, unknown> | null;
   resolution?: Record<string, unknown> | null;
   policyResult?: Record<string, unknown> | null;
-  reviewReasons?: Array<Record<string, unknown>> | null;
   model?: string | null;
   promptVersion?: string | null;
   usage?: Record<string, unknown> | null;
   attemptCount?: number;
-  transitionId?: string | null;
   error?: string | null;
-  workflowRunId?: string | null;
   agentRunId?: string | null;
 };
 
@@ -145,14 +132,11 @@ export async function updateProposal(
       draft: input.draft === undefined ? undefined : input.draft,
       resolution: input.resolution === undefined ? undefined : input.resolution,
       policyResult: input.policyResult === undefined ? undefined : input.policyResult,
-      reviewReasons: input.reviewReasons === undefined ? undefined : input.reviewReasons,
       model: input.model === undefined ? undefined : input.model,
       promptVersion: input.promptVersion === undefined ? undefined : input.promptVersion,
       usage: input.usage === undefined ? undefined : input.usage,
       attemptCount: input.attemptCount,
-      transitionId: input.transitionId === undefined ? undefined : input.transitionId,
-      error: input.error === undefined ? undefined : input.error?.slice(0, 2000) ?? null,
-      workflowRunId: input.workflowRunId === undefined ? undefined : input.workflowRunId,
+      error: input.error === undefined ? undefined : (input.error?.slice(0, 2000) ?? null),
       agentRunId: input.agentRunId === undefined ? undefined : input.agentRunId,
     })
     .where(eq(noteProposals.id, proposalId))
@@ -236,50 +220,47 @@ export async function countProposalsForVersion(
 }
 
 /**
- * Derive submission-level extraction status from per-proposal counts.
+ * Derive submission-level extractionStatus from per-proposal counts.
  * Partial success is first-class: committed siblings are not blocked by review/failed ones.
  */
 export function deriveSubmissionExtractionStatus(
   counts: ProposalStatusCounts,
-): {
-  extractionStatus: Extract<
-    NoteExtractionStatus,
-    | "no_proposal"
-    | "needs_review"
-    | "committed"
-    | "partially_committed"
-    | "commit_failed"
-    | "failed"
-    | "resolving"
-  >;
-  noteStatus: Extract<NoteStatus, "draft" | "preview" | "committed">;
-} {
+): Extract<
+  NoteExtractionStatus,
+  | "no_proposal"
+  | "needs_review"
+  | "committed"
+  | "partially_committed"
+  | "commit_failed"
+  | "failed"
+  | "resolving"
+> {
   const inFlight = counts.queued + counts.parsing + counts.resolving + counts.ready;
   const decided = counts.committed + counts.needs_review + counts.failed + counts.rejected;
 
   if (inFlight > 0 && decided === 0) {
-    return { extractionStatus: "resolving", noteStatus: "draft" };
+    return "resolving";
   }
 
   if (decided === 0) {
-    return { extractionStatus: "no_proposal", noteStatus: "draft" };
+    return "no_proposal";
   }
 
   if (counts.committed > 0 && (counts.needs_review > 0 || counts.failed > 0)) {
-    return { extractionStatus: "partially_committed", noteStatus: "preview" };
+    return "partially_committed";
   }
 
   if (counts.committed > 0 && counts.needs_review === 0 && counts.failed === 0) {
-    return { extractionStatus: "committed", noteStatus: "committed" };
+    return "committed";
   }
 
   if (counts.needs_review > 0) {
-    return { extractionStatus: "needs_review", noteStatus: "preview" };
+    return "needs_review";
   }
 
   if (counts.failed > 0) {
-    return { extractionStatus: "failed", noteStatus: "draft" };
+    return "failed";
   }
 
-  return { extractionStatus: "no_proposal", noteStatus: "draft" };
+  return "no_proposal";
 }

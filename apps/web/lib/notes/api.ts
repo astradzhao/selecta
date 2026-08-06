@@ -2,7 +2,7 @@ import { apiFetch } from "@/lib/api/client";
 
 import type { ApiNote, ApiNoteTrackLink } from "./types";
 
-export type { ApiNote, ApiNoteTrackLink, NoteExtractionStatus, NoteStatus } from "./types";
+export type { ApiNote, ApiNoteTrackLink, NoteExtractionStatus } from "./types";
 
 export async function listNotes(
   input: { limit?: number } = {},

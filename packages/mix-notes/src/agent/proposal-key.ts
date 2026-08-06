@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 /**
  * Stable content fingerprint for a source span.
- * Used so agent resegmentation / ordinal shuffle does not duplicate proposals.
+ * Used so agent resegmentation does not duplicate proposals.
  */
 export function sourceFingerprint(
   sourceStart: number,

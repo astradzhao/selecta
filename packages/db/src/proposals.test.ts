@@ -21,21 +21,17 @@ function counts(partial: Partial<ProposalStatusCounts>): ProposalStatusCounts {
 
 describe("deriveSubmissionExtractionStatus", () => {
   it("marks partial success when some proposals commit and others need review", () => {
-    const result = deriveSubmissionExtractionStatus(
-      counts({ total: 3, committed: 2, needs_review: 1 }),
+    assert.equal(
+      deriveSubmissionExtractionStatus(counts({ total: 3, committed: 2, needs_review: 1 })),
+      "partially_committed",
     );
-    assert.equal(result.extractionStatus, "partially_committed");
-    assert.equal(result.noteStatus, "preview");
   });
 
   it("marks committed when every decided proposal committed", () => {
-    const result = deriveSubmissionExtractionStatus(counts({ total: 2, committed: 2 }));
-    assert.equal(result.extractionStatus, "committed");
-    assert.equal(result.noteStatus, "committed");
+    assert.equal(deriveSubmissionExtractionStatus(counts({ total: 2, committed: 2 })), "committed");
   });
 
   it("marks no_proposal when nothing was produced", () => {
-    const result = deriveSubmissionExtractionStatus(counts({ total: 0 }));
-    assert.equal(result.extractionStatus, "no_proposal");
+    assert.equal(deriveSubmissionExtractionStatus(counts({ total: 0 })), "no_proposal");
   });
 });
