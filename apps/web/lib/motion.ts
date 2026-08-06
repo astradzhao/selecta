@@ -86,6 +86,8 @@ export type ArtFlight = {
    * relative to the real artwork underneath.
    */
   landOn(target: HTMLElement, options?: { duration?: number; size?: number }): Promise<void>;
+  /** Soften the handoff: fade the overlay out while the real art is already under it. */
+  fadeOut(duration?: number): Promise<void>;
   destroy(): void;
 };
 
@@ -125,7 +127,7 @@ export function beginArtFlight(source: HTMLElement | null | undefined): ArtFligh
   Object.assign(clone.style, {
     overflow: "hidden",
     borderRadius: `${fromRadius}px`,
-    willChange: "transform",
+    willChange: "transform, opacity",
   } satisfies Partial<CSSStyleDeclaration>);
   layer.appendChild(clone);
   document.body.appendChild(layer);
@@ -163,6 +165,19 @@ export function beginArtFlight(source: HTMLElement | null | undefined): ArtFligh
         }).finished;
       } catch {
         // Interrupted — caller still reveals the real element.
+      }
+    },
+    async fadeOut(duration = 140) {
+      if (destroyed) return;
+      if (prefersReducedMotion() || duration <= 0) return;
+      try {
+        await layer.animate([{ opacity: 1 }, { opacity: 0 }], {
+          duration,
+          easing: "ease-out",
+          fill: "forwards",
+        }).finished;
+      } catch {
+        // Interrupted.
       }
     },
     destroy() {

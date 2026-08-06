@@ -1,35 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import { GraphExplorer } from "@/components/tracks/graph-explorer";
 import { GraphLanding } from "@/components/tracks/graph-landing";
+import {
+  clearGraphSession,
+  seedGraphSession,
+  useGraphSession,
+} from "@/lib/tracks/graph-session-store";
 
 /**
  * Single `/graph` session: landing when idle, explorer when a track is active.
- * Current node lives in memory — hops do not change the route.
+ * Current node + trail persist in sessionStorage across in-app navigations.
  */
 export function GraphSession({ initialTrackId }: { initialTrackId: string | null }) {
-  const [activeId, setActiveId] = useState<string | null>(initialTrackId);
+  const { activeId } = useGraphSession();
 
-  // Seed from ?track= once, then drop the query so refresh returns to landing
-  // and browser back leaves /graph instead of replaying seeded hops.
+  // Explicit entry (?track= / Open in graph) seeds a fresh session, then drops
+  // the query so refresh of /graph restores from storage instead of re-seeding.
   useEffect(() => {
     if (!initialTrackId) return;
-    if (typeof window === "undefined") return;
-    if (!window.location.search.includes("track=")) return;
-    window.history.replaceState(null, "", "/graph");
+    seedGraphSession(initialTrackId);
+    if (typeof window !== "undefined" && window.location.search.includes("track=")) {
+      window.history.replaceState(null, "", "/graph");
+    }
   }, [initialTrackId]);
 
   if (!activeId) {
-    return <GraphLanding onStart={setActiveId} />;
+    return <GraphLanding onStart={seedGraphSession} />;
   }
 
-  return (
-    <GraphExplorer
-      trackId={activeId}
-      onTrackIdChange={setActiveId}
-      onExit={() => setActiveId(null)}
-    />
-  );
+  return <GraphExplorer onExit={clearGraphSession} />;
 }
