@@ -11,14 +11,9 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * Note lifecycle while NL extract → preview → graph commit.
- * Notes are free-form NL; track/transition links come from extraction, not FKs.
- */
-export const noteStatusEnum = pgEnum("note_status", ["draft", "preview", "committed"]);
-
-/**
- * Async extraction / agent pipeline state (DJ-34).
- * Independent of lifecycle `note_status`.
+ * Async extraction / agent pipeline state (DJ-34 / DJ-66).
+ * Derived rollup from per-proposal statuses — not independent business logic.
+ * `partially_committed` = some proposals committed while siblings need review/failed.
  */
 export const noteExtractionStatusEnum = pgEnum("note_extraction_status", [
   "idle",
@@ -27,6 +22,7 @@ export const noteExtractionStatusEnum = pgEnum("note_extraction_status", [
   "resolving",
   "needs_review",
   "committed",
+  "partially_committed",
   "commit_failed",
   "failed",
 ]);
@@ -46,7 +42,23 @@ export const noteTransitionCommitStatusEnum = pgEnum("note_transition_commit_sta
 ]);
 
 /**
- * Single-user MVP Postgres surface.
+ * Per-transition proposal lifecycle (DJ-66).
+ * Source of truth for partial writes: clear proposals commit independently of siblings.
+ */
+export const noteProposalStatusEnum = pgEnum("note_proposal_status", [
+  "queued",
+  "parsing",
+  "resolving",
+  "ready",
+  "needs_review",
+  "committed",
+  "failed",
+  "rejected",
+  "superseded",
+]);
+
+/**
+ * Single-user MVP Postgres surface (product language: submission).
  *
  * Tracks / artists / genres / transitions live in Neo4j (one shared graph = the library).
  * Users, libraries, membership, and live sessions are deferred until multi-tenant / Live Mode needs them.
@@ -58,7 +70,6 @@ export const notes = pgTable("notes", {
   rawText: text("raw_text").notNull(),
   /** Structured NL extraction / agent plan preview (filled by M3). */
   extraction: jsonb("extraction").$type<Record<string, unknown>>(),
-  status: noteStatusEnum("status").notNull().default("draft"),
   extractionStatus: noteExtractionStatusEnum("extraction_status").notNull().default("idle"),
   /** Bumped when text changes; CAS key for idempotent extraction callbacks. */
   extractionVersion: integer("extraction_version").notNull().default(0),
@@ -107,7 +118,7 @@ export const noteTrackLinks = pgTable(
   ],
 );
 
-/** One agent attempt for a note extraction version. */
+/** One agent / workflow attempt for a note extraction version. */
 export const noteAgentRuns = pgTable(
   "note_agent_runs",
   {
@@ -121,6 +132,8 @@ export const noteAgentRuns = pgTable(
     attempt: integer("attempt").notNull().default(1),
     agentName: text("agent_name").notNull(),
     status: noteAgentRunStatusEnum("status").notNull().default("running"),
+    /** Durable Workflow DevKit run id when launched via `start()`. */
+    workflowRunId: text("workflow_run_id"),
     model: text("model"),
     provider: text("provider"),
     promptVersion: text("prompt_version"),
@@ -145,6 +158,54 @@ export const noteAgentRuns = pgTable(
       table.noteId,
       table.extractionVersion,
       table.attempt,
+    ),
+  ],
+);
+
+/**
+ * First-class per-transition proposal (DJ-66).
+ * Idempotency key = submissionId:version:span:sourceFingerprint (`proposal_key`).
+ */
+export const noteProposals = pgTable(
+  "note_proposals",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    noteId: text("note_id")
+      .notNull()
+      .references(() => notes.id, { onDelete: "cascade" }),
+    extractionVersion: integer("extraction_version").notNull(),
+    agentRunId: text("agent_run_id").references(() => noteAgentRuns.id, { onDelete: "set null" }),
+    sourceStart: integer("source_start").notNull(),
+    sourceEnd: integer("source_end").notNull(),
+    sourceText: text("source_text").notNull(),
+    sourceFingerprint: text("source_fingerprint").notNull(),
+    /** Stable idempotency key: `{noteId}:{version}:span:{fingerprint}`. */
+    proposalKey: text("proposal_key").notNull(),
+    status: noteProposalStatusEnum("status").notNull().default("queued"),
+    draft: jsonb("draft").$type<Record<string, unknown>>(),
+    resolution: jsonb("resolution").$type<Record<string, unknown>>(),
+    /** Policy outcome + nested reviewReasons. */
+    policyResult: jsonb("policy_result").$type<Record<string, unknown>>(),
+    model: text("model"),
+    promptVersion: text("prompt_version"),
+    usage: jsonb("usage").$type<Record<string, unknown>>(),
+    /** Child parse retry counter (source of truth for retry bounds). */
+    attemptCount: integer("attempt_count").notNull().default(0),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("note_proposals_proposal_key_uidx").on(table.proposalKey),
+    uniqueIndex("note_proposals_note_version_fingerprint_uidx").on(
+      table.noteId,
+      table.extractionVersion,
+      table.sourceFingerprint,
     ),
   ],
 );
@@ -179,6 +240,7 @@ export const noteTransitionCommits = pgTable(
 export const notesRelations = relations(notes, ({ many }) => ({
   trackLinks: many(noteTrackLinks),
   agentRuns: many(noteAgentRuns),
+  proposals: many(noteProposals),
   transitionCommits: many(noteTransitionCommits),
 }));
 
@@ -189,10 +251,22 @@ export const noteTrackLinksRelations = relations(noteTrackLinks, ({ one }) => ({
   }),
 }));
 
-export const noteAgentRunsRelations = relations(noteAgentRuns, ({ one }) => ({
+export const noteAgentRunsRelations = relations(noteAgentRuns, ({ one, many }) => ({
   note: one(notes, {
     fields: [noteAgentRuns.noteId],
     references: [notes.id],
+  }),
+  proposals: many(noteProposals),
+}));
+
+export const noteProposalsRelations = relations(noteProposals, ({ one }) => ({
+  note: one(notes, {
+    fields: [noteProposals.noteId],
+    references: [notes.id],
+  }),
+  agentRun: one(noteAgentRuns, {
+    fields: [noteProposals.agentRunId],
+    references: [noteAgentRuns.id],
   }),
 }));
 
@@ -205,13 +279,15 @@ export const noteTransitionCommitsRelations = relations(noteTransitionCommits, (
 
 export type Note = typeof notes.$inferSelect;
 export type NewNote = typeof notes.$inferInsert;
-export type NoteStatus = (typeof noteStatusEnum.enumValues)[number];
 export type NoteExtractionStatus = (typeof noteExtractionStatusEnum.enumValues)[number];
 export type NoteTrackLink = typeof noteTrackLinks.$inferSelect;
 export type NewNoteTrackLink = typeof noteTrackLinks.$inferInsert;
 export type NoteAgentRun = typeof noteAgentRuns.$inferSelect;
 export type NewNoteAgentRun = typeof noteAgentRuns.$inferInsert;
 export type NoteAgentRunStatus = (typeof noteAgentRunStatusEnum.enumValues)[number];
+export type NoteProposal = typeof noteProposals.$inferSelect;
+export type NewNoteProposal = typeof noteProposals.$inferInsert;
+export type NoteProposalStatus = (typeof noteProposalStatusEnum.enumValues)[number];
 export type NoteTransitionCommit = typeof noteTransitionCommits.$inferSelect;
 export type NewNoteTransitionCommit = typeof noteTransitionCommits.$inferInsert;
 export type NoteTransitionCommitStatus = (typeof noteTransitionCommitStatusEnum.enumValues)[number];

@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { withWorkflow } from "workflow/next";
 
 import { loadRootEnv } from "../../scripts/load-root-env.mjs";
 
@@ -17,4 +18,4 @@ const nextConfig: NextConfig = {
   ],
 };
 
-export default nextConfig;
+export default withWorkflow(nextConfig);

@@ -11,10 +11,12 @@ export {
   completeExtraction,
   failExtraction,
   startAgentRun,
+  attachWorkflowRunId,
   finishAgentRun,
   listAgentRunsForNote,
   upsertTransitionCommit,
   getTransitionCommitByKey,
+  MAX_SUBMISSION_RAW_BYTES,
   type CreateNoteInput,
   type ListNotesInput,
   type UpdateNoteInput,
@@ -24,6 +26,20 @@ export {
   type FinishAgentRunInput,
   type UpsertTransitionCommitInput,
 } from "./notes";
+export {
+  claimProposal,
+  getProposalByKey,
+  getProposalById,
+  listProposalsForVersion,
+  updateProposal,
+  supersedeProposalsForNote,
+  countProposalsForVersion,
+  deriveSubmissionExtractionStatus,
+  type ClaimProposalInput,
+  type ClaimProposalResult,
+  type UpdateProposalInput,
+  type ProposalStatusCounts,
+} from "./proposals";
 export {
   addNoteTrackLink,
   listNoteTrackLinks,

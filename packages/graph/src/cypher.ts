@@ -34,17 +34,6 @@ export function writeCypher<T = unknown>(cypher: string, params: CypherParams = 
   return runParameterized<T>(cypher, params, "WRITE");
 }
 
-/**
- * @deprecated Prefer `readCypher` / `writeCypher`. Kept for callers from DJ-21.
- */
-export function runCypher<T = unknown>(
-  cypher: string,
-  params: CypherParams = {},
-  accessMode: "READ" | "WRITE" = "WRITE",
-): Promise<T[]> {
-  return runParameterized<T>(cypher, params, accessMode);
-}
-
 export async function getGraphStatus(): Promise<GraphStatus> {
   if (!isNeo4jConfigured()) {
     return { configured: false, store: "neo4j" };

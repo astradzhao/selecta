@@ -1,50 +1,28 @@
 /** NL parse / preview / commit orchestration + schemas (M3). */
 
-import { EXTRACTION_PROMPT_VERSION } from "./extraction-prompt";
+import { ORCHESTRATOR_PROMPT_VERSION } from "./agent/orchestrator-prompt";
 
 export {
   NOTE_TYPES,
   TRANSITION_QUALITIES,
-  SongMentionSchema,
-  TransitionProposalSchema,
-  ExtractionProposalSchema,
-  parseExtractionProposal,
-  safeParseExtractionProposal,
   type NoteType,
   type TransitionQuality,
-  type SongMention,
-  type TransitionProposal,
-  type ExtractionProposal,
-} from "./extraction-schema";
+} from "./note-types";
 
 export {
-  EXTRACTION_PROMPT_VERSION,
-  DEFAULT_EXTRACTION_MODEL,
-  EXTRACTION_PROMPT_EXAMPLES,
-  getExtractionPromptMeta,
-  buildExtractionSystemPrompt,
-  buildExtractionUserPrompt,
-  buildExtractionMessages,
-  type ExtractionPromptMeta,
-  type ExtractionPromptExample,
-  type ExtractionPromptMessage,
-} from "./extraction-prompt";
-
-export {
-  extractNoteProposals,
-  hasTransitionProposals,
-  providerFromModel,
-  type ExtractNoteProposalsInput,
-  type ExtractNoteProposalsResult,
-} from "./extract-note";
+  CONFIDENCE_LEVELS,
+  AUTO_COMMIT_CONFIDENCE_FLOOR,
+  confidenceOrdinal,
+  confidenceToUnitInterval,
+  meetsAutoCommitConfidence,
+  type ConfidenceLevel,
+} from "./agent/confidence";
 
 export {
   CandidateHandleSchema,
   NoteMentionPlanSchema,
   NoteTransitionPlanSchema,
   NoteProcessingPlanSchema,
-  NoteExtractionDraftSchema,
-  draftToUnresolvedPlan,
   parseCandidateHandle,
   graphCandidateHandle,
   spotifyCandidateHandle,
@@ -53,15 +31,31 @@ export {
   type NoteMentionPlan,
   type NoteTransitionPlan,
   type NoteProcessingPlan,
-  type NoteExtractionDraft,
 } from "./agent/schema";
 
 export {
-  NOTE_AGENT_NAME,
-  NOTE_AGENT_PROMPT_VERSION,
-  buildNoteAgentPrompt,
-  buildNoteAgentUserPrompt,
-} from "./agent/prompt";
+  SingleTransitionDraftSchema,
+  ParseSingleTransitionReceiptSchema,
+  ParseSingleTransitionInputSchema,
+  draftToSingleUnresolvedPlan,
+  OrchestratorFinishSchema,
+  type SingleTransitionDraft,
+  type ParseSingleTransitionReceipt,
+  type ParseSingleTransitionInput,
+  type OrchestratorFinish,
+} from "./agent/single-transition-schema";
+
+export {
+  ORCHESTRATOR_AGENT_NAME,
+  ORCHESTRATOR_PROMPT_VERSION,
+  SINGLE_TRANSITION_PROMPT_VERSION,
+  DEFAULT_ORCHESTRATOR_MODEL,
+  DEFAULT_SINGLE_TRANSITION_MODEL,
+  buildOrchestratorPrompt,
+  buildOrchestratorUserPrompt,
+  buildSingleTransitionPrompt,
+  buildSingleTransitionUserPrompt,
+} from "./agent/orchestrator-prompt";
 
 export {
   TrackCandidateSchema,
@@ -73,44 +67,53 @@ export {
   type NoteAgentServices,
 } from "./agent/services";
 
-/** Reserved for future `@selecta/agentics` tool-loop agents; production path is one-shot. */
-export { createNoteAgentTools } from "./agent/tools";
 export { CandidateRegistry, withCandidateRegistry } from "./agent/candidate-registry";
 export {
-  evaluateNoteProcessingPolicy,
-  type PolicyResult,
-  type PolicyDecision,
   type PolicyGateCode,
-  type EvaluatePolicyInput,
+  type PolicyImportAction,
+  type PolicyCommitAction,
 } from "./agent/policy";
 export {
-  validateNoteProcessingPlan,
-  type ValidatePlanInput,
-  type ValidatePlanResult,
-  type PlanValidationIssue,
-} from "./agent/validate-plan";
+  evaluateProposalPolicy,
+  type ProposalPolicyDecision,
+  type ProposalPolicyResult,
+  type EvaluateProposalPolicyInput,
+} from "./agent/proposal-policy";
 export {
-  applyNoteProcessingPolicy,
-  type ApplyPolicyInput,
-  type ApplyPolicyResult,
-} from "./agent/apply-policy";
+  applyProposalPolicy,
+  type ApplyProposalPolicyInput,
+  type ApplyProposalPolicyResult,
+} from "./agent/apply-proposal-policy";
 export {
   resolveNoteMentions,
   type ResolveMentionsInput,
   type ResolveMentionsResult,
 } from "./agent/resolve-mentions";
 export {
-  runNoteAgent,
-  DEFAULT_NOTE_AGENT_MODEL,
-  type RunNoteAgentInput,
-  type RunNoteAgentResult,
-} from "./agent/run-note-agent";
-export { createNoteAgent } from "./agent/index";
+  resolveProposalsBatch,
+  type ProposalResolveItem,
+  type ResolveProposalsBatchInput,
+  type ResolveProposalsBatchResult,
+  type ResolvedProposalItem,
+} from "./agent/resolve-proposals-batch";
+export {
+  parseSingleTransitionDraft,
+  type ParseSingleTransitionDraftInput,
+  type ParseSingleTransitionDraftResult,
+} from "./agent/parse-single-transition";
+export { sourceFingerprint, spanProposalKey } from "./agent/proposal-key";
+export {
+  SUBMISSION_LIMITS,
+  utf8ByteLength,
+  assertRawTextWithinLimit,
+  type SubmissionLimits,
+} from "./agent/limits";
+export { providerFromModel } from "./agent/provider";
 
 export function getMixNotesStatus() {
   return {
     configured: true as const,
     feature: "mix-notes" as const,
-    promptVersion: EXTRACTION_PROMPT_VERSION,
+    promptVersion: ORCHESTRATOR_PROMPT_VERSION,
   };
 }

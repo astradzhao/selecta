@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { scoreTitleArtist, uniqueBestCandidate } from "./match";
+import { mentionSearchQuery, topSearchHit } from "./match";
 import type { NoteMentionPlan } from "./schema";
 import type { TrackCandidate } from "./services";
 
@@ -20,48 +20,35 @@ function mention(
   };
 }
 
-describe("uniqueBestCandidate", () => {
-  it("prefers the first search hit when top scores tie", () => {
-    const m = mention({
-      mention: "Saturday Love - Matroda",
-      titleHint: "Saturday Love",
-      artistHint: "Matroda",
-    });
+describe("mention search helpers", () => {
+  it("uses mention text as the search query", () => {
+    assert.equal(
+      mentionSearchQuery(mention({ mention: "backspin bass", titleHint: "ignored" })),
+      "backspin bass",
+    );
+  });
+
+  it("falls back to title+artist when mention is empty", () => {
+    assert.equal(
+      mentionSearchQuery(mention({ mention: " ", titleHint: "Thrilla", artistHint: "nightmre" })),
+      "Thrilla nightmre",
+    );
+  });
+
+  it("takes the first search hit", () => {
     const first: TrackCandidate = {
       handle: "spotify:first",
-      title: "Saturday Love",
-      artists: ["Matroda", "Dino DZ"],
+      title: "Backspin Bass",
+      artists: ["Tape B"],
       providerId: "first",
     };
     const second: TrackCandidate = {
       handle: "spotify:second",
-      title: "Saturday Love",
-      artists: ["Matroda", "Dino DZ", "Insomniac Records"],
+      title: "Backspin",
+      artists: ["MEMODEMO"],
       providerId: "second",
     };
-    assert.equal(scoreTitleArtist(m, first), 1);
-    assert.equal(scoreTitleArtist(m, second), 1);
-    assert.equal(uniqueBestCandidate(m, [first, second])?.handle, "spotify:first");
-  });
-
-  it("rejects close but unequal scores inside the margin", () => {
-    const m = mention({
-      mention: "Love Someone",
-      titleHint: "Love Someone",
-      artistHint: "Prospa",
-    });
-    const a: TrackCandidate = {
-      handle: "spotify:a",
-      title: "Love Someone (Edit)",
-      artists: ["Prospa"],
-      providerId: "a",
-    };
-    const b: TrackCandidate = {
-      handle: "spotify:b",
-      title: "Love Someone",
-      artists: ["Prospa Band"],
-      providerId: "b",
-    };
-    assert.equal(uniqueBestCandidate(m, [a, b]), null);
+    assert.equal(topSearchHit([first, second])?.handle, "spotify:first");
+    assert.equal(topSearchHit([]), null);
   });
 });

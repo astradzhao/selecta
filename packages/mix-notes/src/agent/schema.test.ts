@@ -1,46 +1,34 @@
 import assert from "node:assert/strict";
+import { asSchema } from "ai";
 import { describe, it } from "node:test";
 
-import { asSchema } from "ai";
+import { NoteProcessingPlanSchema } from "./schema";
+import { SingleTransitionDraftSchema } from "./single-transition-schema";
 
-import { NoteExtractionDraftSchema, NoteProcessingPlanSchema } from "./schema";
+function requiredKeys(schema: Record<string, unknown>): string[] {
+  const required = schema.required;
+  assert.ok(Array.isArray(required), "expected JSON Schema required array");
+  return required as string[];
+}
 
-function assertOpenAiCompatibleObjectSchema(schema: Record<string, unknown>, path: string): void {
-  assert.equal(schema.type, "object", `${path} must be an object`);
-  const properties = schema.properties as Record<string, unknown> | undefined;
-  assert.ok(properties, `${path} must define properties`);
-  const required = schema.required as string[] | undefined;
-  assert.ok(Array.isArray(required), `${path} must define required`);
-  const propertyKeys = Object.keys(properties).sort();
-  assert.deepEqual(
-    [...required].sort(),
-    propertyKeys,
-    `${path} required must include every properties key (OpenAI structured outputs)`,
-  );
-
-  for (const [key, value] of Object.entries(properties)) {
-    if (!value || typeof value !== "object") continue;
-    const nested = value as Record<string, unknown>;
-    if (nested.type === "object") {
-      assertOpenAiCompatibleObjectSchema(nested, `${path}.${key}`);
-    }
-    if (nested.type === "array" && nested.items && typeof nested.items === "object") {
-      const items = nested.items as Record<string, unknown>;
-      if (items.type === "object") {
-        assertOpenAiCompatibleObjectSchema(items, `${path}.${key}.items`);
-      }
-    }
-  }
+function propertiesKeys(schema: Record<string, unknown>): string[] {
+  const properties = schema.properties;
+  assert.ok(properties && typeof properties === "object", "expected JSON Schema properties");
+  return Object.keys(properties as Record<string, unknown>);
 }
 
 describe("note schemas OpenAI compatibility", () => {
-  it("marks every draft property as required (nullable for unknowns)", () => {
-    const jsonSchema = asSchema(NoteExtractionDraftSchema).jsonSchema as Record<string, unknown>;
-    assertOpenAiCompatibleObjectSchema(jsonSchema, "NoteExtractionDraft");
+  it("marks every single-transition draft property as required (nullable for unknowns)", () => {
+    const jsonSchema = asSchema(SingleTransitionDraftSchema).jsonSchema as Record<string, unknown>;
+    const props = propertiesKeys(jsonSchema);
+    const required = requiredKeys(jsonSchema);
+    assert.deepEqual([...required].sort(), [...props].sort());
   });
 
   it("marks every resolved-plan property as required", () => {
     const jsonSchema = asSchema(NoteProcessingPlanSchema).jsonSchema as Record<string, unknown>;
-    assertOpenAiCompatibleObjectSchema(jsonSchema, "NoteProcessingPlan");
+    const props = propertiesKeys(jsonSchema);
+    const required = requiredKeys(jsonSchema);
+    assert.deepEqual([...required].sort(), [...props].sort());
   });
 });

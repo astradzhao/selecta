@@ -1,108 +1,210 @@
-# Local MVP — ticket order
+# Local MVP — canonical ticket order
 
-> Source of truth for **what to work on next**, local-first.  
-> Project: [MVP — Library → Notes → Graph Explorer](https://linear.app/dj-project-astradzhao/project/mvp-library-notes-graph-explorer-08d4f2152899)  
-> Last updated: 2026-08-02  
-> Strategy: library import → free-form notes → graph traversal on `pnpm dev` **before** auth or Vercel.
+> Source of truth for **what to implement next** and how the remaining Linear
+> issues depend on one another.
+>
+> Project: [MVP — Add → Library → Graph](https://linear.app/dj-project-astradzhao/project/mvp-add-library-graph-08d4f2152899)
+>
+> Architecture decisions:
+> [`NEXT_PRODUCT_ARCHITECTURE.md`](./NEXT_PRODUCT_ARCHITECTURE.md)
+>
+> Last reconciled with all Linear issues DJ-1–DJ-76: 2026-08-05
 
----
+## How to use this file
 
-## Product model note (important)
+- Linear is authoritative for issue status, assignment, and blocking relations.
+- This file is authoritative for recommended serial order and parallel lanes.
+- One Linear issue means one `dj-XXXX` branch. Do not combine adjacent tickets.
+- Parent issues DJ-7, DJ-11, and DJ-9 are milestone trackers, not implementation
+  branches unless their descriptions gain standalone work.
+- Deferred tickets are intentionally outside local MVP acceptance. Do not pull
+  them forward without evidence from dogfood or measurements.
 
-Do **not** collapse musical labels and crates into one “section” node.
+## Product and data invariants
 
-| Node       | Meaning                                                               | Relationship  |
-| ---------- | --------------------------------------------------------------------- | ------------- |
-| `Genre`    | Provider catalog metadata (Spotify etc.)                              | `IN_GENRE`    |
-| `Subgenre` | DJ musical label (“UKG”, “melodic house”)                             | `IN_SUBGENRE` |
-| `Folder`   | Organizational container (playlist / crate / folder); optional `kind` | `IN_FOLDER`   |
+- Primary product surfaces are **Add**, **Library**, and **Graph**.
+- Library views are **Tracks**, **Transitions**, and immutable **Submissions**.
+- Postgres owns submissions, proposals/reviews, workflow state, and audit.
+- Neo4j owns tracks and committed transitions.
+- LLM output never writes Neo4j directly.
+- Clear proposals commit independently of ambiguous siblings.
+- Multiple A → B transition edges are valid and addressed by stable edge ID.
+- `Genre`, `Subgenre`, and `Folder` remain distinct concepts; see
+  [DJ-51](https://linear.app/dj-project-astradzhao/issue/DJ-51).
 
-Canonical ticket: [DJ-51](https://linear.app/dj-project-astradzhao/issue/DJ-51).
+## Milestone state
 
----
+### Complete
 
-## Done
+- **M0 — Local foundations**:
+  [DJ-6](https://linear.app/dj-project-astradzhao/issue/DJ-6)
+- **M1 — Local data foundation**:
+  [DJ-10](https://linear.app/dj-project-astradzhao/issue/DJ-10)
+- **M2 — Track discovery & library foundation**:
+  [DJ-8](https://linear.app/dj-project-astradzhao/issue/DJ-8)
 
-- **M0** foundations (DJ-6, DJ-12–14, DJ-17, DJ-49, DJ-50)
-- **M1** local data foundation (DJ-10, DJ-18–24)
+### Active
 
-Deferred outside MVP: [DJ-15](https://linear.app/dj-project-astradzhao/issue/DJ-15) Vercel, [DJ-16](https://linear.app/dj-project-astradzhao/issue/DJ-16) auth.
+- **M3 — Durable transition extraction**:
+  [DJ-7](https://linear.app/dj-project-astradzhao/issue/DJ-7)
+  - current implementation:
+    [DJ-66](https://linear.app/dj-project-astradzhao/issue/DJ-66)
 
-Canceled: DJ-30 default library, DJ-39 live session, DJ-44 bar stepper.
+### Remaining local MVP
 
----
+- **M4 — Graph traversal & transition management**:
+  [DJ-11](https://linear.app/dj-project-astradzhao/issue/DJ-11)
+- **M5 — Unified Add & Library**
+- **M6 — End-to-end local dogfood**:
+  [DJ-9](https://linear.app/dj-project-astradzhao/issue/DJ-9)
 
-## Now — M2 Song discovery & library
+## Recommended serial implementation order
 
-Parent: [DJ-8](https://linear.app/dj-project-astradzhao/issue/DJ-8)
+This is the order for one developer/agent working one branch at a time.
 
-| #   | Ticket                                                        | Title                                                  |
-| --- | ------------------------------------------------------------- | ------------------------------------------------------ |
-| 1   | [DJ-51](https://linear.app/dj-project-astradzhao/issue/DJ-51) | Schema: Subgenre vs Folder (separate nodes)            |
-| 2   | [DJ-53](https://linear.app/dj-project-astradzhao/issue/DJ-53) | API: external music catalog search adapter             |
-| 3   | [DJ-25](https://linear.app/dj-project-astradzhao/issue/DJ-25) | Graph writes for Song/Artist/Genre/Subgenre/Folder     |
-| 4   | [DJ-26](https://linear.app/dj-project-astradzhao/issue/DJ-26) | API: import or manually create a song                  |
-| 5   | [DJ-27](https://linear.app/dj-project-astradzhao/issue/DJ-27) | API: search/list local library                         |
-| 6   | [DJ-28](https://linear.app/dj-project-astradzhao/issue/DJ-28) | API: song detail                                       |
-| 7   | [DJ-29](https://linear.app/dj-project-astradzhao/issue/DJ-29) | UI: search/import + separate Subgenre & Folder pickers |
-| 8   | [DJ-31](https://linear.app/dj-project-astradzhao/issue/DJ-31) | UI: library list + song detail                         |
+### 1. Durable extraction core — now
 
----
+1. [DJ-66 — Durable multi-transition agent orchestration + partial writes](https://linear.app/dj-project-astradzhao/issue/DJ-66)
+   - Current branch.
+   - Replaces non-durable `after()` execution with a durable workflow.
+   - Adds per-transition proposal persistence, child parsing, batched resolve,
+     partial commits, idempotency, reconciliation, and audit.
 
-## Parallel-capable — M3 Free-form notes
+Completion closes the remaining implementation scope of M3/DJ-7. Adaptive
+range reading is explicitly not required.
 
-Parent: [DJ-7](https://linear.app/dj-project-astradzhao/issue/DJ-7)  
-Raw notes do **not** require M2. Linking/parse/commit do.
+### 2. Stable transition domain/API
 
-| #   | Ticket                                                        | Title                                        | Needs library? |
-| --- | ------------------------------------------------------------- | -------------------------------------------- | -------------- |
-| 9   | [DJ-52](https://linear.app/dj-project-astradzhao/issue/DJ-52) | API: create/list/edit arbitrary notes        | No             |
-| 10  | [DJ-37](https://linear.app/dj-project-astradzhao/issue/DJ-37) | UI: notes list and detail                    | No             |
-| 11  | [DJ-36](https://linear.app/dj-project-astradzhao/issue/DJ-36) | UI: free-form note composer + optional parse | No for save    |
-| 12  | [DJ-54](https://linear.app/dj-project-astradzhao/issue/DJ-54) | Optional manual note → song links            | Yes            |
-| 13  | [DJ-33](https://linear.app/dj-project-astradzhao/issue/DJ-33) | Zod schema for optional extraction           | No             |
-| 14  | [DJ-32](https://linear.app/dj-project-astradzhao/issue/DJ-32) | Versioned free-form extraction prompt        | No             |
-| 15  | [DJ-34](https://linear.app/dj-project-astradzhao/issue/DJ-34) | API: parse saved note into proposals         | No             |
-| 16  | [DJ-35](https://linear.app/dj-project-astradzhao/issue/DJ-35) | Resolve song mentions + ambiguity picker     | Yes            |
-| 17  | [DJ-38](https://linear.app/dj-project-astradzhao/issue/DJ-38) | API: commit accepted transitions             | Yes            |
+2. [DJ-73 — Transition identity + CRUD API for parallel Neo4j edges](https://linear.app/dj-project-astradzhao/issue/DJ-73)
+   - Can run in parallel with DJ-66 only on a separate branch.
+   - Establishes stable edge identity and targeted create/read/update/delete.
+   - Unblocks both Library transition queries and Graph edge management.
 
----
+### 3. Cross-store Library query contracts
 
-## Then — M4 Song graph explorer
+3. [DJ-72 — Queryable Library APIs for tracks, transitions, and submissions](https://linear.app/dj-project-astradzhao/issue/DJ-72)
+   - Blocked by DJ-66 and DJ-73.
+   - Joins Neo4j committed data with Postgres submission/proposal state without
+     copying unresolved proposals into the graph.
 
-Parent: [DJ-11](https://linear.app/dj-project-astradzhao/issue/DJ-11)
+### 4. Intake and Graph surfaces
 
-| #   | Ticket                                                        | Title                                               |
-| --- | ------------------------------------------------------------- | --------------------------------------------------- |
-| 18  | [DJ-40](https://linear.app/dj-project-astradzhao/issue/DJ-40) | API: ranked song graph neighborhood                 |
-| 19  | [DJ-55](https://linear.app/dj-project-astradzhao/issue/DJ-55) | Reusable song-neighborhood visualization            |
-| 20  | [DJ-41](https://linear.app/dj-project-astradzhao/issue/DJ-41) | UI: graph explorer + next-song list                 |
-| 21  | [DJ-43](https://linear.app/dj-project-astradzhao/issue/DJ-43) | UI: traverse by selecting next song                 |
-| 22  | [DJ-42](https://linear.app/dj-project-astradzhao/issue/DJ-42) | Optional discovery: same-artist / subgenre / folder |
+4. [DJ-74 — Unified Add page for tracks and transition submissions](https://linear.app/dj-project-astradzhao/issue/DJ-74)
+   - Blocked by DJ-66.
+   - Reuses Add Track and moves transition submission intake to `/add`.
 
----
+5. [DJ-75 — Graph explorer: display and manage parallel transitions](https://linear.app/dj-project-astradzhao/issue/DJ-75)
+   - Blocked by DJ-73.
+   - Closes M4/DJ-11 after verification.
 
-## Then — M5 Dogfood
+DJ-74 and DJ-75 may run in parallel once their independent blockers are done.
 
-Parent: [DJ-9](https://linear.app/dj-project-astradzhao/issue/DJ-9)
+### 5. Unified Library workspace
 
-| #   | Ticket                                                        | Title                                       |
-| --- | ------------------------------------------------------------- | ------------------------------------------- |
-| 23  | [DJ-47](https://linear.app/dj-project-astradzhao/issue/DJ-47) | Import ~10 songs + representative notes     |
-| 24  | [DJ-45](https://linear.app/dj-project-astradzhao/issue/DJ-45) | End-to-end dogfood checklist                |
-| 25  | [DJ-48](https://linear.app/dj-project-astradzhao/issue/DJ-48) | Measure catalog search + graph latency      |
-| 26  | [DJ-46](https://linear.app/dj-project-astradzhao/issue/DJ-46) | Accept local MVP + file post-MVP follow-ups |
+6. [DJ-71 — Unified Library workspace: Tracks, Transitions, and Submissions](https://linear.app/dj-project-astradzhao/issue/DJ-71)
+   - Blocked by DJ-72.
+   - Removes Notes from top-level navigation and establishes the three Library
+     views plus legacy redirects.
 
----
+7. [DJ-67 — Track edit + delete APIs and Library controls](https://linear.app/dj-project-astradzhao/issue/DJ-67)
+   - Follows DJ-71.
+   - Adds missing track management and destructive relationship cleanup.
 
-## Critical path
+8. [DJ-36 — Library transition review for ambiguous extraction proposals](https://linear.app/dj-project-astradzhao/issue/DJ-36)
+   - Blocked by DJ-66, DJ-72, and DJ-71.
+   - Adds per-proposal edit/approve/reject without mutating source submissions.
 
+DJ-67 and DJ-36 may run in parallel after DJ-71.
+
+### 6. Local MVP dogfood and acceptance
+
+9. [DJ-47 — Populate representative tracks, transitions, and submissions](https://linear.app/dj-project-astradzhao/issue/DJ-47)
+   - Starts only after DJ-36, DJ-67, DJ-71, DJ-74, and DJ-75.
+   - Creates realistic fixtures exclusively through product UI.
+
+10. [DJ-45 — Run end-to-end Add → Library → Graph dogfood](https://linear.app/dj-project-astradzhao/issue/DJ-45)
+    - Blocked by DJ-47.
+    - Exercises normal, partial, stale/retry, provider-failure, and limit paths.
+
+11. [DJ-48 — Measure extraction, catalog, Library, and Graph performance/cost](https://linear.app/dj-project-astradzhao/issue/DJ-48)
+    - Blocked by DJ-45.
+    - Measures 1-, 10-, and 100-transition extraction plus core UI/API latency.
+
+12. [DJ-46 — Accept local MVP and triage post-MVP follow-ups](https://linear.app/dj-project-astradzhao/issue/DJ-46)
+    - Blocked by DJ-45 and DJ-48.
+    - Closes M3–M6 only after evidence-backed acceptance.
+
+## Parallel lanes
+
+When separate branches/agents are available:
+
+```text
+DJ-66 ───────────────┬──→ DJ-74 ───────────────────────────────┐
+                    └──→ DJ-72 ←── DJ-73 ──→ DJ-75 ──────────┤
+                              └──→ DJ-71 ──→ DJ-67 ──────────┤
+                                           └──→ DJ-36 ──────┤
+                                                            ▼
+DJ-47 → DJ-45 → DJ-48 → DJ-46
 ```
-DJ-51 → DJ-53 → DJ-25 → DJ-26 → DJ-29 / DJ-27 / DJ-28 → DJ-31
-                 ↘
-DJ-52 → DJ-37 / DJ-36 → DJ-54 → DJ-33/32/34 → DJ-35 → DJ-38
-                                                      ↓
-                                              DJ-40 → DJ-55 → DJ-41 → DJ-43
-                                                      ↓
-                                              DJ-47 → DJ-45 → DJ-46
-```
+
+Do not merge these lanes into one branch. The dependency join is DJ-47.
+
+## Deferred / not on the local MVP critical path
+
+These remain valid tickets, but have explicit evidence gates:
+
+- [DJ-76 — Adaptive range reading for very long submissions](https://linear.app/dj-project-astradzhao/issue/DJ-76)
+  - Build only after DJ-48 shows bounded whole-input orchestration is
+    insufficient.
+- [DJ-42 — Optional graph discovery suggestions](https://linear.app/dj-project-astradzhao/issue/DJ-42)
+  - Build only after DJ-46 if sparse neighborhoods are a demonstrated problem.
+- [DJ-63 — Settings AI workflow usage/cost](https://linear.app/dj-project-astradzhao/issue/DJ-63)
+  - DJ-66 records raw usage; this later ticket aggregates it in Settings.
+- [DJ-15 — Vercel deployment](https://linear.app/dj-project-astradzhao/issue/DJ-15)
+  - Starts after local MVP acceptance in DJ-46.
+- [DJ-16 — Authentication and multi-user tenancy](https://linear.app/dj-project-astradzhao/issue/DJ-16)
+  - Starts after DJ-15 and DJ-46, or when a second real user requires it.
+
+## Complete issue inventory
+
+All completed issues are historical foundation and are not reordered:
+
+- DJ-5, DJ-6, DJ-8, DJ-10
+- DJ-12–DJ-14
+- DJ-17–DJ-29
+- DJ-31–DJ-34
+- DJ-37
+- DJ-40, DJ-41, DJ-43
+- DJ-49–DJ-54
+- DJ-56–DJ-62
+- DJ-64, DJ-65
+- DJ-69, DJ-70
+
+DJ-69 and DJ-70 were reconciled to Done after their merged commits were found
+on `main`.
+
+## Canceled / superseded inventory
+
+- DJ-1–DJ-4 — Linear onboarding placeholders, not product work.
+- DJ-30 — default-library/login flow deferred with auth.
+- DJ-35 and DJ-38 — absorbed into the shipped DJ-34 pipeline foundation.
+- DJ-39 — persisted Live session intentionally removed from local MVP.
+- DJ-44 — bar stepper intentionally removed from current traversal UX.
+- DJ-55 — standalone visualization superseded by the shipped explorer design.
+- DJ-68 — standalone Notes list superseded by DJ-71 Library → Submissions.
+
+Canceled issues must not be reopened merely because old architecture docs mention
+them. Create a focused new issue if the underlying product requirement returns.
+
+## Maintenance rules
+
+- Update this file whenever a ticket is created, canceled, materially rewritten,
+  or moved across the critical path.
+- Keep blocking relations in Linear synchronized with this order.
+- Mark parent trackers complete when their required children finish; deferred
+  post-MVP tickets are detached from M3/M4 parents so they do not hold milestones
+  open.
+- Before starting a ticket, verify its blockers are Done and create its own
+  `dj-XXXX` branch from an up-to-date `main`.
+- After implementation, commit, push, and open/update the ticket PR according to
+  repository workflow rules.

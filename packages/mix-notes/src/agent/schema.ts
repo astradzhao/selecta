@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-import { NOTE_TYPES, TRANSITION_QUALITIES } from "../extraction-schema";
+import { NOTE_TYPES, TRANSITION_QUALITIES } from "../note-types";
+import { CONFIDENCE_LEVELS } from "./confidence";
 
 export const MENTION_RESOLUTION_STATUSES = [
   "resolved",
@@ -53,46 +54,12 @@ export const NoteProcessingPlanSchema = z.object({
   noteType: z.enum(NOTE_TYPES),
   mentions: z.array(NoteMentionPlanSchema),
   transitions: z.array(NoteTransitionPlanSchema),
-  confidence: z.number().min(0).max(1),
+  confidence: z.enum(CONFIDENCE_LEVELS),
   ambiguities: z.array(z.string()),
+  /** When true, apply commits A→B and B→A as separate edges. */
+  bidirectional: z.boolean(),
 });
 export type NoteProcessingPlan = z.infer<typeof NoteProcessingPlanSchema>;
-
-/**
- * Cheap one-shot LLM draft. Candidate selection is filled deterministically afterward.
- * selectedCandidateId / resolutionStatus are not model-controlled.
- */
-export const NoteExtractionDraftSchema = z.object({
-  noteType: z.enum(NOTE_TYPES),
-  mentions: z.array(
-    z.object({
-      mentionId: z.string().min(1),
-      mention: z.string().min(1),
-      titleHint: nullableString,
-      artistHint: nullableString,
-      confidence: nullableConfidence,
-      ambiguityReason: nullableString,
-    }),
-  ),
-  transitions: z.array(NoteTransitionPlanSchema),
-  confidence: z.number().min(0).max(1),
-  ambiguities: z.array(z.string()),
-});
-export type NoteExtractionDraft = z.infer<typeof NoteExtractionDraftSchema>;
-
-export function draftToUnresolvedPlan(draft: NoteExtractionDraft): NoteProcessingPlan {
-  return {
-    noteType: draft.noteType,
-    confidence: draft.confidence,
-    ambiguities: draft.ambiguities,
-    transitions: draft.transitions,
-    mentions: draft.mentions.map((mention) => ({
-      ...mention,
-      selectedCandidateId: null,
-      resolutionStatus: "unresolved" as const,
-    })),
-  };
-}
 
 export function parseCandidateHandle(
   handle: string,

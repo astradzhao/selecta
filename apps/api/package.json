@@ -15,10 +15,13 @@
     "@selecta/db": "workspace:*",
     "@selecta/graph": "workspace:*",
     "@selecta/mix-notes": "workspace:*",
+    "@workflow/ai": "^4.2.0",
     "ai": "^7.0.48",
     "next": "16.2.12",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "workflow": "^4.8.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@selecta/eslint-config": "workspace:*",

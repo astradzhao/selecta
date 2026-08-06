@@ -49,6 +49,21 @@ if (!existsSync(envLocal)) {
 
 loadRootEnv(root);
 
+// Detect half-linked installs: virtual store present but workspace package bins missing.
+// Common after interrupted/sandbox `pnpm install` (CI=true / alternate PNPM_STORE_PATH).
+const dbTsxBin = resolve(root, "packages/db/node_modules/.bin/tsx");
+const pnpmVirtualStore = resolve(root, "node_modules/.pnpm");
+if (!existsSync(dbTsxBin)) {
+  if (existsSync(pnpmVirtualStore)) {
+    fail(
+      "node_modules looks incomplete (missing packages/db/.bin/tsx).\n" +
+        "   Fix: rm -rf node_modules .pnpm-store && pnpm install\n" +
+        "   Tip: run that in a normal terminal; CI=true / alternate PNPM_STORE_PATH can leave a half-linked tree.",
+    );
+  }
+  fail("Dependencies not installed. Run `pnpm install`, then retry `pnpm dev`.");
+}
+
 if (!which("docker")) {
   fail("Docker is not available. Install/start Docker Desktop, then retry `pnpm dev`.");
 }
