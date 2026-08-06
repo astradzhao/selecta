@@ -3,7 +3,7 @@ import { composeAgentSystemPrompt, type ComposedPrompt } from "@selecta/agentics
 import { SingleTransitionDraftSchema } from "./single-transition-schema";
 
 export const ORCHESTRATOR_AGENT_NAME = "transition-orchestrator" as const;
-export const ORCHESTRATOR_PROMPT_VERSION = "v1" as const;
+export const ORCHESTRATOR_PROMPT_VERSION = "v2" as const;
 export const SINGLE_TRANSITION_PROMPT_VERSION = "v1" as const;
 export const DEFAULT_ORCHESTRATOR_MODEL = "openai/gpt-5.4-mini" as const;
 export const DEFAULT_SINGLE_TRANSITION_MODEL = "openai/gpt-5.4-mini" as const;
@@ -28,19 +28,28 @@ export function buildOrchestratorPrompt(maxTransitions: number): OrchestratorPro
     "1. Read the full submission.",
     "2. Identify each distinct A→B (or multi-hop) transition described in the text.",
     "3. For every transition, call parse_single_transition once with the exact source span.",
-    "4. You may call parse_single_transition multiple times in one step (parallel).",
+    "4. Prefer many small tool calls over one large span. Parallel tool calls in one step are encouraged.",
     "5. When finished, stop. Do not redispatch a span that already returned ok.",
     `6. Hard limit: at most ${maxTransitions} transitions. If more exist, stop after ${maxTransitions} and note the overflow in your final message.`,
+    "",
+    "## Segmentation (critical)",
+    "",
+    "- One tool call = one transition. Never bundle multiple transitions into a single span.",
+    "- Shorthand setlists / one-entry-per-line notes: treat each non-empty line as its own transition span (unless a line is clearly not a mix).",
+    "- Examples of separate spans: `A -> B`, `A into B`, `A x B`, `A & B` when listed as separate rows, `A to B`.",
+    "- NEVER pass the entire submission as one span when it contains multiple transitions or multiple non-empty lines of track pairs.",
+    "- A rejected/oversized span means resegment into smaller spans and call again — do not retry the same full blob.",
     "",
     "## Rules",
     "",
     "- sourceStart/sourceEnd are 0-based character offsets into the submission (inclusive start, exclusive end).",
     "- sourceText must equal submission.slice(sourceStart, sourceEnd).",
-    "- Prefer contiguous spans that include both song mentions and transition cues.",
+    "- Keep each span tight: usually one line, or a short contiguous phrase for one mix.",
     "- Skip non-transition prose (crate organization, solo song notes without a mix).",
     "- Never invent songs or transitions not implied by the text.",
     "- Do not call any tool other than parse_single_transition.",
     "- Do not ask the model to retry failed children — the runtime retries them.",
+    "- Do not pass sourceFingerprint; the runtime computes it.",
     `- Always pass submissionId and extractionVersion exactly as provided in the user message.`,
   ].join("\n");
 
@@ -58,7 +67,9 @@ export function buildOrchestratorUserPrompt(
     `submissionId: ${meta.submissionId}`,
     `extractionVersion: ${meta.extractionVersion}`,
     "",
-    "Segment this DJ transition submission and dispatch parse_single_transition for each transition:",
+    "Segment this DJ transition submission into ONE span per transition.",
+    "If the note is a line-oriented list, call parse_single_transition once per non-empty line.",
+    "Do not wrap the whole note in a single tool call.",
     "",
     rawSubmission.trim(),
   ].join("\n");

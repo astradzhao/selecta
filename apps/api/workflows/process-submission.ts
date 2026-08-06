@@ -37,14 +37,13 @@ export async function processSubmissionWorkflow(input: ProcessSubmissionInput) {
       tools: {
         parse_single_transition: {
           description:
-            "Parse exactly one transition from a source span. Returns only {ok, proposalId, retryable}.",
+            "Parse exactly ONE transition from a tight source span (usually one line). Never pass multiple transitions or a whole setlist as one span. Returns only {ok, proposalId, retryable, error}.",
           inputSchema: z.object({
             submissionId: z.string(),
             extractionVersion: z.number().int().nonnegative(),
             sourceStart: z.number().int().nonnegative(),
             sourceEnd: z.number().int().nonnegative(),
             sourceText: z.string().min(1),
-            sourceFingerprint: z.string().optional(),
           }),
           execute: async (toolInput: {
             submissionId: string;
@@ -52,7 +51,6 @@ export async function processSubmissionWorkflow(input: ProcessSubmissionInput) {
             sourceStart: number;
             sourceEnd: number;
             sourceText: string;
-            sourceFingerprint?: string;
           }) =>
             parseSingleTransitionTool({
               ...toolInput,
@@ -73,7 +71,7 @@ export async function processSubmissionWorkflow(input: ProcessSubmissionInput) {
       ],
       writable: getWritable(),
       maxSteps: config.maxSteps,
-      maxOutputTokens: 1_200,
+      maxOutputTokens: 2_400,
     });
 
     const applySummary = await resolveAndApplyProposals(ctx);

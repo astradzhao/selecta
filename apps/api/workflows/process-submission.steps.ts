@@ -165,7 +165,6 @@ export async function parseSingleTransitionTool(rawInput: {
   sourceStart: number;
   sourceEnd: number;
   sourceText: string;
-  sourceFingerprint?: string;
   agentRunId: string;
 }): Promise<ParseSingleTransitionReceipt> {
   "use step";
@@ -191,9 +190,8 @@ export async function parseSingleTransitionTool(rawInput: {
     };
   }
 
-  const fingerprint =
-    parsedInput.data.sourceFingerprint?.trim() ||
-    sourceFingerprint(sourceStart, sourceEnd, sourceText);
+  // Always compute fingerprint server-side — never trust model-supplied values.
+  const fingerprint = sourceFingerprint(sourceStart, sourceEnd, sourceText);
   const proposalKey = spanProposalKey(submissionId, extractionVersion, fingerprint);
 
   const existingCounts = await countProposalsForVersion(submissionId, extractionVersion);

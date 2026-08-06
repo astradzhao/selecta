@@ -50,6 +50,7 @@ export const ParseSingleTransitionInputSchema = z.object({
   sourceStart: z.number().int().nonnegative(),
   sourceEnd: z.number().int().nonnegative(),
   sourceText: z.string().min(1),
+  /** Ignored if provided — fingerprint is always computed server-side. */
   sourceFingerprint: z.string().min(1).optional(),
 });
 export type ParseSingleTransitionInput = z.infer<typeof ParseSingleTransitionInputSchema>;
