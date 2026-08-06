@@ -134,7 +134,7 @@ export function createNoteAgentServices(): NoteAgentServices {
 
     commitTransition: async (input) => {
       const result = await commitTransitionProposal(input);
-      return { proposalKey: result.proposalKey, created: result.created };
+      return { id: result.id, proposalKey: result.proposalKey, created: result.created };
     },
   };
 }

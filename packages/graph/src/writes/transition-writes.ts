@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { GraphWriteError } from "../types";
 import { requireTrimmed, runWrite } from "./shared";
 
@@ -8,6 +10,8 @@ export type CommitTransitionInput = {
   proposalKey: string;
   sourceNoteId: string;
   sourceNoteVersion: number;
+  /** Postgres note_proposals.id when committing from the agent pipeline. */
+  sourceProposalId?: string | null;
   confidence?: number | null;
   fromBar?: number | null;
   toBar?: number | null;
@@ -19,6 +23,7 @@ export type CommitTransitionInput = {
 };
 
 export type CommitTransitionResult = {
+  id: string | null;
   proposalKey: string;
   fromTrackId: string;
   toTrackId: string;
@@ -45,9 +50,14 @@ function optionalString(value: string | null | undefined): string | null {
   return trimmed || null;
 }
 
+function edgeIdFromProps(props: Record<string, unknown>): string | null {
+  const id = props.id;
+  return typeof id === "string" && id.trim() ? id : null;
+}
+
 /**
  * Idempotently MERGE a TRANSITION edge keyed by `proposalKey`.
- * Verifies both Track ids exist before writing.
+ * Verifies both Track ids exist before writing. New edges get a stable `id`.
  */
 export async function commitTransitionProposal(
   input: CommitTransitionInput,
@@ -60,11 +70,14 @@ export async function commitTransitionProposal(
     throw new GraphWriteError("invalid_input", "sourceNoteVersion must be a non-negative integer.");
   }
 
+  const id = randomUUID();
   const now = new Date().toISOString();
   const props = {
+    id,
     proposalKey,
     sourceNoteId,
     sourceNoteVersion: input.sourceNoteVersion,
+    sourceProposalId: optionalString(input.sourceProposalId),
     confidence: optionalNumber(input.confidence),
     fromBar: optionalNumber(input.fromBar),
     toBar: optionalNumber(input.toBar),
@@ -102,12 +115,14 @@ export async function commitTransitionProposal(
       { proposalKey },
     );
     if (existing.records[0]) {
+      const existingProps = existing.records[0].get("props") as Record<string, unknown>;
       return {
+        id: edgeIdFromProps(existingProps),
         proposalKey,
         fromTrackId,
         toTrackId,
         created: false,
-        properties: existing.records[0].get("props") as Record<string, unknown>,
+        properties: existingProps,
       };
     }
 
@@ -117,8 +132,10 @@ export async function commitTransitionProposal(
       MATCH (to:Track {id: $toTrackId})
       MERGE (from)-[t:TRANSITION {proposalKey: $proposalKey}]->(to)
       ON CREATE SET
+        t.id = $id,
         t.sourceNoteId = $sourceNoteId,
         t.sourceNoteVersion = $sourceNoteVersion,
+        t.sourceProposalId = $sourceProposalId,
         t.confidence = $confidence,
         t.fromBar = $fromBar,
         t.toBar = $toBar,
@@ -136,12 +153,14 @@ export async function commitTransitionProposal(
       { fromTrackId, toTrackId, ...props },
     );
 
+    const createdProps = (created.records[0]?.get("props") ?? {}) as Record<string, unknown>;
     return {
+      id: edgeIdFromProps(createdProps),
       proposalKey,
       fromTrackId,
       toTrackId,
       created: true,
-      properties: (created.records[0]?.get("props") ?? {}) as Record<string, unknown>,
+      properties: createdProps,
     };
   });
 }

@@ -401,6 +401,7 @@ export async function resolveAndApplyProposals(ctx: OrchestratorContext): Promis
       noteId: ctx.noteId,
       extractionVersion: ctx.extractionVersion,
       proposalKey: proposal.proposalKey,
+      sourceProposalId: proposal.id,
     });
 
     if (applied.committed) {
@@ -415,6 +416,7 @@ export async function resolveAndApplyProposals(ctx: OrchestratorContext): Promis
           decision: applied.decision,
           importedTrackIds: applied.importedTrackIds,
           bidirectional: Boolean(item.plan.bidirectional),
+          transitionId: applied.transitionId,
         },
       });
       if (item.plan.bidirectional && applied.fromTrackId && applied.toTrackId) {
@@ -428,6 +430,7 @@ export async function resolveAndApplyProposals(ctx: OrchestratorContext): Promis
           payload: {
             decision: applied.decision,
             reverseOf: proposal.proposalKey,
+            transitionId: applied.reverseTransitionId,
           },
         });
       }

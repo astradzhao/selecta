@@ -35,6 +35,7 @@ export const AGENT_SAFE_GRAPH_SCHEMA = {
     "folders",
   ],
   transitionProperties: [
+    "id",
     "fromBar",
     "toBar",
     "barsOverlap",
@@ -44,6 +45,7 @@ export const AGENT_SAFE_GRAPH_SCHEMA = {
     "notes",
     "sourceNoteId",
     "sourceNoteVersion",
+    "sourceProposalId",
     "proposalKey",
     "confidence",
     "createdAt",

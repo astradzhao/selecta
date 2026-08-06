@@ -94,10 +94,7 @@ function Artwork({
   return (
     <div
       data-art-role={artRole}
-      className={cn(
-        "bg-muted relative shrink-0 overflow-hidden rounded-2xl",
-        className,
-      )}
+      className={cn("bg-muted relative shrink-0 overflow-hidden rounded-2xl", className)}
       style={{ width: size, height: size }}
     >
       {url ? (
@@ -742,7 +739,8 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
               )}
             >
               {neighbors.map((neighbor, index) => {
-                const rowKey = neighbor.transition.proposalKey ?? neighbor.id;
+                const rowKey =
+                  neighbor.transition.id ?? neighbor.transition.proposalKey ?? neighbor.id;
                 const expanded = expandedKey === rowKey;
                 return (
                   <NeighborCard

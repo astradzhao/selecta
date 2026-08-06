@@ -5,9 +5,11 @@ import type { TrackSummary } from "./tracks";
 
 /** Transition edge fields returned for graph explorer detail panels. */
 export type TransitionEdgeSummary = {
+  id: string | null;
   proposalKey: string | null;
   sourceNoteId: string | null;
   sourceNoteVersion: number | null;
+  sourceProposalId: string | null;
   confidence: number | null;
   fromBar: number | null;
   toBar: number | null;
@@ -58,9 +60,11 @@ function asOptionalString(value: unknown): string | null {
 export function asTransitionEdge(props: Record<string, unknown> | null): TransitionEdgeSummary {
   if (!props) {
     return {
+      id: null,
       proposalKey: null,
       sourceNoteId: null,
       sourceNoteVersion: null,
+      sourceProposalId: null,
       confidence: null,
       fromBar: null,
       toBar: null,
@@ -74,9 +78,11 @@ export function asTransitionEdge(props: Record<string, unknown> | null): Transit
     };
   }
   return {
+    id: asOptionalString(props.id),
     proposalKey: asOptionalString(props.proposalKey),
     sourceNoteId: asOptionalString(props.sourceNoteId),
     sourceNoteVersion: asNeo4jNumber(props.sourceNoteVersion),
+    sourceProposalId: asOptionalString(props.sourceProposalId),
     confidence: asNeo4jNumber(props.confidence),
     fromBar: asNeo4jNumber(props.fromBar),
     toBar: asNeo4jNumber(props.toBar),
@@ -106,7 +112,7 @@ export function transitionQualityRank(quality: string | null | undefined): numbe
 
 /**
  * Stable ranking for outbound neighbors (ARCHITECTURE §11, local MVP):
- * quality → confidence DESC → fromBar ASC → title → proposalKey.
+ * quality → confidence DESC → fromBar ASC → title → edge id → proposalKey.
  */
 export function compareNeighborhoodNeighbors(
   a: NeighborhoodNeighbor,
@@ -136,6 +142,11 @@ export function compareNeighborhoodNeighbors(
     sensitivity: "base",
   });
   if (titleDelta !== 0) return titleDelta;
+
+  const idA = a.transition.id ?? "";
+  const idB = b.transition.id ?? "";
+  const idDelta = idA.localeCompare(idB);
+  if (idDelta !== 0) return idDelta;
 
   const keyA = a.transition.proposalKey ?? "";
   const keyB = b.transition.proposalKey ?? "";

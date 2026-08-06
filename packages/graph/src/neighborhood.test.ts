@@ -37,9 +37,11 @@ function neighbor(
     subgenres: [],
     folders: [],
     transition: {
+      id: `edge:${id}`,
       proposalKey: `key:${id}`,
       sourceNoteId: null,
       sourceNoteVersion: null,
+      sourceProposalId: null,
       confidence: null,
       fromBar: null,
       toBar: null,

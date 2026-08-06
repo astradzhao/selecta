@@ -64,6 +64,7 @@ export type NoteAgentServices = {
     proposalKey: string;
     sourceNoteId: string;
     sourceNoteVersion: number;
+    sourceProposalId?: string | null;
     confidence?: number | null;
     fromBar?: number | null;
     toBar?: number | null;
@@ -72,5 +73,5 @@ export type NoteAgentServices = {
     intent?: string | null;
     quality?: string | null;
     notes?: string | null;
-  }) => Promise<{ proposalKey: string; created: boolean }>;
+  }) => Promise<{ id: string | null; proposalKey: string; created: boolean }>;
 };
