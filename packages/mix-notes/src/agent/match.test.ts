@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { mentionSearchQuery, topSearchHit } from "./match";
+import { mentionSearchQuery, stripCueSuffixesFromSearchQuery, topSearchHit } from "./match";
 import type { NoteMentionPlan } from "./schema";
 import type { TrackCandidate } from "./services";
 
@@ -33,6 +33,19 @@ describe("mention search helpers", () => {
       mentionSearchQuery(mention({ mention: " ", titleHint: "Thrilla", artistHint: "nightmre" })),
       "Thrilla nightmre",
     );
+  });
+
+  it("strips bar cue suffixes from mention search queries", () => {
+    assert.equal(
+      mentionSearchQuery(mention({ mention: "Echo - chainsmokers at bar 33" })),
+      "Echo - chainsmokers",
+    );
+    assert.equal(
+      mentionSearchQuery(mention({ mention: "sweet nothing - calvin harris at bar 18" })),
+      "sweet nothing - calvin harris",
+    );
+    assert.equal(stripCueSuffixesFromSearchQuery("levels avicii bar 64"), "levels avicii");
+    assert.equal(stripCueSuffixesFromSearchQuery("titanium bars 32-48"), "titanium");
   });
 
   it("takes the first search hit", () => {
