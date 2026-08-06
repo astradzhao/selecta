@@ -72,9 +72,12 @@ type ExtractionProposalSummary = {
   transition: {
     fromMentionId?: string;
     toMentionId?: string;
-    technique?: string | null;
     fromBar?: number | null;
     toBar?: number | null;
+    barsOverlap?: number | null;
+    technique?: string | null;
+    intent?: string | null;
+    quality?: string | null;
     notes?: string | null;
   } | null;
   decision: string | null;
@@ -130,10 +133,28 @@ function proposalsFromNote(note: ApiNote): ExtractionProposalSummary[] {
           ];
         })
       : null;
-    const transition =
+    const transitionRaw =
       p.transition && typeof p.transition === "object"
-        ? (p.transition as ExtractionProposalSummary["transition"])
+        ? (p.transition as Record<string, unknown>)
         : null;
+    const transition: ExtractionProposalSummary["transition"] = transitionRaw
+      ? {
+          fromMentionId:
+            typeof transitionRaw.fromMentionId === "string"
+              ? transitionRaw.fromMentionId
+              : undefined,
+          toMentionId:
+            typeof transitionRaw.toMentionId === "string" ? transitionRaw.toMentionId : undefined,
+          fromBar: typeof transitionRaw.fromBar === "number" ? transitionRaw.fromBar : null,
+          toBar: typeof transitionRaw.toBar === "number" ? transitionRaw.toBar : null,
+          barsOverlap:
+            typeof transitionRaw.barsOverlap === "number" ? transitionRaw.barsOverlap : null,
+          technique: typeof transitionRaw.technique === "string" ? transitionRaw.technique : null,
+          intent: typeof transitionRaw.intent === "string" ? transitionRaw.intent : null,
+          quality: typeof transitionRaw.quality === "string" ? transitionRaw.quality : null,
+          notes: typeof transitionRaw.notes === "string" ? transitionRaw.notes : null,
+        }
+      : null;
     const ambiguities = Array.isArray(p.ambiguities)
       ? p.ambiguities.filter((item): item is string => typeof item === "string")
       : [];
@@ -213,6 +234,28 @@ function emptyMention(): ExtractionProposalSummary["mentions"][number] {
   };
 }
 
+function transitionMetadataParts(
+  transition: NonNullable<ExtractionProposalSummary["transition"]>,
+): string[] {
+  const parts: string[] = [];
+  if (transition.fromBar != null || transition.toBar != null) {
+    parts.push(`bars ${transition.fromBar ?? "—"} → ${transition.toBar ?? "—"}`);
+  }
+  if (transition.barsOverlap != null) {
+    parts.push(`overlap ${transition.barsOverlap}`);
+  }
+  if (transition.technique?.trim()) {
+    parts.push(`technique ${transition.technique.trim()}`);
+  }
+  if (transition.intent?.trim()) {
+    parts.push(`intent ${transition.intent.trim()}`);
+  }
+  if (transition.quality?.trim()) {
+    parts.push(`quality ${transition.quality.trim()}`);
+  }
+  return parts;
+}
+
 function ExtractionDebug({ note }: { note: ApiNote }) {
   const proposals = proposalsFromNote(note);
   const summary = applySummaryFromNote(note);
@@ -258,6 +301,10 @@ function ExtractionDebug({ note }: { note: ApiNote }) {
               const edgeLabel = proposal.transition
                 ? `${mentionLabel(fromMention)} → ${mentionLabel(toMention)}`
                 : null;
+              const metadataParts = proposal.transition
+                ? transitionMetadataParts(proposal.transition)
+                : [];
+              const transitionNotes = proposal.transition?.notes?.trim() || null;
 
               return (
                 <li
@@ -286,6 +333,13 @@ function ExtractionDebug({ note }: { note: ApiNote }) {
                   ) : null}
 
                   {edgeLabel ? <p className="text-sm">{edgeLabel}</p> : null}
+
+                  {metadataParts.length > 0 ? (
+                    <p className="text-muted-foreground text-xs">{metadataParts.join(" · ")}</p>
+                  ) : null}
+                  {transitionNotes ? (
+                    <p className="text-muted-foreground text-xs">notes: {transitionNotes}</p>
+                  ) : null}
 
                   {proposal.fromTrackId || proposal.toTrackId ? (
                     <p className="text-muted-foreground font-mono text-xs">
