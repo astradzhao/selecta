@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { legacyProposalKey, sourceFingerprint, spanProposalKey } from "./proposal-key";
+import { sourceFingerprint, spanProposalKey } from "./proposal-key";
 import { assertRawTextWithinLimit, SUBMISSION_LIMITS, utf8ByteLength } from "./limits";
 
 describe("proposal keys", () => {
@@ -11,10 +11,6 @@ describe("proposal keys", () => {
     assert.equal(key, `note-1:2:span:${fp}`);
     assert.equal(sourceFingerprint(0, 12, "A into B"), fp);
     assert.notEqual(sourceFingerprint(0, 12, "A into B"), sourceFingerprint(1, 13, "A into B"));
-  });
-
-  it("keeps legacy index keys for committed-edge compatibility", () => {
-    assert.equal(legacyProposalKey("note-1", 3, 0), "note-1:3:0");
   });
 });
 

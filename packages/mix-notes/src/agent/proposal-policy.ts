@@ -5,7 +5,6 @@ import type {
   PolicyCommitAction,
   PolicyGateCode,
   PolicyImportAction,
-  PolicyResult,
 } from "./policy";
 import type { TrackCandidate } from "./services";
 
@@ -205,16 +204,5 @@ export function evaluateProposalPolicy(input: EvaluateProposalPolicyInput): Prop
       transition,
     },
     resolvedTrackIdsByMention,
-  };
-}
-
-/** Convert a proposal policy result into the legacy PolicyResult shape for shared apply helpers. */
-export function proposalPolicyToPlanPolicy(result: ProposalPolicyResult): PolicyResult {
-  return {
-    decision: result.decision,
-    reasons: result.reasons,
-    imports: result.imports,
-    commits: result.commit ? [result.commit] : [],
-    resolvedTrackIdsByMention: result.resolvedTrackIdsByMention,
   };
 }

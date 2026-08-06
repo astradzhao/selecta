@@ -71,7 +71,7 @@ export {
 
 export { closeDriver, getDriver, isNeo4jConfigured, type GraphStatus } from "./client";
 
-export { getGraphStatus, readCypher, runCypher, writeCypher, type CypherParams } from "./cypher";
+export { getGraphStatus, readCypher, writeCypher, type CypherParams } from "./cypher";
 
 export {
   GRAPH_SCHEMA_STATEMENTS,

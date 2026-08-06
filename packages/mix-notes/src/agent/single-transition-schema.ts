@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { NOTE_TYPES, TRANSITION_QUALITIES } from "../extraction-schema";
+import { NOTE_TYPES } from "../note-types";
 import { MENTION_RESOLUTION_STATUSES, NoteTransitionPlanSchema } from "./schema";
 
 /**

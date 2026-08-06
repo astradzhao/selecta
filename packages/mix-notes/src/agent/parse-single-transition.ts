@@ -1,7 +1,7 @@
 import { createAgentLogger, type AgentLogger, type AgentUsage } from "@selecta/agentics";
 import { generateText, NoOutputGeneratedError, Output } from "ai";
 
-import { providerFromModel } from "../extract-note";
+import { providerFromModel } from "./provider";
 import {
   buildSingleTransitionPrompt,
   buildSingleTransitionUserPrompt,

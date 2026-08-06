@@ -27,15 +27,3 @@ export function spanProposalKey(
 ): string {
   return `${submissionId}:${extractionVersion}:span:${fingerprint}`;
 }
-
-/**
- * Legacy key used by DJ-64 one-shot commits.
- * Retained for compatibility with already-committed Neo4j edges.
- */
-export function legacyProposalKey(
-  noteId: string,
-  extractionVersion: number,
-  transitionIndex: number,
-): string {
-  return `${noteId}:${extractionVersion}:${transitionIndex}`;
-}
