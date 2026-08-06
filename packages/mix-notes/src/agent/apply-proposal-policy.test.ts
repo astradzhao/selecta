@@ -8,8 +8,9 @@ import type { NoteAgentServices } from "./services";
 
 const plan: NoteProcessingPlan = {
   noteType: "transition",
-  confidence: 0.95,
+  confidence: "high",
   ambiguities: [],
+  bidirectional: false,
   mentions: [
     {
       mentionId: "m1",
@@ -90,6 +91,50 @@ describe("applyProposalPolicy", () => {
 
     assert.equal(result.committed, true);
     assert.deepEqual(commits, [key]);
+  });
+
+  it("commits both directions when bidirectional is true", async () => {
+    const commits: string[] = [];
+    const services: NoteAgentServices = {
+      searchLibraryTracks: async () => ({ results: [] }),
+      searchSpotifyTracks: async () => ({ results: [] }),
+      findLibraryTrackByExternalId: async () => null,
+      importSpotifyTrack: async () => {
+        throw new Error("should not import");
+      },
+      commitTransition: async (input) => {
+        commits.push(`${input.proposalKey}:${input.fromTrackId}->${input.toTrackId}`);
+        return { proposalKey: input.proposalKey, created: true };
+      },
+    };
+
+    const policy: ProposalPolicyResult = {
+      decision: "auto_commit",
+      reasons: [{ code: "ok", message: "ok" }],
+      imports: [],
+      commit: {
+        transitionIndex: 0,
+        fromMentionId: "m1",
+        toMentionId: "m2",
+        fromTrackId: "t1",
+        toTrackId: "t2",
+        transition: plan.transitions[0]!,
+      },
+      resolvedTrackIdsByMention: { m1: "t1", m2: "t2" },
+    };
+
+    const key = "note-1:2:span:pair";
+    const result = await applyProposalPolicy({
+      plan: { ...plan, bidirectional: true },
+      policy,
+      services,
+      noteId: "note-1",
+      extractionVersion: 2,
+      proposalKey: key,
+    });
+
+    assert.equal(result.committed, true);
+    assert.deepEqual(commits, [`${key}:t1->t2`, `${key}:rev:t2->t1`]);
   });
 
   it("does not commit when a sibling-style needs_review decision is applied", async () => {

@@ -10,6 +10,15 @@ export {
 } from "./note-types";
 
 export {
+  CONFIDENCE_LEVELS,
+  AUTO_COMMIT_CONFIDENCE_FLOOR,
+  confidenceOrdinal,
+  confidenceToUnitInterval,
+  meetsAutoCommitConfidence,
+  type ConfidenceLevel,
+} from "./agent/confidence";
+
+export {
   CandidateHandleSchema,
   NoteMentionPlanSchema,
   NoteTransitionPlanSchema,

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { NOTE_TYPES } from "../note-types";
+import { CONFIDENCE_LEVELS } from "./confidence";
 import { MENTION_RESOLUTION_STATUSES, NoteTransitionPlanSchema } from "./schema";
 
 /**
@@ -27,10 +28,15 @@ export const SingleTransitionDraftSchema = z.object({
         ambiguityReason: nullableString,
       }),
     )
-    .min(1)
-    .max(4),
+    .min(2)
+    .max(2),
   transition: NoteTransitionPlanSchema,
-  confidence: z.number().min(0).max(1),
+  /**
+   * True when the span is an unordered pair (e.g. "A, B" / "A & B") and both
+   * directions should be committed as separate edges.
+   */
+  bidirectional: z.boolean(),
+  confidence: z.enum(CONFIDENCE_LEVELS),
   ambiguities: z.array(z.string()),
 });
 export type SingleTransitionDraft = z.infer<typeof SingleTransitionDraftSchema>;
@@ -60,6 +66,7 @@ export function draftToSingleUnresolvedPlan(draft: SingleTransitionDraft) {
     noteType: draft.noteType,
     confidence: draft.confidence,
     ambiguities: draft.ambiguities,
+    bidirectional: draft.bidirectional === true,
     transitions: [draft.transition],
     mentions: draft.mentions.map((mention) => ({
       ...mention,

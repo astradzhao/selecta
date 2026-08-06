@@ -2,18 +2,16 @@ import { createHash } from "node:crypto";
 
 /**
  * Stable content fingerprint for a source span.
- * Used so agent resegmentation does not duplicate proposals.
+ * Offsets are ignored so slight resegmentation of the same text does not
+ * create duplicate proposals within a version.
  */
 export function sourceFingerprint(
-  sourceStart: number,
-  sourceEnd: number,
+  _sourceStart: number,
+  _sourceEnd: number,
   sourceText: string,
 ): string {
-  const normalized = sourceText.replace(/\s+/g, " ").trim();
-  return createHash("sha256")
-    .update(`${sourceStart}:${sourceEnd}:${normalized}`)
-    .digest("hex")
-    .slice(0, 24);
+  const normalized = sourceText.replace(/\s+/g, " ").trim().toLowerCase();
+  return createHash("sha256").update(normalized).digest("hex").slice(0, 24);
 }
 
 /**

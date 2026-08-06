@@ -41,6 +41,7 @@ function plan(
     mentions: [],
     transitions: [],
     ambiguities: [],
+    bidirectional: false,
     ...partial,
   };
 }
@@ -62,7 +63,7 @@ describe("evaluateProposalPolicy", () => {
     const result = evaluateProposalPolicy({
       plan: plan({
         noteType: "transition",
-        confidence: 0.95,
+        confidence: "high",
         mentions: [
           mention({
             mentionId: "m1",
@@ -103,7 +104,7 @@ describe("evaluateProposalPolicy", () => {
     const result = evaluateProposalPolicy({
       plan: plan({
         noteType: "transition",
-        confidence: 0.95,
+        confidence: "high",
         ambiguities: ["unclear to track"],
         mentions: [
           mention({
@@ -124,5 +125,89 @@ describe("evaluateProposalPolicy", () => {
 
     assert.equal(result.decision, "needs_review");
     assert.equal(result.commit, null);
+  });
+
+  it("holds moderate confidence for review even when endpoints resolve", () => {
+    const from = graphCandidate("t1", "Levels", ["Avicii"]);
+    const to = graphCandidate("t2", "Love Someone", ["Prospa"]);
+    const result = evaluateProposalPolicy({
+      plan: plan({
+        noteType: "transition",
+        confidence: "moderate",
+        mentions: [
+          mention({
+            mentionId: "m1",
+            mention: "Levels",
+            titleHint: "Levels",
+            artistHint: "Avicii",
+            selectedCandidateId: from.handle,
+            resolutionStatus: "resolved",
+          }),
+          mention({
+            mentionId: "m2",
+            mention: "Love Someone",
+            titleHint: "Love Someone",
+            artistHint: "Prospa",
+            selectedCandidateId: to.handle,
+            resolutionStatus: "resolved",
+          }),
+        ],
+        transitions: [transition({ fromMentionId: "m1", toMentionId: "m2" })],
+      }),
+      candidatesByHandle: new Map([
+        [from.handle, from],
+        [to.handle, to],
+      ]),
+      candidatesByMentionId: new Map([
+        ["m1", [from]],
+        ["m2", [to]],
+      ]),
+    });
+
+    assert.equal(result.decision, "needs_review");
+    assert.equal(result.commit, null);
+    assert.ok(result.reasons.some((reason) => reason.code === "low_confidence"));
+  });
+
+  it("auto-commits when plan.ambiguities are present but endpoints resolve", () => {
+    const from = graphCandidate("t1", "Levels", ["Avicii"]);
+    const to = graphCandidate("t2", "Love Someone", ["Prospa"]);
+    const result = evaluateProposalPolicy({
+      plan: plan({
+        noteType: "transition",
+        confidence: "strong",
+        ambiguities: ["missing bars — advisory only"],
+        mentions: [
+          mention({
+            mentionId: "m1",
+            mention: "Levels",
+            titleHint: "Levels",
+            artistHint: "Avicii",
+            selectedCandidateId: from.handle,
+            resolutionStatus: "resolved",
+          }),
+          mention({
+            mentionId: "m2",
+            mention: "Love Someone",
+            titleHint: "Love Someone",
+            artistHint: "Prospa",
+            selectedCandidateId: to.handle,
+            resolutionStatus: "resolved",
+          }),
+        ],
+        transitions: [transition({ fromMentionId: "m1", toMentionId: "m2" })],
+      }),
+      candidatesByHandle: new Map([
+        [from.handle, from],
+        [to.handle, to],
+      ]),
+      candidatesByMentionId: new Map([
+        ["m1", [from]],
+        ["m2", [to]],
+      ]),
+    });
+
+    assert.equal(result.decision, "auto_commit");
+    assert.ok(result.commit);
   });
 });

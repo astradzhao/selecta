@@ -31,7 +31,8 @@ function optionalNumber(value: number | null | undefined): number | null {
     return null;
   }
   if (!Number.isFinite(value)) {
-    throw new GraphWriteError("invalid_input", "Numeric transition fields must be finite.");
+    // Models occasionally emit non-finite placeholders; treat as missing metadata.
+    return null;
   }
   return value;
 }

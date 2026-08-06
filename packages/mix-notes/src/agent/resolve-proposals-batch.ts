@@ -1,6 +1,6 @@
 import { CandidateRegistry } from "./candidate-registry";
 import { SUBMISSION_LIMITS } from "./limits";
-import { mentionSearchQuery, uniqueBestCandidate } from "./match";
+import { mentionSearchQuery, topSearchHit } from "./match";
 import type { NoteMentionPlan, NoteProcessingPlan } from "./schema";
 import type { NoteAgentServices, SearchQueriesInput, TrackCandidate } from "./services";
 
@@ -49,8 +49,9 @@ function chunk<T>(items: T[], size: number): T[][] {
 }
 
 /**
- * Deduplicate mention search queries across proposals, then batch library + Spotify resolve.
+ * Deduplicate mention search queries across proposals, then batch Spotify resolve.
  * Each proposal gets its own resolved plan + candidate maps.
+ * Selection rule: take the top Spotify hit (catalog ranking).
  */
 export async function resolveProposalsBatch(
   input: ResolveProposalsBatchInput,
@@ -82,7 +83,6 @@ export async function resolveProposalsBatch(
     }
   }
 
-  // Assign ephemeral search ids so batched results map back to proposal+mention.
   const searchMentions = pending.map((item, index) => ({
     ...item,
     searchId: `p${index}`,
@@ -121,74 +121,47 @@ export async function resolveProposalsBatch(
     }
   }
 
-  await runSearch(input.services.searchLibraryTracks, searchMentions);
+  await runSearch(input.services.searchSpotifyTracks, searchMentions);
 
-  const needsSpotify: typeof searchMentions = [];
   for (const target of searchMentions) {
     const plan = plans.get(target.proposalId)!;
     const mention = plan.mentions.find((m) => m.mentionId === target.mention.mentionId);
     if (!mention || mention.selectedCandidateId) continue;
 
     const registry = registries.get(target.proposalId)!;
-    const peers = registry.byMentionId.get(mention.mentionId) ?? [];
-    const unique = uniqueBestCandidate(mention, peers);
-    if (unique?.trackId) {
-      mention.selectedCandidateId = unique.handle;
+    const peers = (registry.byMentionId.get(mention.mentionId) ?? []).filter((item) =>
+      item.handle.startsWith("spotify:"),
+    );
+    const top = topSearchHit(peers);
+    if (!top?.providerId) {
+      mention.resolutionStatus = "unresolved";
+      mention.selectedCandidateId = null;
+      continue;
+    }
+
+    const existing = await input.services.findLibraryTrackByExternalId({
+      provider: "spotify",
+      providerId: top.providerId,
+    });
+    if (existing?.trackId) {
+      registry.ingest({
+        results: [
+          {
+            mentionId: mention.mentionId,
+            query: target.query,
+            candidates: [existing],
+          },
+        ],
+      });
+      mention.selectedCandidateId = existing.handle;
       mention.resolutionStatus = "resolved";
       mention.ambiguityReason = null;
       continue;
     }
-    needsSpotify.push(target);
-  }
 
-  if (needsSpotify.length > 0) {
-    await runSearch(input.services.searchSpotifyTracks, needsSpotify);
-
-    for (const target of needsSpotify) {
-      const plan = plans.get(target.proposalId)!;
-      const mention = plan.mentions.find((m) => m.mentionId === target.mention.mentionId);
-      if (!mention || mention.selectedCandidateId) continue;
-
-      const registry = registries.get(target.proposalId)!;
-      const peers = (registry.byMentionId.get(mention.mentionId) ?? []).filter((item) =>
-        item.handle.startsWith("spotify:"),
-      );
-      const unique = uniqueBestCandidate(mention, peers);
-      if (unique?.providerId) {
-        const existing = await input.services.findLibraryTrackByExternalId({
-          provider: "spotify",
-          providerId: unique.providerId,
-        });
-        if (existing?.trackId) {
-          registry.ingest({
-            results: [
-              {
-                mentionId: mention.mentionId,
-                query: target.query,
-                candidates: [existing],
-              },
-            ],
-          });
-          mention.selectedCandidateId = existing.handle;
-          mention.resolutionStatus = "resolved";
-          mention.ambiguityReason = null;
-          continue;
-        }
-        mention.selectedCandidateId = unique.handle;
-        mention.resolutionStatus = "catalog_match";
-        mention.ambiguityReason = null;
-        continue;
-      }
-      if (peers.length > 1 || (registry.byMentionId.get(mention.mentionId)?.length ?? 0) > 1) {
-        mention.resolutionStatus = "ambiguous";
-        mention.ambiguityReason =
-          mention.ambiguityReason ?? "Multiple close catalog/library matches.";
-        mention.selectedCandidateId = null;
-      } else {
-        mention.resolutionStatus = "unresolved";
-        mention.selectedCandidateId = null;
-      }
-    }
+    mention.selectedCandidateId = top.handle;
+    mention.resolutionStatus = "catalog_match";
+    mention.ambiguityReason = null;
   }
 
   return {

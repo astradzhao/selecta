@@ -3,7 +3,7 @@ import { composeAgentSystemPrompt, type ComposedPrompt } from "@selecta/agentics
 import { SingleTransitionDraftSchema } from "./single-transition-schema";
 
 export const ORCHESTRATOR_AGENT_NAME = "transition-orchestrator" as const;
-export const ORCHESTRATOR_PROMPT_VERSION = "v2" as const;
+export const ORCHESTRATOR_PROMPT_VERSION = "v1" as const;
 export const SINGLE_TRANSITION_PROMPT_VERSION = "v1" as const;
 export const DEFAULT_ORCHESTRATOR_MODEL = "openai/gpt-5.4-mini" as const;
 export const DEFAULT_SINGLE_TRANSITION_MODEL = "openai/gpt-5.4-mini" as const;
@@ -34,9 +34,10 @@ export function buildOrchestratorPrompt(maxTransitions: number): OrchestratorPro
     "",
     "## Segmentation (critical)",
     "",
-    "- One tool call = one transition. Never bundle multiple transitions into a single span.",
-    "- Shorthand setlists / one-entry-per-line notes: treat each non-empty line as its own transition span (unless a line is clearly not a mix).",
-    "- Examples of separate spans: `A -> B`, `A into B`, `A x B`, `A & B` when listed as separate rows, `A to B`.",
+    "- One tool call = one transition (or one unordered pair). Never bundle multiple mixes into a single span.",
+    "- Shorthand setlists / one-entry-per-line notes: treat each non-empty line as its own span (unless a line is clearly not a mix).",
+    "- Directed examples: `A -> B`, `A into B`, `A to B`.",
+    "- Unordered pair examples (child sets bidirectional=true): `A, B`, `A & B`, `A x B` on one line.",
     "- NEVER pass the entire submission as one span when it contains multiple transitions or multiple non-empty lines of track pairs.",
     "- A rejected/oversized span means resegment into smaller spans and call again — do not retry the same full blob.",
     "",
@@ -91,21 +92,56 @@ export function buildSingleTransitionPrompt(): ComposedPrompt {
         id: "objective",
         title: "Objective",
         body: [
-          "1. Extract song mentions and exactly one transition from the span.",
-          "2. Return one JSON draft.",
-          "3. Downstream code matches titles/artists to the library and Spotify.",
+          "1. Split the span into exactly TWO track endpoints.",
+          "2. For each endpoint, emit one Spotify search query string in `mention` (keep the words together — do NOT split title vs artist).",
+          "3. Emit exactly one transition m1 → m2.",
+          "4. Downstream code searches Spotify with those two queries and takes the top hit.",
+        ].join("\n"),
+      },
+      {
+        id: "query-grammar",
+        title: "Query grammar (critical)",
+        body: [
+          "Always emit exactly 2 mentions (m1, m2).",
+          "Each `mention` value is a ready-made search query for that track — typically the raw tokens from that side of the mix.",
+          "Set titleHint and artistHint to null (Spotify ranking handles identity).",
+          "",
+          "Separators that split LEFT query from RIGHT query:",
+          "- directed: `->`, `→`, `to`, `into` → bidirectional=false",
+          "- unordered pair: `,`, `&`, or `x` between two tracks → bidirectional=true",
+          "",
+          "Examples:",
+          '- `mirror sabai to getting late slander` → m1.mention="mirror sabai"; m2.mention="getting late slander"; bidirectional=false',
+          '- `jaw drop curbi & beam iso` → m1.mention="jaw drop curbi"; m2.mention="beam iso"; bidirectional=true',
+          '- `limits imanbek -> euphoria rush chyl` → m1.mention="limits imanbek"; m2.mention="euphoria rush chyl"; bidirectional=false',
+          '- `Thrilla nightmre -> backspin bass` → m1.mention="Thrilla nightmre"; m2.mention="backspin bass"; bidirectional=false',
+          '- `leave before you love me marshmello, last goodbye sunkis` → m1.mention="leave before you love me marshmello"; m2.mention="last goodbye sunkis"; bidirectional=true',
+          "",
+          "Hard anti-patterns:",
+          "- Do NOT invent titleHint/artistHint splits.",
+          "- Do NOT emit 3–4 mentions.",
+          "- Do NOT drop tokens from either side.",
+          "- `x` inside a phrase like `roses x children tommymuzic` is usually ONE query, not a separator — unless there is also a clear `->`/`to`/`&` between two tracks.",
         ].join("\n"),
       },
       {
         id: "rules",
         title: "Rules",
         body: [
-          "- Extract only what this span describes — ignore surrounding context not present in the span.",
-          "- Never invent track titles, artists, bars, techniques, or intents not implied by the span.",
-          "- Put title/artist guesses in titleHint/artistHint when possible.",
+          "- Extract only what this span describes.",
+          "- Never invent bars, techniques, or intents not implied by the span.",
+          "- mentionId must be m1 and m2; transition.fromMentionId=m1, toMentionId=m2.",
           "- Include every schema key; use null for unknown optional fields.",
-          "- Do not invent track ids or catalog ids.",
           "- Prefer noteType=transition when a mix/transition is present.",
+          "- Missing bars/technique/intent/quality is normal — leave them null. Do NOT lower confidence for missing metadata.",
+          "",
+          "confidence (enum: none | low | moderate | strong | high | full):",
+          "- high/full: clear two-track mix under the grammar above.",
+          "- strong: clear enough structure to auto-commit.",
+          "- moderate/low/none: cannot form two credible search queries.",
+          "- Do NOT use moderate/low just because the line is terse or lacks bars.",
+          "",
+          "ambiguities: leave empty [] for normal shorthand mixes.",
         ].join("\n"),
       },
     ],
@@ -114,7 +150,8 @@ export function buildSingleTransitionPrompt(): ComposedPrompt {
 
 export function buildSingleTransitionUserPrompt(sourceText: string): string {
   return [
-    "Extract exactly one transition draft from this source span:",
+    "Extract exactly one transition draft from this source span.",
+    "Emit exactly two mentions (m1, m2). Each mention value is a Spotify search query for that endpoint — do not split title/artist; set titleHint and artistHint to null.",
     "",
     sourceText.trim(),
   ].join("\n");

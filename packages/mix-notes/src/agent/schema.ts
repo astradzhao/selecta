@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { NOTE_TYPES, TRANSITION_QUALITIES } from "../note-types";
+import { CONFIDENCE_LEVELS } from "./confidence";
 
 export const MENTION_RESOLUTION_STATUSES = [
   "resolved",
@@ -53,8 +54,10 @@ export const NoteProcessingPlanSchema = z.object({
   noteType: z.enum(NOTE_TYPES),
   mentions: z.array(NoteMentionPlanSchema),
   transitions: z.array(NoteTransitionPlanSchema),
-  confidence: z.number().min(0).max(1),
+  confidence: z.enum(CONFIDENCE_LEVELS),
   ambiguities: z.array(z.string()),
+  /** When true, apply commits A→B and B→A as separate edges. */
+  bidirectional: z.boolean(),
 });
 export type NoteProcessingPlan = z.infer<typeof NoteProcessingPlanSchema>;
 

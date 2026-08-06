@@ -2,6 +2,7 @@ import {
   applyProposalPolicy,
   buildOrchestratorPrompt,
   buildOrchestratorUserPrompt,
+  confidenceToUnitInterval,
   DEFAULT_ORCHESTRATOR_MODEL,
   draftToSingleUnresolvedPlan,
   evaluateProposalPolicy,
@@ -13,6 +14,7 @@ import {
   sourceFingerprint,
   spanProposalKey,
   SUBMISSION_LIMITS,
+  type ConfidenceLevel,
   type ParseSingleTransitionReceipt,
   type SingleTransitionDraft,
 } from "@selecta/mix-notes";
@@ -412,8 +414,23 @@ export async function resolveAndApplyProposals(ctx: OrchestratorContext): Promis
         payload: {
           decision: applied.decision,
           importedTrackIds: applied.importedTrackIds,
+          bidirectional: Boolean(item.plan.bidirectional),
         },
       });
+      if (item.plan.bidirectional && applied.fromTrackId && applied.toTrackId) {
+        await upsertTransitionCommit({
+          noteId: ctx.noteId,
+          extractionVersion: ctx.extractionVersion,
+          proposalKey: `${proposal.proposalKey}:rev`,
+          status: "committed",
+          fromTrackId: applied.toTrackId,
+          toTrackId: applied.fromTrackId,
+          payload: {
+            decision: applied.decision,
+            reverseOf: proposal.proposalKey,
+          },
+        });
+      }
       await updateProposal(proposal.id, {
         status: "committed",
         error: null,
@@ -536,8 +553,9 @@ export async function finalizeSubmission(
   const confidence =
     proposals
       .map((p) => {
-        const draft = p.draft as { confidence?: number } | null;
-        return typeof draft?.confidence === "number" ? draft.confidence : null;
+        const draft = p.draft as { confidence?: ConfidenceLevel } | null;
+        const level = draft?.confidence;
+        return level ? confidenceToUnitInterval(level) : null;
       })
       .filter((value): value is number => value != null)
       .reduce((sum, value, _, arr) => sum + value / arr.length, 0) || 0;
@@ -570,16 +588,96 @@ export async function finalizeSubmission(
 }
 
 function summarizeProposal(proposal: NoteProposal): Record<string, unknown> {
-  const policyResult = proposal.policyResult as { reviewReasons?: unknown } | null;
+  const draft = proposal.draft as {
+    confidence?: string;
+    bidirectional?: boolean;
+    ambiguities?: string[];
+    mentions?: Array<{
+      mentionId?: string;
+      mention?: string;
+      titleHint?: string | null;
+      artistHint?: string | null;
+    }>;
+    transition?: {
+      fromMentionId?: string;
+      toMentionId?: string;
+      technique?: string | null;
+      fromBar?: number | null;
+      toBar?: number | null;
+      notes?: string | null;
+    };
+  } | null;
+  const policyResult = proposal.policyResult as {
+    decision?: string;
+    reviewReasons?: unknown;
+    applied?: {
+      committed?: boolean;
+      fromTrackId?: string | null;
+      toTrackId?: string | null;
+      commitError?: string | null;
+    };
+  } | null;
+  const resolution = proposal.resolution as {
+    plan?: {
+      confidence?: string;
+      bidirectional?: boolean;
+      ambiguities?: string[];
+      mentions?: Array<{
+        mentionId?: string;
+        mention?: string;
+        titleHint?: string | null;
+        artistHint?: string | null;
+        resolutionStatus?: string;
+        selectedCandidateId?: string | null;
+      }>;
+      transitions?: Array<{
+        fromMentionId?: string;
+        toMentionId?: string;
+        technique?: string | null;
+        fromBar?: number | null;
+        toBar?: number | null;
+        notes?: string | null;
+      }>;
+    };
+  } | null;
+
+  const plan = resolution?.plan;
+  const transition = plan?.transitions?.[0] ?? draft?.transition ?? null;
+  const mentions = plan?.mentions ?? draft?.mentions ?? [];
+  const confidence = plan?.confidence ?? draft?.confidence ?? null;
+  const bidirectional = plan?.bidirectional ?? draft?.bidirectional ?? false;
+
   return {
     id: proposal.id,
     proposalKey: proposal.proposalKey,
     status: proposal.status,
     sourceStart: proposal.sourceStart,
     sourceEnd: proposal.sourceEnd,
+    sourceText: proposal.sourceText,
     sourceFingerprint: proposal.sourceFingerprint,
+    confidence,
+    bidirectional,
+    ambiguities: plan?.ambiguities ?? draft?.ambiguities ?? [],
+    mentions: mentions.map((mention) => ({
+      mentionId: mention.mentionId ?? null,
+      mention: mention.mention ?? null,
+      titleHint: mention.titleHint ?? null,
+      artistHint: mention.artistHint ?? null,
+      resolutionStatus: "resolutionStatus" in mention ? (mention.resolutionStatus ?? null) : null,
+      selectedCandidateId:
+        "selectedCandidateId" in mention ? (mention.selectedCandidateId ?? null) : null,
+    })),
+    transition,
+    decision: policyResult?.decision ?? null,
+    committed: policyResult?.applied?.committed ?? proposal.status === "committed",
+    fromTrackId: policyResult?.applied?.fromTrackId ?? null,
+    toTrackId: policyResult?.applied?.toTrackId ?? null,
+    commitError: policyResult?.applied?.commitError ?? null,
     error: proposal.error,
     reviewReasons: policyResult?.reviewReasons ?? null,
+    attemptCount: proposal.attemptCount,
+    model: proposal.model,
+    promptVersion: proposal.promptVersion,
   };
 }
 

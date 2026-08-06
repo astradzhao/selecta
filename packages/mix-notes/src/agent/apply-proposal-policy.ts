@@ -1,3 +1,4 @@
+import { confidenceToUnitInterval } from "./confidence";
 import type { ProposalPolicyResult } from "./proposal-policy";
 import type { NoteProcessingPlan } from "./schema";
 import type { NoteAgentServices } from "./services";
@@ -97,22 +98,34 @@ export async function applyProposalPolicy(
     };
   }
 
+  const shared = {
+    sourceNoteId: noteId,
+    sourceNoteVersion: extractionVersion,
+    confidence: confidenceToUnitInterval(plan.confidence),
+    fromBar: policy.commit.transition.fromBar ?? null,
+    toBar: policy.commit.transition.toBar ?? null,
+    barsOverlap: policy.commit.transition.barsOverlap ?? null,
+    technique: policy.commit.transition.technique ?? null,
+    intent: policy.commit.transition.intent ?? null,
+    quality: policy.commit.transition.quality ?? null,
+    notes: policy.commit.transition.notes ?? null,
+  };
+
   try {
     await services.commitTransition({
       fromTrackId,
       toTrackId,
       proposalKey,
-      sourceNoteId: noteId,
-      sourceNoteVersion: extractionVersion,
-      confidence: plan.confidence,
-      fromBar: policy.commit.transition.fromBar ?? null,
-      toBar: policy.commit.transition.toBar ?? null,
-      barsOverlap: policy.commit.transition.barsOverlap ?? null,
-      technique: policy.commit.transition.technique ?? null,
-      intent: policy.commit.transition.intent ?? null,
-      quality: policy.commit.transition.quality ?? null,
-      notes: policy.commit.transition.notes ?? null,
+      ...shared,
     });
+    if (plan.bidirectional) {
+      await services.commitTransition({
+        fromTrackId: toTrackId,
+        toTrackId: fromTrackId,
+        proposalKey: `${proposalKey}:rev`,
+        ...shared,
+      });
+    }
     return {
       decision: "auto_commit",
       reasons: policy.reasons,

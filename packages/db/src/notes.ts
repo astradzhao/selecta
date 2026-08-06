@@ -170,8 +170,9 @@ export async function updateNote(id: string, input: UpdateNoteInput): Promise<Up
 }
 
 /**
- * Re-queue extraction for the current note version (retry after failure, or manual refresh).
- * Idempotent for a version: keeps the same `extractionVersion`.
+ * Re-queue extraction for a clean retry (manual refresh / failed run).
+ * Bumps `extractionVersion` and supersedes prior proposals so retries do not
+ * accumulate overlapping spans from older prompt/agent runs.
  */
 export async function requeueExtraction(id: string): Promise<Note> {
   const existing = await getNoteById(id);
@@ -179,16 +180,15 @@ export async function requeueExtraction(id: string): Promise<Note> {
     throw new NotesError("not_found", `Note "${id}" was not found.`);
   }
 
-  const version = existing.extractionVersion > 0 ? existing.extractionVersion : 1;
   const now = new Date();
+  const nextVersion = existing.extractionVersion > 0 ? existing.extractionVersion + 1 : 1;
   const [row] = await getDb()
     .update(notes)
     .set({
       extractionStatus: "extracting",
-      extractionVersion: version,
+      extractionVersion: nextVersion,
       extractionStartedAt: now,
-      extractionError: null,
-      extractionFinishedAt: null,
+      ...clearExtractionFields,
     })
     .where(eq(notes.id, existing.id))
     .returning();
@@ -196,6 +196,7 @@ export async function requeueExtraction(id: string): Promise<Note> {
   if (!row) {
     throw new NotesError("not_found", `Note "${id}" was not found.`);
   }
+  await supersedeProposalsForNote(row.id, row.extractionVersion);
   return row;
 }
 
