@@ -1,0 +1,1 @@
+ALTER TABLE "tracks" ALTER COLUMN "duration_sec" SET DATA TYPE real;

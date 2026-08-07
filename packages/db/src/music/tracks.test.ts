@@ -85,7 +85,7 @@ describe("music vocab + tracks", { skip: !pgReady }, () => {
     assert.equal(byExt!.track.id, first.track.id);
   });
 
-  it("createTrack rounds fractional durationSec for integer column", async () => {
+  it("createTrack stores fractional durationSec", async () => {
     const suffix = randomUUID().slice(0, 8);
     const created = await createTrack({
       title: `Duration ${suffix}`,
@@ -94,7 +94,8 @@ describe("music vocab + tracks", { skip: !pgReady }, () => {
       externalIds: { spotify: `dur-${suffix}` },
     });
     assert.equal(created.created, true);
-    assert.equal(created.track.durationSec, 141);
+    assert.ok(created.track.durationSec != null);
+    assert.ok(Math.abs(created.track.durationSec - 141.12) < 0.001);
   });
 
   it("listTracks matches artist query and subgenre by normalized name", async () => {

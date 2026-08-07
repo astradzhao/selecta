@@ -28,12 +28,6 @@ export function optionalNumber(value: number | null | undefined): number | null 
   return value;
 }
 
-/** Round to whole seconds for integer `duration_sec` (Spotify ms → sec is often fractional). */
-export function optionalDurationSec(value: number | null | undefined): number | null {
-  const n = optionalNumber(value);
-  return n === null ? null : Math.round(n);
-}
-
 export function optionalString(value: string | null | undefined): string | null {
   if (value === undefined || value === null) {
     return null;

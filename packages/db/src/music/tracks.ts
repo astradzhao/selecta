@@ -22,7 +22,7 @@ import { MusicWriteError } from "./errors";
 import { clampListLimit, clampListOffset } from "./list-page";
 import { toFolderNode, toNamedNode, toTrackNode } from "./mappers";
 import { normalizeName } from "./normalize";
-import { cleanExternalIds, optionalDurationSec, requireTrimmed } from "./shared";
+import { cleanExternalIds, optionalNumber, requireTrimmed } from "./shared";
 import type {
   CreateTrackInput,
   CreateTrackResult,
@@ -191,7 +191,7 @@ export async function createTrack(input: CreateTrackInput): Promise<CreateTrackR
 
   const externalIds = cleanExternalIds(input.externalIds);
   const externalEntries = Object.entries(externalIds);
-  const durationSec = optionalDurationSec(input.durationSec);
+  const durationSec = optionalNumber(input.durationSec);
 
   return db().transaction(async (tx) => {
     const executor = tx as unknown as DbLike;

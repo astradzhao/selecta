@@ -256,7 +256,7 @@ export const tracks = pgTable(
     title: text("title").notNull(),
     bpm: real("bpm"),
     musicalKey: text("musical_key"),
-    durationSec: integer("duration_sec"),
+    durationSec: real("duration_sec"),
     energy: real("energy"),
     artworkUrl: text("artwork_url"),
     /** ISO-ish string (not a date column) — preserves Neo4j / list-filter semantics. */
