@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 import { Button } from "@selecta/ui/components/button";
 import { Label } from "@selecta/ui/components/label";
@@ -10,19 +10,39 @@ import { Textarea } from "@selecta/ui/components/textarea";
 
 import { ApiClientError } from "@/lib/api/client";
 import { createNote } from "@/lib/notes/api";
+import { MAX_SUBMISSION_RAW_BYTES } from "@/lib/notes/limits";
 
-export function NewNoteForm() {
+function utf8ByteLength(value: string): number {
+  return new TextEncoder().encode(value).byteLength;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const kib = bytes / 1024;
+  if (kib < 1024) return `${kib < 10 ? kib.toFixed(1) : Math.round(kib)} KiB`;
+  return `${(kib / 1024).toFixed(1)} MiB`;
+}
+
+export function NewNoteForm({ embedded = false }: { embedded?: boolean } = {}) {
   const router = useRouter();
   const [rawText, setRawText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startSave] = useTransition();
   const trimmed = rawText.trim();
-  const canSave = trimmed.length > 0 && !pending;
+  const byteLength = useMemo(() => utf8ByteLength(trimmed), [trimmed]);
+  const overLimit = byteLength > MAX_SUBMISSION_RAW_BYTES;
+  const canSave = trimmed.length > 0 && !overLimit && !pending;
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!trimmed) {
-      setError("Write something before saving.");
+      setError("Write something before submitting.");
+      return;
+    }
+    if (overLimit) {
+      setError(
+        `Submission exceeds the ${formatBytes(MAX_SUBMISSION_RAW_BYTES)} limit (${formatBytes(byteLength)}). Shorten the text and retry.`,
+      );
       return;
     }
 
@@ -44,27 +64,26 @@ export function NewNoteForm() {
   }
 
   return (
-    <div className="space-y-8">
-      <header className="border-border space-y-2 border-b pb-6">
-        <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">
-          <Link
-            href="/library?view=submissions"
-            className="hover:text-foreground transition-colors"
-          >
-            Submissions
-          </Link>
-          {" / "}
-          New
-        </p>
-        <h1 className="text-3xl font-semibold tracking-tight">New submission</h1>
-        <p className="text-muted-foreground max-w-xl text-sm">
-          Paste or type free-form mix notes. No track selection or AI required.
-        </p>
-      </header>
+    <div className={embedded ? "space-y-6" : "space-y-8"}>
+      {embedded ? null : (
+        <header className="border-border space-y-2 border-b pb-6">
+          <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">
+            <Link href="/add" className="hover:text-foreground transition-colors">
+              Add
+            </Link>
+            {" / "}
+            Transition
+          </p>
+          <h1 className="text-3xl font-semibold tracking-tight">Add transition</h1>
+          <p className="text-muted-foreground max-w-xl text-sm">
+            Paste or type free-form mix notes. Processing starts in the background after submit.
+          </p>
+        </header>
+      )}
 
       <form onSubmit={onSubmit} className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="note-raw-text">Submission</Label>
+          <Label htmlFor="note-raw-text">Transition notes</Label>
           <Textarea
             id="note-raw-text"
             value={rawText}
@@ -74,9 +93,16 @@ export function NewNoteForm() {
             }}
             placeholder="e.g. Cut from Track A into Track B around bar 64 with a high-pass…"
             className="min-h-56"
-            aria-invalid={Boolean(error)}
+            aria-invalid={Boolean(error) || overLimit}
             disabled={pending}
           />
+          <p
+            className={overLimit ? "text-destructive text-xs" : "text-muted-foreground text-xs"}
+            aria-live="polite"
+          >
+            {formatBytes(byteLength)} / {formatBytes(MAX_SUBMISSION_RAW_BYTES)}
+            {overLimit ? " — too large to submit" : null}
+          </p>
         </div>
 
         {error ? (
@@ -87,7 +113,7 @@ export function NewNoteForm() {
 
         <div className="flex flex-wrap gap-3">
           <Button type="submit" disabled={!canSave}>
-            {pending ? "Saving…" : "Submit"}
+            {pending ? "Submitting…" : "Submit"}
           </Button>
           <Button asChild type="button" variant="outline">
             <Link href="/library?view=submissions">Cancel</Link>

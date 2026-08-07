@@ -1,10 +1,6 @@
-import { AppShell } from "@/components/app-shell";
-import { AddTrackFlow } from "@/components/tracks/add-track-flow";
+import { redirect } from "next/navigation";
 
-export default function AddTrackPage() {
-  return (
-    <AppShell currentPath="/tracks/new">
-      <AddTrackFlow />
-    </AppShell>
-  );
+/** Legacy route — redirected to unified Add (DJ-74). */
+export default function LegacyAddTrackPage() {
+  redirect("/add?mode=track");
 }

@@ -250,7 +250,7 @@ export function LibraryList({ embedded = false }: { embedded?: boolean } = {}) {
                 </div>
                 {!hasFilters ? (
                   <Button asChild size="sm">
-                    <Link href="/tracks/new">Add your first track</Link>
+                    <Link href="/add">Add your first track</Link>
                   </Button>
                 ) : null}
               </li>

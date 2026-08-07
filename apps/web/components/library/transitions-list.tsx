@@ -255,7 +255,7 @@ export function TransitionsList() {
                   </div>
                   {!hasFilters ? (
                     <Button asChild size="sm">
-                      <Link href="/notes/new">Add a transition</Link>
+                      <Link href="/add?mode=transition">Add a transition</Link>
                     </Button>
                   ) : null}
                 </li>

@@ -228,7 +228,7 @@ export function SubmissionsList() {
               </Button>
             ) : null}
             <Button asChild size="sm" variant="outline">
-              <Link href="/notes/new">
+              <Link href="/add?mode=transition">
                 <PlusIcon />
                 New submission
               </Link>
@@ -297,7 +297,7 @@ export function SubmissionsList() {
                   </div>
                   {!hasFilters ? (
                     <Button asChild size="sm">
-                      <Link href="/notes/new">Write your first submission</Link>
+                      <Link href="/add?mode=transition">Write your first submission</Link>
                     </Button>
                   ) : null}
                 </li>

@@ -66,7 +66,7 @@ export function NotesList() {
           </p>
         </div>
         <Button asChild>
-          <Link href="/notes/new">
+          <Link href="/add?mode=transition">
             <PlusIcon />
             New note
           </Link>
@@ -116,7 +116,7 @@ export function NotesList() {
                   </p>
                 </div>
                 <Button asChild size="sm">
-                  <Link href="/notes/new">Write your first note</Link>
+                  <Link href="/add?mode=transition">Write your first note</Link>
                 </Button>
               </li>
             ) : null}

@@ -1,10 +1,6 @@
-import { AppShell } from "@/components/app-shell";
-import { NewNoteForm } from "@/components/notes/new-note-form";
+import { redirect } from "next/navigation";
 
-export default function NewNotePage() {
-  return (
-    <AppShell currentPath="/library">
-      <NewNoteForm />
-    </AppShell>
-  );
+/** Legacy route — redirected to unified Add Transition mode (DJ-74). */
+export default function LegacyNewNotePage() {
+  redirect("/add?mode=transition");
 }

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { cn } from "@selecta/ui/lib/utils";
 
 const links = [
-  { href: "/tracks/new", label: "Add" },
+  { href: "/add", label: "Add" },
   { href: "/library", label: "Library" },
   { href: "/graph", label: "Graph" },
 ] as const;

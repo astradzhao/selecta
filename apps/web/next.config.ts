@@ -28,9 +28,24 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
       {
-        // Keep /notes/new until DJ-74; do not treat "new" as a submission id.
+        // Keep /notes/new handled below; do not treat "new" as a submission id.
         source: "/notes/:id((?!new$)[^/]+)",
         destination: "/library/submissions/:id",
+        permanent: false,
+      },
+      {
+        source: "/notes/new",
+        destination: "/add?mode=transition",
+        permanent: false,
+      },
+      {
+        source: "/tracks/new",
+        destination: "/add?mode=track",
+        permanent: false,
+      },
+      {
+        source: "/songs/new",
+        destination: "/add?mode=track",
         permanent: false,
       },
     ];
