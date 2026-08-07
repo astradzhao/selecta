@@ -22,7 +22,7 @@ import { MusicWriteError } from "./errors";
 import { clampListLimit, clampListOffset } from "./list-page";
 import { toFolderNode, toNamedNode, toTrackNode } from "./mappers";
 import { normalizeName } from "./normalize";
-import { cleanExternalIds, requireTrimmed } from "./shared";
+import { cleanExternalIds, optionalDurationSec, requireTrimmed } from "./shared";
 import type {
   CreateTrackInput,
   CreateTrackResult,
@@ -191,6 +191,7 @@ export async function createTrack(input: CreateTrackInput): Promise<CreateTrackR
 
   const externalIds = cleanExternalIds(input.externalIds);
   const externalEntries = Object.entries(externalIds);
+  const durationSec = optionalDurationSec(input.durationSec);
 
   return db().transaction(async (tx) => {
     const executor = tx as unknown as DbLike;
@@ -237,7 +238,7 @@ export async function createTrack(input: CreateTrackInput): Promise<CreateTrackR
         .set({
           title,
           artworkUrl: input.artworkUrl ?? existing.artworkUrl,
-          durationSec: input.durationSec ?? existing.durationSec,
+          durationSec: durationSec ?? existing.durationSec,
           releaseDate: input.releaseDate ?? existing.releaseDate,
           bpm: input.bpm ?? existing.bpm,
           musicalKey: input.musicalKey ?? existing.musicalKey,
@@ -267,7 +268,7 @@ export async function createTrack(input: CreateTrackInput): Promise<CreateTrackR
         title,
         bpm: input.bpm ?? null,
         musicalKey: input.musicalKey ?? null,
-        durationSec: input.durationSec ?? null,
+        durationSec,
         energy: input.energy ?? null,
         artworkUrl: input.artworkUrl ?? null,
         releaseDate: input.releaseDate ?? null,

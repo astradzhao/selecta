@@ -116,7 +116,7 @@ export function createNoteAgentServices(): NoteAgentServices {
         artworkUrl: input.artworkUrl ?? null,
         durationSec:
           input.durationMs != null && Number.isFinite(input.durationMs)
-            ? input.durationMs / 1000
+            ? Math.round(input.durationMs / 1000)
             : null,
         releaseDate: input.releaseDate ?? null,
         genres: input.genres ?? [],
