@@ -42,7 +42,7 @@ export function createNoteAgentServices(): NoteAgentServices {
             return {
               mentionId,
               query,
-              candidates: hits.slice(0, 5).map((hit) => ({
+              candidates: hits.tracks.slice(0, 5).map((hit) => ({
                 handle: graphCandidateHandle(hit.track.id),
                 title: hit.track.title,
                 artists: hit.artists.map((artist) => artist.name),

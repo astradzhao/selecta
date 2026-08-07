@@ -105,7 +105,7 @@ describe("transition CRUD + parallel edges", { skip: !neo4jReady }, () => {
     assert.equal(first.to.track.id, toTrackId);
 
     const listed = await listTransitions({ fromTrackId, toTrackId });
-    const listedIds = new Set(listed.map((row) => row.id));
+    const listedIds = new Set(listed.transitions.map((row) => row.id));
     assert.ok(listedIds.has(first.id));
     assert.ok(listedIds.has(second.id));
 

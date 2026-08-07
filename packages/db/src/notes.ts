@@ -1,8 +1,12 @@
-import { and, desc, eq, max } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, lte, max, sql, type SQL } from "drizzle-orm";
 
 import { getDb } from "./client";
 import { NotesError } from "./errors";
-import { supersedeProposalsForNote } from "./proposals";
+import {
+  countProposalsForVersion,
+  listProposalsForVersion,
+  supersedeProposalsForNote,
+} from "./proposals";
 import {
   noteAgentRuns,
   notes,
@@ -11,6 +15,7 @@ import {
   type NoteAgentRun,
   type NoteAgentRunStatus,
   type NoteExtractionStatus,
+  type NoteProposal,
   type NoteTransitionCommit,
   type NoteTransitionCommitStatus,
 } from "./schema";
@@ -29,7 +34,43 @@ export type UpdateNoteInput = {
 };
 
 export type ListNotesInput = {
+  /** Free-text search over raw submission body. */
+  query?: string;
+  /** Exact extractionStatus filter. */
+  status?: NoteExtractionStatus;
+  /** When true, only submissions whose current version has needs_review proposals or status. */
+  needsReview?: boolean;
+  createdAfter?: Date;
+  createdBefore?: Date;
   limit?: number;
+  offset?: number;
+};
+
+export type NoteProposalLink = {
+  id: string;
+  proposalKey: string;
+  status: NoteProposal["status"];
+  sourceStart: number;
+  sourceEnd: number;
+  sourceText: string;
+};
+
+export type NoteListItem = {
+  note: Note;
+  proposalCounts: {
+    committed: number;
+    needsReview: number;
+    failed: number;
+    total: number;
+  };
+  proposals: NoteProposalLink[];
+};
+
+export type ListNotesResult = {
+  notes: NoteListItem[];
+  limit: number;
+  offset: number;
+  hasMore: boolean;
 };
 
 export type CompleteExtractionInput = {
@@ -107,10 +148,85 @@ export async function createNote(input: CreateNoteInput): Promise<Note> {
   return row;
 }
 
-/** List notes newest-first. */
-export async function listNotes(input: ListNotesInput = {}): Promise<Note[]> {
+/** List notes newest-first with optional Library filters (DJ-72). */
+export async function listNotes(input: ListNotesInput = {}): Promise<ListNotesResult> {
   const limit = clampLimit(input.limit);
-  return getDb().select().from(notes).orderBy(desc(notes.createdAt)).limit(limit);
+  const offset =
+    input.offset !== undefined && Number.isFinite(input.offset)
+      ? Math.max(0, Math.floor(input.offset))
+      : 0;
+  const fetchLimit = limit + 1;
+
+  const filters: SQL[] = [];
+  const query = input.query?.trim();
+  if (query) {
+    filters.push(ilike(notes.rawText, `%${query}%`));
+  }
+  if (input.status) {
+    filters.push(eq(notes.extractionStatus, input.status));
+  }
+  if (input.needsReview === true) {
+    filters.push(
+      sql`(
+        ${notes.extractionStatus} IN ('needs_review', 'partially_committed')
+        OR EXISTS (
+          SELECT 1 FROM note_proposals p
+          WHERE p.note_id = ${notes.id}
+            AND p.extraction_version = ${notes.extractionVersion}
+            AND p.status = 'needs_review'
+        )
+      )`,
+    );
+  }
+  if (input.createdAfter) {
+    filters.push(gte(notes.createdAt, input.createdAfter));
+  }
+  if (input.createdBefore) {
+    filters.push(lte(notes.createdAt, input.createdBefore));
+  }
+
+  const where = filters.length > 0 ? and(...filters) : undefined;
+  const rows = await getDb()
+    .select()
+    .from(notes)
+    .where(where)
+    .orderBy(desc(notes.createdAt), asc(notes.id))
+    .limit(fetchLimit)
+    .offset(offset);
+
+  const hasMore = rows.length > limit;
+  const page = hasMore ? rows.slice(0, limit) : rows;
+
+  const notesWithMeta: NoteListItem[] = await Promise.all(
+    page.map(async (note) => {
+      const counts = await countProposalsForVersion(note.id, note.extractionVersion);
+      const proposals = await listProposalsForVersion(note.id, note.extractionVersion);
+      return {
+        note,
+        proposalCounts: {
+          committed: counts.committed,
+          needsReview: counts.needs_review,
+          failed: counts.failed + counts.rejected,
+          total: counts.total - counts.superseded,
+        },
+        proposals: proposals.map((proposal) => ({
+          id: proposal.id,
+          proposalKey: proposal.proposalKey,
+          status: proposal.status,
+          sourceStart: proposal.sourceStart,
+          sourceEnd: proposal.sourceEnd,
+          sourceText: proposal.sourceText,
+        })),
+      };
+    }),
+  );
+
+  return {
+    notes: notesWithMeta,
+    limit,
+    offset,
+    hasMore,
+  };
 }
 
 export async function getNoteById(id: string): Promise<Note | null> {
