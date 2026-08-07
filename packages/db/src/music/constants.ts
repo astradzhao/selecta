@@ -1,8 +1,9 @@
-import type { FolderKind } from "../schema";
-
 /**
  * Intent/technique are free-form text columns today with controlled allow-lists
  * for filters, chips, and validation.
+ *
+ * This module is client-safe: no runtime imports from `client` / `pg` / drizzle
+ * schema tables. Import from `@selecta/db/constants` in browser code.
  */
 export const TRANSITION_INTENTS = [
   "build_hype",
@@ -41,9 +42,11 @@ export function isTransitionTechnique(value: string): value is TransitionTechniq
 
 /**
  * Optional `kind` on folders — product copy only.
- * `section` was dropped in DJ-81; Postgres `folder_kind` is folder | playlist only.
+ * Must stay aligned with Postgres `folder_kind` enum (folder | playlist).
  */
-export const FOLDER_KINDS = ["folder", "playlist"] as const satisfies ReadonlyArray<FolderKind>;
+export const FOLDER_KINDS = ["folder", "playlist"] as const;
+
+export type FolderKind = (typeof FOLDER_KINDS)[number];
 
 const folderKindSet: ReadonlySet<string> = new Set(FOLDER_KINDS);
 

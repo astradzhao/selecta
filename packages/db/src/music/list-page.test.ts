@@ -1,12 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import {
-  clampListLimit,
-  clampListOffset,
-  DEFAULT_LIST_LIMIT,
-  MAX_LIST_LIMIT,
-} from "./list-page";
+import { clampListLimit, clampListOffset, DEFAULT_LIST_LIMIT, MAX_LIST_LIMIT } from "./list-page";
 
 describe("list page helpers", () => {
   it("clamps limit into the Library page bounds", () => {

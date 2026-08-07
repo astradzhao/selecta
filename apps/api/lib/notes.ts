@@ -1,11 +1,11 @@
 import {
-  listNoteTrackLinks,
+  listNoteTrackLinksWithTracks,
   type Note,
   type NoteListItem,
   type NoteProposalLink,
   type NoteTrackLink,
+  type TrackSummary,
 } from "@selecta/db";
-import { getTrackById, type TrackDetail } from "@selecta/graph";
 
 export type SerializedTrackSummary = {
   id: string;
@@ -58,7 +58,7 @@ export type SerializedNote = {
   proposals?: SerializedProposalLink[];
 };
 
-function serializeTrackSummary(detail: TrackDetail): SerializedTrackSummary {
+function serializeTrackSummary(detail: TrackSummary): SerializedTrackSummary {
   return {
     id: detail.track.id,
     title: detail.track.title,
@@ -112,20 +112,15 @@ export function serializeNoteTrackLink(
   };
 }
 
-/** Resolve manual links and attach Neo4j track summaries when available. */
+/** Resolve manual links with a tracks LEFT JOIN (+ batch summary hydrate). */
 export async function loadSerializedTrackLinks(noteId: string): Promise<SerializedNoteTrackLink[]> {
-  const links = await listNoteTrackLinks(noteId);
-  return Promise.all(
-    links.map(async (link) => {
-      let track: SerializedTrackSummary | null = null;
-      try {
-        const detail = await getTrackById(link.trackId);
-        track = detail ? serializeTrackSummary(detail) : null;
-      } catch (error) {
-        console.error(`failed to resolve track ${link.trackId} for note ${noteId}`, error);
-        track = null;
-      }
-      return serializeNoteTrackLink(link, track);
-    }),
-  );
+  try {
+    const rows = await listNoteTrackLinksWithTracks(noteId);
+    return rows.map(({ link, track }) =>
+      serializeNoteTrackLink(link, track ? serializeTrackSummary(track) : null),
+    );
+  } catch (error) {
+    console.error(`failed to resolve tracks for note ${noteId}`, error);
+    return [];
+  }
 }

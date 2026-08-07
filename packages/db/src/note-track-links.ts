@@ -3,11 +3,18 @@ import { and, asc, eq } from "drizzle-orm";
 import { getDb } from "./client";
 import { NotesError } from "./errors";
 import { getNoteById } from "./notes";
-import { noteTrackLinks, type NoteTrackLink } from "./schema";
+import { getTrackSummariesByIds } from "./music/tracks";
+import { noteTrackLinks, tracks, type NoteTrackLink } from "./schema";
+import type { TrackSummary } from "./music/types";
 
 export type AddNoteTrackLinkInput = {
   trackId: string;
   role?: string | null;
+};
+
+export type NoteTrackLinkWithTrack = {
+  link: NoteTrackLink;
+  track: TrackSummary | null;
 };
 
 function requireTrackId(trackId: string): string {
@@ -39,8 +46,44 @@ export async function listNoteTrackLinks(noteId: string): Promise<NoteTrackLink[
 }
 
 /**
+ * List note track links with library track summaries via a tracks LEFT JOIN
+ * (orphans after Neo4j-era ids yield track: null until cleaned by FK migration).
+ */
+export async function listNoteTrackLinksWithTracks(
+  noteId: string,
+): Promise<NoteTrackLinkWithTrack[]> {
+  const note = await getNoteById(noteId);
+  if (!note) {
+    throw new NotesError("not_found", `Note "${noteId.trim()}" was not found.`);
+  }
+
+  const rows = await getDb()
+    .select({
+      link: noteTrackLinks,
+      trackId: tracks.id,
+    })
+    .from(noteTrackLinks)
+    .leftJoin(tracks, eq(noteTrackLinks.trackId, tracks.id))
+    .where(eq(noteTrackLinks.noteId, note.id))
+    .orderBy(asc(noteTrackLinks.createdAt));
+
+  const presentIds = rows
+    .map((row) => row.trackId)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+  const summaries =
+    presentIds.length > 0
+      ? await getTrackSummariesByIds(presentIds)
+      : new Map<string, TrackSummary>();
+
+  return rows.map((row) => ({
+    link: row.link,
+    track: row.trackId ? (summaries.get(row.trackId) ?? null) : null,
+  }));
+}
+
+/**
  * Add a manual note → track link.
- * Caller must validate that `trackId` exists in Neo4j before calling.
+ * Caller must validate that `trackId` exists in the music store before calling.
  * Idempotent for the same (noteId, trackId): returns the existing row.
  */
 export async function addNoteTrackLink(
@@ -71,6 +114,15 @@ export async function addNoteTrackLink(
       return { link: updated ?? existing, created: false };
     }
     return { link: existing, created: false };
+  }
+
+  const [track] = await getDb()
+    .select({ id: tracks.id })
+    .from(tracks)
+    .where(eq(tracks.id, trackId))
+    .limit(1);
+  if (!track) {
+    throw new NotesError("not_found", `Track "${trackId}" was not found.`);
   }
 
   const [row] = await getDb()

@@ -1,6 +1,7 @@
 /** Postgres client + notes + music-domain schema (single-user MVP; membership deferred). */
 
 export { getDb, getDbStatus, isPostgresConfigured, type DbStatus } from "./client";
+export { getExecutor, runInDbTransaction, type DbLike } from "./executor";
 export { NotesError, isNotesError } from "./errors";
 export {
   createNote,
@@ -47,8 +48,10 @@ export {
 export {
   addNoteTrackLink,
   listNoteTrackLinks,
+  listNoteTrackLinksWithTracks,
   removeNoteTrackLink,
   type AddNoteTrackLinkInput,
+  type NoteTrackLinkWithTrack,
 } from "./note-track-links";
 export * from "./schema";
 export {
@@ -111,6 +114,8 @@ export {
   type TrackNeighborhood,
   type TransitionEndpointSummary,
   type TransitionRecord,
+  type TransitionProposalReview,
+  type TransitionListItem,
   type CreateTransitionInput,
   type UpdateTransitionInput,
   type TransitionSortField,

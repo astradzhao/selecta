@@ -3,9 +3,8 @@ import {
   commitTransitionProposal,
   createTrack,
   getTrackByExternalId,
-  isNeo4jConfigured,
   listTracks,
-} from "@selecta/graph";
+} from "@selecta/db";
 import {
   graphCandidateHandle,
   spotifyCandidateHandle,
@@ -32,9 +31,6 @@ function emptyResults(input: SearchQueriesInput): SearchCandidatesOutput {
 export function createNoteAgentServices(): NoteAgentServices {
   return {
     searchLibraryTracks: async (input) => {
-      if (!isNeo4jConfigured()) {
-        return emptyResults(input);
-      }
       const results = await Promise.all(
         input.queries.map(async ({ mentionId, query }) => {
           try {
@@ -93,9 +89,6 @@ export function createNoteAgentServices(): NoteAgentServices {
     },
 
     findLibraryTrackByExternalId: async ({ provider, providerId }) => {
-      if (!isNeo4jConfigured()) {
-        return null;
-      }
       try {
         const hit = await getTrackByExternalId(provider, providerId);
         if (!hit) return null;

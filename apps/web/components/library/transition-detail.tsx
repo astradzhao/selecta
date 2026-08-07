@@ -85,13 +85,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
         if (cancelled) return;
         setTransition(null);
         setForm(null);
-        setLoadError(
-          err instanceof ApiClientError
-            ? err.code === "graph_not_configured"
-              ? "The local graph database isn’t running. Start the full stack with `pnpm dev`."
-              : err.message
-            : "Failed to load transition.",
-        );
+        setLoadError(err instanceof ApiClientError ? err.message : "Failed to load transition.");
       }
     });
     return () => {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTrackById, isNeo4jConfigured } from "@selecta/graph";
+import { getTrackById } from "@selecta/db";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -10,17 +10,6 @@ type RouteContext = {
  * GET /tracks/:id
  */
 export async function GET(_request: Request, context: RouteContext) {
-  if (!isNeo4jConfigured()) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "graph_not_configured",
-        message: "Neo4j is not configured.",
-      },
-      { status: 503 },
-    );
-  }
-
   const { id } = await context.params;
   if (!id?.trim()) {
     return NextResponse.json(

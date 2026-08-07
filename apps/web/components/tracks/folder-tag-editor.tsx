@@ -2,7 +2,7 @@
 
 import { XIcon } from "lucide-react";
 
-import { FOLDER_KINDS, type FolderKind } from "@selecta/graph";
+import { FOLDER_KINDS, type FolderKind } from "@selecta/db/constants";
 import { Badge } from "@selecta/ui/components/badge";
 import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";

@@ -1,5 +1,9 @@
-import type { TransitionRecord } from "@selecta/graph";
-import type { NoteProposal, NoteProposalStatus } from "@selecta/db";
+import type {
+  NoteProposal,
+  NoteProposalStatus,
+  TransitionProposalReview,
+  TransitionRecord,
+} from "@selecta/db";
 
 export type TransitionProposalSummary = {
   id: string;
@@ -13,7 +17,7 @@ export type TransitionProposalSummary = {
 /** API shape for a committed TRANSITION with endpoint summaries. */
 export function serializeTransition(
   record: TransitionRecord,
-  proposal?: TransitionProposalSummary | null,
+  proposal?: TransitionProposalSummary | TransitionProposalReview | null,
 ) {
   return {
     id: record.id,

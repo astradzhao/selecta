@@ -13,7 +13,6 @@
     "@selecta/agentics": "workspace:*",
     "@selecta/catalog": "workspace:*",
     "@selecta/db": "workspace:*",
-    "@selecta/graph": "workspace:*",
     "@selecta/mix-notes": "workspace:*",
     "@workflow/ai": "^4.2.0",
     "ai": "^7.0.48",

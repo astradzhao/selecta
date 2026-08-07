@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
 import { isPostgresConfigured } from "../client";
+import { runInDbTransaction } from "../executor";
 import { createNote } from "../notes";
 import { asTransitionEdge } from "./neighborhood";
 import { createTrack } from "./tracks";
@@ -207,5 +208,46 @@ describe("transition CRUD + AI commit", { skip: !pgReady }, () => {
     });
     assert.ok(ais.transitions.some((row) => row.id === ai.id));
     assert.ok(!ais.transitions.some((row) => row.id === manual.id));
+  });
+
+  it("rolls back commitTransitionProposal when the surrounding transaction fails", async () => {
+    const suffix = randomUUID().slice(0, 8);
+    const from = await createTrack({
+      title: `DJ-84 From ${suffix}`,
+      artists: [`DJ-84 Artist ${suffix}`],
+    });
+    const to = await createTrack({
+      title: `DJ-84 To ${suffix}`,
+      artists: [`DJ-84 Artist ${suffix}`],
+    });
+    const note = await createNote({
+      rawText: `DJ-84 transactional rollback ${suffix}`,
+    });
+    const proposalKey = `dj-84-tx-${suffix}`;
+
+    await assert.rejects(async () => {
+      await runInDbTransaction(async () => {
+        const result = await commitTransitionProposal({
+          fromTrackId: from.track.id,
+          toTrackId: to.track.id,
+          proposalKey,
+          sourceNoteId: note.id,
+          sourceNoteVersion: 1,
+          technique: "cut",
+        });
+        assert.equal(result.created, true);
+        throw new Error("forced failure after transition insert");
+      });
+    }, /forced failure after transition insert/);
+
+    const listed = await listTransitions({
+      fromTrackId: from.track.id,
+      toTrackId: to.track.id,
+      source: "ai",
+    });
+    assert.equal(
+      listed.transitions.filter((row) => row.edge.proposalKey === proposalKey).length,
+      0,
+    );
   });
 });

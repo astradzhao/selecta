@@ -99,8 +99,8 @@ export const notes = pgTable("notes", {
 });
 
 /**
- * Manual associations between a note and a library track id.
- * FK to `tracks` lands in PG-4 (DJ-84) after music data exists; until then `trackId` is opaque text.
+ * Manual associations between a note and a library track.
+ * `track_id` FK → tracks ON DELETE CASCADE (DJ-84).
  */
 export const noteTrackLinks = pgTable(
   "note_track_links",
@@ -111,8 +111,9 @@ export const noteTrackLinks = pgTable(
     noteId: text("note_id")
       .notNull()
       .references(() => notes.id, { onDelete: "cascade" }),
-    /** Neo4j `Track.id` (string). Not a Postgres FK. */
-    trackId: text("track_id").notNull(),
+    trackId: text("track_id")
+      .notNull()
+      .references(() => tracks.id, { onDelete: "cascade" }),
     /** Optional free-form role (e.g. from / to / mentioned). */
     role: text("role"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -218,7 +219,7 @@ export const noteProposals = pgTable(
   ],
 );
 
-/** Idempotent audit of transition commits keyed by proposalKey (music store write lands in PG-4). */
+/** Idempotent audit of transition commits keyed by proposalKey. */
 export const noteTransitionCommits = pgTable(
   "note_transition_commits",
   {
@@ -231,8 +232,8 @@ export const noteTransitionCommits = pgTable(
     extractionVersion: integer("extraction_version").notNull(),
     proposalKey: text("proposal_key").notNull(),
     status: noteTransitionCommitStatusEnum("status").notNull().default("pending"),
-    fromTrackId: text("from_track_id"),
-    toTrackId: text("to_track_id"),
+    fromTrackId: text("from_track_id").references(() => tracks.id, { onDelete: "set null" }),
+    toTrackId: text("to_track_id").references(() => tracks.id, { onDelete: "set null" }),
     payload: jsonb("payload").$type<Record<string, unknown>>(),
     error: text("error"),
     committedAt: timestamp("committed_at", { withTimezone: true }),
@@ -255,7 +256,7 @@ export const tracks = pgTable(
     title: text("title").notNull(),
     bpm: real("bpm"),
     musicalKey: text("musical_key"),
-    durationSec: integer("duration_sec"),
+    durationSec: real("duration_sec"),
     energy: real("energy"),
     artworkUrl: text("artwork_url"),
     /** ISO-ish string (not a date column) — preserves Neo4j / list-filter semantics. */
@@ -475,6 +476,10 @@ export const noteTrackLinksRelations = relations(noteTrackLinks, ({ one }) => ({
     fields: [noteTrackLinks.noteId],
     references: [notes.id],
   }),
+  track: one(tracks, {
+    fields: [noteTrackLinks.trackId],
+    references: [tracks.id],
+  }),
 }));
 
 export const noteAgentRunsRelations = relations(noteAgentRuns, ({ one, many }) => ({
@@ -502,6 +507,16 @@ export const noteTransitionCommitsRelations = relations(noteTransitionCommits, (
     fields: [noteTransitionCommits.noteId],
     references: [notes.id],
   }),
+  fromTrack: one(tracks, {
+    fields: [noteTransitionCommits.fromTrackId],
+    references: [tracks.id],
+    relationName: "transitionCommitFromTrack",
+  }),
+  toTrack: one(tracks, {
+    fields: [noteTransitionCommits.toTrackId],
+    references: [tracks.id],
+    relationName: "transitionCommitToTrack",
+  }),
 }));
 
 export const tracksRelations = relations(tracks, ({ many }) => ({
@@ -510,8 +525,15 @@ export const tracksRelations = relations(tracks, ({ many }) => ({
   trackGenres: many(trackGenres),
   trackSubgenres: many(trackSubgenres),
   trackFolders: many(trackFolders),
+  noteTrackLinks: many(noteTrackLinks),
   outboundTransitions: many(transitions, { relationName: "fromTrack" }),
   inboundTransitions: many(transitions, { relationName: "toTrack" }),
+  transitionCommitsFrom: many(noteTransitionCommits, {
+    relationName: "transitionCommitFromTrack",
+  }),
+  transitionCommitsTo: many(noteTransitionCommits, {
+    relationName: "transitionCommitToTrack",
+  }),
 }));
 
 export const trackExternalIdsRelations = relations(trackExternalIds, ({ one }) => ({
