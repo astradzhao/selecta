@@ -4,6 +4,16 @@ import type { ApiTransition } from "./types";
 
 export type { ApiTransition, ApiTransitionEndpoint, ApiTransitionProposalSummary } from "./types";
 
+export type UpdateTransitionBody = {
+  fromBar?: number | null;
+  toBar?: number | null;
+  barsOverlap?: number | null;
+  technique?: string | null;
+  intent?: string | null;
+  quality?: string | null;
+  notes?: string | null;
+};
+
 export async function listTransitions(
   input: {
     query?: string;
@@ -43,4 +53,26 @@ export async function listTransitions(
   if (input.includeReview === false) params.set("includeReview", "0");
   const qs = params.toString();
   return apiFetch(`/transitions${qs ? `?${qs}` : ""}`);
+}
+
+export async function getTransition(id: string): Promise<{ ok: true; transition: ApiTransition }> {
+  return apiFetch(`/transitions/${encodeURIComponent(id)}`);
+}
+
+export async function updateTransition(
+  id: string,
+  body: UpdateTransitionBody,
+): Promise<{ ok: true; transition: ApiTransition }> {
+  return apiFetch(`/transitions/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteTransition(
+  id: string,
+): Promise<{ ok: true; id: string; deleted: boolean }> {
+  return apiFetch(`/transitions/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
 }

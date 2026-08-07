@@ -209,7 +209,7 @@ export function TransitionsList() {
               {transitions.map((transition) => (
                 <li key={transition.id}>
                   <Link
-                    href={`/graph?track=${encodeURIComponent(transition.fromTrack.id)}`}
+                    href={`/library/transitions/${transition.id}`}
                     className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-3 transition-colors"
                   >
                     <div className="min-w-0">
