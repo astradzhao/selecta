@@ -1,16 +1,56 @@
 import { apiFetch } from "@/lib/api/client";
 
-import type { ApiNote, ApiNoteTrackLink } from "./types";
+import type { ApiNote, ApiNoteTrackLink, NoteExtractionStatus } from "./types";
 
-export type { ApiNote, ApiNoteTrackLink, NoteExtractionStatus } from "./types";
+export type {
+  ApiNote,
+  ApiNoteProposalCounts,
+  ApiNoteProposalLink,
+  ApiNoteTrackLink,
+  NoteExtractionStatus,
+} from "./types";
 
 export async function listNotes(
-  input: { limit?: number } = {},
-): Promise<{ ok: true; notes: ApiNote[] }> {
+  input: {
+    query?: string;
+    status?: NoteExtractionStatus;
+    needsReview?: boolean;
+    createdAfter?: string;
+    createdBefore?: string;
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<{
+  ok: true;
+  notes: ApiNote[];
+  submissions: ApiNote[];
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}> {
   const params = new URLSearchParams();
-  if (input.limit) params.set("limit", String(input.limit));
+  if (input.query?.trim()) params.set("q", input.query.trim());
+  if (input.status) params.set("status", input.status);
+  if (input.needsReview === true) params.set("needsReview", "true");
+  if (input.needsReview === false) params.set("needsReview", "false");
+  if (input.createdAfter) params.set("createdAfter", input.createdAfter);
+  if (input.createdBefore) params.set("createdBefore", input.createdBefore);
+  if (input.limit != null) params.set("limit", String(input.limit));
+  if (input.offset != null) params.set("offset", String(input.offset));
   const qs = params.toString();
   return apiFetch(`/notes${qs ? `?${qs}` : ""}`);
+}
+
+/** Alias for Library Submissions view (same endpoint as notes). */
+export async function listSubmissions(input: Parameters<typeof listNotes>[0] = {}): Promise<{
+  ok: true;
+  notes: ApiNote[];
+  submissions: ApiNote[];
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}> {
+  return listNotes(input);
 }
 
 export async function getNote(id: string): Promise<{ ok: true; note: ApiNote }> {

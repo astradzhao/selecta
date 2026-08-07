@@ -27,7 +27,7 @@ function formatDuration(ms: number | null): string | null {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-export function AddTrackFlow() {
+export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("search");
   const [query, setQuery] = useState("");
@@ -143,15 +143,19 @@ export function AddTrackFlow() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">Library intake</p>
-        <h1 className="text-3xl font-semibold tracking-tight">Add track</h1>
-        <p className="text-muted-foreground max-w-2xl text-sm">
-          Search the catalog, review the hit, then tag with musical subgenres and organizational
-          folders — separately.
-        </p>
-      </div>
+    <div className={embedded ? "space-y-6" : "space-y-8"}>
+      {embedded ? null : (
+        <div className="space-y-2">
+          <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">
+            Library intake
+          </p>
+          <h1 className="text-3xl font-semibold tracking-tight">Add track</h1>
+          <p className="text-muted-foreground max-w-2xl text-sm">
+            Search the catalog, review the hit, then tag with musical subgenres and organizational
+            folders — separately.
+          </p>
+        </div>
+      )}
 
       {mode === "search" ? (
         <section className="space-y-4">

@@ -451,7 +451,7 @@ function ExtractionDebug({ note }: { note: ApiNote }) {
   );
 }
 
-export function NoteDetail({ noteId }: { noteId: string }) {
+export function NoteDetail({ noteId, readOnly = false }: { noteId: string; readOnly?: boolean }) {
   const [note, setNote] = useState<ApiNote | null>(null);
   const [rawText, setRawText] = useState("");
   const [trackLinks, setTrackLinks] = useState<ApiNoteTrackLink[]>([]);
@@ -462,6 +462,12 @@ export function NoteDetail({ noteId }: { noteId: string }) {
   const [loading, startLoad] = useTransition();
   const [saving, startSave] = useTransition();
   const [retrying, startRetry] = useTransition();
+
+  const listHref = readOnly ? "/library?view=submissions" : "/notes";
+  const listLabel = readOnly ? "Submissions" : "Notes";
+  const backLabel = readOnly ? "Back to submissions" : "Back to notes";
+  const entityLabel = readOnly ? "submission" : "note";
+  const EntityLabel = readOnly ? "Submission" : "Note";
 
   useEffect(() => {
     let cancelled = false;
@@ -479,9 +485,9 @@ export function NoteDetail({ noteId }: { noteId: string }) {
         setLoadError(
           err instanceof ApiClientError
             ? err.code === "db_not_configured"
-              ? "The local notes database isn’t running. Start the full stack with `pnpm dev`."
+              ? `The local ${entityLabel}s database isn’t running. Start the full stack with \`pnpm dev\`.`
               : err.message
-            : "Failed to load note.",
+            : `Failed to load ${entityLabel}.`,
         );
       }
     });
@@ -564,17 +570,17 @@ export function NoteDetail({ noteId }: { noteId: string }) {
   }
 
   if (loading && !note) {
-    return <p className="text-muted-foreground text-sm">Loading note…</p>;
+    return <p className="text-muted-foreground text-sm">Loading {entityLabel}…</p>;
   }
 
   if (loadError || !note) {
     return (
       <div className="space-y-4">
         <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm">
-          {loadError ?? "Note not found."}
+          {loadError ?? `${EntityLabel} not found.`}
         </p>
         <Button asChild variant="outline">
-          <Link href="/notes">Back to notes</Link>
+          <Link href={listHref}>{backLabel}</Link>
         </Button>
       </div>
     );
@@ -584,58 +590,83 @@ export function NoteDetail({ noteId }: { noteId: string }) {
     <div className="space-y-10">
       <header className="border-border space-y-2 border-b pb-6">
         <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">
-          <Link href="/notes" className="hover:text-foreground transition-colors">
-            Notes
+          <Link href={listHref} className="hover:text-foreground transition-colors">
+            {listLabel}
           </Link>
           {" / "}
           Detail
         </p>
-        <h1 className="text-3xl font-semibold tracking-tight">Edit note</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          {readOnly ? "Submission" : "Edit note"}
+        </h1>
         <p className="text-muted-foreground text-sm">
           Created {formatTimestamp(note.createdAt)}
-          {note.updatedAt !== note.createdAt
+          {!readOnly && note.updatedAt !== note.createdAt
             ? ` · last edited ${formatTimestamp(note.updatedAt)}`
             : null}
         </p>
       </header>
 
-      <form onSubmit={onSubmit} className="space-y-6">
+      {readOnly ? (
         <div className="space-y-2">
-          <Label htmlFor="note-edit-raw-text">Note</Label>
+          <Label htmlFor="submission-raw-text">Raw text</Label>
           <Textarea
-            id="note-edit-raw-text"
-            value={rawText}
-            onChange={(event) => {
-              setRawText(event.target.value);
-              setSaveError(null);
-              setSaveMessage(null);
-            }}
-            className="min-h-56"
-            aria-invalid={Boolean(saveError)}
-            disabled={saving}
+            id="submission-raw-text"
+            value={note.rawText}
+            readOnly
+            className="bg-muted/20 min-h-56"
           />
-        </div>
-
-        {saveError ? (
-          <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm" role="alert">
-            {saveError}
+          <p className="text-muted-foreground text-xs">
+            Submissions are immutable. Edit committed transitions or resolve review items instead.
           </p>
-        ) : null}
-        {saveMessage ? (
-          <p className="text-muted-foreground text-sm" aria-live="polite">
-            {saveMessage}
-          </p>
-        ) : null}
-
-        <div className="flex flex-wrap gap-3">
-          <Button type="submit" disabled={!canSave}>
-            {saving ? "Saving…" : "Save changes"}
-          </Button>
-          <Button asChild type="button" variant="outline">
-            <Link href="/notes">Back to notes</Link>
-          </Button>
+          <div className="pt-2">
+            <Button asChild type="button" variant="outline">
+              <Link href={listHref}>{backLabel}</Link>
+            </Button>
+          </div>
         </div>
-      </form>
+      ) : (
+        <form onSubmit={onSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="note-edit-raw-text">Note</Label>
+            <Textarea
+              id="note-edit-raw-text"
+              value={rawText}
+              onChange={(event) => {
+                setRawText(event.target.value);
+                setSaveError(null);
+                setSaveMessage(null);
+              }}
+              className="min-h-56"
+              aria-invalid={Boolean(saveError)}
+              disabled={saving}
+            />
+          </div>
+
+          {saveError ? (
+            <p
+              className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm"
+              role="alert"
+            >
+              {saveError}
+            </p>
+          ) : null}
+          {saveMessage ? (
+            <p className="text-muted-foreground text-sm" aria-live="polite">
+              {saveMessage}
+            </p>
+          ) : null}
+
+          <div className="flex flex-wrap gap-3">
+            <Button type="submit" disabled={!canSave}>
+              {saving ? "Saving…" : "Save changes"}
+            </Button>
+            <Button asChild type="button" variant="outline">
+              <Link href={listHref}>{backLabel}</Link>
+            </Button>
+          </div>
+        </form>
+      )}
 
       <div className="space-y-3">
         <ExtractionDebug note={note} />

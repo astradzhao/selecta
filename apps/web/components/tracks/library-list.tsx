@@ -36,7 +36,7 @@ function sameTrackList(a: ApiTrack[], b: ApiTrack[]): boolean {
   return true;
 }
 
-export function LibraryList() {
+export function LibraryList({ embedded = false }: { embedded?: boolean } = {}) {
   const [query, setQuery] = useState("");
   const [subgenre, setSubgenre] = useState("");
   const [folder, setFolder] = useState("");
@@ -119,13 +119,15 @@ export function LibraryList() {
   }, [query, subgenre, folder]);
 
   return (
-    <div className="space-y-10">
-      <header className="border-border space-y-2 border-b pb-6">
-        <h1 className="text-3xl font-semibold tracking-tight">Library</h1>
-        <p className="text-muted-foreground max-w-xl text-sm">
-          Search your tracks or narrow the list by Subgenre and Folder.
-        </p>
-      </header>
+    <div className={embedded ? "space-y-6" : "space-y-10"}>
+      {embedded ? null : (
+        <header className="border-border space-y-2 border-b pb-6">
+          <h1 className="text-3xl font-semibold tracking-tight">Library</h1>
+          <p className="text-muted-foreground max-w-xl text-sm">
+            Search your tracks or narrow the list by Subgenre and Folder.
+          </p>
+        </header>
+      )}
 
       <section aria-label="Library filters" className="space-y-3">
         <div className="grid items-end gap-4 md:grid-cols-[minmax(0,2fr)_minmax(10rem,1fr)_minmax(10rem,1fr)]">
@@ -248,7 +250,7 @@ export function LibraryList() {
                 </div>
                 {!hasFilters ? (
                   <Button asChild size="sm">
-                    <Link href="/tracks/new">Add your first track</Link>
+                    <Link href="/add">Add your first track</Link>
                   </Button>
                 ) : null}
               </li>

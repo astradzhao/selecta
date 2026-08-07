@@ -3,10 +3,9 @@ import Link from "next/link";
 import { cn } from "@selecta/ui/lib/utils";
 
 const links = [
+  { href: "/add", label: "Add" },
   { href: "/library", label: "Library" },
   { href: "/graph", label: "Graph" },
-  { href: "/notes", label: "Notes" },
-  { href: "/tracks/new", label: "Add track" },
 ] as const;
 
 export function AppShell({
