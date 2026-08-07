@@ -6,8 +6,9 @@ import {
   listTransitions,
   type CreateTransitionInput,
 } from "@selecta/graph";
+import { getProposalsByIds, isPostgresConfigured } from "@selecta/db";
 
-import { serializeTransition } from "@/lib/transitions";
+import { serializeTransition, summarizeProposalForTransition } from "@/lib/transitions";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -75,9 +76,20 @@ function parseListLimit(raw: string | null): number | undefined {
   return value;
 }
 
+function parseListOffset(raw: string | null): number | undefined {
+  if (raw == null || raw === "") {
+    return undefined;
+  }
+  const value = Number(raw);
+  if (!Number.isFinite(value)) {
+    return undefined;
+  }
+  return value;
+}
+
 /**
- * List transitions filtered by from and/or to track id.
- * GET /transitions?fromTrackId=&toTrackId=&limit=
+ * Library search/list for transitions (DJ-72).
+ * GET /transitions?q=&fromTrackId=&toTrackId=&technique=&intent=&quality=&sourceNoteId=&source=&sort=&order=&limit=&offset=
  */
 export async function GET(request: Request) {
   if (!isNeo4jConfigured()) {
@@ -92,28 +104,59 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const fromTrackId = searchParams.get("fromTrackId") ?? undefined;
-  const toTrackId = searchParams.get("toTrackId") ?? undefined;
-  if (!fromTrackId?.trim() && !toTrackId?.trim()) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "invalid_query",
-        message: "Provide fromTrackId and/or toTrackId.",
-      },
-      { status: 400 },
-    );
-  }
+  const sourceRaw = searchParams.get("source");
+  const source = sourceRaw === "manual" || sourceRaw === "ai" ? sourceRaw : undefined;
+  const sortRaw = searchParams.get("sort");
+  const sort = sortRaw === "createdAt" || sortRaw === "updatedAt" ? sortRaw : undefined;
+  const orderRaw = searchParams.get("order");
+  const order = orderRaw === "asc" || orderRaw === "desc" ? orderRaw : undefined;
+  const includeReview = searchParams.get("includeReview") !== "0";
 
   try {
-    const transitions = await listTransitions({
-      fromTrackId,
-      toTrackId,
+    const result = await listTransitions({
+      query: searchParams.get("q") ?? undefined,
+      fromTrackId: searchParams.get("fromTrackId") ?? undefined,
+      toTrackId: searchParams.get("toTrackId") ?? undefined,
+      technique: searchParams.get("technique") ?? undefined,
+      intent: searchParams.get("intent") ?? undefined,
+      quality: searchParams.get("quality") ?? undefined,
+      sourceNoteId: searchParams.get("sourceNoteId") ?? undefined,
+      source,
+      createdAfter: searchParams.get("createdAfter") ?? undefined,
+      createdBefore: searchParams.get("createdBefore") ?? undefined,
+      updatedAfter: searchParams.get("updatedAfter") ?? undefined,
+      updatedBefore: searchParams.get("updatedBefore") ?? undefined,
+      sort,
+      order,
       limit: parseListLimit(searchParams.get("limit")),
+      offset: parseListOffset(searchParams.get("offset")),
     });
+
+    let proposalById = new Map<string, ReturnType<typeof summarizeProposalForTransition>>();
+    if (includeReview && isPostgresConfigured()) {
+      const ids = result.transitions
+        .map((row) => row.edge.sourceProposalId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
+      const proposals = await getProposalsByIds(ids);
+      proposalById = new Map(
+        [...proposals.entries()].map(([id, proposal]) => [
+          id,
+          summarizeProposalForTransition(proposal),
+        ]),
+      );
+    }
+
     return NextResponse.json({
       ok: true,
-      transitions: transitions.map(serializeTransition),
+      transitions: result.transitions.map((row) =>
+        serializeTransition(
+          row,
+          row.edge.sourceProposalId ? (proposalById.get(row.edge.sourceProposalId) ?? null) : null,
+        ),
+      ),
+      limit: result.limit,
+      offset: result.offset,
+      hasMore: result.hasMore,
     });
   } catch (error) {
     if (isGraphWriteError(error)) {

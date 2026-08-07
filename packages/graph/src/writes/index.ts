@@ -20,6 +20,10 @@ export {
   type CreateTransitionInput,
   type UpdateTransitionInput,
   type ListTransitionsInput,
+  type ListTransitionsResult,
+  type TransitionSortField,
+  type TransitionSortOrder,
+  type TransitionSourceFilter,
   type TransitionRecord,
   type TransitionEndpointSummary,
 } from "./transition-crud";

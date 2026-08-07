@@ -1,16 +1,31 @@
 import type { TransitionRecord } from "@selecta/graph";
+import type { NoteProposal, NoteProposalStatus } from "@selecta/db";
+
+export type TransitionProposalSummary = {
+  id: string;
+  status: NoteProposalStatus;
+  proposalKey: string;
+  sourceStart: number;
+  sourceEnd: number;
+  sourceText: string;
+};
 
 /** API shape for a committed TRANSITION with endpoint summaries. */
-export function serializeTransition(record: TransitionRecord) {
+export function serializeTransition(
+  record: TransitionRecord,
+  proposal?: TransitionProposalSummary | null,
+) {
   return {
     id: record.id,
     fromTrack: {
       id: record.from.track.id,
       title: record.from.track.title,
+      artists: record.from.artists,
     },
     toTrack: {
       id: record.to.track.id,
       title: record.to.track.title,
+      artists: record.to.artists,
     },
     proposalKey: record.edge.proposalKey,
     sourceNoteId: record.edge.sourceNoteId,
@@ -26,5 +41,17 @@ export function serializeTransition(record: TransitionRecord) {
     notes: record.edge.notes,
     createdAt: record.edge.createdAt,
     updatedAt: record.edge.updatedAt,
+    proposal: proposal ?? null,
+  };
+}
+
+export function summarizeProposalForTransition(proposal: NoteProposal): TransitionProposalSummary {
+  return {
+    id: proposal.id,
+    status: proposal.status,
+    proposalKey: proposal.proposalKey,
+    sourceStart: proposal.sourceStart,
+    sourceEnd: proposal.sourceEnd,
+    sourceText: proposal.sourceText,
   };
 }

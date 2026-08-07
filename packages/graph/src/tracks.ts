@@ -1,6 +1,7 @@
 import neo4j from "neo4j-driver";
 
 import { readCypher } from "./cypher";
+import { clampListLimit, clampListOffset, type ListPageMeta } from "./list-page";
 import { asFolder, asNamed, asTrack } from "./mappers";
 import { normalizeName } from "./normalize";
 import type { GraphFolderNode, GraphNamedNode, GraphTrackNode } from "./types";
@@ -13,6 +14,9 @@ export type TrackSummary = {
   folders: GraphFolderNode[];
 };
 
+export type TrackSortField = "title" | "createdAt" | "updatedAt";
+export type ListSortOrder = "asc" | "desc";
+
 export type ListTracksInput = {
   /** Free-form match against track title and artist names. */
   query?: string;
@@ -24,18 +28,23 @@ export type ListTracksInput = {
   folderId?: string;
   /** Filter: track must be in Folder matching this name. */
   folder?: string;
+  /** Inclusive lower bound on createdAt (ISO string). */
+  createdAfter?: string;
+  /** Inclusive upper bound on createdAt (ISO string). */
+  createdBefore?: string;
+  /** Inclusive lower bound on updatedAt (ISO string). */
+  updatedAfter?: string;
+  /** Inclusive upper bound on updatedAt (ISO string). */
+  updatedBefore?: string;
+  sort?: TrackSortField;
+  order?: ListSortOrder;
   limit?: number;
+  offset?: number;
 };
 
-const DEFAULT_LIMIT = 50;
-const MAX_LIMIT = 100;
-
-function clampLimit(limit: number | undefined): number {
-  if (limit === undefined || !Number.isFinite(limit)) {
-    return DEFAULT_LIMIT;
-  }
-  return Math.min(MAX_LIMIT, Math.max(1, Math.floor(limit)));
-}
+export type ListTracksResult = {
+  tracks: TrackSummary[];
+} & ListPageMeta;
 
 function mapTrackRow(row: {
   track: Record<string, unknown>;
@@ -53,18 +62,43 @@ function mapTrackRow(row: {
   };
 }
 
+function trackOrderBy(sort: TrackSortField, order: ListSortOrder): string {
+  const dir = order === "desc" ? "DESC" : "ASC";
+  switch (sort) {
+    case "createdAt":
+      return `coalesce(track.createdAt, '') ${dir}, toLower(track.title) ASC, track.id ASC`;
+    case "updatedAt":
+      return `coalesce(track.updatedAt, '') ${dir}, toLower(track.title) ASC, track.id ASC`;
+    case "title":
+    default:
+      return `toLower(track.title) ${dir}, track.id ASC`;
+  }
+}
+
 /**
  * Search/list local library tracks by title/artist with optional Subgenre/Folder facets.
  * Single-user MVP: no Postgres membership filter.
  */
-export async function listTracks(input: ListTracksInput = {}): Promise<TrackSummary[]> {
+export async function listTracks(input: ListTracksInput = {}): Promise<ListTracksResult> {
   const query = input.query?.trim() ?? "";
   const queryNormalized = query ? normalizeName(query) : "";
   const subgenreId = input.subgenreId?.trim() || null;
   const subgenreNormalized = input.subgenre?.trim() ? normalizeName(input.subgenre) : null;
   const folderId = input.folderId?.trim() || null;
   const folderNormalized = input.folder?.trim() ? normalizeName(input.folder) : null;
-  const limit = clampLimit(input.limit);
+  const createdAfter = input.createdAfter?.trim() || null;
+  const createdBefore = input.createdBefore?.trim() || null;
+  const updatedAfter = input.updatedAfter?.trim() || null;
+  const updatedBefore = input.updatedBefore?.trim() || null;
+  const sort: TrackSortField =
+    input.sort === "createdAt" || input.sort === "updatedAt" || input.sort === "title"
+      ? input.sort
+      : "title";
+  const order: ListSortOrder = input.order === "desc" ? "desc" : "asc";
+  const limit = clampListLimit(input.limit);
+  const offset = clampListOffset(input.offset);
+  // Fetch one extra row to compute hasMore without a separate count query.
+  const fetchLimit = limit + 1;
 
   const rows = await readCypher<{
     track: Record<string, unknown>;
@@ -92,6 +126,10 @@ export async function listTracks(input: ListTracksInput = {}): Promise<TrackSumm
     AND ($folderNormalized IS NULL OR EXISTS {
       MATCH (track)-[:IN_FOLDER]->(f:Folder {nameNormalized: $folderNormalized})
     })
+    AND ($createdAfter IS NULL OR coalesce(track.createdAt, '') >= $createdAfter)
+    AND ($createdBefore IS NULL OR coalesce(track.createdAt, '') <= $createdBefore)
+    AND ($updatedAfter IS NULL OR coalesce(track.updatedAt, '') >= $updatedAfter)
+    AND ($updatedBefore IS NULL OR coalesce(track.updatedAt, '') <= $updatedBefore)
     OPTIONAL MATCH (track)-[:IN_GENRE]->(genre:Genre)
     OPTIONAL MATCH (track)-[:IN_SUBGENRE]->(subgenre:Subgenre)
     OPTIONAL MATCH (track)-[:IN_FOLDER]->(folder:Folder)
@@ -100,7 +138,8 @@ export async function listTracks(input: ListTracksInput = {}): Promise<TrackSumm
            collect(DISTINCT genre { .id, .name, .nameNormalized }) AS genres,
            collect(DISTINCT subgenre { .id, .name, .nameNormalized }) AS subgenres,
            collect(DISTINCT folder { .id, .name, .nameNormalized, .kind }) AS folders
-    ORDER BY toLower(track.title) ASC
+    ORDER BY ${trackOrderBy(sort, order)}
+    SKIP $offset
     LIMIT $limit
     `,
     {
@@ -109,11 +148,23 @@ export async function listTracks(input: ListTracksInput = {}): Promise<TrackSumm
       subgenreNormalized,
       folderId,
       folderNormalized,
-      limit: neo4j.int(limit),
+      createdAfter,
+      createdBefore,
+      updatedAfter,
+      updatedBefore,
+      offset: neo4j.int(offset),
+      limit: neo4j.int(fetchLimit),
     },
   );
 
-  return rows.map(mapTrackRow);
+  const hasMore = rows.length > limit;
+  const page = hasMore ? rows.slice(0, limit) : rows;
+  return {
+    tracks: page.map(mapTrackRow),
+    limit,
+    offset,
+    hasMore,
+  };
 }
 
 export type LibraryStats = {

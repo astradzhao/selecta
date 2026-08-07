@@ -1,4 +1,10 @@
-import { listNoteTrackLinks, type Note, type NoteTrackLink } from "@selecta/db";
+import {
+  listNoteTrackLinks,
+  type Note,
+  type NoteListItem,
+  type NoteProposalLink,
+  type NoteTrackLink,
+} from "@selecta/db";
 import { getTrackById, type TrackDetail } from "@selecta/graph";
 
 export type SerializedTrackSummary = {
@@ -15,6 +21,15 @@ export type SerializedNoteTrackLink = {
   createdAt: string;
   updatedAt: string;
   track: SerializedTrackSummary | null;
+};
+
+export type SerializedProposalLink = {
+  id: string;
+  proposalKey: string;
+  status: NoteProposalLink["status"];
+  sourceStart: number;
+  sourceEnd: number;
+  sourceText: string;
 };
 
 export type SerializedNote = {
@@ -34,6 +49,13 @@ export type SerializedNote = {
   createdAt: string;
   updatedAt: string;
   trackLinks?: SerializedNoteTrackLink[];
+  proposalCounts?: {
+    committed: number;
+    needsReview: number;
+    failed: number;
+    total: number;
+  };
+  proposals?: SerializedProposalLink[];
 };
 
 function serializeTrackSummary(detail: TrackDetail): SerializedTrackSummary {
@@ -45,7 +67,11 @@ function serializeTrackSummary(detail: TrackDetail): SerializedTrackSummary {
   };
 }
 
-export function serializeNote(note: Note, trackLinks?: SerializedNoteTrackLink[]): SerializedNote {
+export function serializeNote(
+  note: Note,
+  trackLinks?: SerializedNoteTrackLink[],
+  listItem?: Pick<NoteListItem, "proposalCounts" | "proposals">,
+): SerializedNote {
   return {
     id: note.id,
     rawText: note.rawText,
@@ -63,6 +89,12 @@ export function serializeNote(note: Note, trackLinks?: SerializedNoteTrackLink[]
     createdAt: note.createdAt.toISOString(),
     updatedAt: note.updatedAt.toISOString(),
     ...(trackLinks !== undefined ? { trackLinks } : {}),
+    ...(listItem
+      ? {
+          proposalCounts: listItem.proposalCounts,
+          proposals: listItem.proposals,
+        }
+      : {}),
   };
 }
 

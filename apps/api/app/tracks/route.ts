@@ -266,9 +266,34 @@ function parseListLimit(raw: string | null): number | undefined {
   return value;
 }
 
+function parseListOffset(raw: string | null): number | undefined {
+  if (raw == null || raw === "") {
+    return undefined;
+  }
+  const value = Number(raw);
+  if (!Number.isFinite(value)) {
+    return undefined;
+  }
+  return value;
+}
+
+function parseTrackSort(raw: string | null): "title" | "createdAt" | "updatedAt" | undefined {
+  if (raw === "title" || raw === "createdAt" || raw === "updatedAt") {
+    return raw;
+  }
+  return undefined;
+}
+
+function parseSortOrder(raw: string | null): "asc" | "desc" | undefined {
+  if (raw === "asc" || raw === "desc") {
+    return raw;
+  }
+  return undefined;
+}
+
 /**
  * Search/list local library tracks.
- * GET /tracks?q=&subgenre=&subgenreId=&folder=&folderId=&limit=
+ * GET /tracks?q=&subgenre=&subgenreId=&folder=&folderId=&sort=&order=&createdAfter=&createdBefore=&updatedAfter=&updatedBefore=&limit=&offset=
  */
 export async function GET(request: Request) {
   if (!isNeo4jConfigured()) {
@@ -284,17 +309,27 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   try {
-    const tracks = await listTracks({
+    const result = await listTracks({
       query: searchParams.get("q") ?? undefined,
       subgenreId: searchParams.get("subgenreId") ?? undefined,
       subgenre: searchParams.get("subgenre") ?? undefined,
       folderId: searchParams.get("folderId") ?? undefined,
       folder: searchParams.get("folder") ?? undefined,
+      createdAfter: searchParams.get("createdAfter") ?? undefined,
+      createdBefore: searchParams.get("createdBefore") ?? undefined,
+      updatedAfter: searchParams.get("updatedAfter") ?? undefined,
+      updatedBefore: searchParams.get("updatedBefore") ?? undefined,
+      sort: parseTrackSort(searchParams.get("sort")),
+      order: parseSortOrder(searchParams.get("order")),
       limit: parseListLimit(searchParams.get("limit")),
+      offset: parseListOffset(searchParams.get("offset")),
     });
     return NextResponse.json({
       ok: true,
-      tracks: tracks.map((track) => serializeTrack(track)),
+      tracks: result.tracks.map((track) => serializeTrack(track)),
+      limit: result.limit,
+      offset: result.offset,
+      hasMore: result.hasMore,
     });
   } catch (error) {
     console.error("list tracks failed", error);

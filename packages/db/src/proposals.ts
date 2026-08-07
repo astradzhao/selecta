@@ -91,6 +91,20 @@ export async function getProposalById(id: string): Promise<NoteProposal | null> 
   return row ?? null;
 }
 
+/** Batch-load proposals by id (Library transition enrichment). */
+export async function getProposalsByIds(ids: string[]): Promise<Map<string, NoteProposal>> {
+  const unique = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
+  const byId = new Map<string, NoteProposal>();
+  if (unique.length === 0) {
+    return byId;
+  }
+  const rows = await getDb().select().from(noteProposals).where(inArray(noteProposals.id, unique));
+  for (const row of rows) {
+    byId.set(row.id, row);
+  }
+  return byId;
+}
+
 export async function listProposalsForVersion(
   noteId: string,
   extractionVersion: number,
