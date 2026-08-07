@@ -102,9 +102,7 @@ export function LibraryList({ embedded = false }: { embedded?: boolean } = {}) {
           }
           setError(
             err instanceof ApiClientError
-              ? err.code === "graph_not_configured"
-                ? "The local track database isn’t running. Start the full stack with `pnpm dev`."
-                : err.message
+              ? err.message
               : "Failed to load library. Is the API running?",
           );
           setHasFetched(true);

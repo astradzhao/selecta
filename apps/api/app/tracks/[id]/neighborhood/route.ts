@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTrackNeighborhood, isNeo4jConfigured } from "@selecta/graph";
+import { getTrackNeighborhood } from "@selecta/db";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -9,20 +9,9 @@ type RouteContext = {
  * Ranked outbound song-graph neighborhood for the M4 explorer.
  * GET /tracks/:id/neighborhood
  *
- * Neo4j-only — no Postgres membership or live session lookup.
+ * Music store only — no membership or live session lookup.
  */
 export async function GET(_request: Request, context: RouteContext) {
-  if (!isNeo4jConfigured()) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "graph_not_configured",
-        message: "Neo4j is not configured.",
-      },
-      { status: 503 },
-    );
-  }
-
   const { id } = await context.params;
   if (!id?.trim()) {
     return NextResponse.json(

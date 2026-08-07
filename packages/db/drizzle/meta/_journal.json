@@ -50,6 +50,13 @@
       "when": 1786111398238,
       "tag": "0006_music_domain",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786115937830,
+      "tag": "0007_music_fks",
+      "breakpoints": true
     }
   ]
 }

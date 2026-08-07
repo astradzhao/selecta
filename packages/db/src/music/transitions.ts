@@ -16,13 +16,15 @@ import {
 import { alias } from "drizzle-orm/pg-core";
 import { randomUUID } from "node:crypto";
 
-import { getDb } from "../client";
+import { getExecutor } from "../executor";
 import {
   artists,
+  noteProposals,
   trackArtists,
   trackExternalIds,
   tracks,
   transitions,
+  type NoteProposalStatus,
   type Track,
   type TransitionRow,
 } from "../schema";
@@ -30,11 +32,7 @@ import { MusicWriteError } from "./errors";
 import { clampListLimit, clampListOffset, type ListPageMeta } from "./list-page";
 import { toNamedNode, toTrackNode } from "./mappers";
 import { normalizeName } from "./normalize";
-import {
-  asTransitionEdge,
-  transitionRowToEdge,
-  type TransitionEdgeSummary,
-} from "./neighborhood";
+import { asTransitionEdge, transitionRowToEdge, type TransitionEdgeSummary } from "./neighborhood";
 import { optionalNumber, optionalString, requireTrimmed } from "./shared";
 import type { NamedNode, TrackNode } from "./types";
 
@@ -48,6 +46,20 @@ export type TransitionRecord = {
   from: TransitionEndpointSummary;
   to: TransitionEndpointSummary;
   edge: TransitionEdgeSummary;
+};
+
+/** Review enrichment from note_proposals (LEFT JOIN on source_proposal_id). */
+export type TransitionProposalReview = {
+  id: string;
+  status: NoteProposalStatus;
+  proposalKey: string;
+  sourceStart: number;
+  sourceEnd: number;
+  sourceText: string;
+};
+
+export type TransitionListItem = TransitionRecord & {
+  proposal: TransitionProposalReview | null;
 };
 
 export type CreateTransitionInput = {
@@ -99,10 +111,12 @@ export type ListTransitionsInput = {
   order?: TransitionSortOrder;
   limit?: number;
   offset?: number;
+  /** When true (default), LEFT JOIN note_proposals for Library review enrichment. */
+  includeProposal?: boolean;
 };
 
 export type ListTransitionsResult = {
-  transitions: TransitionRecord[];
+  transitions: TransitionListItem[];
 } & ListPageMeta;
 
 export type CommitTransitionInput = {
@@ -137,7 +151,7 @@ const fromTracks = alias(tracks, "from_tracks");
 const toTracks = alias(tracks, "to_tracks");
 
 async function assertTracksExist(fromTrackId: string, toTrackId: string): Promise<void> {
-  const rows = await getDb()
+  const rows = await getExecutor()
     .select({ id: tracks.id })
     .from(tracks)
     .where(inArray(tracks.id, [fromTrackId, toTrackId]));
@@ -150,12 +164,14 @@ async function assertTracksExist(fromTrackId: string, toTrackId: string): Promis
   }
 }
 
-async function loadExternalIdMaps(trackIds: string[]): Promise<Map<string, Record<string, string>>> {
+async function loadExternalIdMaps(
+  trackIds: string[],
+): Promise<Map<string, Record<string, string>>> {
   const map = new Map<string, Record<string, string>>();
   if (trackIds.length === 0) {
     return map;
   }
-  const rows = await getDb()
+  const rows = await getExecutor()
     .select()
     .from(trackExternalIds)
     .where(inArray(trackExternalIds.trackId, trackIds));
@@ -172,7 +188,7 @@ async function loadArtistsByTrackIds(trackIds: string[]): Promise<Map<string, Na
   if (trackIds.length === 0) {
     return map;
   }
-  const rows = await getDb()
+  const rows = await getExecutor()
     .select({
       trackId: trackArtists.trackId,
       id: artists.id,
@@ -237,7 +253,7 @@ async function hydrateTransitionRecords(
 }
 
 async function loadTransitionRecord(id: string): Promise<TransitionRecord | null> {
-  const [row] = await getDb()
+  const [row] = await getExecutor()
     .select({
       edge: transitions,
       from: fromTracks,
@@ -299,7 +315,7 @@ export async function createTransition(input: CreateTransitionInput): Promise<Tr
   await assertTracksExist(fromTrackId, toTrackId);
 
   const id = randomUUID();
-  await getDb()
+  await getExecutor()
     .insert(transitions)
     .values({
       id,
@@ -368,6 +384,7 @@ export async function listTransitions(
   const limit = clampListLimit(input.limit);
   const offset = clampListOffset(input.offset);
   const fetchLimit = limit + 1;
+  const includeProposal = input.includeProposal !== false;
 
   const parts: SQL[] = [];
   if (fromTrackId) {
@@ -413,7 +430,7 @@ export async function listTransitions(
         sql`lower(${toTracks.title}) like ${pattern}`,
         sql`lower(coalesce(${transitions.notes}, '')) like ${pattern}`,
         exists(
-          getDb()
+          getExecutor()
             .select({ one: sql`1` })
             .from(trackArtists)
             .innerJoin(artists, eq(trackArtists.artistId, artists.id))
@@ -425,7 +442,7 @@ export async function listTransitions(
             ),
         ),
         exists(
-          getDb()
+          getExecutor()
             .select({ one: sql`1` })
             .from(trackArtists)
             .innerJoin(artists, eq(trackArtists.artistId, artists.id))
@@ -443,23 +460,30 @@ export async function listTransitions(
   const where = parts.length === 0 ? undefined : parts.length === 1 ? parts[0] : and(...parts);
   const sortCol = sort === "createdAt" ? transitions.createdAt : transitions.updatedAt;
   const orderBy =
-    order === "asc"
-      ? [asc(sortCol), asc(transitions.id)]
-      : [desc(sortCol), asc(transitions.id)];
+    order === "asc" ? [asc(sortCol), asc(transitions.id)] : [desc(sortCol), asc(transitions.id)];
 
-  const rows = await getDb()
+  const baseQuery = getExecutor()
     .select({
       edge: transitions,
       from: fromTracks,
       to: toTracks,
+      proposalId: noteProposals.id,
+      proposalStatus: noteProposals.status,
+      proposalKey: noteProposals.proposalKey,
+      proposalSourceStart: noteProposals.sourceStart,
+      proposalSourceEnd: noteProposals.sourceEnd,
+      proposalSourceText: noteProposals.sourceText,
     })
     .from(transitions)
     .innerJoin(fromTracks, eq(transitions.fromTrackId, fromTracks.id))
     .innerJoin(toTracks, eq(transitions.toTrackId, toTracks.id))
+    .leftJoin(noteProposals, eq(transitions.sourceProposalId, noteProposals.id))
     .where(where)
     .orderBy(...orderBy)
     .limit(fetchLimit)
     .offset(offset);
+
+  const rows = await baseQuery;
 
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
@@ -470,7 +494,21 @@ export async function listTransitions(
   );
 
   return {
-    transitions: records,
+    transitions: records.map((record, index) => {
+      const row = page[index]!;
+      const proposal =
+        includeProposal && row.proposalId
+          ? {
+              id: row.proposalId,
+              status: row.proposalStatus!,
+              proposalKey: row.proposalKey!,
+              sourceStart: row.proposalSourceStart!,
+              sourceEnd: row.proposalSourceEnd!,
+              sourceText: row.proposalSourceText!,
+            }
+          : null;
+      return { ...record, proposal };
+    }),
     limit,
     offset,
     hasMore,
@@ -499,7 +537,7 @@ export async function updateTransitionById(
     throw new MusicWriteError("invalid_input", "updateTransitionById requires at least one field.");
   }
 
-  const [existing] = await getDb()
+  const [existing] = await getExecutor()
     .select()
     .from(transitions)
     .where(eq(transitions.id, transitionId))
@@ -533,7 +571,7 @@ export async function updateTransitionById(
     patch.notes = optionalString(input.notes);
   }
 
-  await getDb().update(transitions).set(patch).where(eq(transitions.id, transitionId));
+  await getExecutor().update(transitions).set(patch).where(eq(transitions.id, transitionId));
 
   const record = await loadTransitionRecord(transitionId);
   if (!record) {
@@ -545,7 +583,7 @@ export async function updateTransitionById(
 /** Hard-delete exactly one transition by stable edge id. */
 export async function deleteTransitionById(id: string): Promise<{ id: string; deleted: boolean }> {
   const transitionId = requireTrimmed(id, "id");
-  const deleted = await getDb()
+  const deleted = await getExecutor()
     .delete(transitions)
     .where(eq(transitions.id, transitionId))
     .returning({ id: transitions.id });
@@ -574,7 +612,7 @@ export async function commitTransitionProposal(
   await assertTracksExist(fromTrackId, toTrackId);
 
   const id = randomUUID();
-  const inserted = await getDb()
+  const inserted = await getExecutor()
     .insert(transitions)
     .values({
       id,
@@ -610,7 +648,7 @@ export async function commitTransitionProposal(
     };
   }
 
-  const [existing] = await getDb()
+  const [existing] = await getExecutor()
     .select()
     .from(transitions)
     .where(eq(transitions.proposalKey, proposalKey))

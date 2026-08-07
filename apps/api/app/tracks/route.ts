@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
 import {
   createTrack,
-  isGraphWriteError,
-  isNeo4jConfigured,
+  isMusicWriteError,
   listTracks,
   type CreateTrackInput,
   type CreateTrackResult,
   type FolderRef,
   type NamedRef,
   type TrackSummary,
-} from "@selecta/graph";
+} from "@selecta/db";
 import { CATALOG_PROVIDERS, type CatalogProviderId } from "@selecta/catalog";
 
 type CatalogImportBody = {
@@ -296,17 +295,6 @@ function parseSortOrder(raw: string | null): "asc" | "desc" | undefined {
  * GET /tracks?q=&subgenre=&subgenreId=&folder=&folderId=&sort=&order=&createdAfter=&createdBefore=&updatedAfter=&updatedBefore=&limit=&offset=
  */
 export async function GET(request: Request) {
-  if (!isNeo4jConfigured()) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "graph_not_configured",
-        message: "Neo4j is not configured.",
-      },
-      { status: 503 },
-    );
-  }
-
   const { searchParams } = new URL(request.url);
   try {
     const result = await listTracks({
@@ -345,17 +333,6 @@ export async function GET(request: Request) {
  * POST /tracks
  */
 export async function POST(request: Request) {
-  if (!isNeo4jConfigured()) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "graph_not_configured",
-        message: "Neo4j is not configured.",
-      },
-      { status: 503 },
-    );
-  }
-
   let json: unknown;
   try {
     json = await request.json();
@@ -387,7 +364,7 @@ export async function POST(request: Request) {
       { status: result.created ? 201 : 200 },
     );
   } catch (error) {
-    if (isGraphWriteError(error)) {
+    if (isMusicWriteError(error)) {
       const status = error.code === "not_found" ? 404 : 400;
       return NextResponse.json(
         { ok: false, error: error.code, message: error.message },

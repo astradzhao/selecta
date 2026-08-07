@@ -23,9 +23,6 @@ importers:
       '@selecta/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@selecta/graph':
-        specifier: workspace:*
-        version: link:../../packages/graph
       '@selecta/mix-notes':
         specifier: workspace:*
         version: link:../../packages/mix-notes
@@ -75,9 +72,6 @@ importers:
       '@selecta/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@selecta/graph':
-        specifier: workspace:*
-        version: link:../../packages/graph
       '@selecta/mix-notes':
         specifier: workspace:*
         version: link:../../packages/mix-notes

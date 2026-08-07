@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
 
 import { getDb } from "./client";
+import { getExecutor } from "./executor";
 import { NotesError } from "./errors";
 import {
   noteProposals,
@@ -139,7 +140,7 @@ export async function updateProposal(
   proposalId: string,
   input: UpdateProposalInput,
 ): Promise<NoteProposal | null> {
-  const [row] = await getDb()
+  const [row] = await getExecutor()
     .update(noteProposals)
     .set({
       status: input.status,

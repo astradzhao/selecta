@@ -68,9 +68,7 @@ export function TransitionsList() {
           setHasMore(false);
           setError(
             err instanceof ApiClientError
-              ? err.code === "graph_not_configured"
-                ? "The local graph database isn’t running. Start the full stack with `pnpm dev`."
-                : err.message
+              ? err.message
               : "Failed to load transitions. Is the API running?",
           );
           setHasFetched(true);

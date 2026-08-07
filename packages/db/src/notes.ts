@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gte, ilike, lte, max, sql, type SQL } from "drizzle-orm";
 
 import { getDb } from "./client";
+import { getExecutor } from "./executor";
 import { NotesError } from "./errors";
 import {
   countProposalsForVersion,
@@ -500,14 +501,15 @@ export type UpsertTransitionCommitInput = {
 export async function upsertTransitionCommit(
   input: UpsertTransitionCommitInput,
 ): Promise<NoteTransitionCommit> {
-  const existing = await getDb()
+  const db = getExecutor();
+  const existing = await db
     .select()
     .from(noteTransitionCommits)
     .where(eq(noteTransitionCommits.proposalKey, input.proposalKey))
     .limit(1);
 
   if (existing[0]) {
-    const [row] = await getDb()
+    const [row] = await db
       .update(noteTransitionCommits)
       .set({
         status: input.status,
@@ -525,7 +527,7 @@ export async function upsertTransitionCommit(
     return row;
   }
 
-  const [row] = await getDb()
+  const [row] = await db
     .insert(noteTransitionCommits)
     .values({
       noteId: input.noteId,

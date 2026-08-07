@@ -28,9 +28,9 @@ import {
   getNoteById,
   getProposalById,
   getProposalByKey,
-  getTransitionCommitByKey,
   isPostgresConfigured,
   listProposalsForVersion,
+  runInDbTransaction,
   startAgentRun,
   updateProposal,
   upsertTransitionCommit,
@@ -354,13 +354,6 @@ export async function resolveAndApplyProposals(ctx: OrchestratorContext): Promis
       continue;
     }
 
-    const existingCommit = await getTransitionCommitByKey(proposal.proposalKey);
-    if (existingCommit?.status === "committed") {
-      await updateProposal(proposal.id, { status: "committed", error: null });
-      committed += 1;
-      continue;
-    }
-
     const policy = evaluateProposalPolicy({
       plan: item.plan,
       candidatesByHandle: item.candidatesByHandle,
@@ -394,81 +387,74 @@ export async function resolveAndApplyProposals(ctx: OrchestratorContext): Promis
       continue;
     }
 
-    const applied = await applyProposalPolicy({
-      plan: item.plan,
-      policy,
-      services,
-      noteId: ctx.noteId,
-      extractionVersion: ctx.extractionVersion,
-      proposalKey: proposal.proposalKey,
-      sourceProposalId: proposal.id,
-    });
-
-    if (applied.committed) {
-      await upsertTransitionCommit({
-        noteId: ctx.noteId,
-        extractionVersion: ctx.extractionVersion,
-        proposalKey: proposal.proposalKey,
-        status: "committed",
-        fromTrackId: applied.fromTrackId,
-        toTrackId: applied.toTrackId,
-        payload: {
-          decision: applied.decision,
-          importedTrackIds: applied.importedTrackIds,
-          bidirectional: Boolean(item.plan.bidirectional),
-          transitionId: applied.transitionId,
-        },
-      });
-      if (item.plan.bidirectional && applied.fromTrackId && applied.toTrackId) {
+    try {
+      await runInDbTransaction(async () => {
+        const result = await applyProposalPolicy({
+          plan: item.plan,
+          policy,
+          services,
+          noteId: ctx.noteId,
+          extractionVersion: ctx.extractionVersion,
+          proposalKey: proposal.proposalKey,
+          sourceProposalId: proposal.id,
+        });
+        if (!result.committed) {
+          throw new Error(result.commitError ?? "Transition commit failed.");
+        }
         await upsertTransitionCommit({
           noteId: ctx.noteId,
           extractionVersion: ctx.extractionVersion,
-          proposalKey: `${proposal.proposalKey}:rev`,
+          proposalKey: proposal.proposalKey,
           status: "committed",
-          fromTrackId: applied.toTrackId,
-          toTrackId: applied.fromTrackId,
+          fromTrackId: result.fromTrackId,
+          toTrackId: result.toTrackId,
           payload: {
-            decision: applied.decision,
-            reverseOf: proposal.proposalKey,
-            transitionId: applied.reverseTransitionId,
+            decision: result.decision,
+            importedTrackIds: result.importedTrackIds,
+            bidirectional: Boolean(item.plan.bidirectional),
+            transitionId: result.transitionId,
           },
         });
-      }
-      await updateProposal(proposal.id, {
-        status: "committed",
-        error: null,
-        policyResult: {
-          ...policy,
-          reviewReasons,
-          applied,
-        } as unknown as Record<string, unknown>,
+        if (item.plan.bidirectional && result.fromTrackId && result.toTrackId) {
+          await upsertTransitionCommit({
+            noteId: ctx.noteId,
+            extractionVersion: ctx.extractionVersion,
+            proposalKey: `${proposal.proposalKey}:rev`,
+            status: "committed",
+            fromTrackId: result.toTrackId,
+            toTrackId: result.fromTrackId,
+            payload: {
+              decision: result.decision,
+              reverseOf: proposal.proposalKey,
+              transitionId: result.reverseTransitionId,
+            },
+          });
+        }
+        await updateProposal(proposal.id, {
+          status: "committed",
+          error: null,
+          policyResult: {
+            ...policy,
+            reviewReasons,
+            applied: result,
+          } as unknown as Record<string, unknown>,
+        });
       });
       committed += 1;
-    } else if (applied.commitError) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Transition commit failed.";
       await upsertTransitionCommit({
         noteId: ctx.noteId,
         extractionVersion: ctx.extractionVersion,
         proposalKey: proposal.proposalKey,
         status: "commit_failed",
-        fromTrackId: applied.fromTrackId,
-        toTrackId: applied.toTrackId,
-        error: applied.commitError,
+        error: message,
       });
       await updateProposal(proposal.id, {
         status: "failed",
-        error: applied.commitError,
+        error: message,
       });
       failed += 1;
-    } else {
-      await updateProposal(proposal.id, {
-        status: "needs_review",
-        policyResult: {
-          ...policy,
-          reviewReasons,
-          applied,
-        } as unknown as Record<string, unknown>,
-      });
-      needsReview += 1;
     }
   }
 

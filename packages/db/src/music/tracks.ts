@@ -1,17 +1,4 @@
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  exists,
-  gte,
-  inArray,
-  lte,
-  max,
-  or,
-  sql,
-  type SQL,
-} from "drizzle-orm";
+import { and, asc, desc, eq, exists, gte, inArray, lte, max, or, sql, type SQL } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
@@ -236,7 +223,11 @@ export async function createTrack(input: CreateTrackInput): Promise<CreateTrackR
     if (existingId) {
       trackId = existingId;
       created = false;
-      const [existing] = await executor.select().from(tracks).where(eq(tracks.id, trackId)).limit(1);
+      const [existing] = await executor
+        .select()
+        .from(tracks)
+        .where(eq(tracks.id, trackId))
+        .limit(1);
       if (!existing) {
         throw new MusicWriteError("not_found", `Track id "${trackId}" was not found.`);
       }

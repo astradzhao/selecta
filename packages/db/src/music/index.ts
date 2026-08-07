@@ -71,6 +71,8 @@ export {
   commitTransitionProposals,
   type TransitionEndpointSummary,
   type TransitionRecord,
+  type TransitionProposalReview,
+  type TransitionListItem,
   type CreateTransitionInput,
   type UpdateTransitionInput,
   type TransitionSortField,

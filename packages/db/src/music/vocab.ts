@@ -43,10 +43,7 @@ async function selectGenreByNormalized(db: DbLike, nameNormalized: string): Prom
   return toNamedNode(row);
 }
 
-async function selectSubgenreByNormalized(
-  db: DbLike,
-  nameNormalized: string,
-): Promise<NamedNode> {
+async function selectSubgenreByNormalized(db: DbLike, nameNormalized: string): Promise<NamedNode> {
   const [row] = await db
     .select()
     .from(subgenres)

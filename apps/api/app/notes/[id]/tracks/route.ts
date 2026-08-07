@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
-import { addNoteTrackLink, getNoteById, isNotesError, isPostgresConfigured } from "@selecta/db";
-import { getTrackById, isNeo4jConfigured } from "@selecta/graph";
+import {
+  addNoteTrackLink,
+  getNoteById,
+  getTrackById,
+  isNotesError,
+  isPostgresConfigured,
+} from "@selecta/db";
 
 import { loadSerializedTrackLinks, serializeNote, serializeNoteTrackLink } from "@/lib/notes";
 
@@ -78,7 +83,7 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 /**
- * Manually link an existing Neo4j track to a note (explicit user action only).
+ * Manually link an existing library track to a note (explicit user action only).
  * POST /notes/:id/tracks
  */
 export async function POST(request: Request, context: RouteContext) {
@@ -88,17 +93,6 @@ export async function POST(request: Request, context: RouteContext) {
         ok: false,
         error: "db_not_configured",
         message: "Postgres is not configured.",
-      },
-      { status: 503 },
-    );
-  }
-
-  if (!isNeo4jConfigured()) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "graph_not_configured",
-        message: "Neo4j is not configured.",
       },
       { status: 503 },
     );

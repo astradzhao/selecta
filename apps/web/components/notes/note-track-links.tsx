@@ -53,11 +53,7 @@ export function NoteTrackLinks({
           if (cancelled) return;
           setResults([]);
           setError(
-            err instanceof ApiClientError
-              ? err.code === "graph_not_configured"
-                ? "The local track database isn’t running. Start the full stack with `pnpm dev`."
-                : err.message
-              : "Failed to search library tracks.",
+            err instanceof ApiClientError ? err.message : "Failed to search library tracks.",
           );
         }
       });

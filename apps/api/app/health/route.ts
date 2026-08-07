@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getDbStatus } from "@selecta/db";
-import { getGraphStatus } from "@selecta/graph";
 
 type DbProbe = {
   ok: boolean;
@@ -27,21 +26,19 @@ function toProbe(status: {
 }
 
 /**
- * Dual-DB health probe for local/prod sanity.
- * Returns 503 when either store is missing or unreachable.
+ * Postgres health probe for local/prod sanity.
+ * Returns 503 when the store is missing or unreachable.
  */
 export async function GET() {
-  const [dbStatus, graphStatus] = await Promise.all([getDbStatus(), getGraphStatus()]);
+  const dbStatus = await getDbStatus();
   const postgres = toProbe(dbStatus);
-  const neo4j = toProbe(graphStatus);
-  const ok = postgres.ok && neo4j.ok;
+  const ok = postgres.ok;
 
   return NextResponse.json(
     {
       ok,
       service: "api",
       postgres,
-      neo4j,
     },
     { status: ok ? 200 : 503 },
   );

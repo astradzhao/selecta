@@ -2,11 +2,10 @@ import { NextResponse } from "next/server";
 import {
   deleteTransitionById,
   getTransitionById,
-  isGraphWriteError,
-  isNeo4jConfigured,
+  isMusicWriteError,
   updateTransitionById,
   type UpdateTransitionInput,
-} from "@selecta/graph";
+} from "@selecta/db";
 
 import { serializeTransition } from "@/lib/transitions";
 
@@ -69,17 +68,6 @@ function parseUpdateBody(value: unknown): UpdateTransitionInput {
  * GET /transitions/:id
  */
 export async function GET(_request: Request, context: RouteContext) {
-  if (!isNeo4jConfigured()) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "graph_not_configured",
-        message: "Neo4j is not configured.",
-      },
-      { status: 503 },
-    );
-  }
-
   const { id } = await context.params;
   if (!id?.trim()) {
     return NextResponse.json(
@@ -111,17 +99,6 @@ export async function GET(_request: Request, context: RouteContext) {
  * PATCH /transitions/:id
  */
 export async function PATCH(request: Request, context: RouteContext) {
-  if (!isNeo4jConfigured()) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "graph_not_configured",
-        message: "Neo4j is not configured.",
-      },
-      { status: 503 },
-    );
-  }
-
   const { id } = await context.params;
   if (!id?.trim()) {
     return NextResponse.json(
@@ -158,7 +135,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const transition = await updateTransitionById(id, input);
     return NextResponse.json({ ok: true, transition: serializeTransition(transition) });
   } catch (error) {
-    if (isGraphWriteError(error)) {
+    if (isMusicWriteError(error)) {
       const status = error.code === "not_found" ? 404 : 400;
       return NextResponse.json(
         { ok: false, error: error.code, message: error.message },
@@ -178,17 +155,6 @@ export async function PATCH(request: Request, context: RouteContext) {
  * DELETE /transitions/:id
  */
 export async function DELETE(_request: Request, context: RouteContext) {
-  if (!isNeo4jConfigured()) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "graph_not_configured",
-        message: "Neo4j is not configured.",
-      },
-      { status: 503 },
-    );
-  }
-
   const { id } = await context.params;
   if (!id?.trim()) {
     return NextResponse.json(
@@ -201,7 +167,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     const result = await deleteTransitionById(id);
     return NextResponse.json({ ok: true, id: result.id, deleted: result.deleted });
   } catch (error) {
-    if (isGraphWriteError(error)) {
+    if (isMusicWriteError(error)) {
       const status = error.code === "not_found" ? 404 : 400;
       return NextResponse.json(
         { ok: false, error: error.code, message: error.message },

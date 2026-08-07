@@ -1,22 +1,11 @@
 import { NextResponse } from "next/server";
-import { getLibraryStats, isNeo4jConfigured } from "@selecta/graph";
+import { getLibraryStats } from "@selecta/db";
 
 /**
  * Cheap library fingerprint for client cache checks.
  * GET /tracks/stats → { count, latestUpdatedAt }
  */
 export async function GET() {
-  if (!isNeo4jConfigured()) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "graph_not_configured",
-        message: "Neo4j is not configured.",
-      },
-      { status: 503 },
-    );
-  }
-
   try {
     const stats = await getLibraryStats();
     return NextResponse.json({

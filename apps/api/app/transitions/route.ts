@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import {
   createTransition,
-  isGraphWriteError,
-  isNeo4jConfigured,
+  isMusicWriteError,
   listTransitions,
   type CreateTransitionInput,
-} from "@selecta/graph";
-import { getProposalsByIds, isPostgresConfigured } from "@selecta/db";
+} from "@selecta/db";
 
-import { serializeTransition, summarizeProposalForTransition } from "@/lib/transitions";
+import { serializeTransition } from "@/lib/transitions";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -92,17 +90,6 @@ function parseListOffset(raw: string | null): number | undefined {
  * GET /transitions?q=&fromTrackId=&toTrackId=&technique=&intent=&quality=&sourceNoteId=&source=&sort=&order=&limit=&offset=
  */
 export async function GET(request: Request) {
-  if (!isNeo4jConfigured()) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "graph_not_configured",
-        message: "Neo4j is not configured.",
-      },
-      { status: 503 },
-    );
-  }
-
   const { searchParams } = new URL(request.url);
   const sourceRaw = searchParams.get("source");
   const source = sourceRaw === "manual" || sourceRaw === "ai" ? sourceRaw : undefined;
@@ -130,36 +117,18 @@ export async function GET(request: Request) {
       order,
       limit: parseListLimit(searchParams.get("limit")),
       offset: parseListOffset(searchParams.get("offset")),
+      includeProposal: includeReview,
     });
-
-    let proposalById = new Map<string, ReturnType<typeof summarizeProposalForTransition>>();
-    if (includeReview && isPostgresConfigured()) {
-      const ids = result.transitions
-        .map((row) => row.edge.sourceProposalId)
-        .filter((id): id is string => typeof id === "string" && id.length > 0);
-      const proposals = await getProposalsByIds(ids);
-      proposalById = new Map(
-        [...proposals.entries()].map(([id, proposal]) => [
-          id,
-          summarizeProposalForTransition(proposal),
-        ]),
-      );
-    }
 
     return NextResponse.json({
       ok: true,
-      transitions: result.transitions.map((row) =>
-        serializeTransition(
-          row,
-          row.edge.sourceProposalId ? (proposalById.get(row.edge.sourceProposalId) ?? null) : null,
-        ),
-      ),
+      transitions: result.transitions.map((row) => serializeTransition(row, row.proposal)),
       limit: result.limit,
       offset: result.offset,
       hasMore: result.hasMore,
     });
   } catch (error) {
-    if (isGraphWriteError(error)) {
+    if (isMusicWriteError(error)) {
       return NextResponse.json(
         { ok: false, error: error.code, message: error.message },
         { status: 400 },
@@ -178,17 +147,6 @@ export async function GET(request: Request) {
  * POST /transitions
  */
 export async function POST(request: Request) {
-  if (!isNeo4jConfigured()) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "graph_not_configured",
-        message: "Neo4j is not configured.",
-      },
-      { status: 503 },
-    );
-  }
-
   let json: unknown;
   try {
     json = await request.json();
@@ -220,7 +178,7 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error) {
-    if (isGraphWriteError(error)) {
+    if (isMusicWriteError(error)) {
       const status = error.code === "not_found" ? 404 : 400;
       return NextResponse.json(
         { ok: false, error: error.code, message: error.message },

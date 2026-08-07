@@ -2,11 +2,7 @@ import type { FolderKind, Track, TrackExternalId } from "../schema";
 import { isFolderKind } from "./constants";
 import type { FolderNode, NamedNode, TrackNode } from "./types";
 
-export function toNamedNode(row: {
-  id: string;
-  name: string;
-  nameNormalized: string;
-}): NamedNode {
+export function toNamedNode(row: { id: string; name: string; nameNormalized: string }): NamedNode {
   return {
     id: row.id,
     name: row.name,

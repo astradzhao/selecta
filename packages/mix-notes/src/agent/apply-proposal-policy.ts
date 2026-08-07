@@ -11,7 +11,7 @@ export type ApplyProposalPolicyInput = {
   extractionVersion: number;
   /** Fingerprint-based key: `{noteId}:{version}:span:{fingerprint}`. */
   proposalKey: string;
-  /** Postgres note_proposals.id for Neo4j provenance. */
+  /** Postgres note_proposals.id for transition provenance. */
   sourceProposalId?: string | null;
 };
 
@@ -30,7 +30,8 @@ export type ApplyProposalPolicyResult = {
 
 /**
  * Apply imports + commit for one proposal. Never invents tracks from free text.
- * Idempotent via Neo4j MERGE on proposalKey.
+ * Idempotent via Postgres partial unique index on transitions.proposal_key
+ * (INSERT … ON CONFLICT DO NOTHING).
  */
 export async function applyProposalPolicy(
   input: ApplyProposalPolicyInput,
