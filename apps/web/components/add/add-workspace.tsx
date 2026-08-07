@@ -7,8 +7,7 @@ import { cn } from "@selecta/ui/lib/utils";
 
 import { NewNoteForm } from "@/components/notes/new-note-form";
 import { AddTrackFlow } from "@/components/tracks/add-track-flow";
-
-export type AddMode = "track" | "transition";
+import { type AddMode } from "@/lib/add/mode";
 
 const MODES: Array<{ id: AddMode; label: string; description: string }> = [
   {
@@ -24,13 +23,6 @@ const MODES: Array<{ id: AddMode; label: string; description: string }> = [
       "Paste free-form mix notes describing one or many transitions. Processing starts in the background.",
   },
 ];
-
-export function parseAddMode(raw: string | undefined | null): AddMode {
-  if (raw === "transition" || raw === "transitions" || raw === "note" || raw === "notes") {
-    return "transition";
-  }
-  return "track";
-}
 
 export function AddWorkspace({ mode }: { mode: AddMode }) {
   const router = useRouter();

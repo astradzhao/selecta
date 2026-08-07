@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
-import { AddWorkspace, parseAddMode } from "@/components/add/add-workspace";
+import { AddWorkspace } from "@/components/add/add-workspace";
+import { parseAddMode } from "@/lib/add/mode";
 
 type PageProps = {
   searchParams: Promise<{ mode?: string }>;
