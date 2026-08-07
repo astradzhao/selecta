@@ -176,6 +176,21 @@ async function loadSummaryById(executor: DbLike, trackId: string): Promise<Track
   return summary ?? null;
 }
 
+/** Batch-load track summaries by id (order follows first occurrence of each id). */
+export async function getTrackSummariesByIds(ids: string[]): Promise<Map<string, TrackSummary>> {
+  const unique = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
+  const map = new Map<string, TrackSummary>();
+  if (unique.length === 0) {
+    return map;
+  }
+  const rows = await db().select().from(tracks).where(inArray(tracks.id, unique));
+  const summaries = await loadSummariesForTracks(db(), rows);
+  for (const summary of summaries) {
+    map.set(summary.track.id, summary);
+  }
+  return map;
+}
+
 /**
  * Create a track (or reuse one matched by external provider id) and wire
  * artist / genre / subgenre / folder relationships.

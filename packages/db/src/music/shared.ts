@@ -18,6 +18,24 @@ export function requireTrimmed(value: string, label: string): string {
   return trimmed;
 }
 
+export function optionalNumber(value: number | null | undefined): number | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+  return value;
+}
+
+export function optionalString(value: string | null | undefined): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
 export function prepareVocab(name: string, label: string): VocabParams {
   const display = requireTrimmed(name, label);
   return {
