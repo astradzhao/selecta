@@ -8,8 +8,7 @@ import { cn } from "@selecta/ui/lib/utils";
 import { LibraryList } from "@/components/tracks/library-list";
 import { SubmissionsList } from "@/components/library/submissions-list";
 import { TransitionsList } from "@/components/library/transitions-list";
-
-export type LibraryView = "tracks" | "transitions" | "submissions";
+import { type LibraryView } from "@/lib/library/view";
 
 const VIEWS: Array<{ id: LibraryView; label: string; description: string }> = [
   {
@@ -28,11 +27,6 @@ const VIEWS: Array<{ id: LibraryView; label: string; description: string }> = [
     description: "Read-only raw inputs and the transitions they produced.",
   },
 ];
-
-export function parseLibraryView(raw: string | undefined | null): LibraryView {
-  if (raw === "transitions" || raw === "submissions") return raw;
-  return "tracks";
-}
 
 export function LibraryWorkspace({ view }: { view: LibraryView }) {
   const router = useRouter();

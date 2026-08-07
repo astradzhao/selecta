@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
-import { LibraryWorkspace, parseLibraryView } from "@/components/library/library-workspace";
+import { LibraryWorkspace } from "@/components/library/library-workspace";
+import { parseLibraryView } from "@/lib/library/view";
 
 type PageProps = {
   searchParams: Promise<{ view?: string }>;
