@@ -43,6 +43,13 @@
       "when": 1785871000000,
       "tag": "0005_slim_proposal_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786111398238,
+      "tag": "0006_music_domain",
+      "breakpoints": true
     }
   ]
 }
