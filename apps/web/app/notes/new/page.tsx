@@ -3,7 +3,7 @@ import { NewNoteForm } from "@/components/notes/new-note-form";
 
 export default function NewNotePage() {
   return (
-    <AppShell currentPath="/notes">
+    <AppShell currentPath="/library">
       <NewNoteForm />
     </AppShell>
   );

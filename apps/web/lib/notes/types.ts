@@ -25,6 +25,22 @@ export type ApiNoteTrackLink = {
   } | null;
 };
 
+export type ApiNoteProposalLink = {
+  id: string;
+  proposalKey: string;
+  status: string;
+  sourceStart: number;
+  sourceEnd: number;
+  sourceText: string;
+};
+
+export type ApiNoteProposalCounts = {
+  committed: number;
+  needsReview: number;
+  failed: number;
+  total: number;
+};
+
 export type ApiNote = {
   id: string;
   rawText: string;
@@ -42,4 +58,6 @@ export type ApiNote = {
   createdAt: string;
   updatedAt: string;
   trackLinks?: ApiNoteTrackLink[];
+  proposalCounts?: ApiNoteProposalCounts;
+  proposals?: ApiNoteProposalLink[];
 };

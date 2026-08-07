@@ -20,6 +20,21 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/notes",
+        destination: "/library?view=submissions",
+        permanent: false,
+      },
+      {
+        // Keep /notes/new until DJ-74; do not treat "new" as a submission id.
+        source: "/notes/:id((?!new$)[^/]+)",
+        destination: "/library/submissions/:id",
+        permanent: false,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

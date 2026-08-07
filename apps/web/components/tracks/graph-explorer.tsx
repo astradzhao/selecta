@@ -725,7 +725,7 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
                   Choose another track
                 </Button>
                 <Button asChild variant="outline" size="sm">
-                  <Link href="/notes">Open notes</Link>
+                  <Link href="/library?view=submissions">Open submissions</Link>
                 </Button>
               </div>
             </div>

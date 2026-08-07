@@ -30,14 +30,14 @@ export function NewNoteForm() {
       try {
         const response = await createNote({ rawText });
         setError(null);
-        router.push(`/notes/${response.note.id}`);
+        router.push(`/library/submissions/${response.note.id}`);
       } catch (err) {
         setError(
           err instanceof ApiClientError
             ? err.code === "db_not_configured"
-              ? "The local notes database isn’t running. Start the full stack with `pnpm dev`."
+              ? "The local submissions database isn’t running. Start the full stack with `pnpm dev`."
               : err.message
-            : "Failed to save note. Is the API running?",
+            : "Failed to save submission. Is the API running?",
         );
       }
     });
@@ -47,13 +47,16 @@ export function NewNoteForm() {
     <div className="space-y-8">
       <header className="border-border space-y-2 border-b pb-6">
         <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">
-          <Link href="/notes" className="hover:text-foreground transition-colors">
-            Notes
+          <Link
+            href="/library?view=submissions"
+            className="hover:text-foreground transition-colors"
+          >
+            Submissions
           </Link>
           {" / "}
           New
         </p>
-        <h1 className="text-3xl font-semibold tracking-tight">New note</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">New submission</h1>
         <p className="text-muted-foreground max-w-xl text-sm">
           Paste or type free-form mix notes. No track selection or AI required.
         </p>
@@ -61,7 +64,7 @@ export function NewNoteForm() {
 
       <form onSubmit={onSubmit} className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="note-raw-text">Note</Label>
+          <Label htmlFor="note-raw-text">Submission</Label>
           <Textarea
             id="note-raw-text"
             value={rawText}
@@ -84,10 +87,10 @@ export function NewNoteForm() {
 
         <div className="flex flex-wrap gap-3">
           <Button type="submit" disabled={!canSave}>
-            {pending ? "Saving…" : "Save note"}
+            {pending ? "Saving…" : "Submit"}
           </Button>
           <Button asChild type="button" variant="outline">
-            <Link href="/notes">Cancel</Link>
+            <Link href="/library?view=submissions">Cancel</Link>
           </Button>
         </div>
       </form>
