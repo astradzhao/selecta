@@ -1,4 +1,4 @@
-/** Postgres client + notes schema (single-user MVP; membership deferred). */
+/** Postgres client + notes + music-domain schema (single-user MVP; membership deferred). */
 
 export { getDb, getDbStatus, isPostgresConfigured, type DbStatus } from "./client";
 export { NotesError, isNotesError } from "./errors";
