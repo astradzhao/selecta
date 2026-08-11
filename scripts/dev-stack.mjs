@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Local full-stack boot: Docker DBs → migrate → web + api.
+ * Local full-stack boot: Docker Postgres → migrate → web + api.
  * Usage: pnpm dev
  */
 
@@ -76,14 +76,11 @@ if (composeCheck.status !== 0) {
   fail("Docker Compose is not available (`docker compose version` failed).");
 }
 
-console.log("→ Starting Postgres + Neo4j (docker compose up -d --wait)…");
+console.log("→ Starting Postgres (docker compose up -d --wait)…");
 run("docker", ["compose", "up", "-d", "--wait"]);
 
 console.log("→ Applying Postgres migrations…");
 run("pnpm", ["db:migrate"]);
-
-console.log("→ Applying Neo4j constraints/indexes…");
-run("pnpm", ["graph:migrate"]);
 
 console.log("→ Starting web (:3000) + api (:3001)…");
 console.log("   Library UI: http://localhost:3000/library\n");

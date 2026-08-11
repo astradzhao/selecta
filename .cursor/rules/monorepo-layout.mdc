@@ -7,7 +7,7 @@ alwaysApply: true
 
 - `apps/web` (`@selecta/web`) — Next.js UI deployable (port 3000)
 - `apps/api` (`@selecta/api`) — Next.js API deployable (port 3001)
-- `packages/*` (`@selecta/catalog`, `@selecta/db`, `@selecta/graph`, `@selecta/mix-notes`, `@selecta/agentics`, `@selecta/ui`, `@selecta/eslint-config`) — shared libraries
+- `packages/*` (`@selecta/catalog`, `@selecta/db`, `@selecta/mix-notes`, `@selecta/agentics`, `@selecta/ui`, `@selecta/eslint-config`) — shared libraries
 
 Put deployable apps under `apps/`. Put shared domain/UI libraries under `packages/`. Import `@selecta/*` from apps; do not duplicate domain logic inside app folders.
 
