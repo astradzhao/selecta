@@ -68,7 +68,7 @@ export async function GET(_request: Request, context: RouteContext) {
         libraryId: neighbor.track.libraryId,
         createdAt: neighbor.track.createdAt,
         updatedAt: neighbor.track.updatedAt,
-        transition: neighbor.transition,
+        transitions: neighbor.transitions,
       })),
     });
   } catch (error) {

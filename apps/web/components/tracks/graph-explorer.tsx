@@ -6,8 +6,16 @@ import { useEffect, useId, useRef, useState, useTransition } from "react";
 
 import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
+import { Input } from "@selecta/ui/components/input";
 import { cn } from "@selecta/ui/lib/utils";
 
+import {
+  emptyTransitionFields,
+  parseTransitionFieldPatch,
+  TransitionFields,
+  transitionFieldsFromEdge,
+  type TransitionFieldValues,
+} from "@/components/tracks/transition-fields";
 import { ApiClientError } from "@/lib/api/client";
 import {
   beginArtFlight,
@@ -21,11 +29,14 @@ import {
 } from "@/lib/motion";
 import {
   getTrackNeighborhood,
+  listTracks,
   type ApiNeighborhoodCurrent,
   type ApiNeighborhoodNeighbor,
+  type ApiTrack,
   type ApiTransitionEdge,
 } from "@/lib/tracks/api";
 import { hopGraphSession, popGraphTrail, useGraphSession } from "@/lib/tracks/graph-session-store";
+import { createTransition, deleteTransition, updateTransition } from "@/lib/transitions/api";
 
 /** Copy/meta opacity during a hop — opacity only, never translate/scale (those snap). */
 type CopyPhase = "visible" | "out" | "hidden" | "in";
@@ -34,7 +45,6 @@ type CopyPhase = "visible" | "out" | "hidden" | "in";
 const COPY_PHASE_CLASS: Record<CopyPhase, string> = {
   visible: "opacity-100",
   out: "opacity-0 ease-in",
-  // Instant hold at 0 so the remounted panel doesn't flash before the fade-in.
   hidden: "opacity-0 duration-0",
   in: "opacity-100 ease-out",
 };
@@ -75,6 +85,18 @@ function qualityTone(quality: string | null): "default" | "secondary" | "outline
   return "outline";
 }
 
+function edgeKey(edge: ApiTransitionEdge, fallback: string): string {
+  return edge.id ?? edge.proposalKey ?? fallback;
+}
+
+function provenanceLabel(edge: ApiTransitionEdge): {
+  kind: "manual" | "ai";
+  noteId: string | null;
+} {
+  const isAi = Boolean(edge.proposalKey || edge.sourceNoteId);
+  return { kind: isAi ? "ai" : "manual", noteId: edge.sourceNoteId };
+}
+
 function Artwork({
   url,
   size,
@@ -86,7 +108,6 @@ function Artwork({
   url: string | null;
   size: number;
   className?: string;
-  /** Morph anchor: the card thumbnail expands into the hero slot. */
   artRole?: "card" | "hero";
   sizes?: string;
   priority?: boolean;
@@ -115,7 +136,6 @@ function Artwork({
   );
 }
 
-/** Beat/bar markers when from/to bars exist — honest to stored metadata only. */
 function BarStrip({ transition }: { transition: ApiTransitionEdge }) {
   const fromBar = transition.fromBar;
   const toBar = transition.toBar;
@@ -180,10 +200,6 @@ function BarStrip({ transition }: { transition: ApiTransitionEdge }) {
   );
 }
 
-/**
- * Preference meters from real transition fields only.
- * EQ bars are illustrative placeholders — we do not invent analytics.
- */
 function TransitionMeters({ transition }: { transition: ApiTransitionEdge }) {
   const qualityRank =
     transition.quality === "great"
@@ -275,6 +291,7 @@ function NeighborCard({
   onToggle,
   onChoose,
   onPrefetch,
+  onNeighborhoodChange,
   fadingOut,
   choosing,
   index,
@@ -286,15 +303,92 @@ function NeighborCard({
   onToggle: () => void;
   onChoose: () => void;
   onPrefetch: () => void;
+  onNeighborhoodChange: () => Promise<void>;
   fadingOut: boolean;
   choosing: boolean;
   index: number;
   panelId: string;
   registerRef: (element: HTMLElement | null) => void;
 }) {
-  const t = neighbor.transition;
-  const technique = formatLabel(t.technique);
-  const intent = formatLabel(t.intent);
+  const edges = neighbor.transitions;
+  const defaultEdge = edges[0];
+  const [selectedKey, setSelectedKey] = useState(() =>
+    defaultEdge ? edgeKey(defaultEdge, neighbor.id) : neighbor.id,
+  );
+  const selected =
+    edges.find((edge) => edgeKey(edge, neighbor.id) === selectedKey) ?? defaultEdge ?? null;
+
+  useEffect(() => {
+    const nextDefault = edges[0];
+    if (!nextDefault) return;
+    const stillPresent = edges.some((edge) => edgeKey(edge, neighbor.id) === selectedKey);
+    if (!stillPresent) {
+      setSelectedKey(edgeKey(nextDefault, neighbor.id));
+    }
+  }, [edges, neighbor.id, selectedKey]);
+
+  const [panelMode, setPanelMode] = useState<"view" | "edit" | null>("view");
+  const [form, setForm] = useState<TransitionFieldValues>(emptyTransitionFields());
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [saving, startSave] = useTransition();
+  const [deleting, startDelete] = useTransition();
+
+  const t = selected;
+  const technique = t ? formatLabel(t.technique) : null;
+  const intent = t ? formatLabel(t.intent) : null;
+  const provenance = t ? provenanceLabel(t) : null;
+
+  function openEdit() {
+    if (!t) return;
+    setForm(transitionFieldsFromEdge(t));
+    setActionError(null);
+    setPanelMode("edit");
+  }
+
+  function onSaveEdit() {
+    if (!t?.id) {
+      setActionError("This transition has no stable id yet.");
+      return;
+    }
+    const parsed = parseTransitionFieldPatch(form);
+    if (!parsed.ok) {
+      setActionError(parsed.error);
+      return;
+    }
+    startSave(async () => {
+      try {
+        await updateTransition(t.id!, parsed.patch);
+        setActionError(null);
+        setPanelMode("view");
+        await onNeighborhoodChange();
+      } catch (err) {
+        setActionError(err instanceof ApiClientError ? err.message : "Failed to save transition.");
+      }
+    });
+  }
+
+  function onDelete() {
+    if (!t?.id) {
+      setActionError("This transition has no stable id yet.");
+      return;
+    }
+    const confirmed = window.confirm(
+      `Delete the transition to “${neighbor.title}”? Sibling transitions stay intact.`,
+    );
+    if (!confirmed) return;
+    startDelete(async () => {
+      try {
+        await deleteTransition(t.id!);
+        setActionError(null);
+        setPanelMode("view");
+        await onNeighborhoodChange();
+      } catch (err) {
+        setActionError(
+          err instanceof ApiClientError ? err.message : "Failed to delete transition.",
+        );
+      }
+    });
+  }
 
   return (
     <li
@@ -332,7 +426,6 @@ function NeighborCard({
           url={neighbor.artworkUrl}
           size={56}
           artRole="card"
-          // Oversized source so the thumbnail stays sharp as it morphs to 220px.
           sizes="220px"
           className="rounded-xl"
         />
@@ -344,22 +437,32 @@ function NeighborCard({
                 {artistLine(neighbor.artists)}
               </p>
             </div>
-            {t.quality ? (
-              <Badge variant={qualityTone(t.quality)} className="shrink-0 capitalize">
-                {t.quality}
-              </Badge>
-            ) : null}
+            <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+              {edges.length > 1 ? (
+                <Badge variant="outline" className="font-mono text-[11px]">
+                  {edges.length}
+                </Badge>
+              ) : null}
+              {t?.quality ? (
+                <Badge variant={qualityTone(t.quality)} className="capitalize">
+                  {t.quality}
+                </Badge>
+              ) : null}
+            </div>
           </div>
           <p className="text-muted-foreground line-clamp-1 text-xs">
-            {[
-              t.fromBar != null || t.toBar != null
-                ? `Bars ${t.fromBar ?? "—"} → ${t.toBar ?? "—"}`
-                : null,
-              technique,
-              intent,
-            ]
-              .filter(Boolean)
-              .join(" · ") || "Transition details"}
+            {t
+              ? [
+                  t.fromBar != null || t.toBar != null
+                    ? `Bars ${t.fromBar ?? "—"} → ${t.toBar ?? "—"}`
+                    : null,
+                  technique,
+                  intent,
+                  edges.length > 1 ? `${edges.length} transitions` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || "Transition details"
+              : "No transitions"}
           </p>
         </div>
         <span
@@ -388,39 +491,330 @@ function NeighborCard({
               expanded ? "opacity-100" : "opacity-0",
             )}
           >
-            <div className="flex flex-wrap gap-2">
-              {technique ? <Badge variant="outline">{technique}</Badge> : null}
-              {intent ? <Badge variant="secondary">{intent}</Badge> : null}
-              {!technique && !intent && !t.quality ? (
-                <span className="text-muted-foreground text-xs">
-                  No technique / intent recorded
-                </span>
-              ) : null}
-            </div>
+            {edges.length > 1 ? (
+              <div className="space-y-2" role="listbox" aria-label="Transitions to this track">
+                <p className="text-muted-foreground text-xs tracking-[0.14em] uppercase">
+                  Transitions
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  {edges.map((edge, edgeIndex) => {
+                    const key = edgeKey(edge, `${neighbor.id}-${edgeIndex}`);
+                    const selectedEdge = key === selectedKey;
+                    const label = [
+                      formatLabel(edge.quality) ?? "Unrated",
+                      formatLabel(edge.technique),
+                      edge.fromBar != null ? `bar ${edge.fromBar}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ");
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        role="option"
+                        aria-selected={selectedEdge}
+                        onClick={() => {
+                          setSelectedKey(key);
+                          setPanelMode("view");
+                          setActionError(null);
+                        }}
+                        className={cn(
+                          "rounded-lg border px-3 py-2 text-left text-sm transition-colors",
+                          selectedEdge
+                            ? "border-foreground/40 bg-muted/50"
+                            : "border-border hover:bg-muted/30",
+                        )}
+                      >
+                        <span className="font-medium">{label}</span>
+                        <span className="text-muted-foreground mt-0.5 block text-xs">
+                          {provenanceLabel(edge).kind === "ai" ? "From note" : "Manual"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
 
-            {t.notes ? (
-              <p className="text-sm leading-relaxed text-pretty">{t.notes}</p>
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                No free-text notes on this transition.
+            {t && panelMode === "view" ? (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  {technique ? <Badge variant="outline">{technique}</Badge> : null}
+                  {intent ? <Badge variant="secondary">{intent}</Badge> : null}
+                  {!technique && !intent && !t.quality ? (
+                    <span className="text-muted-foreground text-xs">
+                      No technique / intent recorded
+                    </span>
+                  ) : null}
+                </div>
+
+                <p className="text-muted-foreground text-xs">
+                  {provenance?.kind === "ai" ? "From note" : "Manual"}
+                  {provenance?.noteId ? (
+                    <>
+                      {" · "}
+                      <Link
+                        href={`/library/submissions/${provenance.noteId}`}
+                        className="underline-offset-4 hover:underline"
+                      >
+                        Source submission
+                      </Link>
+                    </>
+                  ) : null}
+                </p>
+
+                {t.notes ? (
+                  <p className="text-sm leading-relaxed text-pretty">{t.notes}</p>
+                ) : (
+                  <p className="text-muted-foreground text-sm">
+                    No free-text notes on this transition.
+                  </p>
+                )}
+
+                <BarStrip transition={t} />
+                <TransitionMeters transition={t} />
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    onClick={onChoose}
+                    disabled={choosing}
+                    className="transition-transform duration-200 active:scale-[0.98]"
+                  >
+                    Choose this track
+                  </Button>
+                  {t.id ? (
+                    <>
+                      <Button type="button" variant="outline" onClick={openEdit}>
+                        Edit
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        disabled={deleting}
+                        onClick={onDelete}
+                      >
+                        {deleting ? "Deleting…" : "Delete"}
+                      </Button>
+                    </>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
+
+            {t && panelMode === "edit" ? (
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Edit transition</p>
+                <TransitionFields
+                  idPrefix={`graph-edit-${edgeKey(t, neighbor.id)}`}
+                  values={form}
+                  compact
+                  disabled={saving}
+                  onChange={(field, value) => {
+                    setForm((current) => ({ ...current, [field]: value }));
+                    setActionError(null);
+                  }}
+                />
+                {actionError ? (
+                  <p className="text-sm" role="alert">
+                    {actionError}
+                  </p>
+                ) : null}
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" disabled={saving} onClick={onSaveEdit}>
+                    {saving ? "Saving…" : "Save"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={saving}
+                    onClick={() => {
+                      setPanelMode("view");
+                      setActionError(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            {actionError && panelMode === "view" ? (
+              <p className="text-sm" role="alert">
+                {actionError}
               </p>
-            )}
-
-            <BarStrip transition={t} />
-            <TransitionMeters transition={t} />
-
-            <Button
-              type="button"
-              onClick={onChoose}
-              disabled={choosing}
-              className="w-full transition-transform duration-200 active:scale-[0.98] sm:w-auto"
-            >
-              Choose this track
-            </Button>
+            ) : null}
           </div>
         </div>
       </div>
     </li>
+  );
+}
+
+function AddTransitionPanel({
+  fromTrackId,
+  excludeTrackId,
+  onCreated,
+  onCancel,
+}: {
+  fromTrackId: string;
+  excludeTrackId: string;
+  onCreated: () => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<ApiTrack[]>([]);
+  const [selected, setSelected] = useState<ApiTrack | null>(null);
+  const [form, setForm] = useState<TransitionFieldValues>(emptyTransitionFields());
+  const [error, setError] = useState<string | null>(null);
+  const [searching, startSearch] = useTransition();
+  const [saving, startSave] = useTransition();
+
+  useEffect(() => {
+    const q = query.trim();
+    if (!q || selected) {
+      if (!q) setResults([]);
+      return;
+    }
+    let cancelled = false;
+    const handle = window.setTimeout(() => {
+      startSearch(async () => {
+        try {
+          const response = await listTracks({ query: q, limit: 8 });
+          if (cancelled) return;
+          setResults(response.tracks.filter((track) => track.id !== excludeTrackId));
+          setError(null);
+        } catch (err) {
+          if (cancelled) return;
+          setResults([]);
+          setError(err instanceof ApiClientError ? err.message : "Failed to search tracks.");
+        }
+      });
+    }, 220);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+  }, [query, selected, excludeTrackId]);
+
+  function onSubmit() {
+    if (!selected) {
+      setError("Pick a destination track from your library.");
+      return;
+    }
+    const parsed = parseTransitionFieldPatch(form);
+    if (!parsed.ok) {
+      setError(parsed.error);
+      return;
+    }
+    startSave(async () => {
+      try {
+        await createTransition({
+          fromTrackId,
+          toTrackId: selected.id,
+          ...parsed.patch,
+        });
+        setError(null);
+        await onCreated();
+      } catch (err) {
+        setError(err instanceof ApiClientError ? err.message : "Failed to create transition.");
+      }
+    });
+  }
+
+  return (
+    <div className="border-border bg-muted/20 space-y-4 rounded-2xl border px-4 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium">Add transition</p>
+          <p className="text-muted-foreground text-xs text-pretty">
+            Pick an existing library track. Missing a song?{" "}
+            <Link href="/add" className="underline-offset-4 hover:underline">
+              Add it first
+            </Link>
+            .
+          </p>
+        </div>
+        <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+          Close
+        </Button>
+      </div>
+
+      {selected ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{selected.title}</p>
+            <p className="text-muted-foreground truncate text-xs">{artistLine(selected.artists)}</p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSelected(null);
+              setQuery("");
+              setResults([]);
+            }}
+          >
+            Change
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search library tracks"
+            aria-label="Search library tracks"
+          />
+          {searching ? <p className="text-muted-foreground text-xs">Searching…</p> : null}
+          {results.length > 0 ? (
+            <ul className="border-border max-h-40 space-y-1 overflow-y-auto rounded-lg border p-1">
+              {results.map((track) => (
+                <li key={track.id}>
+                  <button
+                    type="button"
+                    className="hover:bg-muted/50 w-full rounded-md px-2 py-1.5 text-left text-sm"
+                    onClick={() => {
+                      setSelected(track);
+                      setQuery("");
+                      setResults([]);
+                      setError(null);
+                    }}
+                  >
+                    <span className="font-medium">{track.title}</span>
+                    <span className="text-muted-foreground block text-xs">
+                      {artistLine(track.artists)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      )}
+
+      <TransitionFields
+        idPrefix="graph-add"
+        values={form}
+        compact
+        disabled={saving}
+        onChange={(field, value) => {
+          setForm((current) => ({ ...current, [field]: value }));
+          setError(null);
+        }}
+      />
+
+      {error ? (
+        <p className="text-sm" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      <Button type="button" disabled={saving || !selected} onClick={onSubmit}>
+        {saving ? "Saving…" : "Create transition"}
+      </Button>
+    </div>
   );
 }
 
@@ -431,11 +825,10 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
   const [neighbors, setNeighbors] = useState<ApiNeighborhoodNeighbor[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
   const [pending, startLoad] = useTransition();
   const [choosingId, setChoosingId] = useState<string | null>(null);
-  /** Hides the real hero artwork while its flying clone is mid-air. */
   const [artHidden, setArtHidden] = useState(false);
-  /** Opacity-only fade of title/meta so it crossfades while the art flies. */
   const [copyPhase, setCopyPhase] = useState<CopyPhase>("visible");
 
   const loadedIdRef = useRef<string | null>(null);
@@ -443,7 +836,8 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
   const cardRefs = useRef(new Map<string, HTMLElement>());
   const requestsRef = useRef(new Map<string, Promise<Neighborhood>>());
 
-  function loadNeighborhood(id: string): Promise<Neighborhood> {
+  function loadNeighborhood(id: string, { bust = false } = {}): Promise<Neighborhood> {
+    if (bust) requestsRef.current.delete(id);
     const inFlight = requestsRef.current.get(id);
     if (inFlight) return inFlight;
     const request = getTrackNeighborhood(id).then((response) => ({
@@ -453,6 +847,14 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
     requestsRef.current.set(id, request);
     void request.catch(() => requestsRef.current.delete(id));
     return request;
+  }
+
+  async function refreshNeighborhood() {
+    if (!trackId) return;
+    const next = await loadNeighborhood(trackId, { bust: true });
+    setCurrent(next.current);
+    setNeighbors(next.neighbors);
+    setError(null);
   }
 
   useEffect(() => {
@@ -466,6 +868,7 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
         setCurrent(next.current);
         setNeighbors(next.neighbors);
         setError(null);
+        setAdding(false);
       } catch (err) {
         if (cancelled) return;
         setCurrent(null);
@@ -484,22 +887,20 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
     if (!trackId || choosingId || nextId === trackId) return;
 
     const request = loadNeighborhood(nextId).catch(() => null);
-    // Lift the thumbnail out of the list before the DOM is swapped under it.
     const flight = beginArtFlight(
       sourceElement?.querySelector<HTMLElement>('[data-art-role="card"]'),
     );
 
     setChoosingId(nextId);
     setExpandedKey(null);
+    setAdding(false);
     setCopyPhase("out");
     if (flight) setArtHidden(true);
 
     try {
       const next = await request;
-      // Hold until the outgoing copy has fully faded — same clock as the flight.
       await wait(prefersReducedMotion() ? 0 : HOP_COPY_OUT_MS);
 
-      // Persist hop in the shared session (survives leaving /graph).
       loadedIdRef.current = next ? nextId : null;
       hopGraphSession(trackId, nextId);
       if (next) {
@@ -508,7 +909,6 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
         setError(null);
       }
       setChoosingId(null);
-      // Remount stays invisible until the art has landed.
       setCopyPhase("hidden");
 
       await nextFrame();
@@ -520,8 +920,6 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
         await wait(prefersReducedMotion() ? 0 : HOP_FLIGHT_MS);
       }
 
-      // Reveal under the clone, wait for the real <img> to be paint-ready, then
-      // dissolve the overlay — avoids a muted-box flash between clone and hero.
       setArtHidden(false);
       await nextFrame();
       const heroImg = panelRef.current?.querySelector<HTMLImageElement>(
@@ -557,6 +955,7 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
     if (!previous) return;
     loadedIdRef.current = null;
     setExpandedKey(null);
+    setAdding(false);
     setCopyPhase("visible");
   }
 
@@ -589,6 +988,8 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
   }
 
   const swapping = choosingId !== null;
+  const destinationCount = neighbors.length;
+  const transitionCount = neighbors.reduce((sum, neighbor) => sum + neighbor.transitions.length, 0);
 
   return (
     <div className="space-y-6">
@@ -599,7 +1000,7 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
           </p>
           <p className="text-muted-foreground max-w-xl text-sm text-pretty">
             Browse outbound transitions from the current track. Expand a neighbor for mix detail,
-            then choose it to traverse.
+            manage parallel edges, then choose it to traverse.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -624,8 +1025,6 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
             aria-labelledby="graph-current-heading"
             className="border-border bg-background sticky top-20 flex flex-col gap-5 rounded-3xl border p-5 sm:p-6"
           >
-            {/* Keyed remount on hop. Opacity-only fades — no zoom/slide (those
-                read as a sideways snap once layout settles). */}
             <div key={current.id} className="flex flex-col gap-5">
               <Artwork
                 url={current.artworkUrl}
@@ -706,26 +1105,55 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
         </div>
 
         <section aria-labelledby="graph-next-heading" className="min-w-0 space-y-3">
-          <div className="motion-safe:animate-in motion-safe:fade-in-0 flex items-baseline justify-between gap-3 duration-500">
-            <h2 id="graph-next-heading" className="text-sm font-medium tracking-tight">
-              Next transitions
-            </h2>
-            <span className="text-muted-foreground font-mono text-xs">{neighbors.length}</span>
+          <div className="motion-safe:animate-in motion-safe:fade-in-0 flex flex-wrap items-center justify-between gap-3 duration-500">
+            <div className="flex items-baseline gap-2">
+              <h2 id="graph-next-heading" className="text-sm font-medium tracking-tight">
+                Next transitions
+              </h2>
+              <span className="text-muted-foreground font-mono text-xs">
+                {destinationCount}
+                {transitionCount !== destinationCount ? ` · ${transitionCount}` : null}
+              </span>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={swapping}
+              onClick={() => setAdding((value) => !value)}
+            >
+              {adding ? "Cancel add" : "Add transition"}
+            </Button>
           </div>
+
+          {adding ? (
+            <AddTransitionPanel
+              fromTrackId={current.id}
+              excludeTrackId={current.id}
+              onCancel={() => setAdding(false)}
+              onCreated={async () => {
+                setAdding(false);
+                await refreshNeighborhood();
+              }}
+            />
+          ) : null}
 
           {neighbors.length === 0 ? (
             <div className="border-border bg-muted/20 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 space-y-3 rounded-2xl border border-dashed px-5 py-10 text-center duration-500">
               <p className="text-sm font-medium">No outbound transitions yet</p>
               <p className="text-muted-foreground mx-auto max-w-sm text-sm text-pretty">
-                Capture a mix note that links this track to another, or pick a different starting
-                song.
+                Add a transition to a library track, or capture a mix note that links this song
+                onward.
               </p>
               <div className="flex flex-wrap justify-center gap-2 pt-1">
-                <Button type="button" variant="secondary" size="sm" onClick={onExit}>
+                <Button type="button" variant="secondary" size="sm" onClick={() => setAdding(true)}>
+                  Add transition
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={onExit}>
                   Choose another track
                 </Button>
                 <Button asChild variant="outline" size="sm">
-                  <Link href="/library?view=submissions">Open submissions</Link>
+                  <Link href="/add">Add a track</Link>
                 </Button>
               </div>
             </div>
@@ -739,8 +1167,7 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
               )}
             >
               {neighbors.map((neighbor, index) => {
-                const rowKey =
-                  neighbor.transition.id ?? neighbor.transition.proposalKey ?? neighbor.id;
+                const rowKey = neighbor.id;
                 const expanded = expandedKey === rowKey;
                 return (
                   <NeighborCard
@@ -759,6 +1186,7 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
                     }}
                     onPrefetch={() => void loadNeighborhood(neighbor.id).catch(() => null)}
                     onChoose={() => void goToTrack(neighbor.id, cardRefs.current.get(rowKey))}
+                    onNeighborhoodChange={refreshNeighborhood}
                     fadingOut={swapping && choosingId !== neighbor.id}
                     choosing={choosingId === neighbor.id}
                   />

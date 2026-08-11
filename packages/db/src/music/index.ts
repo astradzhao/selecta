@@ -58,6 +58,8 @@ export {
   rankNeighborhoodNeighbors,
   getTrackNeighborhood,
   type TransitionEdgeSummary,
+  type RankableNeighbor,
+  type FlatNeighborhoodNeighbor,
   type NeighborhoodNeighbor,
   type TrackNeighborhood,
 } from "./neighborhood";

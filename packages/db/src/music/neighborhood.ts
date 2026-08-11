@@ -24,7 +24,25 @@ export type TransitionEdgeSummary = {
   updatedAt: string | null;
 };
 
+/** Flat neighbor+edge pair used as the ranking comparator input. */
+export type RankableNeighbor = {
+  track: TrackNode;
+  transition: TransitionEdgeSummary;
+};
+
+/** Destination group: one track with all outbound transitions (best-first). */
 export type NeighborhoodNeighbor = {
+  track: TrackNode;
+  artists: NamedNode[];
+  genres: NamedNode[];
+  subgenres: NamedNode[];
+  folders: FolderNode[];
+  /** Outbound edges to this destination, sorted best-first (`[0]` is the winner). */
+  transitions: TransitionEdgeSummary[];
+};
+
+/** Flat row before grouping (one edge per entry). */
+export type FlatNeighborhoodNeighbor = {
   track: TrackNode;
   artists: NamedNode[];
   genres: NamedNode[];
@@ -35,7 +53,7 @@ export type NeighborhoodNeighbor = {
 
 export type TrackNeighborhood = {
   current: TrackSummary;
-  /** Outbound neighbors, best transition per target, stable ranked order. */
+  /** Outbound destination groups, ordered by each group's best edge. */
   neighbors: NeighborhoodNeighbor[];
 };
 
@@ -127,10 +145,7 @@ export function transitionQualityRank(quality: string | null | undefined): numbe
  * Stable ranking for outbound neighbors (ARCHITECTURE §11, local MVP):
  * quality → confidence DESC → fromBar ASC → title → edge id → proposalKey.
  */
-export function compareNeighborhoodNeighbors(
-  a: NeighborhoodNeighbor,
-  b: NeighborhoodNeighbor,
-): number {
+export function compareNeighborhoodNeighbors(a: RankableNeighbor, b: RankableNeighbor): number {
   const qualityDelta =
     transitionQualityRank(a.transition.quality) - transitionQualityRank(b.transition.quality);
   if (qualityDelta !== 0) return qualityDelta;
@@ -167,20 +182,62 @@ export function compareNeighborhoodNeighbors(
 }
 
 /**
- * Keep the best-ranked transition per neighbor track id, then sort.
- * Multiple notes may create multiple TRANSITION edges to the same target.
+ * Group flat edge rows by destination track: keep all edges (best-first),
+ * then order groups by each group's best edge.
  */
 export function rankNeighborhoodNeighbors(
-  neighbors: NeighborhoodNeighbor[],
+  flat: FlatNeighborhoodNeighbor[],
 ): NeighborhoodNeighbor[] {
-  const bestByTrackId = new Map<string, NeighborhoodNeighbor>();
-  for (const neighbor of neighbors) {
-    const existing = bestByTrackId.get(neighbor.track.id);
-    if (!existing || compareNeighborhoodNeighbors(neighbor, existing) < 0) {
-      bestByTrackId.set(neighbor.track.id, neighbor);
+  type Group = {
+    track: TrackNode;
+    artists: NamedNode[];
+    genres: NamedNode[];
+    subgenres: NamedNode[];
+    folders: FolderNode[];
+    edges: TransitionEdgeSummary[];
+  };
+
+  const byTrackId = new Map<string, Group>();
+  for (const row of flat) {
+    const existing = byTrackId.get(row.track.id);
+    if (!existing) {
+      byTrackId.set(row.track.id, {
+        track: row.track,
+        artists: row.artists,
+        genres: row.genres,
+        subgenres: row.subgenres,
+        folders: row.folders,
+        edges: [row.transition],
+      });
+      continue;
     }
+    existing.edges.push(row.transition);
   }
-  return [...bestByTrackId.values()].sort(compareNeighborhoodNeighbors);
+
+  const groups: NeighborhoodNeighbor[] = [];
+  for (const group of byTrackId.values()) {
+    const transitions = [...group.edges].sort((left, right) =>
+      compareNeighborhoodNeighbors(
+        { track: group.track, transition: left },
+        { track: group.track, transition: right },
+      ),
+    );
+    groups.push({
+      track: group.track,
+      artists: group.artists,
+      genres: group.genres,
+      subgenres: group.subgenres,
+      folders: group.folders,
+      transitions,
+    });
+  }
+
+  return groups.sort((a, b) =>
+    compareNeighborhoodNeighbors(
+      { track: a.track, transition: a.transitions[0]! },
+      { track: b.track, transition: b.transitions[0]! },
+    ),
+  );
 }
 
 /**
@@ -215,7 +272,7 @@ export async function getTrackNeighborhood(id: string): Promise<TrackNeighborhoo
   }
 
   const summaries = await getTrackSummariesByIds(edgeRows.map((row) => row.toTrackId));
-  const mapped: NeighborhoodNeighbor[] = [];
+  const mapped: FlatNeighborhoodNeighbor[] = [];
   for (const edge of edgeRows) {
     const summary = summaries.get(edge.toTrackId);
     if (!summary) {
