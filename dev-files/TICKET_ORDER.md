@@ -8,15 +8,16 @@
 > Architecture decisions:
 > [`NEXT_PRODUCT_ARCHITECTURE.md`](./NEXT_PRODUCT_ARCHITECTURE.md) (product
 > model) and [`PG_MIGRATION_REFACTOR.md`](./PG_MIGRATION_REFACTOR.md)
-> (Postgres-only music store migration).
+> (Postgres-only music store — **implemented**).
 >
-> Last reconciled with all Linear issues DJ-1–DJ-87: 2026-08-07
+> Last reconciled with Linear issues DJ-1–DJ-87: 2026-08-11
 
 ## How to use this file
 
 - Linear is authoritative for issue status, assignment, and blocking relations.
 - This file is authoritative for recommended serial order and parallel lanes.
-- One Linear issue means one `dj-XXXX` branch. Do not combine adjacent tickets.
+- One Linear issue means one `dj-XXXX` branch in general. DJ-85 + DJ-87 were
+  intentionally combined in one PR (pure removal + docs).
 - Parent issues DJ-7, DJ-11, DJ-9, and DJ-80 are trackers, not implementation
   branches unless their descriptions gain standalone work.
 - Deferred tickets are intentionally outside local MVP acceptance. Do not pull
@@ -26,20 +27,16 @@
 
 - Primary product surfaces are **Add**, **Library**, and **Graph**.
 - Library views are **Tracks**, **Transitions**, and immutable **Submissions**.
-- **Target state (DJ-80): one Postgres owns everything** — submissions,
-  proposals/reviews, workflow state, audit, AND the music domain (tracks,
-  artists, vocab, transitions). Neo4j is being removed.
-- Until DJ-84 (cutover) lands, Neo4j still serves tracks and committed
-  transitions; do not build new features on it.
-- LLM output never writes the music store directly (Neo4j today, Postgres
-  music tables after migration). Parsers write proposals; deterministic
-  policy/application code is the only music-store writer.
+- **One Postgres owns everything** — submissions, proposals/reviews, workflow
+  state, audit, and the music domain (tracks, artists, vocab, transitions).
+- LLM output never writes music tables directly. Parsers write proposals;
+  deterministic policy/application code is the only music-store writer.
+- Proposal commit is one ACID transaction (`proposal_key` idempotency).
 - Clear proposals commit independently of ambiguous siblings.
-- Multiple A → B transition edges are valid and addressed by stable edge ID.
+- Multiple A → B transition rows are valid and addressed by stable ID.
 - `Genre`, `Subgenre`, and `Folder` remain distinct concepts; see
   [DJ-51](https://linear.app/dj-project-astradzhao/issue/DJ-51).
-- Folder kinds are **`folder` | `playlist` only** (`section` dropped — DJ-81).
-  Neo4j/`FOLDER_KINDS` may still list `section` until constants move in PG-2/PG-4.
+- Folder kinds are **`folder` | `playlist` only** (`section` dropped).
 
 ## Milestone state
 
@@ -51,6 +48,12 @@
   [DJ-10](https://linear.app/dj-project-astradzhao/issue/DJ-10)
 - **M2 — Track discovery & library foundation**:
   [DJ-8](https://linear.app/dj-project-astradzhao/issue/DJ-8)
+- **M4.5 — Postgres-only music store** (code + docs):
+  [DJ-81](https://linear.app/dj-project-astradzhao/issue/DJ-81) …
+  [DJ-85](https://linear.app/dj-project-astradzhao/issue/DJ-85) +
+  [DJ-87](https://linear.app/dj-project-astradzhao/issue/DJ-87)
+  (optional [DJ-86](https://linear.app/dj-project-astradzhao/issue/DJ-86)
+  export only if needed before dogfood)
 
 ### Merged on `main`, pending Linear closure
 
@@ -60,85 +63,70 @@ Linear after verification; remaining M3 loose ends are DJ-78/DJ-79.
 
 ### Active / next
 
-- **M4.5 — Postgres-only music store**:
-  [DJ-80](https://linear.app/dj-project-astradzhao/issue/DJ-80) — **the
-  current critical path**. Lands before all remaining feature work.
-
-### Remaining local MVP after migration
-
 - **M4 — Graph traversal & transition management**:
-  [DJ-11](https://linear.app/dj-project-astradzhao/issue/DJ-11) (DJ-75 left)
-- **M5 — Unified Add & Library** (DJ-67, DJ-36 left)
+  [DJ-75](https://linear.app/dj-project-astradzhao/issue/DJ-75)
+- **M5 leftovers**: [DJ-67](https://linear.app/dj-project-astradzhao/issue/DJ-67),
+  [DJ-36](https://linear.app/dj-project-astradzhao/issue/DJ-36)
 - **M6 — End-to-end local dogfood**:
   [DJ-9](https://linear.app/dj-project-astradzhao/issue/DJ-9)
 
 ## Recommended serial implementation order
 
-### 1. Postgres migration — now (strictly serial)
+### 1. Postgres migration — done
 
-1. [DJ-81 — PG-1: Postgres schema for music domain](https://linear.app/dj-project-astradzhao/issue/DJ-81)
-   — tables + migration only; zero runtime change.
-2. [DJ-82 — PG-2: Track + vocabulary helpers in `@selecta/db`](https://linear.app/dj-project-astradzhao/issue/DJ-82)
-   — contract-parity `createTrack` / `listTracks` / lookups; no consumers.
-3. [DJ-83 — PG-3: Transition helpers (CRUD, idempotent commit, neighborhood)](https://linear.app/dj-project-astradzhao/issue/DJ-83)
-   — parallel-edge + `proposal_key` idempotency + ported ranking; no consumers.
-4. [DJ-84 — PG-4: Cutover of API routes, agent services, workflow, FKs](https://linear.app/dj-project-astradzhao/issue/DJ-84)
-   — import swaps, transactional proposal commit, SQL joins, FK upgrades.
-   After this, Neo4j receives zero traffic.
-5. [DJ-85 — PG-5: Remove Neo4j from the stack](https://linear.app/dj-project-astradzhao/issue/DJ-85)
-   — delete package/driver/Compose/env/scripts/README references.
-6. [DJ-87 — PG-7: Reconcile docs and open tickets](https://linear.app/dj-project-astradzhao/issue/DJ-87)
-   — ARCHITECTURE/NEXT_PRODUCT_ARCHITECTURE updates + reword DJ-75/67/36/42/45/47/48.
+1. ~~[DJ-81 — PG-1](https://linear.app/dj-project-astradzhao/issue/DJ-81)~~ merged
+2. ~~[DJ-82 — PG-2](https://linear.app/dj-project-astradzhao/issue/DJ-82)~~ merged
+3. ~~[DJ-83 — PG-3](https://linear.app/dj-project-astradzhao/issue/DJ-83)~~ merged
+4. ~~[DJ-84 — PG-4](https://linear.app/dj-project-astradzhao/issue/DJ-84)~~ merged
+5. ~~[DJ-85 — PG-5](https://linear.app/dj-project-astradzhao/issue/DJ-85)~~ +
+   ~~[DJ-87 — PG-7](https://linear.app/dj-project-astradzhao/issue/DJ-87)~~
+   (this PR)
 
-Optional, decoupled:
+Optional:
 [DJ-86 — PG-6: one-shot Neo4j → Postgres data export](https://linear.app/dj-project-astradzhao/issue/DJ-86)
-— only if current local graph data is worth preserving; must run after DJ-81
-and before DJ-85. Otherwise close as not-needed (DJ-47 repopulates via UI).
+— only if leftover local Neo4j data is worth preserving; otherwise close as
+not-needed (DJ-47 repopulates via UI).
 
-### 2. Remaining feature work (blocked by DJ-80)
+### 2. Remaining feature work
 
-7. [DJ-75 — Graph explorer: display and manage parallel transitions](https://linear.app/dj-project-astradzhao/issue/DJ-75)
+6. [DJ-75 — Graph explorer: display and manage parallel transitions](https://linear.app/dj-project-astradzhao/issue/DJ-75)
    — closes M4/DJ-11 after verification.
-8. [DJ-67 — Track edit + delete APIs and Library controls](https://linear.app/dj-project-astradzhao/issue/DJ-67)
-   — deletion semantics become FK cascades post-migration.
-9. [DJ-36 — Library transition review for ambiguous extraction proposals](https://linear.app/dj-project-astradzhao/issue/DJ-36)
+7. [DJ-67 — Track edit + delete APIs and Library controls](https://linear.app/dj-project-astradzhao/issue/DJ-67)
+   — deletion uses FK cascades.
+8. [DJ-36 — Library transition review for ambiguous extraction proposals](https://linear.app/dj-project-astradzhao/issue/DJ-36)
    — approval uses the transactional commit path.
 
-DJ-75, DJ-67, and DJ-36 may run in parallel on separate branches once DJ-84
-has landed (DJ-85/DJ-87 do not block them functionally, but keep the serial
-order when one agent works alone).
+DJ-75, DJ-67, and DJ-36 may run in parallel on separate branches.
 
 Loose M3 items [DJ-78](https://linear.app/dj-project-astradzhao/issue/DJ-78)
 (editable notes + differential re-extraction) and
 [DJ-79](https://linear.app/dj-project-astradzhao/issue/DJ-79) (strip bar cues
-from search queries) are independent of the migration lane; DJ-79 is small and
-may slot in anywhere, DJ-78 should wait until after DJ-84 to avoid building on
-the saga.
+from search queries) are independent; DJ-79 is small and may slot in anywhere.
 
 ### 3. Local MVP dogfood and acceptance
 
-10. [DJ-47 — Populate representative tracks, transitions, and submissions](https://linear.app/dj-project-astradzhao/issue/DJ-47)
-    — starts only after DJ-36, DJ-67, DJ-75 (and the migration lane).
-11. [DJ-45 — Run end-to-end Add → Library → Graph dogfood](https://linear.app/dj-project-astradzhao/issue/DJ-45)
-12. [DJ-48 — Measure extraction, catalog, Library, and Graph performance/cost](https://linear.app/dj-project-astradzhao/issue/DJ-48)
-13. [DJ-46 — Accept local MVP and triage post-MVP follow-ups](https://linear.app/dj-project-astradzhao/issue/DJ-46)
+9. [DJ-47 — Populate representative tracks, transitions, and submissions](https://linear.app/dj-project-astradzhao/issue/DJ-47)
+   — starts only after DJ-36, DJ-67, DJ-75.
+10. [DJ-45 — Run end-to-end Add → Library → Graph dogfood](https://linear.app/dj-project-astradzhao/issue/DJ-45)
+11. [DJ-48 — Measure extraction, catalog, Library, and Graph performance/cost](https://linear.app/dj-project-astradzhao/issue/DJ-48)
+12. [DJ-46 — Accept local MVP and triage post-MVP follow-ups](https://linear.app/dj-project-astradzhao/issue/DJ-46)
 
 ## Parallel lanes
 
 ```text
-DJ-81 → DJ-82 → DJ-83 → DJ-84 → DJ-85 → DJ-87
-                  │        └──→ DJ-75 ──┐
-                  │        └──→ DJ-67 ──┤
-                  │        └──→ DJ-36 ──┤
-                  └(DJ-86 optional,     │
-                    before DJ-85)       ▼
-                         DJ-47 → DJ-45 → DJ-48 → DJ-46
+DJ-81 → … → DJ-84 → DJ-85+DJ-87 (done)
+                  └──→ DJ-75 ──┐
+                  └──→ DJ-67 ──┤
+                  └──→ DJ-36 ──┤
+                               ▼
+                    DJ-47 → DJ-45 → DJ-48 → DJ-46
 
 DJ-79 (small, independent) — any time
-DJ-78 — after DJ-84
+DJ-78 — anytime after cutover
+DJ-86 optional (legacy Neo4j data only)
 ```
 
-Do not merge these lanes into one branch. The dependency join is DJ-47.
+Do not merge remaining feature tickets into one branch. The dependency join is DJ-47.
 
 ## Deferred / not on the local MVP critical path
 
@@ -146,12 +134,12 @@ Do not merge these lanes into one branch. The dependency join is DJ-47.
   — build only after DJ-48 shows bounded whole-input orchestration is
   insufficient.
 - [DJ-42 — Optional graph discovery suggestions](https://linear.app/dj-project-astradzhao/issue/DJ-42)
-  — build only after DJ-46; becomes SQL joins post-migration.
+  — build only after DJ-46; SQL joins over artist/subgenre/folder.
 - [DJ-63 — Settings AI workflow usage/cost](https://linear.app/dj-project-astradzhao/issue/DJ-63)
 - [DJ-77 — Rekordbox live-song integration](https://linear.app/dj-project-astradzhao/issue/DJ-77)
   — post-MVP exploration.
 - [DJ-15 — Vercel deployment](https://linear.app/dj-project-astradzhao/issue/DJ-15)
-  — after DJ-46; simplified by the migration (no Aura).
+  — after DJ-46; Postgres-only (no Aura).
 - [DJ-16 — Authentication and multi-user tenancy](https://linear.app/dj-project-astradzhao/issue/DJ-16)
   — after DJ-15 and DJ-46, or when a second real user requires it.
 
@@ -169,8 +157,10 @@ All completed issues are historical foundation and are not reordered:
 - DJ-56–DJ-62
 - DJ-64, DJ-65
 - DJ-69, DJ-70
+- DJ-81–DJ-84 (Postgres migration PG-1…PG-4)
 
 Merged on `main`, pending Linear closure: DJ-66, DJ-71, DJ-72, DJ-73, DJ-74.
+In flight on this PR: DJ-85, DJ-87.
 
 ## Canceled / superseded inventory
 

@@ -44,7 +44,7 @@ This is a pnpm workspace monorepo:
 
 - `apps/web` (`@selecta/web`) — Next.js UI deployable (port 3000)
 - `apps/api` (`@selecta/api`) — Next.js API deployable (port 3001)
-- `packages/catalog|db|graph|mix-notes|agentics|ui` — shared libraries (`@selecta/*`)
+- `packages/catalog|db|mix-notes|agentics|ui` — shared libraries (`@selecta/*`)
 - `packages/eslint-config` (`@selecta/eslint-config`) — shared ESLint flat configs
 
 Put deployable apps under `apps/`. Put shared domain/UI libraries under `packages/`. Prefer importing `@selecta/*` from apps instead of duplicating logic.

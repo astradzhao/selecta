@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Tear down local full-stack leftovers from `pnpm dev`.
- * Stops Compose DBs and frees Next.js ports (3000 / 3001).
+ * Stops Compose Postgres and frees Next.js ports (3000 / 3001).
  * Usage: pnpm dev:stop
  */
 

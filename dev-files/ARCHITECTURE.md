@@ -2,15 +2,17 @@
 
 <!-- Product + GitHub repo: selecta. Package scope: @selecta/*. -->
 
-> Status: planning only — no implementation yet  
-> Last updated: 2026-08-02  
+> Status: historical planning record — storage decision superseded by
+> [`PG_MIGRATION_REFACTOR.md`](./PG_MIGRATION_REFACTOR.md) (single Postgres).
+> Product model: [`NEXT_PRODUCT_ARCHITECTURE.md`](./NEXT_PRODUCT_ARCHITECTURE.md).
+> Last updated: 2026-08-11 (PG-7 reconciliation)
 > Linear: DJ Project team document (see “Linear tracking” below)
 
 ---
 
 ## 1. Product vision
 
-A **DJ-helping note-taking app** where DJs capture knowledge about tracks and transitions in **natural language**. Those notes are automatically parsed into a **Neo4j graph** so that, during a live set, the DJ can update “I am on track X (around bar N)” and instantly see:
+A **DJ-helping note-taking app** where DJs capture knowledge about tracks and transitions in **natural language**. Those notes are automatically parsed into a **personal music library** (tracks + transitions in Postgres) so that, during a live set, the DJ can update “I am on track X (around bar N)” and instantly see:
 
 - Which tracks are good next
 - Why each transition works (technique, timing, energy intent)
@@ -45,48 +47,45 @@ The product is **not** a DAW or mixer. It is a **knowledge + decision surface** 
 ## 3. Design principles
 
 1. **Notes first, schema second** — DJs write plain language; the system proposes structure; humans confirm when ambiguous.
-2. **Graph is the source of truth for relationships** — transitions and cues live in Neo4j; raw note text is retained for audit/replay.
+2. **Postgres is the source of truth for relationships** — transitions (and later cues) live in music-domain tables; raw note text is retained for audit/replay.
 3. **Live mode is glanceable** — large type, few taps, phone/tablet friendly; no dense dashboards during a set.
 4. **Intentional vocabulary, not rigid ontology** — seed controlled terms (`build_hype`, `cool_down`, `hpf`, `loop`) but allow free-form labels that can be normalized later.
-5. **Confirm before mutate (early)** — NL extraction returns a preview diff; user accepts into the graph. Auto-commit can come later once trust is high.
-6. **Music-only Neo4j** — users, notes, and sessions stay in Postgres; the graph is traversable musical knowledge.
-7. **Multi-tenant via membership** — Postgres library↔track IDs scope all Cypher (even if v1 UX is single-user).
+5. **Confirm before mutate (early)** — NL extraction returns a preview/review path; clear proposals auto-commit via deterministic policy. Auto-commit trust grows with dogfood.
+6. **Single-store music knowledge** — users/auth/sessions stay app tables; tracks/transitions are traversable musical knowledge in the same Postgres.
+7. **Multi-tenant via membership** — Postgres library↔track IDs scope all music queries (even if v1 UX is single-user).
 
 ---
 
-## 4. Storage split: Postgres vs Neo4j
+## 4. Storage: one Postgres (supersedes Neo4j split)
 
-**Decision (locked): split stores. Neo4j holds only musical knowledge.**
+> **Superseded (DJ-80 / PG-1…PG-5).** The locked decision below was the v1
+> plan. Current state: **one Postgres owns everything** — submissions,
+> proposals/review/audit, **and** the music domain (tracks, artists, genres,
+> subgenres, folders, transitions). See
+> [`PG_MIGRATION_REFACTOR.md`](./PG_MIGRATION_REFACTOR.md) §3 for tables and
+> [`NEXT_PRODUCT_ARCHITECTURE.md`](./NEXT_PRODUCT_ARCHITECTURE.md) §2 / §10 for
+> invariants. Neo4j / Aura are removed from the stack.
 
-| Store        | Owns                                                                                                                          | Does not own                       |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| **Postgres** | Users/auth, libraries, sessions, raw notes + extraction previews/commits, track↔user membership (`library_tracks`), app audit | Music topology / mix relationships |
-| **Neo4j**    | Tracks, artists, genres, transitions, cues, (later) intent/technique hubs & artist similarity                                 | Users, notes, sessions, auth       |
+~~**Decision (locked): split stores. Neo4j holds only musical knowledge.**~~
 
-### Why not `(:User)-[:OWNS]->(:Track)` / `(:Note)`?
+| Store        | Owns (historical plan)                                                                                    | Current |
+| ------------ | --------------------------------------------------------------------------------------------------------- | ------- |
+| **Postgres** | Users/auth, libraries, sessions, raw notes + extraction, membership, app audit **+ music domain tables** | **sole store** |
+| ~~**Neo4j**~~    | ~~Tracks, artists, genres, transitions, cues~~                                                            | **removed** |
 
-Those edges were tenancy scaffolding for an all-in-Neo4j design. They are **removed** because:
+### Why the split was reconsidered
 
-1. Users, notes, and sessions are not musical concepts — they pollute traversal and mental model.
-2. Ownership/membership is a classic relational concern (library membership table in Postgres).
-3. Live/graph queries should read as “track → transition → track → artist → genre”, not “user → owns → …”.
+The two-store design forced an idempotent saga (no cross-DB transaction),
+application-level joins, and dual drivers/health/env. At library scale
+(thousands of tracks/edges, 1–2 hop queries) Postgres is enough; see
+`PG_MIGRATION_REFACTOR.md` §1–2 for the decision record.
 
-### How tenancy works with a music-only graph
+### Tenancy (unchanged intent)
 
-- Postgres `library_tracks(library_id, track_id)` (and similar for cues if needed) defines which Neo4j track IDs a user can see/edit.
-- API always: auth → resolve allowed `track_id`s → Cypher with parameterized IDs.
-- Optional denormalized `libraryId` property on `Track`/`Cue` for defense-in-depth filtering — **not** a `User` node.
-- Artists/Genres are **shared vocabulary nodes** (MERGE by canonical name). Tracks remain library-scoped; artists/genres are reusable hubs across a user’s library (and later across users if we ever share graphs).
-
-```
-Postgres                         Neo4j (music only)
-────────                         ─────────────────
-User ── Library                  Artist ──BY── Track ──IN_GENRE── Genre
-           │                              │
-           │ library_tracks               ├──TRANSITION──► Track
-           │                              └──HAS_CUE──► Cue
-         Note / Session
-```
+- Membership remains a relational concern (`library_id` on tracks / future
+  membership tables) — not a User node walk.
+- Artists/genres/subgenres/folders are shared vocabulary rows (`name_normalized`
+  unique); tracks remain library-scoped.
 
 ---
 
@@ -95,15 +94,13 @@ User ── Library                  Artist ──BY── Track ──IN_GENRE�
 ### 5.1 Primary entities
 
 ```
-Postgres:
+Postgres (sole store):
   User → Library → membership → trackIds
-  Note (raw NL + extraction)
+  Note / Submission (raw NL + extraction)
   Session (live runtime)
-
-Neo4j:
-  Artist ──[:BY]── Track ──[:IN_GENRE]── Genre
-  Track ──[:TRANSITION]──► Track
-  Track ──[:HAS_CUE]──► Cue
+  Track ↔ Artist / Genre / Subgenre / Folder
+  Track ──transitions──► Track
+  (Cue later)
 ```
 
 ### 5.2 Node vs property decision rule
@@ -140,7 +137,7 @@ Keep as a **property** when most of these are true:
 
 **Rule of thumb:** if you would ever write “find all X connected through Y”, Y is probably a node. If you would write “filter tracks where field = value”, it can stay a property.
 
-### 5.3 Track (Neo4j node)
+### 5.3 Track
 
 | Field         | Required    | Notes                                               |
 | ------------- | ----------- | --------------------------------------------------- |
@@ -160,7 +157,7 @@ Creating a track requires:
 - ≥1 `(:Artist)-[:BY]->(:Track)` (primary artist first; features allowed as additional `BY` or later `FEATURES`)
 - ≥1 `(:Track)-[:IN_GENRE]->(:Genre)`
 
-### 5.4 Artist (Neo4j node)
+### 5.4 Artist
 
 | Field            | Required | Notes                                      |
 | ---------------- | -------- | ------------------------------------------ |
@@ -178,7 +175,7 @@ Relationships:
 
 Traversal example: current track → artist → other tracks by same artist (excluding current), useful as Live Mode fallback when few transitions exist.
 
-### 5.5 Genre (Neo4j node)
+### 5.5 Genre
 
 | Field            | Required | Notes                         |
 | ---------------- | -------- | ----------------------------- |
@@ -224,11 +221,11 @@ Multiple transitions between the same pair are allowed (different techniques/int
 
 Example `kind` values: `loop_opportunity`, `hype_build`, `vocal_drop`, `breakdown`, `mix_out_window`, `acapella_moment`.
 
-### 5.8 Session (Postgres, not Neo4j)
+### 5.8 Session
 
 | Field            | Description                              |
 | ---------------- | ---------------------------------------- |
-| `currentTrackId` | Now playing (Neo4j track id)             |
+| `currentTrackId` | Now playing (track id)                   |
 | `currentBar`     | Approximate position (manual for v1)     |
 | `energyGoal`     | Optional filter: build / cool / maintain |
 | `recentTrackIds` | Avoid immediate repeats                  |
@@ -236,46 +233,46 @@ Example `kind` values: `loop_opportunity`, `hype_build`, `vocal_drop`, `breakdow
 
 ---
 
-## 6. Neo4j graph schema (v1 proposal)
+## 6. Music domain schema (historical Neo4j proposal — superseded)
+
+> **Superseded.** The Cypher labels/relationships below were the v1 graph
+> sketch. Current schema is relational Postgres in `@selecta/db` — see
+> [`PG_MIGRATION_REFACTOR.md`](./PG_MIGRATION_REFACTOR.md) §3
+> (`tracks`, join tables, `transitions`, vocabulary). Live “what’s next” and
+> neighborhood reads use SQL (joins / recursive CTE later), not Cypher.
+
+### 6.1–6.7 Historical Neo4j examples (archive only)
+
+The following Cypher snippets are kept as design archaeology. Do not implement
+against them.
+
+<details>
+<summary>Archived Neo4j node/relationship sketch</summary>
 
 ### 6.1 Node labels (music only)
 
-- `Track`
-- `Artist`
-- `Genre`
-- `Cue`
+- `Track`, `Artist`, `Genre`, `Cue`
 - Phase 2+ (optional): `Intent`, `Technique`
 
-**Explicitly not in Neo4j:** `User`, `Note`, `Session`, `Library`.
+**Explicitly not in Neo4j (historical):** `User`, `Note`, `Session`, `Library`.
 
 ### 6.2 Relationships
 
 ```cypher
 (:Artist)-[:BY]->(:Track)
 (:Track)-[:IN_GENRE]->(:Genre)
-(:Track)-[:TRANSITION {
-  fromBar, toBar, technique, intent, quality, notes,
-  barsOverlap, sourceNoteId, createdAt, updatedAt
-}]->(:Track)
+(:Track)-[:TRANSITION { ... }]->(:Track)
 (:Track)-[:HAS_CUE]->(:Cue)
 ```
 
-### 6.3 Constraints & indexes
-
-- Unique `Track.id`, `Artist.id`, `Genre.id`, `Cue.id`
-- Unique `Artist.nameNormalized`, `Genre.nameNormalized` (global vocabulary)
-- Indexes on `Track.title`, `Track.bpm`, `Track.libraryId`
-- Index on `TRANSITION.intent`, `TRANSITION.technique`
-- Index on `Cue.bar`, `Cue.kind`
-
-### 6.4 Example Cypher — live “what’s next”
+### 6.4 Example — live “what’s next” (historical Cypher)
 
 ```cypher
 MATCH (current:Track {id: $currentTrackId})
 MATCH (current)-[t:TRANSITION]->(next:Track)
 WHERE ($intent IS NULL OR t.intent = $intent)
   AND NOT next.id IN $recentTrackIds
-  AND next.id IN $allowedTrackIds   // from Postgres membership
+  AND next.id IN $allowedTrackIds
 RETURN next, t
 ORDER BY
   CASE t.quality WHEN 'great' THEN 0 WHEN 'ok' THEN 1 ELSE 2 END,
@@ -283,34 +280,7 @@ ORDER BY
 LIMIT 20
 ```
 
-### 6.5 Example — same-artist fallback
-
-```cypher
-MATCH (current:Track {id: $currentTrackId})<-[:BY]-(a:Artist)-[:BY]->(other:Track)
-WHERE other.id <> current.id
-  AND other.id IN $allowedTrackIds
-RETURN DISTINCT other, a
-LIMIT 10
-```
-
-### 6.6 Example — cues near current bar
-
-```cypher
-MATCH (s:Track {id: $currentTrackId})-[:HAS_CUE]->(c:Cue)
-WHERE c.bar >= $currentBar - 8 AND c.bar <= $currentBar + 32
-RETURN c
-ORDER BY c.bar ASC
-```
-
-### 6.7 Example — genre neighborhood
-
-```cypher
-MATCH (current:Track {id: $currentTrackId})-[:IN_GENRE]->(g:Genre)<-[:IN_GENRE]-(other:Track)
-WHERE other.id <> current.id
-  AND other.id IN $allowedTrackIds
-RETURN other, collect(DISTINCT g.name) AS sharedGenres
-LIMIT 20
-```
+</details>
 
 ---
 
@@ -347,7 +317,7 @@ Keep raw text forever; show a **proposed graph diff** before commit.
 4. Postgres agent-run audit + note extraction status (CAS by version)
 ```
 
-The model never searches Neo4j, runs Cypher, or calls mutation tools.
+The model never searches or mutates music tables directly; deterministic application code is the only writer.
 `@selecta/agentics` remains available for future multi-step agents.
 
 ### 7.3 Extraction schema (conceptual)
@@ -404,7 +374,7 @@ The model never searches Neo4j, runs Cypher, or calls mutation tools.
 
 - Use structured output (JSON schema) via AI SDK / gateway
 - Keep prompts versioned; store `model`, `promptVersion`, `rawResponse` on `Note`
-- Do **not** require AI for Live Mode queries — those are pure Cypher
+- Do **not** require AI for Live Mode queries — those are pure SQL
 - Future: embeddings on tracks/transitions for “similar vibe” suggestions
 
 ---
@@ -415,10 +385,11 @@ The model never searches Neo4j, runs Cypher, or calls mutation tools.
 
 **Four things only:**
 
-1. **Frontend + Backend** — one Next.js app on Vercel
-2. **Postgres** — app/tenancy/notes/sessions
-3. **Neo4j Aura** — music graph
-4. **AI Gateway** (managed call from the app) — NL extraction only; not a service we operate
+1. **Frontend + Backend** — Next.js apps on Vercel (`@selecta/web`, `@selecta/api`)
+2. **Postgres** — app state **and** music domain (sole store)
+3. **AI Gateway** (managed call from the app) — NL extraction only; not a service we operate
+
+~~3. Neo4j Aura — music graph~~ — **removed (PG-5).**
 
 No separate Go/Python API. No message bus. No extra BFF. Split a worker later only if profiling demands it (embeddings batch, DJ-software sync daemons).
 
@@ -426,21 +397,21 @@ No separate Go/Python API. No message bus. No extra BFF. Split a worker later on
 ┌──────────────────────────────────────┐
 │  Browser (Live Mode / Library)       │
 └──────────────────┬───────────────────┘
-                   │ HTTPS (same origin)
+                   │ HTTPS (same origin / rewrite)
                    ▼
 ┌──────────────────────────────────────┐
 │  Next.js on Vercel (Fluid Compute)   │
 │  UI (shadcn) + Route Handlers /      │
 │  Server Actions + server modules     │
-└──────────────┬───────────┬───────────┘
-               │           │
-               ▼           ▼
-        ┌──────────┐ ┌──────────┐
-        │ Postgres │ │ Neo4j    │
-        │ (app)    │ │ (music)  │
-        └──────────┘ └──────────┘
-               │
-               └──► AI Gateway (parse notes only)
+└──────────────────┬───────────────────┘
+                   │
+                   ▼
+            ┌──────────┐
+            │ Postgres │
+            │ (all)    │
+            └──────────┘
+                   │
+                   └──► AI Gateway (parse notes only)
 ```
 
 ### 8.2 Backend: Next.js vs Go/Python
@@ -450,7 +421,7 @@ No separate Go/Python API. No message bus. No extra BFF. Split a worker later on
 | **Next.js fullstack (chosen)** | One deploy, one auth boundary, zero extra hops, shared types, least ops | CPU-heavy long jobs less ideal later                                                          |
 | Separate Go/Python API         | Fine for heavy compute / strict isolation                               | Extra service, extra latency hop, duplicated auth, more infra — fights “clean + few services” |
 
-**Locked for v1–3:** Next.js is the backend. Live Mode and Neo4j reads are simple Cypher + membership checks — Node on Fluid Compute is fast enough. Revisit a worker/service only for Phase 4+ batch intelligence or Phase 5 sync adapters.
+**Locked for v1–3:** Next.js is the backend. Live Mode and neighborhood reads are SQL + membership checks — Node on Fluid Compute is fast enough. Revisit a worker/service only for Phase 4+ batch intelligence or Phase 5 sync adapters.
 
 ### 8.3 Suggested tech stack (locked)
 
@@ -460,8 +431,8 @@ No separate Go/Python API. No message bus. No extra BFF. Split a worker later on
 | UI       | **shadcn/ui + Tailwind**                      | Accessible primitives; Live Mode can still be custom/composition-light |
 | Auth     | Clerk (or Auth.js)                            | Stays in the Next app                                                  |
 | API      | Route Handlers + Server Actions               | Same-origin, typed, no separate API host                               |
-| Graph DB | Neo4j Aura                                    | Music-only knowledge graph                                             |
-| App DB   | Postgres (Neon / Marketplace)                 | Tenancy, sessions, notes                                               |
+| Graph DB | ~~Neo4j Aura~~ → **Postgres music tables** | Single-store music domain (`@selecta/db`)                               |
+| App DB   | Postgres (Neon / Marketplace)                 | Tenancy, sessions, notes, **and** music                                |
 | AI       | Vercel AI Gateway + AI SDK structured output  | NL → JSON; not on Live Mode hot path                                   |
 | Hosting  | Vercel Fluid Compute (Node)                   | Connection reuse, no edge runtime required                             |
 
@@ -471,14 +442,14 @@ No separate Go/Python API. No message bus. No extra BFF. Split a worker later on
 
 Live Mode must feel instant. Design rules:
 
-1. **No LLM on Live queries** — pure Postgres membership + Neo4j Cypher.
-2. **Minimize hops** — browser → Next server → DBs. Never browser → API#2 → Neo4j.
-3. **Reuse connections** — Neo4j driver + PG pool as module singletons; Fluid Compute instance reuse keeps pools warm.
-4. **Tight Cypher** — parameterized queries, indexes on `Track.id`, `TRANSITION.intent`, `Cue.bar`; return only fields Live UI needs.
+1. **No LLM on Live queries** — pure Postgres membership + SQL neighborhood.
+2. **Minimize hops** — browser → Next server → Postgres. Never browser → API#2 → another store.
+3. **Reuse connections** — PG pool as module singleton; Fluid Compute instance reuse keeps pools warm.
+4. **Tight SQL** — parameterized queries, indexes on track/transition keys; return only fields Live UI needs.
 5. **Parallelize independent reads** — e.g. `Promise.all` for outbound transitions + nearby cues (+ optional same-artist fallback).
 6. **Cache membership allow-list briefly** in the request/server scope (not a separate Redis unless needed).
 7. **Prefer Server Actions / RSC where they cut round-trips**; use Route Handlers for clear JSON endpoints (Live refresh).
-8. **Region locality** — put Vercel, Neo4j Aura, and Postgres in the same region.
+8. **Region locality** — put Vercel and Postgres in the same region.
 
 Target UX budget (guideline): Live “what’s next” **p95 &lt; 200–300ms** server time under normal library size.
 
@@ -486,9 +457,9 @@ Target UX budget (guideline): Live “what’s next” **p95 &lt; 200–300ms** 
 
 Keep code clean with folders/modules — not separate deployables:
 
-1. **`library`** — track/artist/genre CRUD orchestration
-2. **`notes`** — raw note storage (PG), parse, preview, commit
-3. **`graph`** — Neo4j driver, Cypher builders, schema constants
+1. **`library` / music** — track/artist/genre CRUD in `@selecta/db`
+2. **`notes` / submissions** — raw note storage (PG), parse, preview, commit
+3. ~~**`graph`** — Neo4j driver~~ — **removed**; music helpers live in `@selecta/db`
 4. **`live`** — session (PG) + next-options aggregation
 5. **`resolution`** — entity matching / aliases
 
@@ -499,7 +470,7 @@ UI uses **shadcn** primitives (`Button`, `Command`, `Dialog`, `Input`, etc.). Li
 | Method | Path                      | Purpose                                       |
 | ------ | ------------------------- | --------------------------------------------- |
 | `POST` | `/api/notes/parse`        | NL → structured preview (no write)            |
-| `POST` | `/api/notes/commit`       | Apply accepted preview to Neo4j + PG note row |
+| `POST` | `/api/notes/commit`       | Apply accepted preview to music tables + PG note row |
 | `GET`  | `/api/tracks`             | Search/list (membership-scoped)               |
 | `POST` | `/api/tracks`             | Manual create (Artist + Genre required)       |
 | `GET`  | `/api/tracks/:id`         | Track + cues + outbound transitions           |
@@ -568,17 +539,17 @@ sequenceDiagram
   participant UI
   participant API
   participant LLM
-  participant Neo4j
+  participant PG as Postgres
 
   DJ->>UI: Paste/type note
   UI->>API: POST /notes/parse
   API->>LLM: Extract structured JSON
   LLM-->>API: transitions/cues/tracks + ambiguities
-  API->>Neo4j: Read-only entity resolution
+  API->>PG: Read-only entity resolution
   API-->>UI: Preview diff
   DJ->>UI: Confirm / edit
   UI->>API: POST /notes/commit
-  API->>Neo4j: Write tx (Note + graph mutations)
+  API->>PG: Write tx (proposals + transitions)
   API-->>UI: Success + updated entities
 ```
 
@@ -589,13 +560,13 @@ sequenceDiagram
   participant DJ
   participant LiveUI
   participant API
-  participant Neo4j
+  participant PG as Postgres
 
   DJ->>LiveUI: Select current track (+ bar, intent)
   LiveUI->>API: PUT /live/session
   LiveUI->>API: GET /live/next
-  API->>Neo4j: TRANSITION + CUE queries
-  Neo4j-->>API: Candidates
+  API->>PG: TRANSITION + CUE queries
+  PG-->>API: Candidates
   API-->>LiveUI: Ranked next + nearby cues
   DJ->>LiveUI: Choose next track
   LiveUI->>API: PUT /live/session (advance)
@@ -635,8 +606,8 @@ selecta/                     # monorepo root (github.com/astradzhao/selecta)
     web/                     # Next.js UI (Vercel) — @selecta/web
     api/                     # Next.js API deployable (Vercel) — @selecta/api
   packages/
-    db/                      # Postgres client, membership — @selecta/db
-    graph/                   # Neo4j driver, Cypher, types — @selecta/graph
+    db/                      # Postgres client + music domain — @selecta/db
+    catalog/                 # External catalog search — @selecta/catalog
     mix-notes/               # note agent + Zod schemas — @selecta/mix-notes
     agentics/                # bounded AI agent harness — @selecta/agentics
     ui/                      # shadcn + shared UI — @selecta/ui
@@ -661,18 +632,18 @@ Suggested early `dev-files/` companions (later, not now):
 ### Phase 0 — Foundations (this doc)
 
 - [x] Architecture plan
-- [x] Lock stack: Next.js fullstack + shadcn + Vercel + PG + Neo4j
+- [x] Lock stack: Next.js fullstack + shadcn + Vercel + **Postgres-only** (Neo4j removed)
 - [ ] Seed vocabulary for intents/techniques
-- [ ] Provision Neo4j Aura + Postgres in same region
+- [ ] Provision Postgres in the same region as Vercel
 
 ### Phase 1 — MVP vertical slice
 
 **Goal:** Write a transition note → see it as a next-track option in Live Mode.
 
 1. Auth + Postgres library membership
-2. Manual track create with **required Artist + ≥1 Genre** (Neo4j nodes/edges)
+2. Manual track create with **required Artist + ≥1 Genre** (Postgres rows)
 3. NL parse → preview → commit for **transitions only**
-4. Neo4j write/read of `Track` / `Artist` / `Genre` / `TRANSITION`
+4. Postgres write/read of tracks / artists / genres / transitions
 5. Live Mode: set current track → list outbound transitions → advance
 6. Bonus fallback: same-artist suggestions when transitions are sparse
 
@@ -710,8 +681,8 @@ Suggested early `dev-files/` companions (later, not now):
 
 | Topic                          | Options                             | Recommendation                                                   |
 | ------------------------------ | ----------------------------------- | ---------------------------------------------------------------- |
-| Neo4j only vs Neo4j + Postgres | Single store vs split               | **Locked: split** — Postgres app/tenancy/notes; Neo4j music only |
-| User/Note in graph             | OWNS edges vs external membership   | **Locked: no User/Note in Neo4j**                                |
+| Neo4j only vs Neo4j + Postgres | Single store vs split               | **Superseded: single Postgres** (DJ-80) — see `PG_MIGRATION_REFACTOR.md` |
+| User/Note in graph             | OWNS edges vs external membership   | **Locked: no User/Note as music entities** — membership in Postgres      |
 | Artist / Genre modeling        | Properties vs nodes                 | **Locked: required nodes + edges**                               |
 | Backend shape                  | Next fullstack vs Go/Python service | **Locked: Next.js on Vercel** (fewest services, fewest hops)     |
 | UI kit                         | Custom vs shadcn                    | **Locked: shadcn/ui + Tailwind**                                 |
@@ -760,7 +731,7 @@ The architecture is “right” if:
 
 ## 18. Immediate next steps (when implementation starts)
 
-1. Provision Neo4j Aura + Postgres in the **same region** as the Vercel project
+1. Provision Postgres in the **same region** as the Vercel project
 2. Scaffold Next.js app + shadcn + auth
 3. Lock v1 property dictionary + Zod extraction schema
 4. Implement Phase 1 vertical slice only (no extra services)
@@ -798,4 +769,4 @@ The architecture is “right” if:
 | Technique  | Mixing method (HPF, bass swap, loop, …) — edge/cue property in v1      |
 | Live Mode  | Performance UI driven by session state + graph queries                 |
 | Extraction | NL → structured graph operations                                       |
-| Membership | Postgres link from library/user → Neo4j track ids                      |
+| Membership | Postgres link from library/user → track ids                            |

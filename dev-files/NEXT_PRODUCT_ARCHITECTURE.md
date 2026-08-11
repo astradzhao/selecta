@@ -2,9 +2,12 @@
 
 > Decision record and implementation order for transition intake, durable extraction, review, Library, and Graph management.
 >
-> Last updated: 2026-08-05
+> Last updated: 2026-08-11
 >
-> This document supersedes conflicting Notes UX and single-plan extraction guidance in `ARCHITECTURE.md` and `TICKET_ORDER.md`. The existing files remain useful historical context until they are fully reconciled.
+> This document is the product architecture source of truth for Add → Library →
+> Graph. Storage is **one Postgres** (see `PG_MIGRATION_REFACTOR.md`). Older
+> Neo4j split-store language in `ARCHITECTURE.md` is historical except where
+> marked superseded.
 
 ## 1. Product model
 
@@ -50,21 +53,22 @@ Use these terms consistently:
 - **Submission** — immutable raw user text stored in Postgres.
 - **Proposal** — one parsed candidate transition stored in Postgres, whether clear, ambiguous, rejected, or failed.
 - **Review item** — a proposal whose deterministic gates require user input.
-- **Transition** — one committed Neo4j `TRANSITION` relationship with stable identity.
+- **Transition** — one committed `transitions` row with stable identity.
 - **Workflow run** — durable orchestration/audit for one submission version.
 
 Storage ownership:
 
-- Postgres owns submissions, proposals, review state, workflow state, model usage, retries, and audit.
-- Neo4j owns tracks and committed transitions.
-- Unresolved or temporary proposals never become Neo4j edges.
+- **One Postgres owns everything.** Submissions, proposals, review state,
+  workflow state, model usage, retries, audit, **and** the music domain
+  (tracks, artists, genres/subgenres/folders, transitions) live in dedicated
+  tables in `@selecta/db`.
+- Unresolved or temporary proposals never become committed transition rows.
 
-There is no cross-database transaction. Use an idempotent saga:
-
-1. persist proposal/application intent in Postgres;
-2. create/update the Neo4j edge by stable identity/idempotency key;
-3. mark the proposal committed in Postgres;
-4. reconcile any interrupted write where Neo4j succeeded but the final Postgres update did not.
+Proposal commit is **one ACID transaction** (transition insert(s) +
+`note_transition_commits` audit + proposal status). Idempotency is via the
+`transitions.proposal_key` unique index (replay-safe by construction). The
+former cross-store saga (Postgres intent → Neo4j MERGE → Postgres status →
+reconciliation) is historical — see `PG_MIGRATION_REFACTOR.md`.
 
 ## 3. Durable extraction architecture
 
@@ -110,9 +114,9 @@ After all discovered spans have durable proposal records, deterministic applicat
 
 ### 3.2 Safety boundary
 
-The parsing model and its tool do **not** write Neo4j.
+The parsing model and its tool do **not** write music tables.
 
-Giving a parser direct graph mutation authority would couple uncertain model output to irreversible writes, make retries harder to reason about, and bypass shared resolution/policy gates. The parser writes a durable Postgres proposal. Parameterized deterministic application code is the only graph writer.
+Giving a parser direct mutation authority would couple uncertain model output to irreversible writes, make retries harder to reason about, and bypass shared resolution/policy gates. The parser writes a durable Postgres proposal. Parameterized deterministic application code is the only writer of `tracks` / `transitions`.
 
 Likewise, a failed child should normally be retried by the durable runtime, not by asking the parent model to redispatch it. Model-driven retries waste tokens and can create duplicate source spans. After bounded runtime retries are exhausted, persist a failed/reviewable proposal outcome.
 
@@ -121,7 +125,7 @@ Likewise, a failed child should normally be retried by the durable runtime, not 
 Use a durable workflow runtime with retryable, observable steps. The selected fit for the Vercel/Next.js stack is Vercel Workflow DevKit:
 
 - workflow function: orchestration and durable sequencing;
-- step functions: model calls, Postgres, Spotify, and Neo4j operations;
+- step functions: model calls, Postgres, and Spotify operations;
 - persisted step results: crash/replay safety;
 - bounded retries for transient failures.
 
@@ -157,27 +161,29 @@ Range-based reading is a later optimization, tracked by DJ-76.
 
 That version adds a read-only `read_submission_range` tool, overlapping deterministic windows, persisted scan progress, and source-span deduplication. It reuses the same one-transition child parser. It should not be built until bounded whole-submission orchestration is measured.
 
-### 3.6 Migration from the current pipeline
+### 3.6 Migration from the pre-DJ-66 pipeline (historical)
 
-The current API launches `runNoteExtraction` through Next.js `after()` inside a route with a 60-second maximum duration. That is background work within the same invocation, not a durable queue. DJ-66 must replace this launch path with a durable workflow start and return its run ID.
+The API previously launched `runNoteExtraction` through Next.js `after()`
+inside a route with a 60-second maximum duration — background work within the
+same invocation, not a durable queue. DJ-66 replaced that with a durable
+workflow start that returns a run ID.
 
-Reuse the safeguards that already exist:
+Reuse (still current):
 
 - `notes.extractionVersion` as the submission-version CAS boundary;
-- `note_agent_runs` for parent workflow/model audit, extended with durable run identity and superseded state;
-- `note_transition_commits` for graph-application audit;
+- `note_agent_runs` for parent workflow/model audit;
+- `note_transition_commits` for transition-application audit;
 - parameterized track resolve/import and transition commit helpers.
 
-Add or change:
+~~Cross-store reconciliation for interrupted Postgres/Neo4j completion~~ —
+**superseded.** After PG-4/PG-5, proposal commit is one Postgres transaction;
+replay short-circuits that guarded Neo4j-vs-Postgres partial failure are gone.
+Idempotency remains via `proposal_key`.
 
-- a first-class per-transition proposal table rather than storing every child result only in `notes.extraction` JSON;
-- per-proposal CAS and terminal states;
-- explicit `pending` and `rejected` application states;
-- aggregate progress updates while children are still running;
-- stale-child cancellation/supersession when a submission version changes;
-- reconciliation for interrupted cross-store completion.
-
-The existing proposal key `{noteId}:{extractionVersion}:{transitionIndex}` is safe only while one stable plan owns transition ordering. Agent-discovered spans may be reordered across retries, so new proposal idempotency must use a stable source-span/content fingerprint. Keep the old key only for compatibility with already committed edges.
+The existing proposal key `{noteId}:{extractionVersion}:{transitionIndex}` was
+safe only while one stable plan owned transition ordering. Agent-discovered
+spans may be reordered across retries, so proposal idempotency uses a stable
+source-span/content fingerprint (`{noteId}:{version}:span:{fingerprint}`).
 
 ## 4. Proposal and status model
 
@@ -187,7 +193,7 @@ Proposals are the durable per-transition units. Submissions (`notes` table for n
 | ---------- | ------------------------------------------ | ------------------ |
 | Submission | Immutable raw text the user pasted         | `notes`            |
 | Proposal   | One parsed transition from that submission | `note_proposals`   |
-| Transition | Committed Neo4j edge                       | Neo4j `TRANSITION` |
+| Transition | Committed music-domain edge                | `transitions`      |
 
 ### Proposal record (minimal)
 
@@ -243,37 +249,41 @@ Partial writes are required. One ambiguous proposal must never roll back or bloc
 
 ## 5. Transition identity and parallel edges
 
-Neo4j already permits multiple relationships of the same type between the same nodes. Make that behavior explicit and manageable.
+Postgres permits multiple `transitions` rows between the same track endpoints
+(no uniqueness on `(from_track_id, to_track_id)`). Make that behavior explicit
+and manageable.
 
-Every transition edge needs a stable `id` independent of endpoint pair:
+Every transition row needs a stable `id` independent of endpoint pair:
 
 ```text
-(:Track)-[:TRANSITION {
+transitions (
   id,
-  proposalKey?,
-  sourceNoteId?,
-  sourceNoteVersion?,
-  sourceProposalId?,
-  fromBar?,
-  toBar?,
-  barsOverlap?,
+  from_track_id,
+  to_track_id,
+  proposal_key?,
+  source_note_id?,
+  source_note_version?,
+  source_proposal_id?,
+  from_bar?,
+  to_bar?,
+  bars_overlap?,
   technique?,
   intent?,
   quality?,
   notes?,
-  createdAt,
-  updatedAt
-}]->(:Track)
+  created_at,
+  updated_at
+)
 ```
 
 Rules:
 
 - `(fromTrackId, toTrackId)` is not unique.
 - technique/intent is not identity.
-- AI-created edges retain an idempotency/proposal key and note provenance (`sourceNoteId`, `sourceProposalId`).
-- manual edges use the same stable edge ID and domain fields without requiring note provenance.
-- update/delete APIs address one edge by ID.
-- deleting one parallel edge must not affect siblings.
+- AI-created rows retain an idempotency/proposal key and note provenance (`sourceNoteId`, `sourceProposalId`).
+- manual rows use the same stable ID and domain fields without requiring note provenance.
+- update/delete APIs address one row by ID.
+- deleting one parallel transition must not affect siblings.
 
 The Graph UI may group destination tracks for readability, but it must never collapse the underlying transition list.
 
@@ -298,7 +308,7 @@ Actions:
 - approve through deterministic policy/application;
 - reject without mutating the submission or committed siblings.
 
-Pending proposals can be surfaced beside committed transitions, but they must be visually and semantically marked as temporary Postgres review items rather than Neo4j edges.
+Pending proposals can be surfaced beside committed transitions, but they must be visually and semantically marked as temporary Postgres review items rather than committed transition rows.
 
 ## 7. Route migration
 
@@ -338,7 +348,7 @@ Keep one branch/issue, but implement and verify in this order:
 4. Implement bounded orchestrator with only that tool.
 5. Batch/deduplicate resolve across persisted proposals.
 6. Refactor policy/application to per-proposal outcomes and partial commits.
-7. Add reconciliation for interrupted Postgres/Neo4j completion.
+7. ~~Add reconciliation for interrupted Postgres/Neo4j completion~~ — superseded by single-tx commit (PG-4).
 8. Persist aggregate submission counts/status and complete audit.
 9. Test multi-transition partial success, replay idempotency, child retry exhaustion, and hard-limit behavior.
 10. Measure 1-, 10-, and 100-transition fixtures for cost, latency, and extraction completeness.
@@ -346,12 +356,15 @@ Keep one branch/issue, but implement and verify in this order:
 ## 10. Non-negotiable invariants
 
 - Raw submissions are persisted before AI processing and immutable afterward.
-- LLM output never directly mutates Neo4j.
+- LLM output never directly mutates music tables (`tracks` / `transitions`).
+  Parsers write proposals; only deterministic policy/application code writes
+  the music domain.
+- Proposal commit is one ACID transaction; idempotency is via `proposal_key`.
 - Every proposal and transition has stable identity.
 - Workflow replay is safe and idempotent.
 - Clear proposals commit independently of ambiguous siblings.
-- Review items remain in Postgres until approved; they are not fake graph edges.
-- Multiple A → B transition edges are valid.
-- Edit/delete targets one edge ID.
+- Review items remain proposals until approved; they are not fake committed transitions.
+- Multiple A → B transition rows are valid.
+- Edit/delete targets one transition ID.
 - Model, prompt, token/cost, retry, resolution, policy, and commit evidence are auditable.
 - Every limit failure is explicit; no silent truncation.
