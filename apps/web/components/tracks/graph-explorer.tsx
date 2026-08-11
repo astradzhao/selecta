@@ -147,10 +147,21 @@ function BarStrip({ transition }: { transition: ApiTransitionEdge }) {
   const ticks = Math.min(32, Math.max(8, Math.ceil(maxBar / 4) * 4));
 
   return (
-    <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 space-y-2 duration-500">
-      <p className="text-muted-foreground text-xs tracking-[0.14em] uppercase">Bars</p>
+    <div className="space-y-1.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-muted-foreground text-xs tracking-[0.14em] uppercase">Bars</p>
+        <p className="text-muted-foreground font-mono text-xs">
+          {[
+            fromBar != null ? `out ${fromBar}` : null,
+            toBar != null ? `in ${toBar}` : null,
+            transition.barsOverlap != null ? `overlap ${transition.barsOverlap}` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      </div>
       <div
-        className="border-border bg-muted/40 relative flex h-10 items-end gap-px overflow-hidden rounded-lg border px-1.5 py-1.5"
+        className="border-border bg-muted/40 relative flex h-6 items-end gap-px overflow-hidden rounded-md border px-1 py-1"
         role="img"
         aria-label={[
           fromBar != null ? `Leave at bar ${fromBar}` : null,
@@ -173,7 +184,7 @@ function BarStrip({ transition }: { transition: ApiTransitionEdge }) {
             <div
               key={bar}
               className={cn(
-                "min-w-0 flex-1 rounded-sm transition-all duration-500 ease-out",
+                "min-w-0 flex-1 rounded-[1px]",
                 isFrom || isTo
                   ? "bg-foreground h-full"
                   : inOverlap
@@ -182,20 +193,10 @@ function BarStrip({ transition }: { transition: ApiTransitionEdge }) {
                       ? "bg-foreground/20 h-[45%]"
                       : "bg-foreground/10 h-[28%]",
               )}
-              style={{ transitionDelay: `${i * 12}ms` }}
             />
           );
         })}
       </div>
-      <p className="text-muted-foreground font-mono text-xs">
-        {[
-          fromBar != null ? `out ${fromBar}` : null,
-          toBar != null ? `in ${toBar}` : null,
-          transition.barsOverlap != null ? `overlap ${transition.barsOverlap}` : null,
-        ]
-          .filter(Boolean)
-          .join(" · ")}
-      </p>
     </div>
   );
 }
@@ -215,44 +216,17 @@ function TransitionMeters({ transition }: { transition: ApiTransitionEdge }) {
       : null;
 
   return (
-    <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 grid gap-4 duration-500 sm:grid-cols-2">
-      <div className="space-y-2">
-        <p className="text-muted-foreground text-xs tracking-[0.14em] uppercase">Preference</p>
-        <div className="space-y-2">
-          <MeterRow
-            label="Quality"
-            valueLabel={formatLabel(transition.quality) ?? "Unrated"}
-            fill={qualityRank}
-          />
-          <MeterRow
-            label="Confidence"
-            valueLabel={confidence != null ? `${Math.round(confidence * 100)}%` : "—"}
-            fill={confidence}
-          />
-        </div>
-      </div>
-      <div className="space-y-2">
-        <p className="text-muted-foreground text-xs tracking-[0.14em] uppercase">
-          EQ (illustrative)
-        </p>
-        <div
-          className="border-border bg-muted/30 flex h-16 items-end justify-between gap-1 rounded-lg border px-3 py-2"
-          role="img"
-          aria-label="Illustrative EQ placeholder — no measured EQ data on this transition"
-        >
-          {[0.35, 0.55, 0.7, 0.45, 0.6, 0.4, 0.5].map((height, index) => (
-            <div
-              key={index}
-              className="bg-foreground/15 w-full max-w-2 origin-bottom rounded-sm transition-transform duration-700 ease-out"
-              style={{
-                height: `${height * 100}%`,
-                transitionDelay: `${120 + index * 40}ms`,
-              }}
-            />
-          ))}
-        </div>
-        <p className="text-muted-foreground text-[11px]">Placeholder only — no EQ stored yet</p>
-      </div>
+    <div className="grid grid-cols-2 gap-3">
+      <MeterRow
+        label="Quality"
+        valueLabel={formatLabel(transition.quality) ?? "Unrated"}
+        fill={qualityRank}
+      />
+      <MeterRow
+        label="Confidence"
+        valueLabel={confidence != null ? `${Math.round(confidence * 100)}%` : "—"}
+        fill={confidence}
+      />
     </div>
   );
 }
@@ -272,10 +246,10 @@ function MeterRow({
         <span className="text-muted-foreground">{label}</span>
         <span className="font-mono">{valueLabel}</span>
       </div>
-      <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+      <div className="bg-muted h-1 overflow-hidden rounded-full">
         <div
           className={cn(
-            "h-full rounded-full transition-[width] duration-700 ease-out",
+            "h-full rounded-full",
             fill == null ? "bg-foreground/15" : "bg-foreground/70",
           )}
           style={{ width: `${Math.round((fill ?? 0.08) * 100)}%` }}
@@ -487,89 +461,78 @@ function NeighborCard({
         <div className="overflow-hidden">
           <div
             className={cn(
-              "border-border space-y-4 border-t px-4 py-4 transition-opacity duration-300",
+              "border-border space-y-3 border-t px-4 py-3 transition-opacity duration-300",
               expanded ? "opacity-100" : "opacity-0",
             )}
           >
             {edges.length > 1 ? (
-              <div className="space-y-2" role="listbox" aria-label="Transitions to this track">
-                <p className="text-muted-foreground text-xs tracking-[0.14em] uppercase">
-                  Transitions
-                </p>
-                <div className="flex flex-col gap-1.5">
-                  {edges.map((edge, edgeIndex) => {
-                    const key = edgeKey(edge, `${neighbor.id}-${edgeIndex}`);
-                    const selectedEdge = key === selectedKey;
-                    const label = [
-                      formatLabel(edge.quality) ?? "Unrated",
-                      formatLabel(edge.technique),
-                      edge.fromBar != null ? `bar ${edge.fromBar}` : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ");
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        role="option"
-                        aria-selected={selectedEdge}
-                        onClick={() => {
-                          setSelectedKey(key);
-                          setPanelMode("view");
-                          setActionError(null);
-                        }}
-                        className={cn(
-                          "rounded-lg border px-3 py-2 text-left text-sm transition-colors",
-                          selectedEdge
-                            ? "border-foreground/40 bg-muted/50"
-                            : "border-border hover:bg-muted/30",
-                        )}
-                      >
-                        <span className="font-medium">{label}</span>
-                        <span className="text-muted-foreground mt-0.5 block text-xs">
-                          {provenanceLabel(edge).kind === "ai" ? "From note" : "Manual"}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+              <div
+                className="flex flex-wrap gap-1.5"
+                role="listbox"
+                aria-label="Transitions to this track"
+              >
+                {edges.map((edge, edgeIndex) => {
+                  const key = edgeKey(edge, `${neighbor.id}-${edgeIndex}`);
+                  const selectedEdge = key === selectedKey;
+                  const label = [
+                    formatLabel(edge.quality) ?? "Unrated",
+                    formatLabel(edge.technique),
+                    edge.fromBar != null ? `bar ${edge.fromBar}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ");
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      role="option"
+                      aria-selected={selectedEdge}
+                      onClick={() => {
+                        setSelectedKey(key);
+                        setPanelMode("view");
+                        setActionError(null);
+                      }}
+                      className={cn(
+                        "rounded-md border px-2.5 py-1 text-left text-xs transition-colors",
+                        selectedEdge
+                          ? "border-foreground/40 bg-muted/50"
+                          : "border-border hover:bg-muted/30",
+                      )}
+                    >
+                      <span className="font-medium">{label}</span>
+                      <span className="text-muted-foreground ml-1.5">
+                        {provenanceLabel(edge).kind === "ai" ? "note" : "manual"}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             ) : null}
 
             {t && panelMode === "view" ? (
               <>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   {technique ? <Badge variant="outline">{technique}</Badge> : null}
                   {intent ? <Badge variant="secondary">{intent}</Badge> : null}
-                  {!technique && !intent && !t.quality ? (
-                    <span className="text-muted-foreground text-xs">
-                      No technique / intent recorded
-                    </span>
-                  ) : null}
+                  <p className="text-muted-foreground text-xs">
+                    {provenance?.kind === "ai" ? "From note" : "Manual"}
+                    {provenance?.noteId ? (
+                      <>
+                        {" · "}
+                        <Link
+                          href={`/library/submissions/${provenance.noteId}`}
+                          className="underline-offset-4 hover:underline"
+                        >
+                          Source submission
+                        </Link>
+                      </>
+                    ) : null}
+                  </p>
                 </div>
 
-                <p className="text-muted-foreground text-xs">
-                  {provenance?.kind === "ai" ? "From note" : "Manual"}
-                  {provenance?.noteId ? (
-                    <>
-                      {" · "}
-                      <Link
-                        href={`/library/submissions/${provenance.noteId}`}
-                        className="underline-offset-4 hover:underline"
-                      >
-                        Source submission
-                      </Link>
-                    </>
-                  ) : null}
-                </p>
-
                 {t.notes ? (
-                  <p className="text-sm leading-relaxed text-pretty">{t.notes}</p>
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    No free-text notes on this transition.
-                  </p>
-                )}
+                  <p className="line-clamp-2 text-sm leading-snug text-pretty">{t.notes}</p>
+                ) : null}
 
                 <BarStrip transition={t} />
                 <TransitionMeters transition={t} />
@@ -577,6 +540,7 @@ function NeighborCard({
                 <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
+                    size="sm"
                     onClick={onChoose}
                     disabled={choosing}
                     className="transition-transform duration-200 active:scale-[0.98]"
@@ -585,11 +549,12 @@ function NeighborCard({
                   </Button>
                   {t.id ? (
                     <>
-                      <Button type="button" variant="outline" onClick={openEdit}>
+                      <Button type="button" size="sm" variant="outline" onClick={openEdit}>
                         Edit
                       </Button>
                       <Button
                         type="button"
+                        size="sm"
                         variant="destructive"
                         disabled={deleting}
                         onClick={onDelete}
@@ -992,25 +957,17 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
   const transitionCount = neighbors.reduce((sum, neighbor) => sum + neighbor.transitions.length, 0);
 
   return (
-    <div className="space-y-6">
-      <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-2 flex flex-wrap items-end justify-between gap-3 duration-500">
-        <div className="space-y-1">
-          <p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
-            Graph explorer
-          </p>
-          <p className="text-muted-foreground max-w-xl text-sm text-pretty">
-            Browse outbound transitions from the current track. Expand a neighbor for mix detail,
-            manage parallel edges, then choose it to traverse.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="destructive" size="sm" onClick={onExit}>
-            Exit
-          </Button>
-        </div>
+    <div className="space-y-4">
+      <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-2 flex flex-wrap items-center justify-between gap-3 duration-500">
+        <p className="text-muted-foreground text-sm text-pretty">
+          Expand a neighbor for mix detail, then choose it to traverse.
+        </p>
+        <Button type="button" variant="destructive" size="sm" onClick={onExit}>
+          Exit
+        </Button>
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(240px,0.9fr)_minmax(0,1.4fr)] lg:gap-8">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(220px,0.85fr)_minmax(0,1.5fr)] lg:gap-6">
         <div className="relative">
           <div
             className={cn(
@@ -1023,9 +980,9 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
           <section
             ref={panelRef}
             aria-labelledby="graph-current-heading"
-            className="border-border bg-background sticky top-20 flex flex-col gap-5 rounded-3xl border p-5 sm:p-6"
+            className="border-border bg-background sticky top-20 flex flex-col gap-4 rounded-3xl border p-4 sm:p-5"
           >
-            <div key={current.id} className="flex flex-col gap-5">
+            <div key={current.id} className="flex flex-col gap-4">
               <Artwork
                 url={current.artworkUrl}
                 size={HERO_ART_SIZE}
@@ -1048,7 +1005,7 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
                 <h1
                   id="graph-current-heading"
                   data-hero-title
-                  className="text-2xl font-semibold tracking-tight sm:text-3xl"
+                  className="text-xl font-semibold tracking-tight sm:text-2xl"
                 >
                   {current.title}
                 </h1>
@@ -1058,7 +1015,7 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
               </div>
               <div
                 className={cn(
-                  "flex flex-col gap-5 transition-opacity",
+                  "flex flex-col gap-3 transition-opacity",
                   COPY_PHASE_CLASS[copyPhase],
                   copyPhase !== "visible" && "pointer-events-none",
                 )}
@@ -1106,13 +1063,13 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
 
         <section aria-labelledby="graph-next-heading" className="min-w-0 space-y-3">
           <div className="motion-safe:animate-in motion-safe:fade-in-0 flex flex-wrap items-center justify-between gap-3 duration-500">
-            <div className="flex items-baseline gap-2">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
               <h2 id="graph-next-heading" className="text-sm font-medium tracking-tight">
                 Next transitions
               </h2>
-              <span className="text-muted-foreground font-mono text-xs">
-                {destinationCount}
-                {transitionCount !== destinationCount ? ` · ${transitionCount}` : null}
+              <span className="text-muted-foreground text-xs">
+                {destinationCount === 1 ? `1 destination` : `${destinationCount} destinations`}
+                {transitionCount !== destinationCount ? ` · ${transitionCount} transitions` : null}
               </span>
             </div>
             <Button
@@ -1158,14 +1115,7 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
               </div>
             </div>
           ) : (
-            <ul
-              key={current.id}
-              className={cn(
-                "relative max-h-[min(70vh,40rem)] space-y-2 overflow-y-auto pe-1",
-                "[mask-image:linear-gradient(to_bottom,transparent_0%,black_14px,black_calc(100%-32px),transparent_100%)]",
-                "pt-2 pb-6",
-              )}
-            >
+            <ul key={current.id} className="space-y-2">
               {neighbors.map((neighbor, index) => {
                 const rowKey = neighbor.id;
                 const expanded = expandedKey === rowKey;
