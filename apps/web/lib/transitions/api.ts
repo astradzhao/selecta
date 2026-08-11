@@ -14,6 +14,18 @@ export type UpdateTransitionBody = {
   notes?: string | null;
 };
 
+export type CreateTransitionBody = {
+  fromTrackId: string;
+  toTrackId: string;
+  fromBar?: number | null;
+  toBar?: number | null;
+  barsOverlap?: number | null;
+  technique?: string | null;
+  intent?: string | null;
+  quality?: string | null;
+  notes?: string | null;
+};
+
 export async function listTransitions(
   input: {
     query?: string;
@@ -57,6 +69,15 @@ export async function listTransitions(
 
 export async function getTransition(id: string): Promise<{ ok: true; transition: ApiTransition }> {
   return apiFetch(`/transitions/${encodeURIComponent(id)}`);
+}
+
+export async function createTransition(
+  body: CreateTransitionBody,
+): Promise<{ ok: true; transition: ApiTransition }> {
+  return apiFetch("/transitions", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 export async function updateTransition(

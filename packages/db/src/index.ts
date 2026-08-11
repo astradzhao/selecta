@@ -110,6 +110,8 @@ export {
   type ListTracksInput,
   type ListTracksResult,
   type TransitionEdgeSummary,
+  type RankableNeighbor,
+  type FlatNeighborhoodNeighbor,
   type NeighborhoodNeighbor,
   type TrackNeighborhood,
   type TransitionEndpointSummary,

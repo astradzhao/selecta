@@ -5,7 +5,8 @@ import {
   compareNeighborhoodNeighbors,
   rankNeighborhoodNeighbors,
   transitionQualityRank,
-  type NeighborhoodNeighbor,
+  type FlatNeighborhoodNeighbor,
+  type RankableNeighbor,
 } from "./neighborhood";
 import type { TrackNode } from "./types";
 
@@ -25,19 +26,15 @@ function track(partial: Pick<TrackNode, "id" | "title">): TrackNode {
   };
 }
 
-function neighbor(
+function rankable(
   id: string,
   title: string,
-  transition: Partial<NeighborhoodNeighbor["transition"]> = {},
-): NeighborhoodNeighbor {
+  transition: Partial<RankableNeighbor["transition"]> = {},
+): RankableNeighbor {
   return {
     track: track({ id, title }),
-    artists: [],
-    genres: [],
-    subgenres: [],
-    folders: [],
     transition: {
-      id: `edge:${id}`,
+      id: `edge:${id}:${transition.proposalKey ?? "default"}`,
       proposalKey: `key:${id}`,
       sourceNoteId: null,
       sourceNoteVersion: null,
@@ -57,6 +54,22 @@ function neighbor(
   };
 }
 
+function flat(
+  id: string,
+  title: string,
+  transition: Partial<FlatNeighborhoodNeighbor["transition"]> = {},
+): FlatNeighborhoodNeighbor {
+  const row = rankable(id, title, transition);
+  return {
+    track: row.track,
+    artists: [],
+    genres: [],
+    subgenres: [],
+    folders: [],
+    transition: row.transition,
+  };
+}
+
 describe("transitionQualityRank", () => {
   it("orders great < ok < risky < unknown", () => {
     assert.equal(transitionQualityRank("great"), 0);
@@ -71,45 +84,49 @@ describe("transitionQualityRank", () => {
 
 describe("compareNeighborhoodNeighbors", () => {
   it("prefers higher quality over confidence", () => {
-    const great = neighbor("a", "Zulu", { quality: "great", confidence: 0.1 });
-    const ok = neighbor("b", "Alpha", { quality: "ok", confidence: 0.99 });
+    const great = rankable("a", "Zulu", { quality: "great", confidence: 0.1 });
+    const ok = rankable("b", "Alpha", { quality: "ok", confidence: 0.99 });
     assert.ok(compareNeighborhoodNeighbors(great, ok) < 0);
   });
 
   it("breaks quality ties with higher confidence first", () => {
-    const high = neighbor("a", "Same", { quality: "ok", confidence: 0.9 });
-    const low = neighbor("b", "Same", { quality: "ok", confidence: 0.2 });
+    const high = rankable("a", "Same", { quality: "ok", confidence: 0.9 });
+    const low = rankable("b", "Same", { quality: "ok", confidence: 0.2 });
     assert.ok(compareNeighborhoodNeighbors(high, low) < 0);
   });
 
   it("prefers known confidence over null", () => {
-    const known = neighbor("a", "Same", { quality: "ok", confidence: 0.1 });
-    const unknown = neighbor("b", "Same", { quality: "ok", confidence: null });
+    const known = rankable("a", "Same", { quality: "ok", confidence: 0.1 });
+    const unknown = rankable("b", "Same", { quality: "ok", confidence: null });
     assert.ok(compareNeighborhoodNeighbors(known, unknown) < 0);
   });
 
   it("breaks remaining ties with earlier fromBar then title", () => {
-    const early = neighbor("a", "Zulu", { quality: "ok", fromBar: 8 });
-    const late = neighbor("b", "Alpha", { quality: "ok", fromBar: 32 });
+    const early = rankable("a", "Zulu", { quality: "ok", fromBar: 8 });
+    const late = rankable("b", "Alpha", { quality: "ok", fromBar: 32 });
     assert.ok(compareNeighborhoodNeighbors(early, late) < 0);
 
-    const alpha = neighbor("c", "Alpha", { quality: "ok", fromBar: 16 });
-    const zulu = neighbor("d", "Zulu", { quality: "ok", fromBar: 16 });
+    const alpha = rankable("c", "Alpha", { quality: "ok", fromBar: 16 });
+    const zulu = rankable("d", "Zulu", { quality: "ok", fromBar: 16 });
     assert.ok(compareNeighborhoodNeighbors(alpha, zulu) < 0);
   });
 });
 
 describe("rankNeighborhoodNeighbors", () => {
-  it("keeps the best transition per neighbor track id and sorts stably", () => {
+  it("keeps all edges per destination, ordered; groups ordered by best edge", () => {
     const ranked = rankNeighborhoodNeighbors([
-      neighbor("dup", "Dup", { quality: "ok", confidence: 0.5, proposalKey: "worse" }),
-      neighbor("dup", "Dup", { quality: "great", confidence: 0.2, proposalKey: "best" }),
-      neighbor("other", "Other", { quality: "risky", proposalKey: "other" }),
+      flat("dup", "Dup", { quality: "ok", confidence: 0.5, proposalKey: "worse" }),
+      flat("dup", "Dup", { quality: "great", confidence: 0.2, proposalKey: "best" }),
+      flat("other", "Other", { quality: "risky", proposalKey: "other" }),
     ]);
 
     assert.equal(ranked.length, 2);
     assert.equal(ranked[0]?.track.id, "dup");
-    assert.equal(ranked[0]?.transition.proposalKey, "best");
+    assert.equal(ranked[0]?.transitions.length, 2);
+    assert.equal(ranked[0]?.transitions[0]?.proposalKey, "best");
+    assert.equal(ranked[0]?.transitions[1]?.proposalKey, "worse");
     assert.equal(ranked[1]?.track.id, "other");
+    assert.equal(ranked[1]?.transitions.length, 1);
+    assert.equal(ranked[1]?.transitions[0]?.proposalKey, "other");
   });
 });

@@ -89,7 +89,8 @@ export type ApiNeighborhoodNeighbor = Omit<
   ApiTrack,
   "created" | "hasOutboundTransitions" | "hasInboundTransitions"
 > & {
-  transition: ApiTransitionEdge;
+  /** Outbound edges to this destination, best-first (`[0]` is the default selection). */
+  transitions: ApiTransitionEdge[];
 };
 
 export type ApiNeighborhoodCurrent = Omit<
