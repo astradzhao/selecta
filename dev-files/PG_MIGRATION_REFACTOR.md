@@ -3,12 +3,13 @@
 > Architecture decision + full refactor plan for consolidating tracks,
 > artists, vocabulary, and transitions from Neo4j into Postgres.
 >
-> Status: **in progress** — PG-1 (DJ-81) lands the schema; runtime still Neo4j
-> until PG-4.
-> Baseline: `main` after DJ-66 / DJ-71 / DJ-72 / DJ-73 / DJ-74 merged.
+> Status: **implemented** — PG-1…PG-5 landed (DJ-81…DJ-85); docs/tickets
+> reconciled in PG-7 (DJ-87). Optional PG-6 data export remains if needed.
+> Baseline: `main` after DJ-66 / DJ-71 / DJ-72 / DJ-73 / DJ-74; cutover DJ-84;
+> Neo4j package removed DJ-85.
 >
 > Companion docs: [`NEXT_PRODUCT_ARCHITECTURE.md`](./NEXT_PRODUCT_ARCHITECTURE.md)
-> (product model — still valid except the storage split),
+> (product model — single-store invariants applied),
 > [`TICKET_ORDER.md`](./TICKET_ORDER.md) (canonical implementation order).
 
 ## 1. Decision
