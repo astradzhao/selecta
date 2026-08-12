@@ -1,14 +1,10 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { config } from "dotenv";
-import { existsSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
-import { isPostgresConfigured } from "../client";
 import { runInDbTransaction } from "../executor";
 import { createNote } from "../notes";
+import { isDbIntegrationEnabled } from "../test-env";
 import { asTransitionEdge } from "./neighborhood";
 import { createTrack } from "./tracks";
 import {
@@ -20,16 +16,7 @@ import {
   updateTransitionById,
 } from "./transitions";
 
-const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const repoRoot = resolve(packageRoot, "../..");
-for (const file of [resolve(repoRoot, ".env.local"), resolve(repoRoot, ".env")]) {
-  if (existsSync(file)) {
-    config({ path: file, quiet: true });
-    break;
-  }
-}
-
-const pgReady = isPostgresConfigured();
+const pgIntegration = isDbIntegrationEnabled();
 
 describe("asTransitionEdge", () => {
   it("maps stable id and sourceProposalId", () => {
@@ -53,7 +40,7 @@ describe("asTransitionEdge", () => {
   });
 });
 
-describe("transition CRUD + AI commit", { skip: !pgReady }, () => {
+describe("transition CRUD + AI commit", { skip: !pgIntegration }, () => {
   it("allows parallel A→B edges with targeted update/delete", async () => {
     const suffix = randomUUID().slice(0, 8);
     const from = await createTrack({

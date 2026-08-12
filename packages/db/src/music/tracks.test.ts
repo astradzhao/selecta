@@ -1,16 +1,13 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { config } from "dotenv";
 import { eq } from "drizzle-orm";
-import { existsSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
-import { getDb, isPostgresConfigured } from "../client";
+import { getDb } from "../client";
 import { addNoteTrackLink, listNoteTrackLinks } from "../note-track-links";
 import { createNote, getNoteById, upsertTransitionCommit } from "../notes";
 import { noteTransitionCommits, trackArtists, trackExternalIds, transitions } from "../schema";
+import { isDbIntegrationEnabled } from "../test-env";
 import { normalizeName } from "./normalize";
 import {
   createTrack,
@@ -23,16 +20,7 @@ import {
 import { createTransition, getTransitionById } from "./transitions";
 import { ensureArtist, ensureFolder, ensureSubgenre, listFolders, listSubgenres } from "./vocab";
 
-const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const repoRoot = resolve(packageRoot, "../..");
-for (const file of [resolve(repoRoot, ".env.local"), resolve(repoRoot, ".env")]) {
-  if (existsSync(file)) {
-    config({ path: file, quiet: true });
-    break;
-  }
-}
-
-const pgReady = isPostgresConfigured();
+const pgIntegration = isDbIntegrationEnabled();
 
 describe("normalizeName", () => {
   it("trims, lowercases, and collapses whitespace", () => {
@@ -41,7 +29,7 @@ describe("normalizeName", () => {
   });
 });
 
-describe("music vocab + tracks", { skip: !pgReady }, () => {
+describe("music vocab + tracks", { skip: !pgIntegration }, () => {
   it("ensureArtist is idempotent on name_normalized", async () => {
     const suffix = randomUUID().slice(0, 8);
     const first = await ensureArtist(`  Skrillex ${suffix}  `);
