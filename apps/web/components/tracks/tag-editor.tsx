@@ -92,22 +92,34 @@ export function TagEditor({
           }
         }}
       />
-      {vocab && visibleSuggestions.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5" aria-label={`Existing ${label.toLowerCase()}`}>
+      {vocab && (visibleSuggestions.length > 0 || values.length > 0) ? (
+        <div className="flex flex-row flex-wrap items-center gap-1.5">
+          {values.map((item) => (
+            <Badge key={`selected-${item.name}`} variant={badgeVariant} className="gap-1 pr-1">
+              {item.name}
+              <button
+                type="button"
+                className="rounded-full p-0.5 hover:bg-black/10"
+                aria-label={`Remove ${item.name}`}
+                onClick={() => onChange(values.filter((v) => v.name !== item.name))}
+              >
+                <XIcon className="size-3" />
+              </button>
+            </Badge>
+          ))}
           {visibleSuggestions.map((item) => (
             <button
-              key={item.name}
+              key={`suggest-${item.name}`}
               type="button"
-              className="border-border bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground rounded-md border px-2 py-0.5 text-xs transition-colors"
+              className="border-border bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground inline-flex items-center rounded-md border px-2 py-0.5 text-xs transition-colors"
               onClick={() => addTag(item.name)}
             >
               {item.name}
             </button>
           ))}
         </div>
-      ) : null}
-      {values.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
+      ) : values.length > 0 ? (
+        <div className="flex flex-row flex-wrap items-center gap-1.5">
           {values.map((item) => (
             <Badge key={item.name} variant={badgeVariant} className="gap-1 pr-1">
               {item.name}

@@ -106,13 +106,27 @@ export function FolderTagEditor({
           ))}
         </select>
       </div>
-      {visibleSuggestions.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5" aria-label="Existing folders">
+      {visibleSuggestions.length > 0 || values.length > 0 ? (
+        <div className="flex flex-row flex-wrap items-center gap-1.5">
+          {values.map((item) => (
+            <Badge key={`selected-${item.name}`} variant="outline" className="gap-1 pr-1">
+              {item.name}
+              <span className="text-muted-foreground">· {item.kind}</span>
+              <button
+                type="button"
+                className="rounded-full p-0.5 hover:bg-black/10"
+                aria-label={`Remove ${item.name}`}
+                onClick={() => onChange(values.filter((v) => v.name !== item.name))}
+              >
+                <XIcon className="size-3" />
+              </button>
+            </Badge>
+          ))}
           {visibleSuggestions.map((item) => (
             <button
-              key={item.id}
+              key={`suggest-${item.id}`}
               type="button"
-              className="border-border bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground rounded-md border px-2 py-0.5 text-xs transition-colors"
+              className="border-border bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground inline-flex items-center rounded-md border px-2 py-0.5 text-xs transition-colors"
               onClick={() =>
                 addFolder(
                   item.name,
@@ -126,24 +140,6 @@ export function FolderTagEditor({
                 · {item.kind === "folder" || item.kind === "playlist" ? item.kind : "playlist"}
               </span>
             </button>
-          ))}
-        </div>
-      ) : null}
-      {values.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
-          {values.map((item) => (
-            <Badge key={item.name} variant="outline" className="gap-1 pr-1">
-              {item.name}
-              <span className="text-muted-foreground">· {item.kind}</span>
-              <button
-                type="button"
-                className="rounded-full p-0.5 hover:bg-black/10"
-                aria-label={`Remove ${item.name}`}
-                onClick={() => onChange(values.filter((v) => v.name !== item.name))}
-              >
-                <XIcon className="size-3" />
-              </button>
-            </Badge>
           ))}
         </div>
       ) : null}
