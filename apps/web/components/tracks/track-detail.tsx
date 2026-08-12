@@ -439,7 +439,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
               {track.artists.map((artist) => artist.name).join(", ") || "Unknown artist"}
             </p>
           </div>
-          <TrackChips subgenres={track.subgenres} folders={track.folders} />
+          <TrackChips subgenres={track.subgenres} />
           <div className="flex flex-wrap gap-3">
             <Button asChild>
               <Link href={`/graph?track=${track.id}`}>Open in graph</Link>
