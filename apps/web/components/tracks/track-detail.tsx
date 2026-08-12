@@ -36,7 +36,6 @@ function optionalNumber(raw: string): number | null {
 type FormState = {
   title: string;
   artistsText: string;
-  genres: TagItem[];
   subgenres: TagItem[];
   folders: FolderTag[];
   bpm: string;
@@ -51,11 +50,10 @@ function formFromTrack(track: ApiTrack): FormState {
   return {
     title: track.title,
     artistsText: track.artists.map((artist) => artist.name).join(", "),
-    genres: track.genres.map((genre) => ({ name: genre.name })),
     subgenres: track.subgenres.map((item) => ({ name: item.name })),
     folders: track.folders.map((item) => ({
       name: item.name,
-      ...(item.kind === "folder" || item.kind === "playlist" ? { kind: item.kind } : {}),
+      kind: item.kind === "folder" || item.kind === "playlist" ? item.kind : "playlist",
     })),
     bpm: track.bpm != null ? String(track.bpm) : "",
     musicalKey: track.musicalKey ?? "",
@@ -80,6 +78,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
   const router = useRouter();
   const [track, setTrack] = useState<ApiTrack | null>(null);
   const [form, setForm] = useState<FormState | null>(null);
+  const [editing, setEditing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -96,11 +95,13 @@ export function TrackDetail({ trackId }: { trackId: string }) {
         if (cancelled) return;
         setTrack(response.track);
         setForm(formFromTrack(response.track));
+        setEditing(false);
         setLoadError(null);
       } catch (err) {
         if (cancelled) return;
         setTrack(null);
         setForm(null);
+        setEditing(false);
         setLoadError(err instanceof ApiClientError ? err.message : "Failed to load track.");
       }
     });
@@ -132,6 +133,22 @@ export function TrackDetail({ trackId }: { trackId: string }) {
     setSaveMessage(null);
   }
 
+  function startEditing() {
+    if (!track) return;
+    setForm(formFromTrack(track));
+    setSaveError(null);
+    setSaveMessage(null);
+    setEditing(true);
+  }
+
+  function cancelEditing() {
+    if (!track) return;
+    setForm(formFromTrack(track));
+    setSaveError(null);
+    setSaveMessage(null);
+    setEditing(false);
+  }
+
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!form || !track) return;
@@ -160,11 +177,10 @@ export function TrackDetail({ trackId }: { trackId: string }) {
         const response = await updateTrack(track.id, {
           title: form.title.trim(),
           artists,
-          genres: form.genres.map((item) => item.name),
           subgenres: form.subgenres.map((item) => ({ name: item.name })),
           folders: form.folders.map((item) => ({
             name: item.name,
-            ...(item.kind ? { kind: item.kind } : {}),
+            kind: item.kind,
           })),
           bpm,
           musicalKey: form.musicalKey.trim() || null,
@@ -178,6 +194,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
         invalidateLibraryCache();
         setSaveError(null);
         setSaveMessage("Saved.");
+        setEditing(false);
       } catch (err) {
         setSaveMessage(null);
         setSaveError(err instanceof ApiClientError ? err.message : "Failed to save track.");
@@ -229,6 +246,11 @@ export function TrackDetail({ trackId }: { trackId: string }) {
             <Button asChild>
               <Link href={`/graph?track=${track.id}`}>Open in graph</Link>
             </Button>
+            {!editing ? (
+              <Button type="button" variant="secondary" onClick={startEditing}>
+                Edit
+              </Button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -236,6 +258,50 @@ export function TrackDetail({ trackId }: { trackId: string }) {
       <Separator />
 
       <dl className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <dt className="text-muted-foreground text-xs tracking-wide uppercase">Catalog genres</dt>
+          <dd className="mt-1 text-sm">
+            {track.genres.length
+              ? track.genres.map((genre) => genre.name).join(", ")
+              : "None — usually filled from Spotify/catalog import"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground text-xs tracking-wide uppercase">Subgenres</dt>
+          <dd className="mt-1 text-sm">
+            {track.subgenres.length
+              ? track.subgenres.map((item) => item.name).join(", ")
+              : "None — your DJ mixing labels"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground text-xs tracking-wide uppercase">
+            Folders / playlists
+          </dt>
+          <dd className="mt-1 text-sm">
+            {track.folders.length
+              ? track.folders
+                  .map((item) => (item.kind ? `${item.name} (${item.kind})` : item.name))
+                  .join(", ")
+              : "None"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground text-xs tracking-wide uppercase">
+            BPM / key / energy
+          </dt>
+          <dd className="mt-1 text-sm">
+            {track.bpm ?? "—"} / {track.musicalKey ?? "—"} / {track.energy ?? "—"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground text-xs tracking-wide uppercase">Duration</dt>
+          <dd className="mt-1 text-sm">{formatDuration(track.durationSec) ?? "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground text-xs tracking-wide uppercase">Release</dt>
+          <dd className="mt-1 text-sm">{track.releaseDate ?? "—"}</dd>
+        </div>
         <div>
           <dt className="text-muted-foreground text-xs tracking-wide uppercase">External IDs</dt>
           <dd className="mt-1 font-mono text-sm">
@@ -253,166 +319,150 @@ export function TrackDetail({ trackId }: { trackId: string }) {
             {track.hasInboundTransitions ? "yes" : "no"}
           </dd>
         </div>
-        <div>
-          <dt className="text-muted-foreground text-xs tracking-wide uppercase">Duration</dt>
-          <dd className="mt-1 text-sm">{formatDuration(track.durationSec) ?? "—"}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground text-xs tracking-wide uppercase">Release</dt>
-          <dd className="mt-1 text-sm">{track.releaseDate ?? "—"}</dd>
-        </div>
       </dl>
 
-      <form onSubmit={onSubmit} className="space-y-6">
-        <div className="space-y-1">
-          <h2 className="font-medium">Edit</h2>
-          <p className="text-muted-foreground text-sm">
-            Update DJ-owned metadata, Subgenres, and Folders. Provider identity stays read-only.
-          </p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="track-title">Title</Label>
-            <Input
-              id="track-title"
-              value={form.title}
-              onChange={(event) => onFieldChange("title", event.target.value)}
-              disabled={saving}
-            />
+      {editing ? (
+        <form onSubmit={onSubmit} className="border-border space-y-6 border-t pt-8">
+          <div className="space-y-1">
+            <h2 className="font-medium">Edit track</h2>
+            <p className="text-muted-foreground text-sm">
+              Update title, artists, Subgenres, Folders/playlists, and DJ metadata. Catalog genres
+              stay read-only (they come from Spotify/import).
+            </p>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="track-artists">Artists</Label>
-            <Input
-              id="track-artists"
-              value={form.artistsText}
-              onChange={(event) => onFieldChange("artistsText", event.target.value)}
-              placeholder="Comma-separated"
-              disabled={saving}
-            />
-          </div>
-        </div>
 
-        <TagEditor
-          id="track-genres"
-          label="Provider genres"
-          hint="Optional catalog-style genre labels."
-          placeholder="Add genre, then Enter — or pick one below"
-          values={form.genres}
-          onChange={(genres) => {
-            setForm((current) => (current ? { ...current, genres } : current));
-            setSaveError(null);
-            setSaveMessage(null);
-          }}
-          vocab="genres"
-        />
-
-        <TagEditor
-          id="track-subgenres"
-          label="Subgenres"
-          hint="DJ musical labels — separate from folders."
-          placeholder="Add subgenre, then Enter — or pick one below"
-          values={form.subgenres}
-          onChange={(subgenres) => {
-            setForm((current) => (current ? { ...current, subgenres } : current));
-            setSaveError(null);
-            setSaveMessage(null);
-          }}
-          vocab="subgenres"
-        />
-
-        <FolderTagEditor
-          values={form.folders}
-          onChange={(folders) => {
-            setForm((current) => (current ? { ...current, folders } : current));
-            setSaveError(null);
-            setSaveMessage(null);
-          }}
-        />
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="track-bpm">BPM</Label>
-            <Input
-              id="track-bpm"
-              inputMode="decimal"
-              value={form.bpm}
-              onChange={(event) => onFieldChange("bpm", event.target.value)}
-              disabled={saving}
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="track-title">Title</Label>
+              <Input
+                id="track-title"
+                value={form.title}
+                onChange={(event) => onFieldChange("title", event.target.value)}
+                disabled={saving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="track-artists">Artists</Label>
+              <Input
+                id="track-artists"
+                value={form.artistsText}
+                onChange={(event) => onFieldChange("artistsText", event.target.value)}
+                placeholder="Comma-separated"
+                disabled={saving}
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="track-key">Key</Label>
-            <Input
-              id="track-key"
-              value={form.musicalKey}
-              onChange={(event) => onFieldChange("musicalKey", event.target.value)}
-              disabled={saving}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="track-energy">Energy</Label>
-            <Input
-              id="track-energy"
-              inputMode="decimal"
-              value={form.energy}
-              onChange={(event) => onFieldChange("energy", event.target.value)}
-              disabled={saving}
-            />
-          </div>
-        </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="track-duration">Duration (sec)</Label>
-            <Input
-              id="track-duration"
-              inputMode="decimal"
-              value={form.durationSec}
-              onChange={(event) => onFieldChange("durationSec", event.target.value)}
-              disabled={saving}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="track-release">Release date</Label>
-            <Input
-              id="track-release"
-              value={form.releaseDate}
-              onChange={(event) => onFieldChange("releaseDate", event.target.value)}
-              disabled={saving}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="track-artwork">Artwork URL</Label>
-            <Input
-              id="track-artwork"
-              value={form.artworkUrl}
-              onChange={(event) => onFieldChange("artworkUrl", event.target.value)}
-              disabled={saving}
-            />
-          </div>
-        </div>
+          <TagEditor
+            id="track-subgenres"
+            label="Subgenres"
+            hint="Your DJ mixing labels (UKG, melodic house, afro house…) — not Spotify’s broad genres."
+            placeholder="Add subgenre, then Enter — or pick one below"
+            values={form.subgenres}
+            onChange={(subgenres) => {
+              setForm((current) => (current ? { ...current, subgenres } : current));
+              setSaveError(null);
+              setSaveMessage(null);
+            }}
+            vocab="subgenres"
+          />
 
-        {saveError ? (
-          <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm" role="alert">
-            {saveError}
-          </p>
-        ) : null}
-        {saveMessage ? (
-          <p className="text-muted-foreground text-sm" aria-live="polite">
-            {saveMessage}
-          </p>
-        ) : null}
+          <FolderTagEditor
+            values={form.folders}
+            onChange={(folders) => {
+              setForm((current) => (current ? { ...current, folders } : current));
+              setSaveError(null);
+              setSaveMessage(null);
+            }}
+          />
 
-        <div className="flex flex-wrap gap-3">
-          <Button type="submit" disabled={saving || deleting}>
-            {saving ? "Saving…" : "Save changes"}
-          </Button>
-          <Button asChild type="button" variant="outline">
-            <Link href="/library">Back to library</Link>
-          </Button>
-        </div>
-      </form>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="track-bpm">BPM</Label>
+              <Input
+                id="track-bpm"
+                inputMode="decimal"
+                value={form.bpm}
+                onChange={(event) => onFieldChange("bpm", event.target.value)}
+                disabled={saving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="track-key">Key</Label>
+              <Input
+                id="track-key"
+                value={form.musicalKey}
+                onChange={(event) => onFieldChange("musicalKey", event.target.value)}
+                disabled={saving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="track-energy">Energy</Label>
+              <Input
+                id="track-energy"
+                inputMode="decimal"
+                value={form.energy}
+                onChange={(event) => onFieldChange("energy", event.target.value)}
+                disabled={saving}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="track-duration">Duration (sec)</Label>
+              <Input
+                id="track-duration"
+                inputMode="decimal"
+                value={form.durationSec}
+                onChange={(event) => onFieldChange("durationSec", event.target.value)}
+                disabled={saving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="track-release">Release date</Label>
+              <Input
+                id="track-release"
+                value={form.releaseDate}
+                onChange={(event) => onFieldChange("releaseDate", event.target.value)}
+                disabled={saving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="track-artwork">Artwork URL</Label>
+              <Input
+                id="track-artwork"
+                value={form.artworkUrl}
+                onChange={(event) => onFieldChange("artworkUrl", event.target.value)}
+                disabled={saving}
+              />
+            </div>
+          </div>
+
+          {saveError ? (
+            <p
+              className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm"
+              role="alert"
+            >
+              {saveError}
+            </p>
+          ) : null}
+          {saveMessage ? (
+            <p className="text-muted-foreground text-sm" aria-live="polite">
+              {saveMessage}
+            </p>
+          ) : null}
+
+          <div className="flex flex-wrap gap-3">
+            <Button type="submit" disabled={saving || deleting}>
+              {saving ? "Saving…" : "Save changes"}
+            </Button>
+            <Button type="button" variant="outline" disabled={saving} onClick={cancelEditing}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      ) : null}
 
       <section className="border-border space-y-3 border-t pt-8">
         <h2 className="font-medium">Delete</h2>
@@ -432,7 +482,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
           type="button"
           variant="destructive"
           size="sm"
-          disabled={deleting || saving}
+          disabled={deleting || saving || editing}
           onClick={onDelete}
         >
           {deleting ? "Deleting…" : "Delete track"}

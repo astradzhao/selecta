@@ -12,10 +12,11 @@ import { listVocab, type VocabFolderItem } from "@/lib/vocab/api";
 
 export type FolderTag = {
   name: string;
-  kind?: FolderKind;
+  kind: FolderKind;
 };
 
 const SUGGESTION_LIMIT = 24;
+const DEFAULT_KIND: FolderKind = "playlist";
 
 export function FolderTagEditor({
   values,
@@ -27,7 +28,7 @@ export function FolderTagEditor({
   const inputId = useId();
   const kindId = useId();
   const [draft, setDraft] = useState("");
-  const [kind, setKind] = useState<FolderKind | "">("");
+  const [kind, setKind] = useState<FolderKind>(DEFAULT_KIND);
   const [suggestions, setSuggestions] = useState<VocabFolderItem[]>([]);
 
   useEffect(() => {
@@ -46,19 +47,15 @@ export function FolderTagEditor({
     };
   }, []);
 
-  function addFolder(nameRaw: string, nextKind?: FolderKind | "") {
+  function addFolder(nameRaw: string, nextKind?: FolderKind) {
     const name = nameRaw.trim();
     if (!name) return;
     if (values.some((item) => item.name.toLowerCase() === name.toLowerCase())) return;
     const existing = suggestions.find((item) => item.name.toLowerCase() === name.toLowerCase());
-    const resolvedKind =
-      nextKind ||
-      kind ||
-      (existing?.kind === "folder" || existing?.kind === "playlist" ? existing.kind : undefined);
-    onChange([
-      ...values,
-      { name: existing?.name ?? name, ...(resolvedKind ? { kind: resolvedKind } : {}) },
-    ]);
+    const resolvedKind: FolderKind =
+      nextKind ??
+      (existing?.kind === "folder" || existing?.kind === "playlist" ? existing.kind : kind);
+    onChange([...values, { name: existing?.name ?? name, kind: resolvedKind }]);
     setDraft("");
   }
 
@@ -76,9 +73,9 @@ export function FolderTagEditor({
   return (
     <div className="space-y-2">
       <div className="space-y-1">
-        <Label htmlFor={inputId}>Folders</Label>
+        <Label htmlFor={inputId}>Folders / playlists</Label>
         <p className="text-muted-foreground text-xs">
-          Playlists, folders, and set buckets — separate from musical subgenres.
+          Organizational buckets for sets and crates — separate from musical Subgenres.
         </p>
       </div>
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -86,7 +83,7 @@ export function FolderTagEditor({
           id={inputId}
           className="flex-1"
           value={draft}
-          placeholder="Add folder, then Enter — or pick one below"
+          placeholder="Add playlist or folder, then Enter — or pick one below"
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
             if (event.key !== "Enter") return;
@@ -98,10 +95,10 @@ export function FolderTagEditor({
           id={kindId}
           className="border-input bg-background h-9 rounded-md border px-3 text-sm"
           value={kind}
-          aria-label="Folder kind"
-          onChange={(event) => setKind(event.target.value as FolderKind | "")}
+          aria-label="Kind"
+          required
+          onChange={(event) => setKind(event.target.value as FolderKind)}
         >
-          <option value="">Kind (optional)</option>
           {FOLDER_KINDS.map((option) => (
             <option key={option} value={option}>
               {option}
@@ -119,12 +116,15 @@ export function FolderTagEditor({
               onClick={() =>
                 addFolder(
                   item.name,
-                  item.kind === "folder" || item.kind === "playlist" ? item.kind : "",
+                  item.kind === "folder" || item.kind === "playlist" ? item.kind : DEFAULT_KIND,
                 )
               }
             >
               {item.name}
-              {item.kind ? <span className="text-muted-foreground/80"> · {item.kind}</span> : null}
+              <span className="text-muted-foreground/80">
+                {" "}
+                · {item.kind === "folder" || item.kind === "playlist" ? item.kind : "playlist"}
+              </span>
             </button>
           ))}
         </div>
@@ -134,7 +134,7 @@ export function FolderTagEditor({
           {values.map((item) => (
             <Badge key={item.name} variant="outline" className="gap-1 pr-1">
               {item.name}
-              {item.kind ? <span className="text-muted-foreground">· {item.kind}</span> : null}
+              <span className="text-muted-foreground">· {item.kind}</span>
               <button
                 type="button"
                 className="rounded-full p-0.5 hover:bg-black/10"

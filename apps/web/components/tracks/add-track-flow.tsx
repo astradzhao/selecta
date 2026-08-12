@@ -130,7 +130,7 @@ export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) 
           subgenres: subgenres.map((item) => ({ name: item.name })),
           folders: folders.map((item) => ({
             name: item.name,
-            ...(item.kind ? { kind: item.kind } : {}),
+            kind: item.kind,
           })),
         });
         invalidateLibraryCache();
@@ -266,9 +266,9 @@ export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) 
 
           <TagEditor
             id="provider-genres"
-            label="Provider genres"
-            hint="Optional catalog metadata — not a substitute for Subgenres."
-            placeholder="Add genre, then Enter — or pick one below"
+            label="Catalog genres"
+            hint="Broad labels from Spotify/catalog (e.g. electronic). Prefer Subgenres for how you actually mix."
+            placeholder="Add catalog genre, then Enter — or pick one below"
             values={genres}
             onChange={setGenres}
             vocab="genres"
@@ -277,7 +277,7 @@ export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) 
           <TagEditor
             id="subgenres"
             label="Subgenres"
-            hint="Your musical labels (UKG, melodic house, afro house…)."
+            hint="Your DJ mixing labels (UKG, melodic house, afro house…) — what Selecta filters and Graph care about."
             placeholder="Add subgenre, then Enter — or pick one below"
             values={subgenres}
             onChange={setSubgenres}
