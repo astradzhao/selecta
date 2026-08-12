@@ -38,6 +38,30 @@ export type CreateTrackInput = {
   libraryId?: string | null;
 };
 
+/**
+ * Partial patch for DJ-owned track fields + org metadata.
+ * Omitted fields are left alone. Present relation arrays replace joins
+ * (`[]` clears). Provider `externalIds` are intentionally not editable.
+ */
+export type UpdateTrackInput = {
+  title?: string;
+  /** When set, must include at least one artist name; replaces existing artists. */
+  artists?: string[];
+  /** When set, replaces existing genres (`[]` clears). */
+  genres?: string[];
+  /** When set, replaces existing subgenres (`[]` clears). */
+  subgenres?: NamedRef[];
+  /** When set, replaces existing folders (`[]` clears). */
+  folders?: FolderRef[];
+  artworkUrl?: string | null;
+  durationSec?: number | null;
+  releaseDate?: string | null;
+  bpm?: number | null;
+  musicalKey?: string | null;
+  energy?: number | null;
+  libraryId?: string | null;
+};
+
 export type NamedNode = {
   id: string;
   name: string;

@@ -66,6 +66,21 @@ export type CreateTrackBody = {
   energy?: number | null;
 };
 
+/** Partial patch for track edit — omit fields to leave them unchanged. */
+export type UpdateTrackBody = {
+  title?: string;
+  artists?: string[];
+  genres?: string[];
+  subgenres?: NamedRefInput[];
+  folders?: FolderRefInput[];
+  artworkUrl?: string | null;
+  durationSec?: number | null;
+  releaseDate?: string | null;
+  bpm?: number | null;
+  musicalKey?: string | null;
+  energy?: number | null;
+};
+
 /** Transition edge fields on neighborhood neighbors (DJ-40 / DJ-73). */
 export type ApiTransitionEdge = {
   id: string | null;

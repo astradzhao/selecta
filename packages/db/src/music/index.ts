@@ -23,6 +23,7 @@ export {
   type FolderRef,
   type TrackExternalIds,
   type CreateTrackInput,
+  type UpdateTrackInput,
   type NamedNode,
   type FolderNode,
   type TrackNode,
@@ -42,6 +43,10 @@ export {
   ensureFolder,
   resolveSubgenreRef,
   resolveFolderRef,
+  listGenres,
+  listSubgenres,
+  listFolders,
+  type ListVocabInput,
 } from "./vocab";
 export {
   createTrack,
@@ -50,6 +55,8 @@ export {
   getTrackByExternalId,
   getLibraryStats,
   getTrackSummariesByIds,
+  updateTrackById,
+  deleteTrackById,
 } from "./tracks";
 export {
   asTransitionEdge,

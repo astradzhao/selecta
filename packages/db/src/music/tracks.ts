@@ -22,7 +22,7 @@ import { MusicWriteError } from "./errors";
 import { clampListLimit, clampListOffset } from "./list-page";
 import { toFolderNode, toNamedNode, toTrackNode } from "./mappers";
 import { normalizeName } from "./normalize";
-import { cleanExternalIds, optionalNumber, requireTrimmed } from "./shared";
+import { cleanExternalIds, optionalNumber, optionalString, requireTrimmed } from "./shared";
 import type {
   CreateTrackInput,
   CreateTrackResult,
@@ -33,6 +33,7 @@ import type {
   TrackDetail,
   TrackSortField,
   TrackSummary,
+  UpdateTrackInput,
 } from "./types";
 import {
   ensureArtist,
@@ -544,8 +545,175 @@ export async function getTrackById(id: string): Promise<TrackDetail | null> {
   if (!trackId) {
     return null;
   }
+  return getTrackByIdInTx(db(), trackId);
+}
 
-  const executor = db();
+/**
+ * Update DJ-owned track fields and organization metadata.
+ * Present relation arrays replace joins; omitted fields are left alone.
+ * Provider external ids are never mutated here.
+ */
+export async function updateTrackById(id: string, input: UpdateTrackInput): Promise<TrackDetail> {
+  const trackId = requireTrimmed(id, "id");
+
+  const hasPatch =
+    input.title !== undefined ||
+    input.artists !== undefined ||
+    input.genres !== undefined ||
+    input.subgenres !== undefined ||
+    input.folders !== undefined ||
+    input.artworkUrl !== undefined ||
+    input.durationSec !== undefined ||
+    input.releaseDate !== undefined ||
+    input.bpm !== undefined ||
+    input.musicalKey !== undefined ||
+    input.energy !== undefined ||
+    input.libraryId !== undefined;
+  if (!hasPatch) {
+    throw new MusicWriteError("invalid_input", "updateTrackById requires at least one field.");
+  }
+
+  const artistNames =
+    input.artists !== undefined
+      ? input.artists.map((name) => name.trim()).filter(Boolean)
+      : undefined;
+  if (artistNames !== undefined && artistNames.length === 0) {
+    throw new MusicWriteError("invalid_input", "At least one artist is required.");
+  }
+
+  const title = input.title !== undefined ? requireTrimmed(input.title, "Title") : undefined;
+
+  return db().transaction(async (tx) => {
+    const executor = tx as unknown as DbLike;
+
+    const [existing] = await executor.select().from(tracks).where(eq(tracks.id, trackId)).limit(1);
+    if (!existing) {
+      throw new MusicWriteError("not_found", `Track "${trackId}" was not found.`);
+    }
+
+    const subgenreParams = [];
+    if (input.subgenres !== undefined) {
+      for (const [index, ref] of input.subgenres.entries()) {
+        subgenreParams.push(await resolveSubgenreRef(ref, `subgenres[${index}]`, executor));
+      }
+    }
+    const folderParams = [];
+    if (input.folders !== undefined) {
+      for (const [index, ref] of input.folders.entries()) {
+        folderParams.push(await resolveFolderRef(ref, index, executor));
+      }
+    }
+
+    const patch: Partial<typeof tracks.$inferInsert> & { updatedAt: Date } = {
+      updatedAt: new Date(),
+    };
+    if (title !== undefined) {
+      patch.title = title;
+    }
+    if (input.artworkUrl !== undefined) {
+      patch.artworkUrl = optionalString(input.artworkUrl);
+    }
+    if (input.durationSec !== undefined) {
+      patch.durationSec = optionalNumber(input.durationSec);
+    }
+    if (input.releaseDate !== undefined) {
+      patch.releaseDate = optionalString(input.releaseDate);
+    }
+    if (input.bpm !== undefined) {
+      patch.bpm = optionalNumber(input.bpm);
+    }
+    if (input.musicalKey !== undefined) {
+      patch.musicalKey = optionalString(input.musicalKey);
+    }
+    if (input.energy !== undefined) {
+      patch.energy = optionalNumber(input.energy);
+    }
+    if (input.libraryId !== undefined) {
+      patch.libraryId = optionalString(input.libraryId);
+    }
+
+    await executor.update(tracks).set(patch).where(eq(tracks.id, trackId));
+
+    if (artistNames !== undefined) {
+      await executor.delete(trackArtists).where(eq(trackArtists.trackId, trackId));
+      const ensuredArtists = [];
+      for (const name of artistNames) {
+        ensuredArtists.push(await ensureArtist(name, executor));
+      }
+      if (ensuredArtists.length > 0) {
+        await executor
+          .insert(trackArtists)
+          .values(ensuredArtists.map((a) => ({ trackId, artistId: a.id })));
+      }
+    }
+
+    if (input.genres !== undefined) {
+      await executor.delete(trackGenres).where(eq(trackGenres.trackId, trackId));
+      const ensuredGenres = [];
+      for (const name of input.genres.map((n) => n.trim()).filter(Boolean)) {
+        ensuredGenres.push(await ensureGenre(name, executor));
+      }
+      if (ensuredGenres.length > 0) {
+        await executor
+          .insert(trackGenres)
+          .values(ensuredGenres.map((g) => ({ trackId, genreId: g.id })));
+      }
+    }
+
+    if (input.subgenres !== undefined) {
+      await executor.delete(trackSubgenres).where(eq(trackSubgenres.trackId, trackId));
+      const ensuredSubgenres = [];
+      for (const params of subgenreParams) {
+        ensuredSubgenres.push(await ensureSubgenre(params.name, executor));
+      }
+      if (ensuredSubgenres.length > 0) {
+        await executor
+          .insert(trackSubgenres)
+          .values(ensuredSubgenres.map((s) => ({ trackId, subgenreId: s.id })));
+      }
+    }
+
+    if (input.folders !== undefined) {
+      await executor.delete(trackFolders).where(eq(trackFolders.trackId, trackId));
+      const ensuredFolders = [];
+      for (const params of folderParams) {
+        ensuredFolders.push(
+          await ensureFolder({ name: params.name, kind: params.kind ?? undefined }, executor),
+        );
+      }
+      if (ensuredFolders.length > 0) {
+        await executor
+          .insert(trackFolders)
+          .values(ensuredFolders.map((f) => ({ trackId, folderId: f.id })));
+      }
+    }
+
+    const detail = await getTrackByIdInTx(executor, trackId);
+    if (!detail) {
+      throw new MusicWriteError("not_found", "Failed to load updated track.");
+    }
+    return detail;
+  });
+}
+
+/**
+ * Hard-delete a track by id. Join rows, transitions, and note_track_links cascade;
+ * submission/proposal/audit rows are preserved (commit track refs SET NULL).
+ */
+export async function deleteTrackById(id: string): Promise<{ id: string; deleted: boolean }> {
+  const trackId = requireTrimmed(id, "id");
+  const deleted = await db()
+    .delete(tracks)
+    .where(eq(tracks.id, trackId))
+    .returning({ id: tracks.id });
+  const deletedId = deleted[0]?.id;
+  if (!deletedId) {
+    throw new MusicWriteError("not_found", `Track "${trackId}" was not found.`);
+  }
+  return { id: deletedId, deleted: true };
+}
+
+async function getTrackByIdInTx(executor: DbLike, trackId: string): Promise<TrackDetail | null> {
   const [row] = await executor
     .select({
       track: tracks,

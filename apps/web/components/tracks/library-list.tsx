@@ -229,7 +229,7 @@ export function LibraryList({ embedded = false }: { embedded?: boolean } = {}) {
                         {track.artists.map((artist) => artist.name).join(", ") || "Unknown artist"}
                       </p>
                     </div>
-                    <TrackChips subgenres={track.subgenres} folders={track.folders} />
+                    <TrackChips subgenres={track.subgenres} />
                   </div>
                 </Link>
               </li>

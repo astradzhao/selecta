@@ -1,0 +1,16 @@
+---
+description: Always commit, push, and open a PR when Linear ticket work is done — do not wait to be asked
+alwaysApply: true
+---
+
+# Always commit + push + PR
+
+When a Linear issue implementation is **finished** (or the user says the work is done / ship it / implement is complete):
+
+1. **Commit** on the `dj-XXXX` branch (do not ask first).
+2. **Push** with `git push -u origin HEAD`.
+3. **Open or update a PR** to `main` immediately after the push.
+
+Do **not** stop after implementing and wait for “please commit” or “please PR”. Finishing the ticket means commit → push → PR in the same turn.
+
+This overrides any generic “only commit when asked” preference for Linear issue work in this repo.
