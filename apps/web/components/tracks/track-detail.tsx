@@ -401,23 +401,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
     <div className="space-y-10">
       <div className="space-y-3">
         <LibraryBackLink />
-        <div className="flex items-start justify-between gap-4">
-          <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">Track</p>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={startEditing}>
-              Edit
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              disabled={deleting}
-              onClick={onDelete}
-            >
-              {deleting ? "Deleting…" : "Delete"}
-            </Button>
-          </div>
-        </div>
+        <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">Track</p>
       </div>
 
       {actionError ? (
@@ -434,7 +418,25 @@ export function TrackDetail({ trackId }: { trackId: string }) {
         </div>
         <div className="min-w-0 flex-1 space-y-4">
           <div className="space-y-2">
-            <h1 className="text-3xl font-semibold tracking-tight text-balance">{track.title}</h1>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <h1 className="min-w-0 flex-1 text-3xl font-semibold tracking-tight text-balance">
+                {track.title}
+              </h1>
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={startEditing}>
+                  Edit
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={deleting}
+                  onClick={onDelete}
+                >
+                  {deleting ? "Deleting…" : "Delete"}
+                </Button>
+              </div>
+            </div>
             <p className="text-muted-foreground text-base">
               {track.artists.map((artist) => artist.name).join(", ") || "Unknown artist"}
             </p>
