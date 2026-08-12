@@ -109,7 +109,7 @@ export function FolderTagEditor({
       {visibleSuggestions.length > 0 || values.length > 0 ? (
         <div className="flex flex-row flex-wrap items-center gap-1.5">
           {values.map((item) => (
-            <Badge key={`selected-${item.name}`} variant="outline" className="gap-1 pr-1">
+            <Badge key={`selected-${item.name}`} variant="outline" className="w-fit gap-1 pr-1">
               {item.name}
               <span className="text-muted-foreground">· {item.kind}</span>
               <button
@@ -126,7 +126,7 @@ export function FolderTagEditor({
             <button
               key={`suggest-${item.id}`}
               type="button"
-              className="border-border bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground inline-flex items-center rounded-md border px-2 py-0.5 text-xs transition-colors"
+              className="border-border bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground inline-flex w-fit items-center rounded-md border px-2 py-0.5 text-xs transition-colors"
               onClick={() =>
                 addFolder(
                   item.name,

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { ArrowLeftIcon } from "lucide-react";
 
 import { Button } from "@selecta/ui/components/button";
 import { Input } from "@selecta/ui/components/input";
@@ -74,6 +75,18 @@ function transitionWarning(track: ApiTrack): string {
   return `This also deletes related ${parts.join(" and ")} transitions. This cannot be undone.`;
 }
 
+function LibraryBackLink() {
+  return (
+    <Link
+      href="/library"
+      className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
+    >
+      <ArrowLeftIcon className="size-4" aria-hidden />
+      Library
+    </Link>
+  );
+}
+
 export function TrackDetail({ trackId }: { trackId: string }) {
   const router = useRouter();
   const [track, setTrack] = useState<ApiTrack | null>(null);
@@ -116,12 +129,10 @@ export function TrackDetail({ trackId }: { trackId: string }) {
   if (loadError || !track || !form) {
     return (
       <div className="space-y-4">
+        <LibraryBackLink />
         <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm">
           {loadError ?? "Track not found."}
         </p>
-        <Button asChild variant="outline">
-          <Link href="/library">Back to library</Link>
-        </Button>
       </div>
     );
   }
@@ -219,30 +230,35 @@ export function TrackDetail({ trackId }: { trackId: string }) {
   if (editing) {
     return (
       <div className="space-y-8">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">Edit track</p>
-            <h1 className="text-2xl font-semibold tracking-tight text-balance">{track.title}</h1>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={saving || deleting}
-              onClick={cancelEditing}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              disabled={deleting || saving}
-              onClick={onDelete}
-            >
-              {deleting ? "Deleting…" : "Delete"}
-            </Button>
+        <div className="space-y-3">
+          <LibraryBackLink />
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">
+                Edit track
+              </p>
+              <h1 className="text-2xl font-semibold tracking-tight text-balance">{track.title}</h1>
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={saving || deleting}
+                onClick={cancelEditing}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                disabled={deleting || saving}
+                onClick={onDelete}
+              >
+                {deleting ? "Deleting…" : "Delete"}
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -383,21 +399,24 @@ export function TrackDetail({ trackId }: { trackId: string }) {
 
   return (
     <div className="space-y-10">
-      <div className="flex items-start justify-between gap-4">
-        <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">Track</p>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={startEditing}>
-            Edit
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
-            disabled={deleting}
-            onClick={onDelete}
-          >
-            {deleting ? "Deleting…" : "Delete"}
-          </Button>
+      <div className="space-y-3">
+        <LibraryBackLink />
+        <div className="flex items-start justify-between gap-4">
+          <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">Track</p>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={startEditing}>
+              Edit
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={deleting}
+              onClick={onDelete}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -422,9 +441,6 @@ export function TrackDetail({ trackId }: { trackId: string }) {
           </div>
           <TrackChips subgenres={track.subgenres} folders={track.folders} />
           <div className="flex flex-wrap gap-3">
-            <Button asChild variant="outline">
-              <Link href="/library">Back to library</Link>
-            </Button>
             <Button asChild>
               <Link href={`/graph?track=${track.id}`}>Open in graph</Link>
             </Button>

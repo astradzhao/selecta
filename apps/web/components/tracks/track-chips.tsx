@@ -14,14 +14,14 @@ export function TrackChips({
   }
 
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-row flex-wrap items-center gap-1.5">
       {subgenres.map((item) => (
-        <Badge key={`sg-${item.id}`} variant="secondary">
+        <Badge key={`sg-${item.id}`} variant="secondary" className="w-fit">
           {item.name}
         </Badge>
       ))}
       {folders.map((item) => (
-        <Badge key={`f-${item.id}`} variant="outline">
+        <Badge key={`f-${item.id}`} variant="outline" className="w-fit">
           {item.name}
           {item.kind ? <span className="text-muted-foreground"> · {item.kind}</span> : null}
         </Badge>
