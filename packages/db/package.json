@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test --test-concurrency=1 src/*.test.ts src/**/*.test.ts",
-    "test:integration": "tsx --test --test-concurrency=1 src/*.test.ts src/**/*.test.ts",
+    "test:integration": "tsx src/prepare-test-db.ts && tsx --test --test-concurrency=1 src/*.test.ts src/**/*.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/migrate.ts",
     "db:test:prepare": "tsx src/prepare-test-db.ts",

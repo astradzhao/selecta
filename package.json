@@ -14,6 +14,7 @@
     "db:generate": "pnpm --filter @selecta/db db:generate",
     "db:migrate": "pnpm --filter @selecta/db db:migrate",
     "db:test:prepare": "pnpm --filter @selecta/db db:test:prepare",
+    "db:test": "pnpm db:up && pnpm db:test:prepare && pnpm --filter @selecta/db test",
     "db:studio": "pnpm --filter @selecta/db db:studio",
     "build": "pnpm run --filter @selecta/web --filter @selecta/api build",
     "lint": "pnpm run --recursive --filter '!@selecta/eslint-config' lint",
