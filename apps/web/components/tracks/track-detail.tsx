@@ -297,26 +297,28 @@ export function TrackDetail({ trackId }: { trackId: string }) {
           id="track-genres"
           label="Provider genres"
           hint="Optional catalog-style genre labels."
-          placeholder="Add genre, then Enter"
+          placeholder="Add genre, then Enter — or pick one below"
           values={form.genres}
           onChange={(genres) => {
             setForm((current) => (current ? { ...current, genres } : current));
             setSaveError(null);
             setSaveMessage(null);
           }}
+          vocab="genres"
         />
 
         <TagEditor
           id="track-subgenres"
           label="Subgenres"
           hint="DJ musical labels — separate from folders."
-          placeholder="Add subgenre, then Enter"
+          placeholder="Add subgenre, then Enter — or pick one below"
           values={form.subgenres}
           onChange={(subgenres) => {
             setForm((current) => (current ? { ...current, subgenres } : current));
             setSaveError(null);
             setSaveMessage(null);
           }}
+          vocab="subgenres"
         />
 
         <FolderTagEditor

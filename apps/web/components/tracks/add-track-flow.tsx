@@ -268,19 +268,21 @@ export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) 
             id="provider-genres"
             label="Provider genres"
             hint="Optional catalog metadata — not a substitute for Subgenres."
-            placeholder="Add genre, then Enter"
+            placeholder="Add genre, then Enter — or pick one below"
             values={genres}
             onChange={setGenres}
+            vocab="genres"
           />
 
           <TagEditor
             id="subgenres"
             label="Subgenres"
             hint="Your musical labels (UKG, melodic house, afro house…)."
-            placeholder="Add subgenre, then Enter"
+            placeholder="Add subgenre, then Enter — or pick one below"
             values={subgenres}
             onChange={setSubgenres}
             badgeVariant="secondary"
+            vocab="subgenres"
           />
 
           <FolderTagEditor values={folders} onChange={setFolders} />

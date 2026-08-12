@@ -21,7 +21,7 @@ import {
   updateTrackById,
 } from "./tracks";
 import { createTransition, getTransitionById } from "./transitions";
-import { ensureArtist, ensureFolder } from "./vocab";
+import { ensureArtist, ensureFolder, ensureSubgenre, listFolders, listSubgenres } from "./vocab";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const repoRoot = resolve(packageRoot, "../..");
@@ -252,5 +252,20 @@ describe("music vocab + tracks", { skip: !pgReady }, () => {
     assert.ok(commit);
     assert.equal(commit.fromTrackId, null);
     assert.equal(commit.toTrackId, to.track.id);
+  });
+
+  it("listSubgenres and listFolders return ensured vocab and filter by query", async () => {
+    const suffix = randomUUID().slice(0, 8);
+    await ensureSubgenre(`Melodic House ${suffix}`);
+    await ensureSubgenre(`UKG ${suffix}`);
+    await ensureFolder({ name: `Club Set ${suffix}`, kind: "playlist" });
+
+    const subs = await listSubgenres({ query: `melodic ${suffix}`, limit: 20 });
+    assert.ok(subs.some((s) => s.name.includes(`Melodic House ${suffix}`)));
+    assert.ok(!subs.some((s) => s.name.includes(`UKG ${suffix}`)));
+
+    const folderHits = await listFolders({ query: `club ${suffix}`, limit: 20 });
+    assert.equal(folderHits.length, 1);
+    assert.equal(folderHits[0]?.kind, "playlist");
   });
 });

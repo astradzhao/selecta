@@ -43,6 +43,10 @@ export {
   ensureFolder,
   resolveSubgenreRef,
   resolveFolderRef,
+  listGenres,
+  listSubgenres,
+  listFolders,
+  type ListVocabInput,
 } from "./vocab";
 export {
   createTrack,
