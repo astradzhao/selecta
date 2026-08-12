@@ -408,7 +408,7 @@ Estimated size: phases 1–2 ≈ 700 lines of backend, phases 3–5 ≈ 900 line
 ## 10. Tests worth writing
 
 Per `.cursor/rules/valuable-tests-only.mdc` — only silent-failure paths, all PG
-suites gated behind `SELECTA_DB_INTEGRATION=1` (see DJ-91):
+suites on isolated `selecta_test` (same Compose Postgres; see DJ-91):
 
 - **Approve is idempotent and reuses `proposal_key`** — approving twice yields
   one transition, second call reports `alreadyCommitted` (integration).

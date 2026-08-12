@@ -52,6 +52,18 @@ export function getDb(): Db {
   return db;
 }
 
+/**
+ * Drop the process-wide pool/client (integration tests re-point DATABASE_URL
+ * at selecta_test before the first getDb() call).
+ */
+export async function resetDbClientForTests(): Promise<void> {
+  const existing = globalForDb.__selectaDb;
+  globalForDb.__selectaDb = undefined;
+  if (existing?.pool) {
+    await existing.pool.end();
+  }
+}
+
 export type DbStatus = {
   configured: boolean;
   store: "postgres";

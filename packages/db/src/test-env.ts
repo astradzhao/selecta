@@ -1,15 +1,15 @@
 /**
  * Shared helpers for @selecta/db tests.
  *
- * Postgres integration suites MUST opt in with SELECTA_DB_INTEGRATION=1 so they
- * never write into the local Library DB during normal `pnpm test` / agent runs.
+ * Postgres integration suites target an isolated `selecta_test` database on the
+ * same Compose Postgres instance as Library — never the dogfood `selecta` DB.
  */
 import { config } from "dotenv";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { isPostgresConfigured } from "./client";
+import { enableDbIntegration, truncateTestDatabase } from "./test-database";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = resolve(packageRoot, "../..");
@@ -29,10 +29,15 @@ export function loadDbTestEnv(): void {
 }
 
 /**
- * True only when DATABASE_URL is set AND the caller opted into live DB writes.
- * Unit tests that don't need Postgres should not call this.
+ * Prepare the isolated test database and point DATABASE_URL at it.
+ * Returns false when Postgres / selecta_test is unavailable so unit tests still pass.
  */
-export function isDbIntegrationEnabled(): boolean {
+export async function isDbIntegrationEnabled(): Promise<boolean> {
   loadDbTestEnv();
-  return isPostgresConfigured() && process.env.SELECTA_DB_INTEGRATION?.trim() === "1";
+  return enableDbIntegration();
+}
+
+/** Wipe application tables in the active test DB between integration describes. */
+export async function resetDbIntegrationData(): Promise<void> {
+  await truncateTestDatabase();
 }

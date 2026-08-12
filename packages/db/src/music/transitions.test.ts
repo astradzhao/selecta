@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { describe, it } from "node:test";
+import { before, describe, it } from "node:test";
 
 import { runInDbTransaction } from "../executor";
 import { createNote } from "../notes";
-import { isDbIntegrationEnabled } from "../test-env";
+import { isDbIntegrationEnabled, resetDbIntegrationData } from "../test-env";
 import { asTransitionEdge } from "./neighborhood";
 import { createTrack } from "./tracks";
 import {
@@ -16,7 +16,7 @@ import {
   updateTransitionById,
 } from "./transitions";
 
-const pgIntegration = isDbIntegrationEnabled();
+const pgIntegration = await isDbIntegrationEnabled();
 
 describe("asTransitionEdge", () => {
   it("maps stable id and sourceProposalId", () => {
@@ -41,6 +41,10 @@ describe("asTransitionEdge", () => {
 });
 
 describe("transition CRUD + AI commit", { skip: !pgIntegration }, () => {
+  before(async () => {
+    await resetDbIntegrationData();
+  });
+
   it("allows parallel A→B edges with targeted update/delete", async () => {
     const suffix = randomUUID().slice(0, 8);
     const from = await createTrack({

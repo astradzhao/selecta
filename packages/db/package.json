@@ -10,10 +10,11 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/**/*.test.ts",
-    "test:integration": "SELECTA_DB_INTEGRATION=1 tsx --test src/**/*.test.ts",
+    "test": "tsx --test --test-concurrency=1 src/*.test.ts src/**/*.test.ts",
+    "test:integration": "tsx src/prepare-test-db.ts && tsx --test --test-concurrency=1 src/*.test.ts src/**/*.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/migrate.ts",
+    "db:test:prepare": "tsx src/prepare-test-db.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

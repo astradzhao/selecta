@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { describe, it } from "node:test";
+import { before, describe, it } from "node:test";
 
 import { getDb } from "../client";
 import { addNoteTrackLink, listNoteTrackLinks } from "../note-track-links";
 import { createNote, getNoteById, upsertTransitionCommit } from "../notes";
 import { noteTransitionCommits, trackArtists, trackExternalIds, transitions } from "../schema";
-import { isDbIntegrationEnabled } from "../test-env";
+import { isDbIntegrationEnabled, resetDbIntegrationData } from "../test-env";
 import { normalizeName } from "./normalize";
 import {
   createTrack,
@@ -20,7 +20,7 @@ import {
 import { createTransition, getTransitionById } from "./transitions";
 import { ensureArtist, ensureFolder, ensureSubgenre, listFolders, listSubgenres } from "./vocab";
 
-const pgIntegration = isDbIntegrationEnabled();
+const pgIntegration = await isDbIntegrationEnabled();
 
 describe("normalizeName", () => {
   it("trims, lowercases, and collapses whitespace", () => {
@@ -30,6 +30,10 @@ describe("normalizeName", () => {
 });
 
 describe("music vocab + tracks", { skip: !pgIntegration }, () => {
+  before(async () => {
+    await resetDbIntegrationData();
+  });
+
   it("ensureArtist is idempotent on name_normalized", async () => {
     const suffix = randomUUID().slice(0, 8);
     const first = await ensureArtist(`  Skrillex ${suffix}  `);
