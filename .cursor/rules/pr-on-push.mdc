@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Pull requests on push
 
-After pushing a `dj-XXXX` branch to origin, open or update a PR to `main` using `gh pr create` or `gh pr edit`.
+After pushing a `dj-XXXX` branch to origin, **always** open or update a PR to `main` using `gh pr create` or `gh pr edit` in the same turn. Do not finish a ticket without a PR URL.
 
 **Title:** `[DJ-XXXX] Brief title` (match the Linear issue)
 

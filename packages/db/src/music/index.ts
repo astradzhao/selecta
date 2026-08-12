@@ -23,6 +23,7 @@ export {
   type FolderRef,
   type TrackExternalIds,
   type CreateTrackInput,
+  type UpdateTrackInput,
   type NamedNode,
   type FolderNode,
   type TrackNode,
@@ -50,6 +51,8 @@ export {
   getTrackByExternalId,
   getLibraryStats,
   getTrackSummariesByIds,
+  updateTrackById,
+  deleteTrackById,
 } from "./tracks";
 export {
   asTransitionEdge,

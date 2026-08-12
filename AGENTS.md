@@ -15,11 +15,11 @@ For every Linear issue implementation:
    ```
    Example: issue [DJ-13](https://linear.app/dj-project-astradzhao/issue/DJ-13) → branch `dj-13`.
 3. Implement the ticket on that branch only.
-4. When implementation is finished, commit on that branch and push to origin:
+4. When implementation is finished, **immediately** commit on that branch and push to origin (do not wait to be asked):
    ```bash
    git push -u origin HEAD
    ```
-5. After every push, open or update a PR to `main` (see **Pull requests** below).
+5. After every push, open or update a PR to `main` in the same turn (see **Pull requests** below). Return the PR URL.
 
 Do not commit directly to `main`. Do not reuse an unrelated branch for a different Linear issue.
 

@@ -5,6 +5,7 @@ import type {
   ApiNeighborhoodNeighbor,
   ApiTrack,
   CreateTrackBody,
+  UpdateTrackBody,
 } from "./types";
 
 export type {
@@ -17,6 +18,7 @@ export type {
   CreateTrackBody,
   FolderRefInput,
   NamedRefInput,
+  UpdateTrackBody,
 } from "./types";
 
 export async function listTracks(
@@ -72,5 +74,21 @@ export async function createTrack(body: CreateTrackBody): Promise<{ ok: true; tr
   return apiFetch("/tracks", {
     method: "POST",
     body: JSON.stringify(body),
+  });
+}
+
+export async function updateTrack(
+  id: string,
+  body: UpdateTrackBody,
+): Promise<{ ok: true; track: ApiTrack }> {
+  return apiFetch(`/tracks/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteTrack(id: string): Promise<{ ok: true; id: string; deleted: boolean }> {
+  return apiFetch(`/tracks/${encodeURIComponent(id)}`, {
+    method: "DELETE",
   });
 }

@@ -9,7 +9,7 @@ When implementing a Linear issue:
 
 1. Checkout and update `main`, then create a new branch: `git checkout -b "dj-XXXX"` (lowercase issue id, e.g. `dj-13` for DJ-13).
 2. Implement and commit only on that branch.
-3. After finishing, push to origin (`git push -u origin HEAD`).
+3. When the implementation is finished, **immediately** commit, then push to origin (`git push -u origin HEAD`), then open/update the PR. Do not wait for the user to ask.
 
 Never commit feature work directly to `main`. One Linear issue → one `dj-XXXX` branch.
 
