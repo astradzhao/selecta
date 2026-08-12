@@ -121,7 +121,7 @@ export function SubmissionProposals({ noteId, rawText }: { noteId: string; rawTe
                     <p className="line-clamp-2 text-sm text-pretty">{previewText(proposal)}</p>
                     <ProposalStatusBadge status={proposal.status} />
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex shrink-0 flex-wrap gap-2">
                     {isReviewable(proposal) ? (
                       <Button asChild size="sm">
                         <Link href={`/library/submissions/${noteId}/proposals/${proposal.id}`}>

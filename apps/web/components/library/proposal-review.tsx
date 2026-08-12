@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useState, useTransition } from "react";
+import { ArrowLeftIcon } from "lucide-react";
 
 import { Button } from "@selecta/ui/components/button";
 import { Label } from "@selecta/ui/components/label";
@@ -179,11 +180,30 @@ function transitionFieldsFromProposal(proposal: ApiProposal): {
   };
 }
 
-function titleFromProposal(proposal: ApiProposal): string {
-  const text = proposal.sourceText.trim();
-  if (!text) return "Proposal";
-  return text.length > 72 ? `${text.slice(0, 69)}…` : text;
+function mentionLabel(mention: ProposalMention | null): string | null {
+  const candidates = [mention?.titleHint, mention?.mention].filter((part): part is string =>
+    Boolean(part?.trim()),
+  );
+  return candidates[0]?.trim() ?? null;
 }
+
+/** Title the proposal by the transition it describes, not by the raw span text. */
+function titleFromProposal(
+  proposal: ApiProposal,
+  fromMention: ProposalMention | null,
+  toMention: ProposalMention | null,
+): string {
+  const from = proposal.fromTrack?.title ?? mentionLabel(fromMention);
+  const to = proposal.toTrack?.title ?? mentionLabel(toMention);
+  if (from && to) return `${from} → ${to}`;
+  if (from) return `${from} → ?`;
+  if (to) return `? → ${to}`;
+  const text = proposal.sourceText.trim();
+  if (!text) return "Unreadable proposal";
+  return text.length > 60 ? `${text.slice(0, 57)}…` : text;
+}
+
+type ReviewAction = "approve" | "reject" | "resolve" | "reopen";
 
 function isReviewable(status: ApiProposal["status"]): boolean {
   return status === "needs_review" || status === "failed";
@@ -204,6 +224,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
   const [toEndpoint, setToEndpoint] = useState<ReviewerEndpointBody | null>(null);
   const [fields, setFields] = useState<TransitionFieldValues>(emptyTransitionFields());
   const [bidirectional, setBidirectional] = useState(false);
+  const [pendingAction, setPendingAction] = useState<ReviewAction | null>(null);
   const [loading, startLoad] = useTransition();
   const [acting, startAct] = useTransition();
 
@@ -276,9 +297,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
     [siblings],
   );
   const queueIndex = reviewQueue.findIndex((item) => item.id === proposalId);
-  const prevProposal = queueIndex > 0 ? reviewQueue[queueIndex - 1] : null;
-  const nextProposal =
-    queueIndex >= 0 && queueIndex < reviewQueue.length - 1 ? reviewQueue[queueIndex + 1] : null;
+  const nextInQueue = reviewQueue.find((item) => item.id !== proposalId) ?? null;
 
   const readOnly = proposal ? isReadOnly(proposal.status) : false;
   const canApprove = proposal ? isReviewable(proposal.status) : false;
@@ -307,11 +326,21 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
   }
 
   function handleConflict(err: unknown) {
+    setPendingAction(null);
     if (err instanceof ApiClientError && err.status === 409) {
       setConflictMessage(err.message || "This proposal changed elsewhere. Reload to continue.");
       return;
     }
     setActionError(err instanceof ApiClientError ? err.message : "Action failed.");
+  }
+
+  /** Reviewing is a queue: once an item is decided, land on the next one that needs a human. */
+  function advanceAfterDecision() {
+    invalidateLibraryCache();
+    router.push(
+      nextInQueue ? `/library/submissions/${noteId}/proposals/${nextInQueue.id}` : submissionHref,
+    );
+    router.refresh();
   }
 
   function onApprove() {
@@ -322,42 +351,33 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
       return;
     }
 
+    setPendingAction("approve");
     startAct(async () => {
       try {
-        const response = await approveProposal(proposal.id, {
+        await approveProposal(proposal.id, {
           expectedUpdatedAt: proposal.updatedAt,
           from: fromEndpoint,
           to: toEndpoint,
           bidirectional,
           transition: parsed.patch,
         });
-        invalidateLibraryCache();
-        const transitionId = response.transition?.id ?? transitionIdFromProposal(response.proposal);
-        if (transitionId) {
-          router.push(`/library/transitions/${transitionId}`);
-          router.refresh();
-          return;
-        }
-        await reloadDetail();
         setActionError(null);
+        advanceAfterDecision();
       } catch (err) {
         handleConflict(err);
       }
     });
   }
 
+  // No confirm dialog: rejecting writes nothing to the library and is undone with "Reopen".
   function onReject() {
     if (!proposal) return;
-    const confirmed = window.confirm(
-      "Reject this proposal? The submission text stays unchanged and nothing will be committed.",
-    );
-    if (!confirmed) return;
-
+    setPendingAction("reject");
     startAct(async () => {
       try {
         await rejectProposal(proposal.id, { expectedUpdatedAt: proposal.updatedAt });
-        await reloadDetail();
         setActionError(null);
+        advanceAfterDecision();
       } catch (err) {
         handleConflict(err);
       }
@@ -366,17 +386,21 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
 
   function onResolve() {
     if (!proposal) return;
+    setPendingAction("resolve");
     startAct(async () => {
       try {
         const response = await resolveProposal(proposal.id);
         invalidateLibraryCache();
-        const transitionId = response.transition?.id ?? transitionIdFromProposal(response.proposal);
-        if (transitionId) {
-          router.push(`/library/transitions/${transitionId}`);
-          router.refresh();
+        const committed = response.transition?.id ?? transitionIdFromProposal(response.proposal);
+        if (committed) {
+          advanceAfterDecision();
           return;
         }
         await reloadDetail();
+        setPendingAction(null);
+        setActionError(
+          "The automatic matcher still isn’t confident. Pick both tracks below and approve.",
+        );
       } catch (err) {
         handleConflict(err);
       }
@@ -385,10 +409,12 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
 
   function onReopen() {
     if (!proposal) return;
+    setPendingAction("reopen");
     startAct(async () => {
       try {
         await reopenProposal(proposal.id, { expectedUpdatedAt: proposal.updatedAt });
         await reloadDetail();
+        setPendingAction(null);
       } catch (err) {
         handleConflict(err);
       }
@@ -416,84 +442,70 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
   const fromMention = findMention(proposal, fromMentionId);
   const toMention = findMention(proposal, toMentionId);
 
+  const queueLabel =
+    reviewQueue.length > 1 && queueIndex >= 0
+      ? `${queueIndex + 1} of ${reviewQueue.length} needing review`
+      : null;
+  const missingEndpoints = !fromEndpoint || !toEndpoint;
+  const statusNotice = readOnlyNotice(proposal.status);
+
   return (
-    <div className="space-y-10">
-      <header className="border-border space-y-4 border-b pb-6">
-        <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">
-          <Link href={submissionHref} className="hover:text-foreground transition-colors">
-            Submission
-          </Link>
-          {" / "}
-          Proposal
-        </p>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0 space-y-2">
-            <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">Proposal</p>
-            <div className="flex flex-wrap items-center gap-2">
-              <ProposalStatusBadge status={proposal.status} />
-              {reviewQueue.length > 1 && queueIndex >= 0 ? (
-                <span className="text-muted-foreground text-sm">
-                  Needs review {queueIndex + 1} of {reviewQueue.length}
-                </span>
-              ) : null}
-            </div>
-            <h1 className="text-3xl font-semibold tracking-tight text-balance">
-              {titleFromProposal(proposal)}
-            </h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {prevProposal ? (
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/library/submissions/${noteId}/proposals/${prevProposal.id}`}>
-                  Previous
-                </Link>
-              </Button>
-            ) : null}
-            {nextProposal ? (
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/library/submissions/${noteId}/proposals/${nextProposal.id}`}>
-                  Next
-                </Link>
-              </Button>
-            ) : null}
-            {canApprove ? (
-              <Button type="button" disabled={approveDisabled} onClick={onApprove}>
-                {acting ? "Saving…" : "Approve"}
-              </Button>
-            ) : null}
-            {canReject ? (
-              <Button type="button" variant="outline" disabled={acting} onClick={onReject}>
-                Reject
-              </Button>
-            ) : null}
-            {canResolve ? (
-              <Button type="button" variant="outline" disabled={acting} onClick={onResolve}>
-                Resolve
-              </Button>
-            ) : null}
-            {canReopen ? (
-              <Button type="button" variant="outline" disabled={acting} onClick={onReopen}>
-                Reopen
-              </Button>
-            ) : null}
-            {proposal.status === "committed" && committedTransitionId ? (
-              <Button asChild variant="outline">
-                <Link href={`/library/transitions/${committedTransitionId}`}>Open transition</Link>
-              </Button>
+    <div className="space-y-8">
+      <header className="space-y-5">
+        <Link
+          href={submissionHref}
+          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
+        >
+          <ArrowLeftIcon className="size-4" aria-hidden />
+          Submission
+        </Link>
+
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <ProposalStatusBadge status={proposal.status} />
+            {queueLabel ? (
+              <span className="text-muted-foreground text-sm">{queueLabel}</span>
             ) : null}
           </div>
+          <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
+            {titleFromProposal(proposal, fromMention, toMention)}
+          </h1>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          {canApprove ? (
+            <Button type="button" size="sm" disabled={approveDisabled} onClick={onApprove}>
+              {pendingAction === "approve" ? "Approving…" : "Approve & commit"}
+            </Button>
+          ) : null}
+          {canReject ? (
+            <Button type="button" size="sm" variant="outline" disabled={acting} onClick={onReject}>
+              {pendingAction === "reject" ? "Rejecting…" : "Reject"}
+            </Button>
+          ) : null}
+          {canResolve ? (
+            <Button type="button" size="sm" variant="ghost" disabled={acting} onClick={onResolve}>
+              {pendingAction === "resolve" ? "Retrying…" : "Retry auto-match"}
+            </Button>
+          ) : null}
+          {canReopen ? (
+            <Button type="button" size="sm" variant="outline" disabled={acting} onClick={onReopen}>
+              {pendingAction === "reopen" ? "Reopening…" : "Reopen for review"}
+            </Button>
+          ) : null}
+          {proposal.status === "committed" && committedTransitionId ? (
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/library/transitions/${committedTransitionId}`}>Open transition</Link>
+            </Button>
+          ) : null}
+          {canApprove && missingEndpoints ? (
+            <p className="text-muted-foreground text-xs">Pick a track on both sides to approve.</p>
+          ) : null}
         </div>
       </header>
 
-      {proposal.status === "superseded" ? (
-        <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm">
-          This proposal was superseded by a newer extraction. Open the submission to review the
-          current version.
-        </p>
-      ) : null}
-
       {conflictMessage ? (
-        <div className="border-border bg-muted/40 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm">
+        <div className="border-border bg-muted/40 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm">
           <span>{conflictMessage}</span>
           <Button type="button" size="sm" variant="outline" onClick={() => void reloadDetail()}>
             Reload
@@ -502,36 +514,49 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
       ) : null}
 
       {actionError ? (
-        <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm" role="alert">
+        <p
+          className="border-destructive/40 bg-destructive/5 rounded-lg border px-4 py-3 text-sm"
+          role="alert"
+        >
           {actionError}
         </p>
       ) : null}
 
-      {readOnly ? (
-        <p className="text-muted-foreground text-sm">
-          {proposal.status === "committed"
-            ? "This proposal is committed. Transition details are read-only."
-            : proposal.status === "rejected"
-              ? "This proposal was rejected."
-              : "This proposal is read-only."}
+      {statusNotice ? (
+        <p className="border-border bg-muted/40 text-muted-foreground rounded-lg border px-4 py-3 text-sm">
+          {statusNotice}
         </p>
       ) : null}
 
-      {gateLines.length > 0 ? (
-        <section className="space-y-2">
+      {proposal.status === "failed" ? (
+        <div className="border-destructive/40 bg-destructive/5 space-y-1 rounded-lg border px-4 py-3">
+          <p className="text-sm font-medium">Extraction failed for this span</p>
+          <p className="text-muted-foreground text-sm">
+            {proposal.error ?? "No error detail was recorded."} You can still fill it in by hand
+            below.
+          </p>
+        </div>
+      ) : null}
+
+      {gateLines.length > 0 && !readOnly ? (
+        <section className="border-border bg-muted/30 space-y-2 rounded-lg border px-4 py-3">
           <h2 className="text-sm font-medium">Why this needs review</h2>
-          <ul className="border-border divide-border divide-y overflow-hidden rounded-lg border">
+          <ul className="text-muted-foreground space-y-1 text-sm">
             {gateLines.map((line, index) => (
-              <li key={`${line}-${index}`} className="px-3 py-2 text-sm">
-                {line}
+              <li key={`${line}-${index}`} className="flex gap-2">
+                <span aria-hidden>—</span>
+                <span>{line}</span>
               </li>
             ))}
           </ul>
         </section>
       ) : null}
 
-      <section className="space-y-2">
-        <h2 className="text-sm font-medium">Source</h2>
+      <section className="space-y-3">
+        <SectionHeading
+          title="Source"
+          hint="The highlighted span is what this proposal came from. Dimmed spans are other proposals in this submission."
+        />
         <ProposalSourceSpan
           rawText={note.rawText}
           sourceStart={proposal.sourceStart}
@@ -541,25 +566,36 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
         />
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <ProposalEndpointPicker
-          label="From"
-          mention={fromMention}
-          value={fromEndpoint}
-          onChange={setFromEndpoint}
-          disabled={readOnly || acting}
+      <section className="space-y-3">
+        <SectionHeading
+          title="Tracks"
+          hint={readOnly ? undefined : "Confirm which track each side of the transition refers to."}
         />
-        <ProposalEndpointPicker
-          label="To"
-          mention={toMention}
-          value={toEndpoint}
-          onChange={setToEndpoint}
-          disabled={readOnly || acting}
-        />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ProposalEndpointPicker
+            label="From"
+            mention={fromMention}
+            value={fromEndpoint}
+            onChange={setFromEndpoint}
+            disabled={readOnly || acting}
+            readOnly={readOnly}
+          />
+          <ProposalEndpointPicker
+            label="To"
+            mention={toMention}
+            value={toEndpoint}
+            onChange={setToEndpoint}
+            disabled={readOnly || acting}
+            readOnly={readOnly}
+          />
+        </div>
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-medium">Transition fields</h2>
+        <SectionHeading
+          title="Transition details"
+          hint={readOnly ? undefined : "Everything here is optional."}
+        />
         <TransitionFields
           idPrefix={fieldId}
           values={fields}
@@ -576,38 +612,76 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
             onChange={(event) => setBidirectional(event.target.checked)}
           />
           <Label htmlFor={`${fieldId}-bidirectional`} className="font-normal">
-            Bidirectional
+            Works in both directions
           </Label>
         </div>
       </section>
 
-      <Separator />
+      {siblings.length > 1 ? (
+        <>
+          <Separator />
+          <ProposalSiblings noteId={noteId} siblings={siblings} currentProposalId={proposalId} />
+        </>
+      ) : null}
 
-      <ProposalSiblings noteId={noteId} siblings={siblings} currentProposalId={proposalId} />
-
-      <details className="border-border rounded-lg border px-3 py-2">
-        <summary className="cursor-pointer text-sm font-medium">Audit</summary>
-        <div className="text-muted-foreground mt-3 space-y-2 font-mono text-xs break-all">
-          <p>proposal id: {proposal.id}</p>
-          <p>proposal key: {proposal.proposalKey}</p>
-          <p>fingerprint: {proposal.sourceFingerprint}</p>
-          <p>attempts: {proposal.attemptCount}</p>
-          <p>model: {proposal.model ?? "—"}</p>
-          <p>prompt: {proposal.promptVersion ?? "—"}</p>
-          <p>created: {proposal.createdAt}</p>
-          <p>updated: {proposal.updatedAt}</p>
+      <details className="border-border rounded-lg border px-4 py-3">
+        <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm transition-colors">
+          Extraction details
+        </summary>
+        <dl className="text-muted-foreground mt-4 grid gap-x-6 gap-y-2 font-mono text-xs break-all sm:grid-cols-[10rem_minmax(0,1fr)]">
+          <AuditRow label="proposal id" value={proposal.id} />
+          <AuditRow label="proposal key" value={proposal.proposalKey} />
+          <AuditRow label="fingerprint" value={proposal.sourceFingerprint} />
+          <AuditRow label="attempts" value={String(proposal.attemptCount)} />
+          <AuditRow label="model" value={proposal.model ?? "—"} />
+          <AuditRow label="prompt" value={proposal.promptVersion ?? "—"} />
+          <AuditRow label="created" value={proposal.createdAt} />
+          <AuditRow label="updated" value={proposal.updatedAt} />
           {detail?.commit ? (
             <>
-              <p>commit id: {detail.commit.id}</p>
-              <p>commit status: {detail.commit.status}</p>
-              {detail.commit.error ? <p>commit error: {detail.commit.error}</p> : null}
+              <AuditRow label="commit id" value={detail.commit.id} />
+              <AuditRow label="commit status" value={detail.commit.status} />
+              {detail.commit.error ? (
+                <AuditRow label="commit error" value={detail.commit.error} />
+              ) : null}
             </>
           ) : null}
-          <pre className="bg-muted/30 overflow-x-auto rounded-md p-2 whitespace-pre-wrap">
-            {JSON.stringify(proposal.raw, null, 2)}
-          </pre>
-        </div>
+        </dl>
+        <pre className="bg-muted/30 text-muted-foreground mt-4 overflow-x-auto rounded-md p-3 font-mono text-xs whitespace-pre-wrap">
+          {JSON.stringify(proposal.raw, null, 2)}
+        </pre>
       </details>
     </div>
   );
+}
+
+function SectionHeading({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <div className="space-y-1">
+      <h2 className="text-sm font-medium">{title}</h2>
+      {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+    </div>
+  );
+}
+
+function AuditRow({ label, value }: { label: string; value: string }) {
+  return (
+    <>
+      <dt>{label}</dt>
+      <dd className="text-foreground/80">{value}</dd>
+    </>
+  );
+}
+
+function readOnlyNotice(status: ApiProposal["status"]): string | null {
+  switch (status) {
+    case "committed":
+      return "Committed to the library. Edit the transition itself to make further changes.";
+    case "rejected":
+      return "Rejected — nothing was written to the library. Reopen it to review again.";
+    case "superseded":
+      return "A newer extraction replaced this proposal. Open the submission to review the current version.";
+    default:
+      return null;
+  }
 }
