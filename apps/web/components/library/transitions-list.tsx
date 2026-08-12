@@ -203,6 +203,7 @@ export function TransitionsList() {
                 setTechnique("");
                 setIntent("");
                 setSource("");
+                setNeedsReviewOnly(false);
               }}
             >
               <XIcon />

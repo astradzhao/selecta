@@ -164,7 +164,7 @@ export function SubmissionsList() {
   return (
     <div className="space-y-6">
       <section aria-label="Submission filters" className="space-y-3">
-        <div className="grid items-end gap-4 md:grid-cols-[minmax(0,2fr)_minmax(10rem,1fr)_auto]">
+        <div className="grid items-end gap-4 md:grid-cols-[minmax(0,2fr)_minmax(10rem,1fr)]">
           <div className="space-y-2">
             <Label htmlFor="submissions-q">Search</Label>
             <div className="relative">
@@ -193,7 +193,10 @@ export function SubmissionsList() {
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-2 pb-1">
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
             <input
               id="filter-needs-review"
               type="checkbox"
@@ -202,9 +205,24 @@ export function SubmissionsList() {
               onChange={(event) => setNeedsReviewOnly(event.target.checked)}
             />
             <Label htmlFor="filter-needs-review" className="font-normal">
-              Needs review
+              Needs review only
             </Label>
           </div>
+          {hasFilters ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setQuery("");
+                setStatus("");
+                setNeedsReviewOnly(false);
+              }}
+            >
+              <XIcon />
+              Clear filters
+            </Button>
+          ) : null}
         </div>
 
         <div className="flex min-h-7 items-center justify-between gap-4">
@@ -217,29 +235,12 @@ export function SubmissionsList() {
                     submissions.length === 1 ? "submission" : "submissions"
                   }`}
           </p>
-          <div className="flex items-center gap-2">
-            {hasFilters ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setQuery("");
-                  setStatus("");
-                  setNeedsReviewOnly(false);
-                }}
-              >
-                <XIcon />
-                Clear filters
-              </Button>
-            ) : null}
-            <Button asChild size="sm" variant="outline">
-              <Link href="/add?mode=transition">
-                <PlusIcon />
-                New submission
-              </Link>
-            </Button>
-          </div>
+          <Button asChild size="sm" variant="outline">
+            <Link href="/add?mode=transition">
+              <PlusIcon />
+              New submission
+            </Link>
+          </Button>
         </div>
       </section>
 
