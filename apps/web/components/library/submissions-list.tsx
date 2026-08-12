@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { PlusIcon, SearchIcon, XIcon } from "lucide-react";
 
 import { Badge } from "@selecta/ui/components/badge";
@@ -21,6 +22,7 @@ const STATUS_OPTIONS: Array<{ value: "" | NoteExtractionStatus; label: string }>
   { value: "committed", label: "Committed" },
   { value: "extracting", label: "Processing" },
   { value: "failed", label: "Failed" },
+  { value: "dismissed", label: "Dismissed" },
   { value: "commit_failed", label: "Commit failed" },
 ];
 
@@ -58,6 +60,8 @@ function statusLabel(status: NoteExtractionStatus): string {
       return "Commit failed";
     case "failed":
       return "Failed";
+    case "dismissed":
+      return "Dismissed";
     case "idle":
     default:
       return "Idle";
@@ -76,9 +80,11 @@ function statusVariant(
 }
 
 export function SubmissionsList() {
+  const searchParams = useSearchParams();
+  const initialNeedsReview = searchParams.get("needsReview") === "1";
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"" | NoteExtractionStatus>("");
-  const [needsReviewOnly, setNeedsReviewOnly] = useState(false);
+  const [needsReviewOnly, setNeedsReviewOnly] = useState(initialNeedsReview);
   const [submissions, setSubmissions] = useState<ApiNote[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -274,6 +280,11 @@ export function SubmissionsList() {
                             {counts.needsReview > 0 ? ` · ${counts.needsReview} need review` : null}
                             {counts.failed > 0 ? ` · ${counts.failed} failed` : null}
                           </span>
+                        ) : null}
+                        {(counts?.needsReview ?? 0) > 0 ? (
+                          <Badge variant="destructive" className="text-xs">
+                            Review {counts!.needsReview}
+                          </Badge>
                         ) : null}
                         <span className="text-muted-foreground text-xs">
                           {formatTimestamp(submission.createdAt)}

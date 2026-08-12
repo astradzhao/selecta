@@ -594,6 +594,20 @@ export async function deleteTransitionById(id: string): Promise<{ id: string; de
   return { id: deletedId, deleted: true };
 }
 
+/** Count committed edges from A→B (one direction). */
+export async function countTransitionsBetween(
+  fromTrackId: string,
+  toTrackId: string,
+): Promise<number> {
+  const fromId = requireTrimmed(fromTrackId, "fromTrackId");
+  const toId = requireTrimmed(toTrackId, "toTrackId");
+  const [row] = await getExecutor()
+    .select({ count: sql<number>`count(*)::int` })
+    .from(transitions)
+    .where(and(eq(transitions.fromTrackId, fromId), eq(transitions.toTrackId, toId)));
+  return Number(row?.count) || 0;
+}
+
 /**
  * Idempotently insert a transition keyed by `proposalKey`.
  * Replay returns the existing edge without updating properties.

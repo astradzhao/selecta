@@ -9,7 +9,8 @@ export type NoteExtractionStatus =
   | "committed"
   | "partially_committed"
   | "commit_failed"
-  | "failed";
+  | "failed"
+  | "dismissed";
 
 export type ApiNoteTrackLink = {
   id: string;
