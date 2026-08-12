@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { cn } from "@selecta/ui/lib/utils";
@@ -8,6 +9,7 @@ import { cn } from "@selecta/ui/lib/utils";
 import { LibraryList } from "@/components/tracks/library-list";
 import { SubmissionsList } from "@/components/library/submissions-list";
 import { TransitionsList } from "@/components/library/transitions-list";
+import { listProposals } from "@/lib/proposals/api";
 import { type LibraryView } from "@/lib/library/view";
 
 const VIEWS: Array<{ id: LibraryView; label: string; description: string }> = [
@@ -31,6 +33,26 @@ const VIEWS: Array<{ id: LibraryView; label: string; description: string }> = [
 export function LibraryWorkspace({ view }: { view: LibraryView }) {
   const router = useRouter();
   const active = VIEWS.find((item) => item.id === view) ?? VIEWS[0]!;
+  const [needsReviewCount, setNeedsReviewCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await listProposals({
+          status: "needs_review,failed",
+          limit: 50,
+        });
+        if (cancelled) return;
+        setNeedsReviewCount(response.proposals.length);
+      } catch {
+        if (!cancelled) setNeedsReviewCount(0);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function setView(next: LibraryView) {
     const href = next === "tracks" ? "/library" : `/library?view=${next}`;
@@ -41,7 +63,17 @@ export function LibraryWorkspace({ view }: { view: LibraryView }) {
     <div className="space-y-10">
       <header className="border-border space-y-4 border-b pb-6">
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight">Library</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-semibold tracking-tight">Library</h1>
+            {needsReviewCount > 0 ? (
+              <Link
+                href="/library?view=submissions&needsReview=1"
+                className="text-destructive text-sm font-medium underline-offset-4 hover:underline"
+              >
+                {needsReviewCount} need review
+              </Link>
+            ) : null}
+          </div>
           <p className="text-muted-foreground max-w-xl text-sm">{active.description}</p>
         </div>
         <nav aria-label="Library views" className="flex flex-wrap gap-1">
@@ -73,7 +105,11 @@ export function LibraryWorkspace({ view }: { view: LibraryView }) {
 
       {view === "tracks" ? <LibraryList embedded /> : null}
       {view === "transitions" ? <TransitionsList /> : null}
-      {view === "submissions" ? <SubmissionsList /> : null}
+      {view === "submissions" ? (
+        <Suspense fallback={<p className="text-muted-foreground text-sm">Loading submissions…</p>}>
+          <SubmissionsList />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

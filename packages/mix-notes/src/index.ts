@@ -85,6 +85,12 @@ export {
   type ApplyProposalPolicyResult,
 } from "./agent/apply-proposal-policy";
 export {
+  buildReviewerPolicyResult,
+  assertReviewerEndpoint,
+  type ReviewerEndpoint,
+  type BuildReviewerPolicyResultInput,
+} from "./agent/reviewer-policy";
+export {
   resolveNoteMentions,
   type ResolveMentionsInput,
   type ResolveMentionsResult,

@@ -9,6 +9,7 @@ import { Textarea } from "@selecta/ui/components/textarea";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { NoteTrackLinks } from "@/components/notes/note-track-links";
+import { SubmissionProposals } from "@/components/library/submission-proposals";
 import { ApiClientError } from "@/lib/api/client";
 import {
   extractNote,
@@ -46,6 +47,8 @@ function extractionStatusLabel(status: NoteExtractionStatus): string {
       return "Commit failed";
     case "failed":
       return "Processing failed";
+    case "dismissed":
+      return "Dismissed";
     case "idle":
     default:
       return "Not processed yet";
@@ -406,7 +409,7 @@ function ProposalCard({ proposal, index }: { proposal: ExtractionProposalSummary
   );
 }
 
-function ExtractionDebug({ note }: { note: ApiNote }) {
+function ExtractionDebug({ note, readOnly = false }: { note: ApiNote; readOnly?: boolean }) {
   const proposals = proposalsFromNote(note);
   const summary = applySummaryFromNote(note);
 
@@ -435,7 +438,7 @@ function ExtractionDebug({ note }: { note: ApiNote }) {
         )}
       </div>
 
-      {proposals.length > 0 ? (
+      {!readOnly && proposals.length > 0 ? (
         <div className="space-y-3">
           <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
             Proposals ({proposals.length})
@@ -669,7 +672,8 @@ export function NoteDetail({ noteId, readOnly = false }: { noteId: string; readO
       )}
 
       <div className="space-y-3">
-        <ExtractionDebug note={note} />
+        <ExtractionDebug note={note} readOnly={readOnly} />
+        {readOnly ? <SubmissionProposals noteId={note.id} rawText={note.rawText} /> : null}
         {retryError ? (
           <p className="text-sm" role="alert">
             {retryError}

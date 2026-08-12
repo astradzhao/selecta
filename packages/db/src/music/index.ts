@@ -78,6 +78,7 @@ export {
   deleteTransitionById,
   commitTransitionProposal,
   commitTransitionProposals,
+  countTransitionsBetween,
   type TransitionEndpointSummary,
   type TransitionRecord,
   type TransitionProposalReview,

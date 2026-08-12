@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { PlusIcon, SearchIcon, XIcon } from "lucide-react";
 
 import { Badge } from "@selecta/ui/components/badge";
@@ -21,6 +22,7 @@ const STATUS_OPTIONS: Array<{ value: "" | NoteExtractionStatus; label: string }>
   { value: "committed", label: "Committed" },
   { value: "extracting", label: "Processing" },
   { value: "failed", label: "Failed" },
+  { value: "dismissed", label: "Dismissed" },
   { value: "commit_failed", label: "Commit failed" },
 ];
 
@@ -58,6 +60,8 @@ function statusLabel(status: NoteExtractionStatus): string {
       return "Commit failed";
     case "failed":
       return "Failed";
+    case "dismissed":
+      return "Dismissed";
     case "idle":
     default:
       return "Idle";
@@ -76,9 +80,11 @@ function statusVariant(
 }
 
 export function SubmissionsList() {
+  const searchParams = useSearchParams();
+  const initialNeedsReview = searchParams.get("needsReview") === "1";
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"" | NoteExtractionStatus>("");
-  const [needsReviewOnly, setNeedsReviewOnly] = useState(false);
+  const [needsReviewOnly, setNeedsReviewOnly] = useState(initialNeedsReview);
   const [submissions, setSubmissions] = useState<ApiNote[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -158,7 +164,7 @@ export function SubmissionsList() {
   return (
     <div className="space-y-6">
       <section aria-label="Submission filters" className="space-y-3">
-        <div className="grid items-end gap-4 md:grid-cols-[minmax(0,2fr)_minmax(10rem,1fr)_auto]">
+        <div className="grid items-end gap-4 md:grid-cols-[minmax(0,2fr)_minmax(10rem,1fr)]">
           <div className="space-y-2">
             <Label htmlFor="submissions-q">Search</Label>
             <div className="relative">
@@ -187,7 +193,10 @@ export function SubmissionsList() {
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-2 pb-1">
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
             <input
               id="filter-needs-review"
               type="checkbox"
@@ -196,9 +205,24 @@ export function SubmissionsList() {
               onChange={(event) => setNeedsReviewOnly(event.target.checked)}
             />
             <Label htmlFor="filter-needs-review" className="font-normal">
-              Needs review
+              Needs review only
             </Label>
           </div>
+          {hasFilters ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setQuery("");
+                setStatus("");
+                setNeedsReviewOnly(false);
+              }}
+            >
+              <XIcon />
+              Clear filters
+            </Button>
+          ) : null}
         </div>
 
         <div className="flex min-h-7 items-center justify-between gap-4">
@@ -211,29 +235,12 @@ export function SubmissionsList() {
                     submissions.length === 1 ? "submission" : "submissions"
                   }`}
           </p>
-          <div className="flex items-center gap-2">
-            {hasFilters ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setQuery("");
-                  setStatus("");
-                  setNeedsReviewOnly(false);
-                }}
-              >
-                <XIcon />
-                Clear filters
-              </Button>
-            ) : null}
-            <Button asChild size="sm" variant="outline">
-              <Link href="/add?mode=transition">
-                <PlusIcon />
-                New submission
-              </Link>
-            </Button>
-          </div>
+          <Button asChild size="sm" variant="outline">
+            <Link href="/add?mode=transition">
+              <PlusIcon />
+              New submission
+            </Link>
+          </Button>
         </div>
       </section>
 
@@ -274,6 +281,11 @@ export function SubmissionsList() {
                             {counts.needsReview > 0 ? ` · ${counts.needsReview} need review` : null}
                             {counts.failed > 0 ? ` · ${counts.failed} failed` : null}
                           </span>
+                        ) : null}
+                        {(counts?.needsReview ?? 0) > 0 ? (
+                          <Badge variant="destructive" className="text-xs">
+                            Review {counts!.needsReview}
+                          </Badge>
                         ) : null}
                         <span className="text-muted-foreground text-xs">
                           {formatTimestamp(submission.createdAt)}

@@ -27,6 +27,7 @@ export const noteExtractionStatusEnum = pgEnum("note_extraction_status", [
   "partially_committed",
   "commit_failed",
   "failed",
+  "dismissed",
 ]);
 
 export const noteAgentRunStatusEnum = pgEnum("note_agent_run_status", [
@@ -57,6 +58,15 @@ export const noteProposalStatusEnum = pgEnum("note_proposal_status", [
   "failed",
   "rejected",
   "superseded",
+]);
+
+export const proposalReviewActionEnum = pgEnum("proposal_review_action", [
+  "approve",
+  "reject",
+  "edit",
+  "resolve",
+  "reparse",
+  "reopen",
 ]);
 
 /**
@@ -203,6 +213,11 @@ export const noteProposals = pgTable(
     /** Child parse retry counter (source of truth for retry bounds). */
     attemptCount: integer("attempt_count").notNull().default(0),
     error: text("error"),
+    /** Reviewer's in-progress endpoint/field selections (park without committing). */
+    reviewState: jsonb("review_state").$type<Record<string, unknown>>(),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    reviewedBy: text("reviewed_by"),
+    reviewNote: text("review_note"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -216,8 +231,24 @@ export const noteProposals = pgTable(
       table.extractionVersion,
       table.sourceFingerprint,
     ),
+    index("note_proposals_status_updated_idx").on(table.status, table.updatedAt),
+    index("note_proposals_fingerprint_idx").on(table.sourceFingerprint),
   ],
 );
+
+/** Audit trail for manual proposal review actions (reject, edit, reopen, etc.). */
+export const proposalReviewEvents = pgTable("proposal_review_events", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  proposalId: text("proposal_id")
+    .notNull()
+    .references(() => noteProposals.id, { onDelete: "cascade" }),
+  action: proposalReviewActionEnum("action").notNull(),
+  actor: text("actor"),
+  payload: jsonb("payload").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 /** Idempotent audit of transition commits keyed by proposalKey. */
 export const noteTransitionCommits = pgTable(
@@ -638,6 +669,9 @@ export type NoteProposalStatus = (typeof noteProposalStatusEnum.enumValues)[numb
 export type NoteTransitionCommit = typeof noteTransitionCommits.$inferSelect;
 export type NewNoteTransitionCommit = typeof noteTransitionCommits.$inferInsert;
 export type NoteTransitionCommitStatus = (typeof noteTransitionCommitStatusEnum.enumValues)[number];
+export type ProposalReviewEvent = typeof proposalReviewEvents.$inferSelect;
+export type NewProposalReviewEvent = typeof proposalReviewEvents.$inferInsert;
+export type ProposalReviewAction = (typeof proposalReviewActionEnum.enumValues)[number];
 
 export type FolderKind = (typeof folderKindEnum.enumValues)[number];
 export type Track = typeof tracks.$inferSelect;

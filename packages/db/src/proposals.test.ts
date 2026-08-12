@@ -34,4 +34,15 @@ describe("deriveSubmissionExtractionStatus", () => {
   it("marks no_proposal when nothing was produced", () => {
     assert.equal(deriveSubmissionExtractionStatus(counts({ total: 0 })), "no_proposal");
   });
+
+  it("marks dismissed when every decided proposal was rejected", () => {
+    assert.equal(deriveSubmissionExtractionStatus(counts({ total: 2, rejected: 2 })), "dismissed");
+  });
+
+  it("does not mark dismissed when siblings still need review", () => {
+    assert.equal(
+      deriveSubmissionExtractionStatus(counts({ total: 2, rejected: 1, needs_review: 1 })),
+      "needs_review",
+    );
+  });
 });
