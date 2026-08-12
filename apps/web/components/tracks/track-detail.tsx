@@ -81,8 +81,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
   const [editing, setEditing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [loading, startLoad] = useTransition();
   const [saving, startSave] = useTransition();
   const [deleting, startDelete] = useTransition();
@@ -130,14 +129,13 @@ export function TrackDetail({ trackId }: { trackId: string }) {
   function onFieldChange(field: keyof FormState, value: string) {
     setForm((current) => (current ? { ...current, [field]: value } : current));
     setSaveError(null);
-    setSaveMessage(null);
   }
 
   function startEditing() {
     if (!track) return;
     setForm(formFromTrack(track));
     setSaveError(null);
-    setSaveMessage(null);
+    setActionError(null);
     setEditing(true);
   }
 
@@ -145,7 +143,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
     if (!track) return;
     setForm(formFromTrack(track));
     setSaveError(null);
-    setSaveMessage(null);
+    setActionError(null);
     setEditing(false);
   }
 
@@ -159,7 +157,6 @@ export function TrackDetail({ trackId }: { trackId: string }) {
       .filter(Boolean);
     if (!form.title.trim() || artists.length === 0) {
       setSaveError("Title and at least one artist are required.");
-      setSaveMessage(null);
       return;
     }
 
@@ -168,7 +165,6 @@ export function TrackDetail({ trackId }: { trackId: string }) {
     const durationSec = optionalNumber(form.durationSec);
     if ([bpm, energy, durationSec].some((value) => Number.isNaN(value))) {
       setSaveError("BPM, energy, and duration must be numbers when set.");
-      setSaveMessage(null);
       return;
     }
 
@@ -193,10 +189,8 @@ export function TrackDetail({ trackId }: { trackId: string }) {
         setForm(formFromTrack(response.track));
         invalidateLibraryCache();
         setSaveError(null);
-        setSaveMessage("Saved.");
         setEditing(false);
       } catch (err) {
-        setSaveMessage(null);
         setSaveError(err instanceof ApiClientError ? err.message : "Failed to save track.");
       }
     });
@@ -217,25 +211,184 @@ export function TrackDetail({ trackId }: { trackId: string }) {
         router.push("/library");
         router.refresh();
       } catch (err) {
-        setDeleteError(err instanceof ApiClientError ? err.message : "Failed to delete track.");
+        setActionError(err instanceof ApiClientError ? err.message : "Failed to delete track.");
       }
     });
+  }
+
+  if (editing) {
+    return (
+      <div className="space-y-8">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">Edit track</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-balance">{track.title}</h1>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={saving}
+            onClick={cancelEditing}
+          >
+            Cancel
+          </Button>
+        </div>
+
+        <form onSubmit={onSubmit} className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="track-title">Title</Label>
+              <Input
+                id="track-title"
+                value={form.title}
+                onChange={(event) => onFieldChange("title", event.target.value)}
+                disabled={saving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="track-artists">Artists</Label>
+              <Input
+                id="track-artists"
+                value={form.artistsText}
+                onChange={(event) => onFieldChange("artistsText", event.target.value)}
+                placeholder="Comma-separated"
+                disabled={saving}
+              />
+            </div>
+          </div>
+
+          <TagEditor
+            id="track-subgenres"
+            label="Subgenres"
+            hint="Your DJ mixing labels (UKG, melodic house, afro house…) — not Spotify’s broad genres."
+            placeholder="Add subgenre, then Enter — or pick one below"
+            values={form.subgenres}
+            onChange={(subgenres) => {
+              setForm((current) => (current ? { ...current, subgenres } : current));
+              setSaveError(null);
+            }}
+            vocab="subgenres"
+          />
+
+          <FolderTagEditor
+            values={form.folders}
+            onChange={(folders) => {
+              setForm((current) => (current ? { ...current, folders } : current));
+              setSaveError(null);
+            }}
+          />
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="track-bpm">BPM</Label>
+              <Input
+                id="track-bpm"
+                inputMode="decimal"
+                value={form.bpm}
+                onChange={(event) => onFieldChange("bpm", event.target.value)}
+                disabled={saving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="track-key">Key</Label>
+              <Input
+                id="track-key"
+                value={form.musicalKey}
+                onChange={(event) => onFieldChange("musicalKey", event.target.value)}
+                disabled={saving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="track-energy">Energy</Label>
+              <Input
+                id="track-energy"
+                inputMode="decimal"
+                value={form.energy}
+                onChange={(event) => onFieldChange("energy", event.target.value)}
+                disabled={saving}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="track-duration">Duration (sec)</Label>
+              <Input
+                id="track-duration"
+                inputMode="decimal"
+                value={form.durationSec}
+                onChange={(event) => onFieldChange("durationSec", event.target.value)}
+                disabled={saving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="track-release">Release date</Label>
+              <Input
+                id="track-release"
+                value={form.releaseDate}
+                onChange={(event) => onFieldChange("releaseDate", event.target.value)}
+                disabled={saving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="track-artwork">Artwork URL</Label>
+              <Input
+                id="track-artwork"
+                value={form.artworkUrl}
+                onChange={(event) => onFieldChange("artworkUrl", event.target.value)}
+                disabled={saving}
+              />
+            </div>
+          </div>
+
+          {saveError ? (
+            <p
+              className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm"
+              role="alert"
+            >
+              {saveError}
+            </p>
+          ) : null}
+
+          <div className="flex flex-wrap gap-3">
+            <Button type="submit" disabled={saving || deleting}>
+              {saving ? "Saving…" : "Save changes"}
+            </Button>
+            <Button type="button" variant="outline" disabled={saving} onClick={cancelEditing}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-10">
       <div className="flex items-start justify-between gap-4">
         <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">Track</p>
-        {!editing ? (
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <Button type="button" variant="outline" size="sm" onClick={startEditing}>
             Edit
           </Button>
-        ) : (
-          <Button type="button" variant="ghost" size="sm" disabled={saving} onClick={cancelEditing}>
-            Cancel
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            disabled={deleting}
+            onClick={onDelete}
+          >
+            {deleting ? "Deleting…" : "Delete"}
           </Button>
-        )}
+        </div>
       </div>
+
+      {actionError ? (
+        <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm" role="alert">
+          {actionError}
+        </p>
+      ) : null}
 
       <div className="flex flex-col gap-6 sm:flex-row">
         <div className="bg-muted relative h-48 w-48 shrink-0 overflow-hidden rounded-2xl">
@@ -327,174 +480,6 @@ export function TrackDetail({ trackId }: { trackId: string }) {
           </dd>
         </div>
       </dl>
-
-      {editing ? (
-        <form onSubmit={onSubmit} className="border-border space-y-6 border-t pt-8">
-          <div className="space-y-1">
-            <h2 className="font-medium">Edit track</h2>
-            <p className="text-muted-foreground text-sm">
-              Update title, artists, Subgenres, Folders/playlists, and DJ metadata. Catalog genres
-              stay read-only (they come from Spotify/import).
-            </p>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="track-title">Title</Label>
-              <Input
-                id="track-title"
-                value={form.title}
-                onChange={(event) => onFieldChange("title", event.target.value)}
-                disabled={saving}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="track-artists">Artists</Label>
-              <Input
-                id="track-artists"
-                value={form.artistsText}
-                onChange={(event) => onFieldChange("artistsText", event.target.value)}
-                placeholder="Comma-separated"
-                disabled={saving}
-              />
-            </div>
-          </div>
-
-          <TagEditor
-            id="track-subgenres"
-            label="Subgenres"
-            hint="Your DJ mixing labels (UKG, melodic house, afro house…) — not Spotify’s broad genres."
-            placeholder="Add subgenre, then Enter — or pick one below"
-            values={form.subgenres}
-            onChange={(subgenres) => {
-              setForm((current) => (current ? { ...current, subgenres } : current));
-              setSaveError(null);
-              setSaveMessage(null);
-            }}
-            vocab="subgenres"
-          />
-
-          <FolderTagEditor
-            values={form.folders}
-            onChange={(folders) => {
-              setForm((current) => (current ? { ...current, folders } : current));
-              setSaveError(null);
-              setSaveMessage(null);
-            }}
-          />
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="track-bpm">BPM</Label>
-              <Input
-                id="track-bpm"
-                inputMode="decimal"
-                value={form.bpm}
-                onChange={(event) => onFieldChange("bpm", event.target.value)}
-                disabled={saving}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="track-key">Key</Label>
-              <Input
-                id="track-key"
-                value={form.musicalKey}
-                onChange={(event) => onFieldChange("musicalKey", event.target.value)}
-                disabled={saving}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="track-energy">Energy</Label>
-              <Input
-                id="track-energy"
-                inputMode="decimal"
-                value={form.energy}
-                onChange={(event) => onFieldChange("energy", event.target.value)}
-                disabled={saving}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="track-duration">Duration (sec)</Label>
-              <Input
-                id="track-duration"
-                inputMode="decimal"
-                value={form.durationSec}
-                onChange={(event) => onFieldChange("durationSec", event.target.value)}
-                disabled={saving}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="track-release">Release date</Label>
-              <Input
-                id="track-release"
-                value={form.releaseDate}
-                onChange={(event) => onFieldChange("releaseDate", event.target.value)}
-                disabled={saving}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="track-artwork">Artwork URL</Label>
-              <Input
-                id="track-artwork"
-                value={form.artworkUrl}
-                onChange={(event) => onFieldChange("artworkUrl", event.target.value)}
-                disabled={saving}
-              />
-            </div>
-          </div>
-
-          {saveError ? (
-            <p
-              className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm"
-              role="alert"
-            >
-              {saveError}
-            </p>
-          ) : null}
-          {saveMessage ? (
-            <p className="text-muted-foreground text-sm" aria-live="polite">
-              {saveMessage}
-            </p>
-          ) : null}
-
-          <div className="flex flex-wrap gap-3">
-            <Button type="submit" disabled={saving || deleting}>
-              {saving ? "Saving…" : "Save changes"}
-            </Button>
-            <Button type="button" variant="outline" disabled={saving} onClick={cancelEditing}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      ) : null}
-
-      <section className="border-border space-y-3 border-t pt-8">
-        <h2 className="font-medium">Delete</h2>
-        <p className="text-muted-foreground max-w-xl text-sm">
-          Removes this track and its relationships from the library and graph. Source submissions
-          stay intact.
-          {track.hasOutboundTransitions || track.hasInboundTransitions
-            ? " Related inbound/outbound transitions will also be deleted."
-            : null}
-        </p>
-        {deleteError ? (
-          <p className="text-sm" role="alert">
-            {deleteError}
-          </p>
-        ) : null}
-        <Button
-          type="button"
-          variant="destructive"
-          size="sm"
-          disabled={deleting || saving || editing}
-          onClick={onDelete}
-        >
-          {deleting ? "Deleting…" : "Delete track"}
-        </Button>
-      </section>
     </div>
   );
 }
