@@ -224,16 +224,33 @@ export function TrackDetail({ trackId }: { trackId: string }) {
             <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">Edit track</p>
             <h1 className="text-2xl font-semibold tracking-tight text-balance">{track.title}</h1>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={saving}
-            onClick={cancelEditing}
-          >
-            Cancel
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={saving || deleting}
+              onClick={cancelEditing}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={deleting || saving}
+              onClick={onDelete}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </div>
         </div>
+
+        {actionError ? (
+          <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm" role="alert">
+            {actionError}
+          </p>
+        ) : null}
 
         <form onSubmit={onSubmit} className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
