@@ -224,6 +224,19 @@ export function TrackDetail({ trackId }: { trackId: string }) {
 
   return (
     <div className="space-y-10">
+      <div className="flex items-start justify-between gap-4">
+        <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">Track</p>
+        {!editing ? (
+          <Button type="button" variant="outline" size="sm" onClick={startEditing}>
+            Edit
+          </Button>
+        ) : (
+          <Button type="button" variant="ghost" size="sm" disabled={saving} onClick={cancelEditing}>
+            Cancel
+          </Button>
+        )}
+      </div>
+
       <div className="flex flex-col gap-6 sm:flex-row">
         <div className="bg-muted relative h-48 w-48 shrink-0 overflow-hidden rounded-2xl">
           {track.artworkUrl ? (
@@ -232,7 +245,6 @@ export function TrackDetail({ trackId }: { trackId: string }) {
         </div>
         <div className="min-w-0 flex-1 space-y-4">
           <div className="space-y-2">
-            <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">Track</p>
             <h1 className="text-3xl font-semibold tracking-tight text-balance">{track.title}</h1>
             <p className="text-muted-foreground text-base">
               {track.artists.map((artist) => artist.name).join(", ") || "Unknown artist"}
@@ -246,11 +258,6 @@ export function TrackDetail({ trackId }: { trackId: string }) {
             <Button asChild>
               <Link href={`/graph?track=${track.id}`}>Open in graph</Link>
             </Button>
-            {!editing ? (
-              <Button type="button" variant="secondary" onClick={startEditing}>
-                Edit
-              </Button>
-            ) : null}
           </div>
         </div>
       </div>
