@@ -205,9 +205,7 @@ export function ProposalEndpointPicker({
   return (
     <section className="border-border space-y-4 rounded-xl border p-4">
       <div className="space-y-1">
-        <p className="text-muted-foreground text-xs font-medium tracking-[0.16em] uppercase">
-          {label}
-        </p>
+        <p className="text-eyebrow">{label}</p>
         <p className="font-medium break-words">
           {mention ? mentionHeading(mention) : "Unknown mention"}
         </p>
@@ -243,7 +241,7 @@ export function ProposalEndpointPicker({
 
       {readOnly ? null : (
         <>
-          <div className="bg-muted inline-flex rounded-md p-0.5">
+          <div className="bg-muted inline-flex rounded-lg p-0.5">
             {PICKER_TABS.map(([id, tabLabel]) => (
               <button
                 key={id}
@@ -257,7 +255,7 @@ export function ProposalEndpointPicker({
                   }
                 }}
                 className={cn(
-                  "rounded-[5px] px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50",
+                  "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50",
                   tab === id
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
@@ -357,7 +355,7 @@ export function ProposalEndpointPicker({
             </div>
           )}
 
-          <p className="text-muted-foreground text-xs">
+          <p className="text-caption">
             Can&apos;t find it?{" "}
             <Link href="/add" className="text-foreground underline-offset-4 hover:underline">
               Add the track manually
@@ -400,12 +398,12 @@ function ResultRow({
       aria-pressed={selected}
       onClick={onSelect}
       className={cn(
-        "hover:bg-surface-2 flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors disabled:opacity-50",
+        "hover:bg-surface-2 flex w-full items-start gap-3 px-4 py-3 text-left transition-colors disabled:opacity-50",
         selected && "bg-surface-3",
       )}
     >
       <span className="min-w-0 flex-1 space-y-1">
-        <span className="block truncate text-sm font-medium">{title}</span>
+        <span className="text-card-title block truncate">{title}</span>
         <span className="text-muted-foreground block truncate text-sm">{artists}</span>
         {visibleBadges.length > 0 ? (
           <span className="flex flex-wrap gap-1.5 pt-0.5">

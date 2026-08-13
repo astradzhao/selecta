@@ -93,7 +93,7 @@ export function SubmissionProposals({ noteId, rawText }: { noteId: string; rawTe
     <div className="space-y-6">
       {highlightSpans.length > 0 ? (
         <section className="space-y-2">
-          <h3 className="text-sm font-medium">Spans needing review</h3>
+          <h3 className="text-eyebrow">Spans needing review</h3>
           <ProposalSourceSpan
             rawText={rawText}
             sourceStart={highlightSpans[0]!.start}
@@ -106,7 +106,7 @@ export function SubmissionProposals({ noteId, rawText }: { noteId: string; rawTe
 
       {grouped.map((group) => (
         <section key={group.key} className="space-y-2">
-          <h3 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+          <h3 className="text-eyebrow">
             {group.label} ({group.items.length})
           </h3>
           <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">

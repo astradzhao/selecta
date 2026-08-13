@@ -120,8 +120,8 @@ export function LibraryList({ embedded = false }: { embedded?: boolean } = {}) {
     <div className={embedded ? "space-y-6" : "space-y-10"}>
       {embedded ? null : (
         <header className="border-border space-y-2 border-b pb-6">
-          <h1 className="text-3xl font-semibold tracking-tight">Library</h1>
-          <p className="text-muted-foreground max-w-xl text-sm">
+          <h1 className="text-page-title">Library</h1>
+          <p className="text-body text-muted-foreground max-w-xl">
             Search your tracks or narrow the list by Subgenre and Folder.
           </p>
         </header>
@@ -164,7 +164,7 @@ export function LibraryList({ embedded = false }: { embedded?: boolean } = {}) {
 
         {!error || hasFilters ? (
           <div className="flex min-h-7 items-center justify-between gap-4">
-            <p className="text-muted-foreground text-xs" aria-live="polite">
+            <p className="text-caption" aria-live="polite">
               {isInitialLoading
                 ? "Loading library…"
                 : error
@@ -193,8 +193,8 @@ export function LibraryList({ embedded = false }: { embedded?: boolean } = {}) {
       <section aria-label="Tracks">
         {error && tracks.length === 0 ? (
           <div className="border-border bg-surface-1 rounded-xl border px-5 py-6">
-            <h2 className="font-medium">Library unavailable</h2>
-            <p className="text-muted-foreground mt-1 max-w-xl text-sm">{error}</p>
+            <h2 className="text-card-title">Library unavailable</h2>
+            <p className="text-body text-muted-foreground mt-1 max-w-xl">{error}</p>
           </div>
         ) : isInitialLoading ? (
           <div
@@ -224,7 +224,7 @@ export function LibraryList({ embedded = false }: { embedded?: boolean } = {}) {
                   </div>
                   <div className="min-w-0 flex-1 space-y-1.5">
                     <div>
-                      <p className="truncate font-medium">{track.title}</p>
+                      <p className="text-card-title truncate">{track.title}</p>
                       <p className="text-muted-foreground truncate text-sm">
                         {track.artists.map((artist) => artist.name).join(", ") || "Unknown artist"}
                       </p>
@@ -237,10 +237,10 @@ export function LibraryList({ embedded = false }: { embedded?: boolean } = {}) {
             {hasFetched && tracks.length === 0 ? (
               <li className="flex flex-col items-start gap-3 px-5 py-10">
                 <div>
-                  <h2 className="font-medium">
+                  <h2 className="text-card-title">
                     {hasFilters ? "No matching tracks" : "No tracks yet"}
                   </h2>
-                  <p className="text-muted-foreground mt-1 text-sm">
+                  <p className="text-body text-muted-foreground mt-1">
                     {hasFilters
                       ? "Try clearing a filter or searching for something else."
                       : "Add a track to start building your library."}

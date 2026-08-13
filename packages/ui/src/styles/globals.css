@@ -56,8 +56,6 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 :root {
@@ -167,4 +165,33 @@
   [role="button"][aria-disabled="true"] {
     @apply cursor-not-allowed;
   }
+}
+
+@utility text-page-title {
+  @apply text-3xl font-semibold tracking-tight;
+}
+
+@utility text-section-title {
+  @apply text-lg font-semibold tracking-tight;
+}
+
+@utility text-card-title {
+  @apply font-medium;
+}
+
+@utility text-body {
+  @apply text-sm text-pretty;
+}
+
+@utility text-caption {
+  @apply text-xs text-muted-foreground;
+}
+
+@utility text-eyebrow {
+  @apply text-xs font-medium uppercase text-muted-foreground;
+  letter-spacing: 0.16em;
+}
+
+@utility text-numeric {
+  @apply font-mono tabular-nums;
 }

@@ -37,8 +37,8 @@ export function AddWorkspace({ mode }: { mode: AddMode }) {
     <div className="space-y-10">
       <header className="border-border space-y-4 border-b pb-6">
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight">Add</h1>
-          <p className="text-muted-foreground max-w-xl text-sm">{active.description}</p>
+          <h1 className="text-page-title">Add</h1>
+          <p className="text-body text-muted-foreground max-w-xl">{active.description}</p>
         </div>
         <nav aria-label="Add modes" className="flex flex-wrap gap-1">
           {MODES.map((item) => {
@@ -53,7 +53,7 @@ export function AddWorkspace({ mode }: { mode: AddMode }) {
                   setMode(item.id);
                 }}
                 className={cn(
-                  "rounded-md px-3 py-1.5 text-sm transition-colors",
+                  "rounded-lg px-3 py-1.5 text-sm transition-colors",
                   isActive
                     ? "bg-selected text-selected-foreground"
                     : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",

@@ -174,7 +174,8 @@ everywhere else — `FieldError` exists and nothing uses it.
    Semantic color schema: brand hue, status scales, surface/overlay tokens.
    Implementation plan (review before coding): [`DJ93_SEMANTIC_COLOR_PLAN.md`](./DJ93_SEMANTIC_COLOR_PLAN.md)
 2. [DJ-96](https://linear.app/dj-project-astradzhao/issue/DJ-96) — **UI-2**
-   Typography, spacing, and radius scale
+   Typography, spacing, and radius scale.
+   Implementation plan: [`DJ96_TYPOGRAPHY_SPACING_PLAN.md`](./DJ96_TYPOGRAPHY_SPACING_PLAN.md)
 3. [DJ-95](https://linear.app/dj-project-astradzhao/issue/DJ-95) — **UI-3**
    Wire up light/dark theme switching
 
@@ -298,19 +299,28 @@ rejected. `bg-muted/NN` sites were swept to `--surface-*` after review
 (`/20` `/30` → `surface-1`, `/40` `/50` → `surface-2`, `/60` `/80` →
 `surface-3`).
 
-### Text roles
+### Text roles (shipped in UI-2 / DJ-96)
 
-```text
-text-page-title      text-section-title   text-card-title
-text-body            text-caption         text-eyebrow
-text-numeric         (font-mono tabular-nums — all BPM, keys, bars,
-                      durations, timestamps, IDs)
-```
+Implementation plan: [`DJ96_TYPOGRAPHY_SPACING_PLAN.md`](./DJ96_TYPOGRAPHY_SPACING_PLAN.md).
+Recipes live in `globals.css` as Tailwind v4 `@utility` blocks. Map by visual
+role, not by heading tag. Home hero is a documented display one-off. Graph
+in-session now-playing title is `text-card-title text-xl`, not `text-page-title`.
 
-One `tracking` value for `text-eyebrow`. Responsive steps live inside the recipe,
-not at call sites.
+| Utility              | Recipe                                                     |
+| -------------------- | ---------------------------------------------------------- |
+| `text-page-title`    | `text-3xl font-semibold tracking-tight`                    |
+| `text-section-title` | `text-lg font-semibold tracking-tight`                     |
+| `text-card-title`    | `font-medium`                                              |
+| `text-body`          | `text-sm text-pretty` (color stays at the call site)       |
+| `text-caption`       | `text-xs text-muted-foreground`                            |
+| `text-eyebrow`       | `text-xs font-medium uppercase` + `letter-spacing: 0.16em` |
+| `text-numeric`       | `font-mono tabular-nums` (no size/color)                   |
 
-### Spacing rhythm
+Wordmark uses `text-eyebrow` plus `text-sm font-semibold text-foreground`.
+`tracking-[` is zero in `apps/web`. Ad-hoc `text-3xl|2xl|4xl|5xl` is only the
+Home hero.
+
+### Spacing rhythm (shipped in UI-2 / DJ-96)
 
 | Role               | Value         |
 | ------------------ | ------------- |
@@ -321,6 +331,18 @@ not at call sites.
 | List row padding   | `px-4 py-3`   |
 | State panel        | `px-5 py-10`  |
 | Inline alert       | `px-3 py-2`   |
+
+### Radius (shipped in UI-2 / DJ-96)
+
+Three tiers. `--radius-3xl` and `--radius-4xl` were deleted. `rounded-full`
+stays for avatars / radio dots. Source-span highlight keeps `rounded-sm`.
+`rounded-[1px]` remains only on the graph energy bar (UI-13).
+
+| Tier    | Class         | Use                                  |
+| ------- | ------------- | ------------------------------------ |
+| Control | `rounded-lg`  | buttons, inputs, alerts, nav pills   |
+| Card    | `rounded-xl`  | list shells, dialogs, inline panels  |
+| Panel   | `rounded-2xl` | large empty/hero wells, graph sticky |
 
 ### Where components live
 

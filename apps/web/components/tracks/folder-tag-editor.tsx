@@ -74,7 +74,7 @@ export function FolderTagEditor({
     <div className="space-y-2">
       <div className="space-y-1">
         <Label htmlFor={inputId}>Folders / playlists</Label>
-        <p className="text-muted-foreground text-xs">
+        <p className="text-caption">
           Organizational buckets for sets and crates — separate from musical Subgenres.
         </p>
       </div>

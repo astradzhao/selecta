@@ -176,7 +176,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
   return (
     <div className="space-y-10">
       <header className="border-border space-y-3 border-b pb-6">
-        <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">
+        <p className="text-eyebrow">
           <Link href={listHref} className="hover:text-foreground transition-colors">
             Transitions
           </Link>
@@ -184,7 +184,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
           Detail
         </p>
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight text-balance">
+          <h1 className="text-page-title text-balance">
             {transition.fromTrack.title}
             <span className="text-muted-foreground font-normal"> → </span>
             {transition.toTrack.title}
@@ -199,7 +199,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
           {transition.technique ? <Badge variant="secondary">{transition.technique}</Badge> : null}
           {transition.intent ? <Badge variant="outline">{transition.intent}</Badge> : null}
           {transition.quality ? <Badge variant="outline">{transition.quality}</Badge> : null}
-          <span className="text-muted-foreground text-xs">
+          <span className="text-caption text-numeric">
             Created {formatTimestamp(transition.createdAt)}
             {transition.updatedAt !== transition.createdAt
               ? ` · updated ${formatTimestamp(transition.updatedAt)}`
@@ -235,6 +235,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
             <Input
               id="transition-from-bar"
               inputMode="decimal"
+              className="text-numeric"
               value={form.fromBar}
               onChange={(event) => onFieldChange("fromBar", event.target.value)}
               disabled={saving}
@@ -245,6 +246,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
             <Input
               id="transition-to-bar"
               inputMode="decimal"
+              className="text-numeric"
               value={form.toBar}
               onChange={(event) => onFieldChange("toBar", event.target.value)}
               disabled={saving}
@@ -255,6 +257,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
             <Input
               id="transition-bars-overlap"
               inputMode="decimal"
+              className="text-numeric"
               value={form.barsOverlap}
               onChange={(event) => onFieldChange("barsOverlap", event.target.value)}
               disabled={saving}
@@ -328,8 +331,8 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
       </form>
 
       <section className="border-border space-y-3 border-t pt-8">
-        <h2 className="font-medium">Delete</h2>
-        <p className="text-muted-foreground max-w-xl text-sm">
+        <h2 className="text-section-title">Delete</h2>
+        <p className="text-body text-muted-foreground max-w-xl">
           Removes this committed transition edge from the graph. Source submissions stay intact.
         </p>
         {deleteError ? (

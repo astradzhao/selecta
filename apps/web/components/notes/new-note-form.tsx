@@ -64,18 +64,18 @@ export function NewNoteForm({ embedded = false }: { embedded?: boolean } = {}) {
   }
 
   return (
-    <div className={embedded ? "space-y-6" : "space-y-8"}>
+    <div className={embedded ? "space-y-6" : "space-y-10"}>
       {embedded ? null : (
         <header className="border-border space-y-2 border-b pb-6">
-          <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">
+          <p className="text-eyebrow">
             <Link href="/add" className="hover:text-foreground transition-colors">
               Add
             </Link>
             {" / "}
             Transition
           </p>
-          <h1 className="text-3xl font-semibold tracking-tight">Add transition</h1>
-          <p className="text-muted-foreground max-w-xl text-sm">
+          <h1 className="text-page-title">Add transition</h1>
+          <p className="text-body text-muted-foreground max-w-xl">
             Paste or type free-form mix notes. Processing starts in the background after submit.
           </p>
         </header>

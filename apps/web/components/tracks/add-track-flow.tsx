@@ -143,14 +143,12 @@ export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) 
   }
 
   return (
-    <div className={embedded ? "space-y-6" : "space-y-8"}>
+    <div className={embedded ? "space-y-6" : "space-y-10"}>
       {embedded ? null : (
         <div className="space-y-2">
-          <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">
-            Library intake
-          </p>
-          <h1 className="text-3xl font-semibold tracking-tight">Add track</h1>
-          <p className="text-muted-foreground max-w-2xl text-sm">
+          <p className="text-eyebrow">Library intake</p>
+          <h1 className="text-page-title">Add track</h1>
+          <p className="text-body text-muted-foreground max-w-2xl">
             Search the catalog, review the hit, then tag with musical subgenres and organizational
             folders — separately.
           </p>
@@ -190,7 +188,7 @@ export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) 
               <li key={`${track.provider}:${track.providerId}`}>
                 <button
                   type="button"
-                  className="hover:bg-surface-2 flex w-full items-center gap-3 px-3 py-3 text-left transition-colors"
+                  className="hover:bg-surface-2 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
                   onClick={() => openReview(track)}
                 >
                   <div className="bg-muted relative size-12 shrink-0 overflow-hidden rounded-md">
@@ -205,12 +203,12 @@ export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) 
                     ) : null}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{track.title}</p>
+                    <p className="text-card-title truncate">{track.title}</p>
                     <p className="text-muted-foreground truncate text-sm">
                       {track.artists.join(", ")}
                     </p>
                   </div>
-                  <div className="text-muted-foreground hidden text-right text-xs sm:block">
+                  <div className="text-numeric text-muted-foreground hidden text-right text-xs sm:block">
                     <p>{formatDuration(track.durationMs) ?? "—"}</p>
                     <p>{track.releaseDate ?? track.provider}</p>
                   </div>
@@ -228,10 +226,10 @@ export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) 
         <section className="space-y-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-medium">
+              <h2 className="text-section-title">
                 {catalog ? "Review catalog hit" : "Manual entry"}
               </h2>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-body text-muted-foreground">
                 Confirm details, then save into your local library.
               </p>
             </div>
