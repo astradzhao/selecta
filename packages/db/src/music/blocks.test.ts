@@ -4,19 +4,20 @@ import { before, describe, it } from "node:test";
 
 import { isMusicWriteError } from "./errors";
 import { isDbIntegrationEnabled, resetDbIntegrationData } from "../test-env";
-import { alternateSpansOverlap } from "./blocks";
 import {
   addSequenceStep,
+  alternateSpansOverlap,
   createSequence,
   createSequenceAlternate,
   createSequenceVersion,
   deleteSequence,
   detachSequenceStep,
   getSequenceDetail,
+  listSequences,
   reorderSequence,
   updateSequenceStep,
 } from "./blocks";
-import { createTrack } from "./tracks";
+import { createTrack, deleteTrackById } from "./tracks";
 import { createTransition, deleteTransitionById } from "./transitions";
 
 const pgIntegration = await isDbIntegrationEnabled();
@@ -327,6 +328,97 @@ describe("sequence module invariants", { skip: !pgIntegration }, () => {
     assert.equal(stepByTrack(after, b.track.id).inTransitionId, null);
     assert.notEqual(stepByTrack(after, b.track.id).gapState, "linked");
     assert.equal(after.isComplete, false);
+  });
+
+  it("deleting a nested child's transition rewrites ancestor completeness caches", async () => {
+    const a = await track("A");
+    const x = await track("X");
+    const b = await track("B");
+    const ax = await createTransition({ fromTrackId: a.track.id, toTrackId: x.track.id });
+    const xb = await createTransition({ fromTrackId: x.track.id, toTrackId: b.track.id });
+
+    const child = await createSequence({
+      title: `Fk-child ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, x.track.id, b.track.id] },
+    });
+    await updateSequenceStep(child.id, stepByTrack(child, x.track.id).id, {
+      inTransitionId: ax.id,
+    });
+    await updateSequenceStep(child.id, stepByTrack(child, b.track.id).id, {
+      inTransitionId: xb.id,
+    });
+
+    const parent = await createSequence({
+      title: `Fk-parent ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, b.track.id] },
+    });
+    await updateSequenceStep(parent.id, stepByTrack(parent, b.track.id).id, {
+      inBlockId: child.id,
+    });
+    assert.equal((await getSequenceDetail(parent.id)).isComplete, true);
+
+    await deleteTransitionById(ax.id);
+
+    const childAfter = await getSequenceDetail(child.id);
+    const parentAfter = await getSequenceDetail(parent.id);
+    const complete = await listSequences({ complete: true, limit: 200 });
+    assert.equal(childAfter.isComplete, false);
+    assert.equal(parentAfter.isComplete, false);
+    assert.equal(
+      complete.sequences.some((sequence) => sequence.id === child.id),
+      false,
+    );
+    assert.equal(
+      complete.sequences.some((sequence) => sequence.id === parent.id),
+      false,
+    );
+    assert.equal(stepByTrack(parentAfter, b.track.id).candidateCount, 0);
+  });
+
+  it("deleting a nested child's interior track rewrites ancestor completeness caches", async () => {
+    const a = await track("A");
+    const x = await track("X");
+    const b = await track("B");
+    const ax = await createTransition({ fromTrackId: a.track.id, toTrackId: x.track.id });
+    const xb = await createTransition({ fromTrackId: x.track.id, toTrackId: b.track.id });
+
+    const child = await createSequence({
+      title: `Track-child ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, x.track.id, b.track.id] },
+    });
+    await updateSequenceStep(child.id, stepByTrack(child, x.track.id).id, {
+      inTransitionId: ax.id,
+    });
+    await updateSequenceStep(child.id, stepByTrack(child, b.track.id).id, {
+      inTransitionId: xb.id,
+    });
+
+    const parent = await createSequence({
+      title: `Track-parent ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, b.track.id] },
+    });
+    await updateSequenceStep(parent.id, stepByTrack(parent, b.track.id).id, {
+      inBlockId: child.id,
+    });
+    assert.equal((await getSequenceDetail(parent.id)).isComplete, true);
+
+    await deleteTrackById(x.track.id);
+
+    const childAfter = await getSequenceDetail(child.id);
+    const parentAfter = await getSequenceDetail(parent.id);
+    const complete = await listSequences({ complete: true, limit: 200 });
+    assert.equal(childAfter.steps.length, 2);
+    assert.equal(childAfter.isComplete, false);
+    assert.equal(parentAfter.isComplete, false);
+    assert.equal(
+      complete.sequences.some((sequence) => sequence.id === child.id),
+      false,
+    );
+    assert.equal(
+      complete.sequences.some((sequence) => sequence.id === parent.id),
+      false,
+    );
+    assert.equal(stepByTrack(parentAfter, b.track.id).candidateCount, 0);
   });
 
   it("addresses a duplicate track by step id", async () => {

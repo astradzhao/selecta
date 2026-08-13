@@ -16,7 +16,8 @@ import {
 import { alias } from "drizzle-orm/pg-core";
 import { randomUUID } from "node:crypto";
 
-import { getExecutor } from "../executor";
+import { getExecutor, runInDbTransaction } from "../executor";
+import { collectSequenceIdsUsingTransition, recomputeSequencesDerived } from "./blocks";
 import {
   artists,
   noteProposals,
@@ -583,15 +584,19 @@ export async function updateTransitionById(
 /** Hard-delete exactly one transition by stable edge id. */
 export async function deleteTransitionById(id: string): Promise<{ id: string; deleted: boolean }> {
   const transitionId = requireTrimmed(id, "id");
-  const deleted = await getExecutor()
-    .delete(transitions)
-    .where(eq(transitions.id, transitionId))
-    .returning({ id: transitions.id });
-  const deletedId = deleted[0]?.id;
-  if (!deletedId) {
-    throw new MusicWriteError("not_found", `Transition "${transitionId}" was not found.`);
-  }
-  return { id: deletedId, deleted: true };
+  return runInDbTransaction(async () => {
+    const sequenceIds = await collectSequenceIdsUsingTransition(transitionId);
+    const deleted = await getExecutor()
+      .delete(transitions)
+      .where(eq(transitions.id, transitionId))
+      .returning({ id: transitions.id });
+    const deletedId = deleted[0]?.id;
+    if (!deletedId) {
+      throw new MusicWriteError("not_found", `Transition "${transitionId}" was not found.`);
+    }
+    await recomputeSequencesDerived(sequenceIds);
+    return { id: deletedId, deleted: true };
+  });
 }
 
 /** Count committed edges from A→B (one direction). */

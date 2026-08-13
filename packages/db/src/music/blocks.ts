@@ -4,7 +4,7 @@
  * Gap-state derivation, completeness, expansion, cycle checks, and staleness
  * validation live here so Graph and Library cannot disagree.
  */
-import { and, asc, desc, eq, gte, inArray, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, or, sql, type SQL } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 
 import { getExecutor, runInDbTransaction } from "../executor";
@@ -622,6 +622,10 @@ async function findParentSequenceIds(sequenceId: string): Promise<string[]> {
 /**
  * Rewrite derived caches after a structural change, then walk ancestors.
  * Stale pins are cleared here so stored connectors never outlive a write.
+ *
+ * Track and transition deletes go through Postgres FKs (CASCADE / SET NULL)
+ * and never call sequence mutations, so `deleteTrackById` / `deleteTransitionById`
+ * must collect affected ids first and call `recomputeSequencesDerived` after.
  */
 async function recomputeSequenceDerived(
   sequenceId: string,
@@ -650,6 +654,69 @@ async function recomputeSequenceDerived(
   const parents = await findParentSequenceIds(sequenceId);
   for (const parentId of parents) {
     await recomputeSequenceDerived(parentId, visited);
+  }
+}
+
+async function collectSequenceIdsUsingTransitionIds(transitionIds: string[]): Promise<string[]> {
+  if (transitionIds.length === 0) {
+    return [];
+  }
+  const stepRows = await getExecutor()
+    .select({ blockId: blockSteps.blockId })
+    .from(blockSteps)
+    .where(inArray(blockSteps.inTransitionId, transitionIds));
+  const altRows = await getExecutor()
+    .select({ blockId: blockAlternates.blockId })
+    .from(blockAlternates)
+    .where(inArray(blockAlternates.altTransitionId, transitionIds));
+  return [...new Set([...stepRows, ...altRows].map((row) => row.blockId))];
+}
+
+/** Sequences that pin this transition as a step or alternate connector. Call before the row is deleted. */
+export async function collectSequenceIdsUsingTransition(transitionId: string): Promise<string[]> {
+  return collectSequenceIdsUsingTransitionIds([transitionId]);
+}
+
+/**
+ * Sequences that contain this track, cache it as an endpoint, or pin a transition
+ * that will CASCADE with the track. Call before the row is deleted.
+ */
+export async function collectSequenceIdsUsingTrack(trackId: string): Promise<string[]> {
+  const ids = new Set<string>();
+  const stepRows = await getExecutor()
+    .select({ blockId: blockSteps.blockId })
+    .from(blockSteps)
+    .where(eq(blockSteps.trackId, trackId));
+  for (const row of stepRows) {
+    ids.add(row.blockId);
+  }
+
+  const endpointRows = await getExecutor()
+    .select({ id: blocks.id })
+    .from(blocks)
+    .where(or(eq(blocks.startTrackId, trackId), eq(blocks.endTrackId, trackId)));
+  for (const row of endpointRows) {
+    ids.add(row.id);
+  }
+
+  const transitionRows = await getExecutor()
+    .select({ id: transitions.id })
+    .from(transitions)
+    .where(or(eq(transitions.fromTrackId, trackId), eq(transitions.toTrackId, trackId)));
+  const fromTransitions = await collectSequenceIdsUsingTransitionIds(
+    transitionRows.map((row) => row.id),
+  );
+  for (const id of fromTransitions) {
+    ids.add(id);
+  }
+  return [...ids];
+}
+
+/** Rewrite derived caches for these sequences and their ancestors. */
+export async function recomputeSequencesDerived(sequenceIds: string[]): Promise<void> {
+  const visited = new Set<string>();
+  for (const sequenceId of sequenceIds) {
+    await recomputeSequenceDerived(sequenceId, visited);
   }
 }
 

@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import { getDb } from "../client";
+import { getExecutor, runInDbTransaction } from "../executor";
+import { collectSequenceIdsUsingTrack, recomputeSequencesDerived } from "./blocks";
 import * as schema from "../schema";
 import {
   artists,
@@ -699,18 +701,23 @@ export async function updateTrackById(id: string, input: UpdateTrackInput): Prom
 /**
  * Hard-delete a track by id. Join rows, transitions, and note_track_links cascade;
  * submission/proposal/audit rows are preserved (commit track refs SET NULL).
+ * Sequence derived caches are rewritten after the FK CASCADE / SET NULL.
  */
 export async function deleteTrackById(id: string): Promise<{ id: string; deleted: boolean }> {
   const trackId = requireTrimmed(id, "id");
-  const deleted = await db()
-    .delete(tracks)
-    .where(eq(tracks.id, trackId))
-    .returning({ id: tracks.id });
-  const deletedId = deleted[0]?.id;
-  if (!deletedId) {
-    throw new MusicWriteError("not_found", `Track "${trackId}" was not found.`);
-  }
-  return { id: deletedId, deleted: true };
+  return runInDbTransaction(async () => {
+    const sequenceIds = await collectSequenceIdsUsingTrack(trackId);
+    const deleted = await getExecutor()
+      .delete(tracks)
+      .where(eq(tracks.id, trackId))
+      .returning({ id: tracks.id });
+    const deletedId = deleted[0]?.id;
+    if (!deletedId) {
+      throw new MusicWriteError("not_found", `Track "${trackId}" was not found.`);
+    }
+    await recomputeSequencesDerived(sequenceIds);
+    return { id: deletedId, deleted: true };
+  });
 }
 
 async function getTrackByIdInTx(executor: DbLike, trackId: string): Promise<TrackDetail | null> {
