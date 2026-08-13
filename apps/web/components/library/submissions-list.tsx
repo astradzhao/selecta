@@ -226,7 +226,7 @@ export function SubmissionsList() {
         </div>
 
         <div className="flex min-h-7 items-center justify-between gap-4">
-          <p className="text-muted-foreground text-xs" aria-live="polite">
+          <p className="text-caption" aria-live="polite">
             {isInitialLoading
               ? "Loading submissions…"
               : error
@@ -247,8 +247,8 @@ export function SubmissionsList() {
       <section aria-label="Submissions">
         {error && submissions.length === 0 ? (
           <div className="border-border bg-surface-1 rounded-xl border px-5 py-6">
-            <h2 className="font-medium">Submissions unavailable</h2>
-            <p className="text-muted-foreground mt-1 max-w-xl text-sm">{error}</p>
+            <h2 className="text-card-title">Submissions unavailable</h2>
+            <p className="text-body text-muted-foreground mt-1 max-w-xl">{error}</p>
           </div>
         ) : isInitialLoading ? (
           <div
@@ -268,7 +268,7 @@ export function SubmissionsList() {
                       href={`/library/submissions/${submission.id}`}
                       className="hover:bg-surface-2 flex flex-col gap-2 px-4 py-3 transition-colors"
                     >
-                      <p className="line-clamp-2 font-medium text-pretty">
+                      <p className="text-card-title line-clamp-2 text-pretty">
                         {submissionPreview(submission.rawText)}
                       </p>
                       <div className="flex flex-wrap items-center gap-2">
@@ -276,7 +276,7 @@ export function SubmissionsList() {
                           {statusLabel(submission.extractionStatus)}
                         </Badge>
                         {counts && counts.total > 0 ? (
-                          <span className="text-muted-foreground text-xs">
+                          <span className="text-caption">
                             {counts.committed} committed
                             {counts.needsReview > 0 ? ` · ${counts.needsReview} need review` : null}
                             {counts.failed > 0 ? ` · ${counts.failed} failed` : null}
@@ -287,7 +287,7 @@ export function SubmissionsList() {
                             Review {counts!.needsReview}
                           </Badge>
                         ) : null}
-                        <span className="text-muted-foreground text-xs">
+                        <span className="text-caption text-numeric">
                           {formatTimestamp(submission.createdAt)}
                         </span>
                       </div>
@@ -298,10 +298,10 @@ export function SubmissionsList() {
               {hasFetched && submissions.length === 0 ? (
                 <li className="flex flex-col items-start gap-3 px-5 py-10">
                   <div>
-                    <h2 className="font-medium">
+                    <h2 className="text-card-title">
                       {hasFilters ? "No matching submissions" : "No submissions yet"}
                     </h2>
-                    <p className="text-muted-foreground mt-1 text-sm">
+                    <p className="text-body text-muted-foreground mt-1">
                       {hasFilters
                         ? "Try clearing a filter or searching for something else."
                         : "Submit a transition note to capture mix knowledge."}

@@ -229,14 +229,12 @@ export function TrackDetail({ trackId }: { trackId: string }) {
 
   if (editing) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-10">
         <div className="space-y-3">
           <LibraryBackLink />
-          <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">Edit track</p>
+          <p className="text-eyebrow">Edit track</p>
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <h1 className="min-w-0 flex-1 text-2xl font-semibold tracking-tight text-balance">
-              {track.title}
-            </h1>
+            <h1 className="text-page-title min-w-0 flex-1 text-balance">{track.title}</h1>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               <Button
                 type="button"
@@ -319,6 +317,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
               <Input
                 id="track-bpm"
                 inputMode="decimal"
+                className="text-numeric"
                 value={form.bpm}
                 onChange={(event) => onFieldChange("bpm", event.target.value)}
                 disabled={saving}
@@ -338,6 +337,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
               <Input
                 id="track-energy"
                 inputMode="decimal"
+                className="text-numeric"
                 value={form.energy}
                 onChange={(event) => onFieldChange("energy", event.target.value)}
                 disabled={saving}
@@ -351,6 +351,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
               <Input
                 id="track-duration"
                 inputMode="decimal"
+                className="text-numeric"
                 value={form.durationSec}
                 onChange={(event) => onFieldChange("durationSec", event.target.value)}
                 disabled={saving}
@@ -402,7 +403,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
     <div className="space-y-10">
       <div className="space-y-3">
         <LibraryBackLink />
-        <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">Track</p>
+        <p className="text-eyebrow">Track</p>
       </div>
 
       {actionError ? (
@@ -420,9 +421,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
         <div className="min-w-0 flex-1 space-y-4">
           <div className="space-y-2">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <h1 className="min-w-0 flex-1 text-3xl font-semibold tracking-tight text-balance">
-                {track.title}
-              </h1>
+              <h1 className="text-page-title min-w-0 flex-1 text-balance">{track.title}</h1>
               <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <Button type="button" variant="outline" size="sm" onClick={startEditing}>
                   Edit
@@ -455,7 +454,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
 
       <dl className="grid gap-4 sm:grid-cols-2">
         <div>
-          <dt className="text-muted-foreground text-xs tracking-wide uppercase">Catalog genres</dt>
+          <dt className="text-eyebrow">Catalog genres</dt>
           <dd className="mt-1 text-sm">
             {track.genres.length
               ? track.genres.map((genre) => genre.name).join(", ")
@@ -463,7 +462,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
           </dd>
         </div>
         <div>
-          <dt className="text-muted-foreground text-xs tracking-wide uppercase">Subgenres</dt>
+          <dt className="text-eyebrow">Subgenres</dt>
           <dd className="mt-1 text-sm">
             {track.subgenres.length
               ? track.subgenres.map((item) => item.name).join(", ")
@@ -471,9 +470,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
           </dd>
         </div>
         <div>
-          <dt className="text-muted-foreground text-xs tracking-wide uppercase">
-            Folders / playlists
-          </dt>
+          <dt className="text-eyebrow">Folders / playlists</dt>
           <dd className="mt-1 text-sm">
             {track.folders.length
               ? track.folders
@@ -483,24 +480,22 @@ export function TrackDetail({ trackId }: { trackId: string }) {
           </dd>
         </div>
         <div>
-          <dt className="text-muted-foreground text-xs tracking-wide uppercase">
-            BPM / key / energy
-          </dt>
-          <dd className="mt-1 text-sm">
+          <dt className="text-eyebrow">BPM / key / energy</dt>
+          <dd className="text-numeric mt-1 text-sm">
             {track.bpm ?? "—"} / {track.musicalKey ?? "—"} / {track.energy ?? "—"}
           </dd>
         </div>
         <div>
-          <dt className="text-muted-foreground text-xs tracking-wide uppercase">Duration</dt>
-          <dd className="mt-1 text-sm">{formatDuration(track.durationSec) ?? "—"}</dd>
+          <dt className="text-eyebrow">Duration</dt>
+          <dd className="text-numeric mt-1 text-sm">{formatDuration(track.durationSec) ?? "—"}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground text-xs tracking-wide uppercase">Release</dt>
-          <dd className="mt-1 text-sm">{track.releaseDate ?? "—"}</dd>
+          <dt className="text-eyebrow">Release</dt>
+          <dd className="text-numeric mt-1 text-sm">{track.releaseDate ?? "—"}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground text-xs tracking-wide uppercase">External IDs</dt>
-          <dd className="mt-1 font-mono text-sm">
+          <dt className="text-eyebrow">External IDs</dt>
+          <dd className="text-numeric mt-1 text-sm">
             {Object.keys(track.externalIds).length
               ? Object.entries(track.externalIds)
                   .map(([provider, id]) => `${provider}:${id}`)
@@ -509,7 +504,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
           </dd>
         </div>
         <div>
-          <dt className="text-muted-foreground text-xs tracking-wide uppercase">Transitions</dt>
+          <dt className="text-eyebrow">Transitions</dt>
           <dd className="mt-1 text-sm">
             Outbound: {track.hasOutboundTransitions ? "yes" : "no"} · Inbound:{" "}
             {track.hasInboundTransitions ? "yes" : "no"}

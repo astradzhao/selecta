@@ -74,10 +74,8 @@ export function ProposalSourceSpan({
   if (primary.mode === "standalone") {
     return (
       <div className={cn("space-y-2", className)}>
-        <p className="text-muted-foreground text-xs">
-          Couldn&apos;t locate this span in the submission text.
-        </p>
-        <p className="border-border bg-surface-1 rounded-md border px-3 py-2 text-sm whitespace-pre-wrap">
+        <p className="text-caption">Couldn&apos;t locate this span in the submission text.</p>
+        <p className="border-border bg-surface-1 rounded-lg border px-3 py-2 text-sm whitespace-pre-wrap">
           {sourceText}
         </p>
       </div>
@@ -95,7 +93,7 @@ export function ProposalSourceSpan({
   return (
     <p
       className={cn(
-        "border-border bg-surface-1 rounded-md border px-3 py-2 text-sm whitespace-pre-wrap",
+        "border-border bg-surface-1 rounded-lg border px-3 py-2 text-sm whitespace-pre-wrap",
         className,
       )}
     >

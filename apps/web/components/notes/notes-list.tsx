@@ -59,8 +59,8 @@ export function NotesList() {
     <div className="space-y-10">
       <header className="border-border flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight">Notes</h1>
-          <p className="text-muted-foreground max-w-xl text-sm">
+          <h1 className="text-page-title">Notes</h1>
+          <p className="text-body text-muted-foreground max-w-xl">
             Capture free-form mix notes. Saves are durable immediately; extraction runs
             automatically in the background.
           </p>
@@ -84,8 +84,8 @@ export function NotesList() {
 
         {error ? (
           <div className="border-border bg-surface-1 rounded-xl border px-5 py-6">
-            <h2 className="font-medium">Notes unavailable</h2>
-            <p className="text-muted-foreground mt-1 max-w-xl text-sm">{error}</p>
+            <h2 className="text-card-title">Notes unavailable</h2>
+            <p className="text-body text-muted-foreground mt-1 max-w-xl">{error}</p>
           </div>
         ) : (
           <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
@@ -95,10 +95,10 @@ export function NotesList() {
                   href={`/notes/${note.id}`}
                   className="hover:bg-surface-2 flex flex-col gap-1 px-4 py-3 transition-colors"
                 >
-                  <p className="line-clamp-2 font-medium text-pretty">
+                  <p className="text-card-title line-clamp-2 text-pretty">
                     {notePreview(note.rawText)}
                   </p>
-                  <p className="text-muted-foreground text-xs">
+                  <p className="text-caption text-numeric">
                     {formatTimestamp(note.createdAt)}
                     {note.updatedAt !== note.createdAt
                       ? ` · edited ${formatTimestamp(note.updatedAt)}`
@@ -110,8 +110,8 @@ export function NotesList() {
             {!pending && notes.length === 0 ? (
               <li className="flex flex-col items-start gap-3 px-5 py-10">
                 <div>
-                  <h2 className="font-medium">No notes yet</h2>
-                  <p className="text-muted-foreground mt-1 text-sm">
+                  <h2 className="text-card-title">No notes yet</h2>
+                  <p className="text-body text-muted-foreground mt-1">
                     Write a raw note to start capturing mix knowledge.
                   </p>
                 </div>

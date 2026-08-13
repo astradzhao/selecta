@@ -9,6 +9,7 @@ export default function Home() {
     <AppShell currentPath="/">
       <main className="flex flex-1 flex-col justify-center gap-8 py-16">
         <div className="space-y-3">
+          {/* display one-off — not text-page-title */}
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">selecta</h1>
           <p className="text-muted-foreground max-w-xl text-base text-pretty sm:text-lg">
             Build your personal DJ graph just by writing notes for yourself. We&apos;ll build the

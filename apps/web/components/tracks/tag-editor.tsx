@@ -78,7 +78,7 @@ export function TagEditor({
     <div className="space-y-2">
       <div className="space-y-1">
         <Label htmlFor={id}>{label}</Label>
-        {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+        {hint ? <p className="text-caption">{hint}</p> : null}
       </div>
       <Input
         id={id}

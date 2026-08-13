@@ -117,6 +117,7 @@ export function TrackPickerDialog({
             </p>
           ) : null}
 
+          {/* viewport-capped scroller — keep the arbitrary max-height */}
           <div
             className={cn(
               "border-border max-h-[min(50vh,22rem)] overflow-y-auto overflow-x-hidden rounded-xl border",
@@ -149,7 +150,7 @@ export function TrackPickerDialog({
                         type="button"
                         onClick={() => setSelectedId(track.id)}
                         className={cn(
-                          "flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors duration-200",
+                          "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-200",
                           "hover:bg-surface-3 focus-visible:bg-surface-3 focus-visible:outline-none",
                           active && "bg-muted",
                         )}
@@ -166,7 +167,7 @@ export function TrackPickerDialog({
                           ) : null}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{track.title}</p>
+                          <p className="text-card-title truncate">{track.title}</p>
                           <p className="text-muted-foreground truncate text-xs">
                             {artistLine(track.artists)}
                           </p>
@@ -238,11 +239,11 @@ export function GraphLanding({ onStart }: { onStart: (trackId: string) => void }
             <span className="border-foreground absolute right-0 bottom-0 size-2.5 rounded-full border-2 bg-foreground" />
           </div>
         </div>
-        <p className="text-muted-foreground text-xs tracking-[0.2em] uppercase">Graph explorer</p>
-        <h1 className="mt-3 max-w-md text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+        <p className="text-eyebrow">Graph explorer</p>
+        <h1 className="text-page-title mt-3 max-w-md text-balance">
           Choose a track to get started
         </h1>
-        <p className="text-muted-foreground mt-3 max-w-md text-sm text-pretty">
+        <p className="text-body text-muted-foreground mt-3 max-w-md">
           Pick a song from your library, then browse outbound transitions and walk the mix graph hop
           by hop.
         </p>

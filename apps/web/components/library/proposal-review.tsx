@@ -450,7 +450,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
   const statusNotice = readOnlyNotice(proposal.status);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <header className="space-y-5">
         <Link
           href={submissionHref}
@@ -467,7 +467,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
               <span className="text-muted-foreground text-sm">{queueLabel}</span>
             ) : null}
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
+          <h1 className="text-page-title text-balance">
             {titleFromProposal(proposal, fromMention, toMention)}
           </h1>
         </div>
@@ -499,7 +499,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
             </Button>
           ) : null}
           {canApprove && missingEndpoints ? (
-            <p className="text-muted-foreground text-xs">Pick a track on both sides to approve.</p>
+            <p className="text-caption">Pick a track on both sides to approve.</p>
           ) : null}
         </div>
       </header>
@@ -530,7 +530,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
 
       {proposal.status === "failed" ? (
         <div className="border-destructive/40 bg-destructive-subtle space-y-1 rounded-lg border px-4 py-3">
-          <p className="text-sm font-medium">Extraction failed for this span</p>
+          <p className="text-card-title">Extraction failed for this span</p>
           <p className="text-muted-foreground text-sm">
             {proposal.error ?? "No error detail was recorded."} You can still fill it in by hand
             below.
@@ -540,7 +540,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
 
       {gateLines.length > 0 && !readOnly ? (
         <section className="border-border bg-surface-1 space-y-2 rounded-lg border px-4 py-3">
-          <h2 className="text-sm font-medium">Why this needs review</h2>
+          <h2 className="text-eyebrow">Why this needs review</h2>
           <ul className="text-muted-foreground space-y-1 text-sm">
             {gateLines.map((line, index) => (
               <li key={`${line}-${index}`} className="flex gap-2">
@@ -628,7 +628,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
         <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-sm transition-colors">
           Extraction details
         </summary>
-        <dl className="text-muted-foreground mt-4 grid gap-x-6 gap-y-2 font-mono text-xs break-all sm:grid-cols-[10rem_minmax(0,1fr)]">
+        <dl className="text-muted-foreground mt-4 text-numeric grid gap-x-6 gap-y-2 text-xs break-all sm:grid-cols-[10rem_minmax(0,1fr)]">
           <AuditRow label="proposal id" value={proposal.id} />
           <AuditRow label="proposal key" value={proposal.proposalKey} />
           <AuditRow label="fingerprint" value={proposal.sourceFingerprint} />
@@ -647,7 +647,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
             </>
           ) : null}
         </dl>
-        <pre className="bg-surface-1 text-muted-foreground mt-4 overflow-x-auto rounded-md p-3 font-mono text-xs whitespace-pre-wrap">
+        <pre className="bg-surface-1 text-muted-foreground mt-4 text-numeric overflow-x-auto rounded-md p-3 text-xs whitespace-pre-wrap">
           {JSON.stringify(proposal.raw, null, 2)}
         </pre>
       </details>
@@ -658,8 +658,8 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
 function SectionHeading({ title, hint }: { title: string; hint?: string }) {
   return (
     <div className="space-y-1">
-      <h2 className="text-sm font-medium">{title}</h2>
-      {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+      <h2 className="text-section-title">{title}</h2>
+      {hint ? <p className="text-caption">{hint}</p> : null}
     </div>
   );
 }

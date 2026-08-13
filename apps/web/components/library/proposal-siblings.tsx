@@ -40,7 +40,7 @@ export function ProposalSiblings({
 
   return (
     <section className="space-y-3">
-      <h2 className="text-sm font-medium">Other proposals from this submission</h2>
+      <h2 className="text-eyebrow">Other proposals from this submission</h2>
       <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
         {siblings.map((proposal) => {
           const isCurrent = proposal.id === currentProposalId;

@@ -105,8 +105,8 @@ export function NoteTrackLinks({
   return (
     <section aria-label="Linked tracks" className="space-y-4">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold tracking-tight">Linked tracks</h2>
-        <p className="text-muted-foreground text-sm">
+        <h2 className="text-section-title">Linked tracks</h2>
+        <p className="text-body text-muted-foreground">
           Optionally attach existing library tracks. Links are manual — parsing never adds them
           silently.
         </p>
@@ -131,7 +131,7 @@ export function NoteTrackLinks({
                 <>
                   <Link
                     href={`/tracks/${link.track.id}`}
-                    className="truncate font-medium hover:underline"
+                    className="text-card-title truncate hover:underline"
                   >
                     {link.track.title}
                   </Link>
@@ -141,7 +141,7 @@ export function NoteTrackLinks({
                 </>
               ) : (
                 <>
-                  <p className="truncate font-medium">Track unavailable</p>
+                  <p className="text-card-title truncate">Track unavailable</p>
                   <p className="text-muted-foreground truncate text-sm">{link.trackId}</p>
                 </>
               )}
@@ -181,7 +181,7 @@ export function NoteTrackLinks({
           />
         </div>
         {searching ? (
-          <p className="text-muted-foreground text-xs" aria-live="polite">
+          <p className="text-caption" aria-live="polite">
             Searching library…
           </p>
         ) : null}
@@ -207,7 +207,7 @@ export function NoteTrackLinks({
                     ) : null}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{track.title}</p>
+                    <p className="text-card-title truncate">{track.title}</p>
                     <p className="text-muted-foreground truncate text-sm">
                       {track.artists.map((artist) => artist.name).join(", ") || "Unknown artist"}
                     </p>

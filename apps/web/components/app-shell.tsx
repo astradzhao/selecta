@@ -19,7 +19,7 @@ export function AppShell({
     <div className="flex min-h-full flex-col">
       <header className="border-border/80 bg-background/90 sticky top-0 z-20 border-b backdrop-blur">
         <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-6 px-4 sm:px-6">
-          <Link href="/" className="text-sm font-semibold tracking-[0.18em] uppercase">
+          <Link href="/" className="text-eyebrow text-sm font-semibold text-foreground">
             Selecta
           </Link>
           <nav className="flex items-center gap-1">
@@ -31,7 +31,7 @@ export function AppShell({
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "rounded-md px-3 py-1.5 text-sm transition-colors",
+                    "rounded-lg px-3 py-1.5 text-sm transition-colors",
                     active
                       ? "bg-selected text-selected-foreground"
                       : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",

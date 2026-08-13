@@ -64,7 +64,7 @@ export function LibraryWorkspace({ view }: { view: LibraryView }) {
       <header className="border-border space-y-4 border-b pb-6">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-semibold tracking-tight">Library</h1>
+            <h1 className="text-page-title">Library</h1>
             {needsReviewCount > 0 ? (
               <Link
                 href="/library?view=submissions&needsReview=1"
@@ -74,7 +74,7 @@ export function LibraryWorkspace({ view }: { view: LibraryView }) {
               </Link>
             ) : null}
           </div>
-          <p className="text-muted-foreground max-w-xl text-sm">{active.description}</p>
+          <p className="text-body text-muted-foreground max-w-xl">{active.description}</p>
         </div>
         <nav aria-label="Library views" className="flex flex-wrap gap-1">
           {VIEWS.map((item) => {
@@ -89,7 +89,7 @@ export function LibraryWorkspace({ view }: { view: LibraryView }) {
                   setView(item.id);
                 }}
                 className={cn(
-                  "rounded-md px-3 py-1.5 text-sm transition-colors",
+                  "rounded-lg px-3 py-1.5 text-sm transition-colors",
                   isActive
                     ? "bg-selected text-selected-foreground"
                     : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
@@ -106,7 +106,9 @@ export function LibraryWorkspace({ view }: { view: LibraryView }) {
       {view === "tracks" ? <LibraryList embedded /> : null}
       {view === "transitions" ? <TransitionsList /> : null}
       {view === "submissions" ? (
-        <Suspense fallback={<p className="text-muted-foreground text-sm">Loading submissions…</p>}>
+        <Suspense
+          fallback={<p className="text-body text-muted-foreground">Loading submissions…</p>}
+        >
           <SubmissionsList />
         </Suspense>
       ) : null}

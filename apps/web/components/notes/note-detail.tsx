@@ -290,7 +290,7 @@ function ProposalCard({ proposal, index }: { proposal: ExtractionProposalSummary
         aria-expanded={expanded}
         aria-controls={panelId}
         onClick={() => setExpanded((value) => !value)}
-        className="hover:bg-surface-2 flex w-full items-start gap-2 px-3 py-2.5 text-left transition-colors"
+        className="hover:bg-surface-2 flex w-full items-start gap-2 px-4 py-3 text-left transition-colors"
       >
         <span
           className={cn(
@@ -303,7 +303,7 @@ function ProposalCard({ proposal, index }: { proposal: ExtractionProposalSummary
         </span>
         <span className="min-w-0 flex-1 space-y-0.5">
           <span className="text-muted-foreground flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
-            <span className="text-foreground font-medium">
+            <span className="text-card-title">
               #{index + 1} · {proposalStatusLabel(proposal.status)}
               {proposal.bidirectional ? " · bidirectional" : null}
             </span>
@@ -325,21 +325,19 @@ function ProposalCard({ proposal, index }: { proposal: ExtractionProposalSummary
         <div className="overflow-hidden">
           <div
             className={cn(
-              "border-border space-y-2 border-t px-3 py-2.5 pl-7 transition-opacity duration-300",
+              "border-border space-y-2 border-t px-4 py-3 pl-7 transition-opacity duration-300",
               expanded ? "opacity-100" : "opacity-0",
             )}
           >
             {edgeLabel && edgeLabel !== title ? <p className="text-sm">{edgeLabel}</p> : null}
 
             {metadataParts.length > 0 ? (
-              <p className="text-muted-foreground text-xs">{metadataParts.join(" · ")}</p>
+              <p className="text-caption text-numeric">{metadataParts.join(" · ")}</p>
             ) : null}
-            {transitionNotes ? (
-              <p className="text-muted-foreground text-xs">notes: {transitionNotes}</p>
-            ) : null}
+            {transitionNotes ? <p className="text-caption">notes: {transitionNotes}</p> : null}
 
             {proposal.fromTrackId || proposal.toTrackId ? (
-              <p className="text-muted-foreground font-mono text-xs">
+              <p className="text-numeric text-caption">
                 tracks {proposal.fromTrackId ?? "?"} → {proposal.toTrackId ?? "?"}
                 {proposal.bidirectional ? " (+ reverse)" : null}
               </p>
@@ -386,7 +384,7 @@ function ProposalCard({ proposal, index }: { proposal: ExtractionProposalSummary
             ) : null}
 
             {(proposal.model || proposal.promptVersion || proposal.attemptCount != null) && (
-              <p className="text-muted-foreground text-[11px]">
+              <p className="text-caption">
                 {[
                   proposal.promptVersion ? `prompt ${proposal.promptVersion}` : null,
                   proposal.model,
@@ -416,7 +414,7 @@ function ExtractionDebug({ note, readOnly = false }: { note: ApiNote; readOnly?:
       aria-live="polite"
     >
       <div className="space-y-1">
-        <p className="text-sm font-medium">
+        <p className="text-card-title">
           Extraction: {extractionStatusLabel(note.extractionStatus)}
           <span className="text-muted-foreground font-normal"> · v{note.extractionVersion}</span>
         </p>
@@ -427,7 +425,7 @@ function ExtractionDebug({ note, readOnly = false }: { note: ApiNote; readOnly?:
           </p>
         ) : null}
         {(note.model || note.promptVersion) && (
-          <p className="text-muted-foreground text-xs">
+          <p className="text-caption text-numeric">
             {[note.model, note.promptVersion ? `prompt ${note.promptVersion}` : null]
               .filter(Boolean)
               .join(" · ")}
@@ -437,9 +435,7 @@ function ExtractionDebug({ note, readOnly = false }: { note: ApiNote; readOnly?:
 
       {!readOnly && proposals.length > 0 ? (
         <div className="space-y-3">
-          <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-            Proposals ({proposals.length})
-          </p>
+          <p className="text-eyebrow">Proposals ({proposals.length})</p>
           <ul className="space-y-2">
             {proposals.map((proposal, index) => (
               <ProposalCard key={proposal.id} proposal={proposal} index={index} />
@@ -589,17 +585,15 @@ export function NoteDetail({ noteId, readOnly = false }: { noteId: string; readO
   return (
     <div className="space-y-10">
       <header className="border-border space-y-2 border-b pb-6">
-        <p className="text-muted-foreground text-xs tracking-[0.16em] uppercase">
+        <p className="text-eyebrow">
           <Link href={listHref} className="hover:text-foreground transition-colors">
             {listLabel}
           </Link>
           {" / "}
           Detail
         </p>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          {readOnly ? "Submission" : "Edit note"}
-        </h1>
-        <p className="text-muted-foreground text-sm">
+        <h1 className="text-page-title">{readOnly ? "Submission" : "Edit note"}</h1>
+        <p className="text-body text-muted-foreground text-numeric">
           Created {formatTimestamp(note.createdAt)}
           {!readOnly && note.updatedAt !== note.createdAt
             ? ` · last edited ${formatTimestamp(note.updatedAt)}`
@@ -616,7 +610,7 @@ export function NoteDetail({ noteId, readOnly = false }: { noteId: string; readO
             readOnly
             className="bg-surface-1 min-h-56"
           />
-          <p className="text-muted-foreground text-xs">
+          <p className="text-caption">
             Submissions are immutable. Edit committed transitions or resolve review items instead.
           </p>
           <div className="pt-2">

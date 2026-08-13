@@ -104,31 +104,34 @@ export function TransitionFields({
   return (
     <div className={compact ? "space-y-3" : "space-y-6"}>
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label htmlFor={`${idPrefix}-from-bar`}>From bar</Label>
           <Input
             id={`${idPrefix}-from-bar`}
             inputMode="decimal"
+            className="text-numeric"
             value={values.fromBar}
             onChange={(event) => onChange("fromBar", event.target.value)}
             disabled={disabled}
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label htmlFor={`${idPrefix}-to-bar`}>To bar</Label>
           <Input
             id={`${idPrefix}-to-bar`}
             inputMode="decimal"
+            className="text-numeric"
             value={values.toBar}
             onChange={(event) => onChange("toBar", event.target.value)}
             disabled={disabled}
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label htmlFor={`${idPrefix}-bars-overlap`}>Overlap</Label>
           <Input
             id={`${idPrefix}-bars-overlap`}
             inputMode="decimal"
+            className="text-numeric"
             value={values.barsOverlap}
             onChange={(event) => onChange("barsOverlap", event.target.value)}
             disabled={disabled}
@@ -137,7 +140,7 @@ export function TransitionFields({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label htmlFor={`${idPrefix}-technique`}>Technique</Label>
           <Input
             id={`${idPrefix}-technique`}
@@ -146,7 +149,7 @@ export function TransitionFields({
             disabled={disabled}
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label htmlFor={`${idPrefix}-intent`}>Intent</Label>
           <Input
             id={`${idPrefix}-intent`}
@@ -155,7 +158,7 @@ export function TransitionFields({
             disabled={disabled}
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label htmlFor={`${idPrefix}-quality`}>Quality</Label>
           <Input
             id={`${idPrefix}-quality`}
@@ -166,7 +169,7 @@ export function TransitionFields({
         </div>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label htmlFor={`${idPrefix}-notes`}>Notes</Label>
         <Textarea
           id={`${idPrefix}-notes`}

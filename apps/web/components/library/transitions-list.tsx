@@ -214,7 +214,7 @@ export function TransitionsList() {
 
         {!error || hasFilters ? (
           <div className="flex min-h-7 items-center justify-between gap-4">
-            <p className="text-muted-foreground text-xs" aria-live="polite">
+            <p className="text-caption" aria-live="polite">
               {isInitialLoading
                 ? "Loading transitions…"
                 : error
@@ -230,8 +230,8 @@ export function TransitionsList() {
       <section aria-label="Transitions">
         {error && transitions.length === 0 && pendingProposals.length === 0 ? (
           <div className="border-border bg-surface-1 rounded-xl border px-5 py-6">
-            <h2 className="font-medium">Transitions unavailable</h2>
-            <p className="text-muted-foreground mt-1 max-w-xl text-sm">{error}</p>
+            <h2 className="text-card-title">Transitions unavailable</h2>
+            <p className="text-body text-muted-foreground mt-1 max-w-xl">{error}</p>
           </div>
         ) : isInitialLoading ? (
           <div
@@ -244,7 +244,7 @@ export function TransitionsList() {
           <div className="space-y-6">
             {visiblePending.length > 0 ? (
               <div className="space-y-3">
-                <h2 className="text-sm font-medium">Needs review</h2>
+                <h2 className="text-eyebrow">Needs review</h2>
                 <ul className="space-y-2">
                   {visiblePending.map((proposal) => (
                     <li key={proposal.id}>
@@ -259,7 +259,7 @@ export function TransitionsList() {
                         </p>
                         <div className="flex flex-wrap items-center gap-2">
                           <ProposalStatusBadge status={proposal.status} />
-                          <span className="text-muted-foreground text-xs">
+                          <span className="text-caption text-numeric">
                             {formatTimestamp(proposal.updatedAt)}
                           </span>
                         </div>
@@ -270,8 +270,8 @@ export function TransitionsList() {
               </div>
             ) : needsReviewOnly ? (
               <div className="border-border rounded-xl border px-5 py-10">
-                <h2 className="font-medium">No proposals need review</h2>
-                <p className="text-muted-foreground mt-1 text-sm">
+                <h2 className="text-card-title">No proposals need review</h2>
+                <p className="text-body text-muted-foreground mt-1">
                   Committed transitions are hidden while this filter is on.
                 </p>
               </div>
@@ -280,7 +280,7 @@ export function TransitionsList() {
             {showCommitted ? (
               <div className="space-y-3">
                 {visiblePending.length > 0 ? (
-                  <h2 className="text-sm font-medium">Committed transitions</h2>
+                  <h2 className="text-section-title">Committed transitions</h2>
                 ) : null}
                 <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
                   {transitions.map((transition) => (
@@ -290,7 +290,7 @@ export function TransitionsList() {
                         className="hover:bg-surface-2 flex flex-col gap-2 px-4 py-3 transition-colors"
                       >
                         <div className="min-w-0">
-                          <p className="truncate font-medium">
+                          <p className="text-card-title truncate">
                             {transition.fromTrack.title}
                             <span className="text-muted-foreground font-normal"> → </span>
                             {transition.toTrack.title}
@@ -311,7 +311,7 @@ export function TransitionsList() {
                           {transition.proposal?.status === "needs_review" ? (
                             <Badge variant="destructive">Needs review</Badge>
                           ) : null}
-                          <span className="text-muted-foreground text-xs">
+                          <span className="text-caption text-numeric">
                             {formatTimestamp(transition.createdAt)}
                           </span>
                         </div>
@@ -321,10 +321,10 @@ export function TransitionsList() {
                   {hasFetched && transitions.length === 0 && !needsReviewOnly ? (
                     <li className="flex flex-col items-start gap-3 px-5 py-10">
                       <div>
-                        <h2 className="font-medium">
+                        <h2 className="text-card-title">
                           {hasFilters ? "No matching transitions" : "No transitions yet"}
                         </h2>
-                        <p className="text-muted-foreground mt-1 text-sm">
+                        <p className="text-body text-muted-foreground mt-1">
                           {hasFilters
                             ? "Try clearing a filter or searching for something else."
                             : "Add a transition note to start capturing mix knowledge."}
