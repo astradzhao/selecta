@@ -129,6 +129,8 @@ export type UpdateSequenceInput = {
   kind?: BlockKind;
   title?: string;
   description?: string | null;
+  /** When set, update is rejected with `conflict` if `blocks.updatedAt` does not match. */
+  expectedUpdatedAt?: Date;
 };
 
 export type AddSequenceStepInput = {
@@ -257,6 +259,27 @@ async function requireSequenceRow(sequenceId: string): Promise<BlockRow> {
     throw new MusicWriteError("not_found", `Sequence "${id}" was not found.`);
   }
   return row;
+}
+
+async function assertExpectedUpdatedAt(
+  sequenceId: string,
+  expectedUpdatedAt: Date | undefined,
+): Promise<void> {
+  if (!expectedUpdatedAt) {
+    return;
+  }
+  if (Number.isNaN(expectedUpdatedAt.getTime())) {
+    throw new MusicWriteError("invalid_input", "expectedUpdatedAt must be a valid ISO date.");
+  }
+  const [matched] = await getExecutor()
+    .select({ id: blocks.id })
+    .from(blocks)
+    .where(and(eq(blocks.id, sequenceId), eq(blocks.updatedAt, expectedUpdatedAt)))
+    .limit(1);
+  if (!matched) {
+    await requireSequenceRow(sequenceId);
+    throw new MusicWriteError("conflict", "Sequence was updated elsewhere.");
+  }
 }
 
 async function requireTrackIds(trackIds: string[]): Promise<void> {
@@ -1148,6 +1171,7 @@ export async function updateSequence(
   }
   return runInDbTransaction(async () => {
     await requireSequenceRow(sequenceId);
+    await assertExpectedUpdatedAt(sequenceId, input.expectedUpdatedAt);
     const patch: {
       updatedAt: Date;
       kind?: BlockKind;
@@ -1211,6 +1235,7 @@ export async function deleteSequence(sequenceId: string): Promise<{ id: string; 
       throw new MusicWriteError(
         "conflict",
         `Sequence is used as a connector by: ${names}. Detach or remove those references first.`,
+        { referrers },
       );
     }
     const deleted = await getExecutor()
@@ -1368,12 +1393,14 @@ export async function deleteSequenceStep(
 export async function reorderSequence(
   sequenceId: string,
   stepIds: string[],
+  expectedUpdatedAt?: Date,
 ): Promise<SequenceDetail> {
   if (!Array.isArray(stepIds)) {
     throw new MusicWriteError("invalid_input", "stepIds must be an array of step ids.");
   }
   return runInDbTransaction(async () => {
     await requireSequenceRow(sequenceId);
+    await assertExpectedUpdatedAt(sequenceId, expectedUpdatedAt);
     const steps = await loadOrderedSteps(sequenceId);
     const current = new Set(steps.map((step) => step.id));
     const incoming = new Set(stepIds);

@@ -15,7 +15,7 @@ export {
   type TransitionTechnique,
   type GapState,
 } from "./constants";
-export { MusicWriteError, isMusicWriteError } from "./errors";
+export { MusicWriteError, isMusicWriteError, sequenceMusicWriteStatus } from "./errors";
 export {
   DEFAULT_LIST_LIMIT,
   MAX_LIST_LIMIT,
