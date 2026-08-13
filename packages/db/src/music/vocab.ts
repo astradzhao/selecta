@@ -1,4 +1,4 @@
-import { eq, sql, asc } from "drizzle-orm";
+import { eq, sql, asc, type SQLWrapper } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
@@ -209,7 +209,7 @@ export async function resolveFolderRef(
 }
 
 /** Match when every whitespace-separated token appears in the name (order-independent). */
-function vocabNameWhere(column: typeof genres.name, query: string | undefined) {
+function vocabNameWhere(column: SQLWrapper, query: string | undefined) {
   const tokens = query?.trim() ? normalizeName(query).split(" ").filter(Boolean) : [];
   if (tokens.length === 0) {
     return undefined;

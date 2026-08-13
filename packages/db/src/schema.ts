@@ -1,5 +1,8 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
+  boolean,
+  check,
   index,
   integer,
   jsonb,
@@ -74,6 +77,12 @@ export const proposalReviewActionEnum = pgEnum("proposal_review_action", [
  * `section` was dropped — only folders and playlists are product concepts.
  */
 export const folderKindEnum = pgEnum("folder_kind", ["folder", "playlist"]);
+
+/**
+ * Sequence kind on `blocks` (DJ-111). Filter label only — blocks and sets share
+ * one rule set. `set` is a night; `block` is a reusable run offered as a connector.
+ */
+export const blockKindEnum = pgEnum("block_kind", ["block", "set"]);
 
 /**
  * Single-user MVP Postgres surface (product language: submission).
@@ -559,6 +568,9 @@ export const tracksRelations = relations(tracks, ({ many }) => ({
   noteTrackLinks: many(noteTrackLinks),
   outboundTransitions: many(transitions, { relationName: "fromTrack" }),
   inboundTransitions: many(transitions, { relationName: "toTrack" }),
+  sequenceStarts: many(blocks, { relationName: "blockStartTrack" }),
+  sequenceEnds: many(blocks, { relationName: "blockEndTrack" }),
+  sequenceSteps: many(blockSteps),
   transitionCommitsFrom: many(noteTransitionCommits, {
     relationName: "transitionCommitFromTrack",
   }),
@@ -634,7 +646,152 @@ export const trackFoldersRelations = relations(trackFolders, ({ one }) => ({
   }),
 }));
 
-export const transitionsRelations = relations(transitions, ({ one }) => ({
+/**
+ * Ordered, composable path through the transition graph (DJ-111 / SET-1).
+ * `kind` is a filter label (`block` | `set`) with no behavioral rules of its own.
+ * `startTrackId` / `endTrackId` / `isComplete` are derived caches — never authored.
+ */
+export const blocks = pgTable(
+  "blocks",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    kind: blockKindEnum("kind").notNull().default("block"),
+    title: text("title").notNull(),
+    description: text("description"),
+    startTrackId: text("start_track_id").references(() => tracks.id, { onDelete: "set null" }),
+    endTrackId: text("end_track_id").references(() => tracks.id, { onDelete: "set null" }),
+    isComplete: boolean("is_complete").notNull().default(false),
+    libraryId: text("library_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [index("blocks_endpoints_idx").on(t.startTrackId, t.endTrackId)],
+);
+
+/**
+ * One track in a sequence. Connectors annotate the join *into* this step.
+ * `position` is an ordering hint, not identity — not unique (DJ-111 §5.4).
+ */
+export const blockSteps = pgTable(
+  "block_steps",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    blockId: text("block_id")
+      .notNull()
+      .references(() => blocks.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    trackId: text("track_id")
+      .notNull()
+      .references(() => tracks.id, { onDelete: "cascade" }),
+    inTransitionId: text("in_transition_id").references(() => transitions.id, {
+      onDelete: "set null",
+    }),
+    inBlockId: text("in_block_id").references((): AnyPgColumn => blocks.id, {
+      onDelete: "set null",
+    }),
+    isSeam: boolean("is_seam").notNull().default(false),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    check(
+      "block_steps_single_connector",
+      sql`NOT (${t.inTransitionId} IS NOT NULL AND ${t.inBlockId} IS NOT NULL)`,
+    ),
+    index("block_steps_block_position_idx").on(t.blockId, t.position),
+    index("block_steps_track_idx").on(t.trackId),
+    index("block_steps_in_transition_idx").on(t.inTransitionId),
+    index("block_steps_in_block_idx").on(t.inBlockId),
+  ],
+);
+
+/**
+ * Substitutable span: one connector replaces `fromStepId..toStepId` on the primary line.
+ * Spans are anchored to step IDs, never positions (DJ-111 §5.3).
+ */
+export const blockAlternates = pgTable(
+  "block_alternates",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    blockId: text("block_id")
+      .notNull()
+      .references(() => blocks.id, { onDelete: "cascade" }),
+    label: text("label"),
+    fromStepId: text("from_step_id")
+      .notNull()
+      .references(() => blockSteps.id, { onDelete: "cascade" }),
+    toStepId: text("to_step_id")
+      .notNull()
+      .references(() => blockSteps.id, { onDelete: "cascade" }),
+    altTransitionId: text("alt_transition_id").references(() => transitions.id, {
+      onDelete: "cascade",
+    }),
+    altBlockId: text("alt_block_id").references(() => blocks.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    check(
+      "block_alternates_single_connector",
+      sql`(${t.altTransitionId} IS NULL) <> (${t.altBlockId} IS NULL)`,
+    ),
+    index("block_alternates_block_idx").on(t.blockId),
+  ],
+);
+
+/** Named selection of alternates — not a copy of the sequence. */
+export const blockVersions = pgTable(
+  "block_versions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    blockId: text("block_id")
+      .notNull()
+      .references(() => blocks.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [index("block_versions_block_idx").on(t.blockId)],
+);
+
+export const blockVersionChoices = pgTable(
+  "block_version_choices",
+  {
+    versionId: text("version_id")
+      .notNull()
+      .references(() => blockVersions.id, { onDelete: "cascade" }),
+    alternateId: text("alternate_id")
+      .notNull()
+      .references(() => blockAlternates.id, { onDelete: "cascade" }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.versionId, t.alternateId] }),
+    index("block_version_choices_alternate_idx").on(t.alternateId),
+  ],
+);
+
+export const transitionsRelations = relations(transitions, ({ one, many }) => ({
   fromTrack: one(tracks, {
     fields: [transitions.fromTrackId],
     references: [tracks.id],
@@ -652,6 +809,94 @@ export const transitionsRelations = relations(transitions, ({ one }) => ({
   sourceProposal: one(noteProposals, {
     fields: [transitions.sourceProposalId],
     references: [noteProposals.id],
+  }),
+  inboundSequenceSteps: many(blockSteps),
+  alternateUses: many(blockAlternates),
+}));
+
+export const blocksRelations = relations(blocks, ({ one, many }) => ({
+  startTrack: one(tracks, {
+    fields: [blocks.startTrackId],
+    references: [tracks.id],
+    relationName: "blockStartTrack",
+  }),
+  endTrack: one(tracks, {
+    fields: [blocks.endTrackId],
+    references: [tracks.id],
+    relationName: "blockEndTrack",
+  }),
+  steps: many(blockSteps),
+  alternates: many(blockAlternates),
+  versions: many(blockVersions),
+  usedAsStepConnector: many(blockSteps, { relationName: "stepInBlock" }),
+  usedAsAlternateConnector: many(blockAlternates, { relationName: "alternateInBlock" }),
+}));
+
+export const blockStepsRelations = relations(blockSteps, ({ one, many }) => ({
+  sequence: one(blocks, {
+    fields: [blockSteps.blockId],
+    references: [blocks.id],
+  }),
+  track: one(tracks, {
+    fields: [blockSteps.trackId],
+    references: [tracks.id],
+  }),
+  inTransition: one(transitions, {
+    fields: [blockSteps.inTransitionId],
+    references: [transitions.id],
+  }),
+  inBlock: one(blocks, {
+    fields: [blockSteps.inBlockId],
+    references: [blocks.id],
+    relationName: "stepInBlock",
+  }),
+  alternatesFrom: many(blockAlternates, { relationName: "alternateFromStep" }),
+  alternatesTo: many(blockAlternates, { relationName: "alternateToStep" }),
+}));
+
+export const blockAlternatesRelations = relations(blockAlternates, ({ one, many }) => ({
+  sequence: one(blocks, {
+    fields: [blockAlternates.blockId],
+    references: [blocks.id],
+  }),
+  fromStep: one(blockSteps, {
+    fields: [blockAlternates.fromStepId],
+    references: [blockSteps.id],
+    relationName: "alternateFromStep",
+  }),
+  toStep: one(blockSteps, {
+    fields: [blockAlternates.toStepId],
+    references: [blockSteps.id],
+    relationName: "alternateToStep",
+  }),
+  altTransition: one(transitions, {
+    fields: [blockAlternates.altTransitionId],
+    references: [transitions.id],
+  }),
+  altBlock: one(blocks, {
+    fields: [blockAlternates.altBlockId],
+    references: [blocks.id],
+    relationName: "alternateInBlock",
+  }),
+  versionChoices: many(blockVersionChoices),
+}));
+
+export const blockVersionsRelations = relations(blockVersions, ({ one, many }) => ({
+  sequence: one(blocks, {
+    fields: [blockVersions.blockId],
+    references: [blocks.id],
+  }),
+  choices: many(blockVersionChoices),
+}));
+
+export const blockVersionChoicesRelations = relations(blockVersionChoices, ({ one }) => ({
+  version: one(blockVersions, {
+    fields: [blockVersionChoices.versionId],
+    references: [blockVersions.id],
+  }),
+  alternate: one(blockAlternates, {
+    fields: [blockVersionChoices.alternateId],
+    references: [blockAlternates.id],
   }),
 }));
 
@@ -697,3 +942,14 @@ export type NewTrackFolder = typeof trackFolders.$inferInsert;
 /** Raw `transitions` table row (distinct from hydrated `TransitionRecord` in PG-3). */
 export type TransitionRow = typeof transitions.$inferSelect;
 export type NewTransitionRow = typeof transitions.$inferInsert;
+export type BlockKind = (typeof blockKindEnum.enumValues)[number];
+export type BlockRow = typeof blocks.$inferSelect;
+export type NewBlockRow = typeof blocks.$inferInsert;
+export type BlockStepRow = typeof blockSteps.$inferSelect;
+export type NewBlockStepRow = typeof blockSteps.$inferInsert;
+export type BlockAlternateRow = typeof blockAlternates.$inferSelect;
+export type NewBlockAlternateRow = typeof blockAlternates.$inferInsert;
+export type BlockVersionRow = typeof blockVersions.$inferSelect;
+export type NewBlockVersionRow = typeof blockVersions.$inferInsert;
+export type BlockVersionChoiceRow = typeof blockVersionChoices.$inferSelect;
+export type NewBlockVersionChoiceRow = typeof blockVersionChoices.$inferInsert;

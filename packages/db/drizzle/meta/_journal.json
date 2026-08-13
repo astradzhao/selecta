@@ -71,6 +71,13 @@
       "when": 1786120000000,
       "tag": "0009_proposal_review",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786590129760,
+      "tag": "0010_blocks",
+      "breakpoints": true
     }
   ]
 }
