@@ -15,6 +15,7 @@ import {
   getSequenceDetail,
   listSequences,
   reorderSequence,
+  updateSequence,
   updateSequenceStep,
 } from "./blocks";
 import { createTrack, deleteTrackById } from "./tracks";
@@ -519,9 +520,50 @@ describe("sequence module invariants", { skip: !pgIntegration }, () => {
     });
     await assert.rejects(
       () => deleteSequence(child.id),
-      (error: unknown) => isMusicWriteError(error) && error.code === "conflict",
+      (error: unknown) =>
+        isMusicWriteError(error) &&
+        error.code === "conflict" &&
+        Array.isArray(error.details?.referrers) &&
+        error.details.referrers.some(
+          (row) => typeof row === "object" && row !== null && "id" in row && row.id === parent.id,
+        ),
     );
     await updateSequenceStep(parent.id, stepByTrack(parent, b.track.id).id, { inBlockId: null });
     await deleteSequence(child.id);
+  });
+
+  it("rejects a stale expectedUpdatedAt on update and reorder", async () => {
+    const a = await track("A");
+    const b = await track("B");
+    const sequence = await createSequence({
+      title: `CAS ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, b.track.id] },
+    });
+    const stale = new Date(Date.parse(sequence.updatedAt) - 60_000);
+
+    await assert.rejects(
+      () => updateSequence(sequence.id, { title: "stale", expectedUpdatedAt: stale }),
+      (error: unknown) => isMusicWriteError(error) && error.code === "conflict",
+    );
+
+    const fresh = await getSequenceDetail(sequence.id);
+    const renamed = await updateSequence(sequence.id, {
+      title: "fresh",
+      expectedUpdatedAt: new Date(fresh.updatedAt),
+    });
+    assert.equal(renamed.title, "fresh");
+
+    await assert.rejects(
+      () => reorderSequence(sequence.id, sequence.steps.map((step) => step.id).reverse(), stale),
+      (error: unknown) => isMusicWriteError(error) && error.code === "conflict",
+    );
+
+    const current = await getSequenceDetail(sequence.id);
+    const reordered = await reorderSequence(
+      current.id,
+      current.steps.map((step) => step.id).reverse(),
+      new Date(current.updatedAt),
+    );
+    assert.equal(reordered.steps[0]!.id, current.steps[1]!.id);
   });
 });
