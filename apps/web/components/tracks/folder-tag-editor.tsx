@@ -126,7 +126,7 @@ export function FolderTagEditor({
             <button
               key={`suggest-${item.id}`}
               type="button"
-              className="border-border bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground inline-flex w-fit items-center rounded-md border px-2 py-0.5 text-xs transition-colors"
+              className="border-border bg-surface-2 hover:bg-surface-3 text-muted-foreground hover:text-foreground inline-flex w-fit items-center rounded-md border px-2 py-0.5 text-xs transition-colors"
               onClick={() =>
                 addFolder(
                   item.name,

@@ -106,7 +106,10 @@ export function NewNoteForm({ embedded = false }: { embedded?: boolean } = {}) {
         </div>
 
         {error ? (
-          <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm" role="alert">
+          <p
+            className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm"
+            role="alert"
+          >
             {error}
           </p>
         ) : null}

@@ -34,7 +34,7 @@ export function AppShell({
                     "rounded-md px-3 py-1.5 text-sm transition-colors",
                     active
                       ? "bg-selected text-selected-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
                   )}
                 >
                   {link.label}

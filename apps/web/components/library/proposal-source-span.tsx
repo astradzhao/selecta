@@ -38,7 +38,7 @@ function renderHighlightedText(rawText: string, spans: HighlightSpan[]) {
           "rounded-sm px-0.5",
           span.emphasis === "primary"
             ? "bg-highlight text-highlight-foreground"
-            : "bg-muted/80 text-muted-foreground",
+            : "bg-surface-3 text-muted-foreground",
         )}
       >
         {rawText.slice(span.start, span.end)}
@@ -77,7 +77,7 @@ export function ProposalSourceSpan({
         <p className="text-muted-foreground text-xs">
           Couldn&apos;t locate this span in the submission text.
         </p>
-        <p className="border-border bg-muted/20 rounded-md border px-3 py-2 text-sm whitespace-pre-wrap">
+        <p className="border-border bg-surface-1 rounded-md border px-3 py-2 text-sm whitespace-pre-wrap">
           {sourceText}
         </p>
       </div>
@@ -95,7 +95,7 @@ export function ProposalSourceSpan({
   return (
     <p
       className={cn(
-        "border-border bg-muted/20 rounded-md border px-3 py-2 text-sm whitespace-pre-wrap",
+        "border-border bg-surface-1 rounded-md border px-3 py-2 text-sm whitespace-pre-wrap",
         className,
       )}
     >

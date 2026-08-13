@@ -112,7 +112,9 @@ export function TrackPickerDialog({
           </div>
 
           {error ? (
-            <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm">{error}</p>
+            <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm">
+              {error}
+            </p>
           ) : null}
 
           <div
@@ -148,7 +150,7 @@ export function TrackPickerDialog({
                         onClick={() => setSelectedId(track.id)}
                         className={cn(
                           "flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors duration-200",
-                          "hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none",
+                          "hover:bg-surface-3 focus-visible:bg-surface-3 focus-visible:outline-none",
                           active && "bg-muted",
                         )}
                       >
@@ -172,7 +174,7 @@ export function TrackPickerDialog({
                         <span
                           className={cn(
                             "border-border size-4 shrink-0 rounded-full border transition-all duration-200",
-                            active && "border-foreground bg-foreground scale-110",
+                            active && "border-selected bg-selected scale-110",
                           )}
                           aria-hidden
                         />
@@ -227,7 +229,7 @@ export function GraphLanding({ onStart }: { onStart: (trackId: string) => void }
             "pointer-events-none opacity-0 transition-all duration-300 motion-safe:-translate-y-2",
         )}
       >
-        <div className="border-border/80 bg-muted/20 mb-8 flex size-20 items-center justify-center rounded-full border">
+        <div className="border-border/80 bg-surface-1 mb-8 flex size-20 items-center justify-center rounded-full border">
           <div className="border-foreground/25 relative size-10">
             <span className="bg-foreground absolute top-1/2 left-0 h-px w-full -translate-y-1/2" />
             <span className="bg-foreground absolute top-0 left-1/2 h-full w-px -translate-x-1/2" />

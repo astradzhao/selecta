@@ -294,8 +294,9 @@ relative luminance.
 | `--muted-foreground` on `--background`       | dark  |  7.63:1 | pass                  |
 
 The ticket's starting brand `oklch(0.62 0.19 264)` + white was 3.60:1 and was
-rejected. `bg-muted/NN` sites were **not** swept; later tickets consume
-`--surface-*`.
+rejected. `bg-muted/NN` sites were swept to `--surface-*` after review
+(`/20` `/30` → `surface-1`, `/40` `/50` → `surface-2`, `/60` `/80` →
+`surface-3`).
 
 ### Text roles
 

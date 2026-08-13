@@ -3,7 +3,8 @@
 > Ticket: [DJ-93 — UI-1: Semantic color schema](https://linear.app/dj-project-astradzhao/issue/DJ-93)
 > Parent epic: [DJ-92 — UI Cleanup](https://linear.app/dj-project-astradzhao/issue/DJ-92)
 > Epic plan: [`UI_CLEANUP_PLAN.md`](./UI_CLEANUP_PLAN.md)
-> Status: **implemented on `dj-93`.** Decisions D1–D7 landed as recommended.
+> Status: **implemented on `dj-93`.** Decisions D1, D2, D4–D7 landed as
+> recommended. D3 was opted in on review: `bg-muted/NN` swept to `--surface-*`.
 > Blocks: DJ-96 (UI-2), DJ-95 (UI-3), DJ-100 (UI-5)
 
 This is the foundation ticket for the UI cleanup. UI-2 through UI-14 assume
@@ -138,12 +139,10 @@ Say so if you want to see brand in the product in this PR.
 
 ### D3 — Sweep `bg-muted/NN` → `bg-surface-*` in this ticket?
 
-**Recommend: no.** Define the tokens and the mapping table (§5.3). Leave
-consumption to UI-6 / UI-8, which already rewrite those files. A 20-file
-opacity sweep in the foundation PR hides the token work and will look
-slightly different (opaque named surfaces vs. translucent `muted`).
-
-Opt in if you want the vocabulary locked before those tickets start.
+**Recommend: no.** *(Opted in on review.)* Define the tokens and the mapping
+table, then sweep call sites so later tickets cannot copy the opacity
+guesswork. Opaque `--surface-*` will look slightly different from
+translucent `muted`.
 
 ### D4 — Button / Badge variants to add now
 
@@ -368,7 +367,7 @@ before commit) and repeat the same pages. Do not install `next-themes`
 - PageHeader / StatePanel / EmptyState / SegmentedTabs (UI-6)
 - Remapping status enums onto success/warning (UI-10)
 - Domain color encoding (BPM heat, Camelot wheel, per-genre) — never this epic
-- Sweeping `bg-muted/NN` (unless D3 is opted in)
+- Sweeping `bg-muted/NN` *(done on review — mapped to `--surface-*`)*
 - Painting default Buttons with brand (unless D1 is overridden)
 - Tests — token CSS has no silent-break behavior a unit test would catch
   that typecheck / the acceptance grep would miss
