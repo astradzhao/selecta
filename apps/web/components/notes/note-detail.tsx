@@ -361,22 +361,19 @@ function ProposalCard({ proposal, index }: { proposal: ExtractionProposalSummary
               <ul className="space-y-1 text-xs">
                 {proposal.reviewReasons?.map((reason, reasonIndex) =>
                   reason.message ? (
-                    <li
-                      key={`${proposal.id}-reason-${reasonIndex}`}
-                      className="text-amber-700 dark:text-amber-400"
-                    >
+                    <li key={`${proposal.id}-reason-${reasonIndex}`} className="text-warning">
                       {reason.code ? `${reason.code}: ` : null}
                       {reason.message}
                     </li>
                   ) : null,
                 )}
                 {proposal.error ? (
-                  <li className="text-red-700 dark:text-red-400" role="alert">
+                  <li className="text-destructive" role="alert">
                     {proposal.error}
                   </li>
                 ) : null}
                 {proposal.commitError ? (
-                  <li className="text-red-700 dark:text-red-400" role="alert">
+                  <li className="text-destructive" role="alert">
                     commit: {proposal.commitError}
                   </li>
                 ) : null}

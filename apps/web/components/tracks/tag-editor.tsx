@@ -103,7 +103,7 @@ export function TagEditor({
               {item.name}
               <button
                 type="button"
-                className="rounded-full p-0.5 hover:bg-black/10"
+                className="rounded-full p-0.5 hover:bg-overlay"
                 aria-label={`Remove ${item.name}`}
                 onClick={() => onChange(values.filter((v) => v.name !== item.name))}
               >

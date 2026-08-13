@@ -37,7 +37,7 @@ function renderHighlightedText(rawText: string, spans: HighlightSpan[]) {
         className={cn(
           "rounded-sm px-0.5",
           span.emphasis === "primary"
-            ? "bg-amber-200/80 text-foreground dark:bg-amber-500/30"
+            ? "bg-highlight text-highlight-foreground"
             : "bg-muted/80 text-muted-foreground",
         )}
       >
