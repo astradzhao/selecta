@@ -246,7 +246,7 @@ export function SubmissionsList() {
 
       <section aria-label="Submissions">
         {error && submissions.length === 0 ? (
-          <div className="border-border bg-muted/30 rounded-xl border px-5 py-6">
+          <div className="border-border bg-surface-1 rounded-xl border px-5 py-6">
             <h2 className="font-medium">Submissions unavailable</h2>
             <p className="text-muted-foreground mt-1 max-w-xl text-sm">{error}</p>
           </div>
@@ -266,7 +266,7 @@ export function SubmissionsList() {
                   <li key={submission.id}>
                     <Link
                       href={`/library/submissions/${submission.id}`}
-                      className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-3 transition-colors"
+                      className="hover:bg-surface-2 flex flex-col gap-2 px-4 py-3 transition-colors"
                     >
                       <p className="line-clamp-2 font-medium text-pretty">
                         {submissionPreview(submission.rawText)}

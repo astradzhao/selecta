@@ -57,7 +57,7 @@ export function ProposalSiblings({
 
           if (isCurrent) {
             return (
-              <li key={proposal.id} className="bg-muted/40 px-4 py-3" aria-current="page">
+              <li key={proposal.id} className="bg-surface-2 px-4 py-3" aria-current="page">
                 {row}
                 <p className="text-muted-foreground mt-1 text-xs">Reviewing now</p>
               </li>
@@ -68,7 +68,7 @@ export function ProposalSiblings({
             <li key={proposal.id}>
               <Link
                 href={siblingHref(noteId, proposal)}
-                className="hover:bg-muted/50 block px-4 py-3 transition-colors"
+                className="hover:bg-surface-2 block px-4 py-3 transition-colors"
               >
                 {row}
               </Link>

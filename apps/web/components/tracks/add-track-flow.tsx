@@ -180,7 +180,7 @@ export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) 
           </div>
 
           {visibleSearchError ? (
-            <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm">
+            <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm">
               {visibleSearchError}
             </p>
           ) : null}
@@ -190,7 +190,7 @@ export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) 
               <li key={`${track.provider}:${track.providerId}`}>
                 <button
                   type="button"
-                  className="hover:bg-muted/50 flex w-full items-center gap-3 px-3 py-3 text-left transition-colors"
+                  className="hover:bg-surface-2 flex w-full items-center gap-3 px-3 py-3 text-left transition-colors"
                   onClick={() => openReview(track)}
                 >
                   <div className="bg-muted relative size-12 shrink-0 overflow-hidden rounded-md">
@@ -288,7 +288,7 @@ export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) 
           <FolderTagEditor values={folders} onChange={setFolders} />
 
           {saveError ? (
-            <p className="border-destructive/30 bg-destructive/5 text-destructive rounded-lg border px-3 py-2 text-sm">
+            <p className="border-destructive/30 bg-destructive-subtle text-destructive rounded-lg border px-3 py-2 text-sm">
               {saveError}
             </p>
           ) : null}

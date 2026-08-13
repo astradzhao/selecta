@@ -290,7 +290,7 @@ function ProposalCard({ proposal, index }: { proposal: ExtractionProposalSummary
         aria-expanded={expanded}
         aria-controls={panelId}
         onClick={() => setExpanded((value) => !value)}
-        className="hover:bg-muted/40 flex w-full items-start gap-2 px-3 py-2.5 text-left transition-colors"
+        className="hover:bg-surface-2 flex w-full items-start gap-2 px-3 py-2.5 text-left transition-colors"
       >
         <span
           className={cn(
@@ -361,22 +361,19 @@ function ProposalCard({ proposal, index }: { proposal: ExtractionProposalSummary
               <ul className="space-y-1 text-xs">
                 {proposal.reviewReasons?.map((reason, reasonIndex) =>
                   reason.message ? (
-                    <li
-                      key={`${proposal.id}-reason-${reasonIndex}`}
-                      className="text-amber-700 dark:text-amber-400"
-                    >
+                    <li key={`${proposal.id}-reason-${reasonIndex}`} className="text-warning">
                       {reason.code ? `${reason.code}: ` : null}
                       {reason.message}
                     </li>
                   ) : null,
                 )}
                 {proposal.error ? (
-                  <li className="text-red-700 dark:text-red-400" role="alert">
+                  <li className="text-destructive" role="alert">
                     {proposal.error}
                   </li>
                 ) : null}
                 {proposal.commitError ? (
-                  <li className="text-red-700 dark:text-red-400" role="alert">
+                  <li className="text-destructive" role="alert">
                     commit: {proposal.commitError}
                   </li>
                 ) : null}
@@ -415,7 +412,7 @@ function ExtractionDebug({ note, readOnly = false }: { note: ApiNote; readOnly?:
 
   return (
     <section
-      className="border-border bg-muted/30 space-y-4 rounded-lg border px-3 py-3"
+      className="border-border bg-surface-1 space-y-4 rounded-lg border px-3 py-3"
       aria-live="polite"
     >
       <div className="space-y-1">
@@ -579,7 +576,7 @@ export function NoteDetail({ noteId, readOnly = false }: { noteId: string; readO
   if (loadError || !note) {
     return (
       <div className="space-y-4">
-        <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm">
+        <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm">
           {loadError ?? `${EntityLabel} not found.`}
         </p>
         <Button asChild variant="outline">
@@ -617,7 +614,7 @@ export function NoteDetail({ noteId, readOnly = false }: { noteId: string; readO
             id="submission-raw-text"
             value={note.rawText}
             readOnly
-            className="bg-muted/20 min-h-56"
+            className="bg-surface-1 min-h-56"
           />
           <p className="text-muted-foreground text-xs">
             Submissions are immutable. Edit committed transitions or resolve review items instead.
@@ -648,7 +645,7 @@ export function NoteDetail({ noteId, readOnly = false }: { noteId: string; readO
 
           {saveError ? (
             <p
-              className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm"
+              className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm"
               role="alert"
             >
               {saveError}

@@ -161,7 +161,7 @@ function BarStrip({ transition }: { transition: ApiTransitionEdge }) {
         </p>
       </div>
       <div
-        className="border-border bg-muted/40 relative flex h-6 items-end gap-px overflow-hidden rounded-md border px-1 py-1"
+        className="border-border bg-surface-2 relative flex h-6 items-end gap-px overflow-hidden rounded-md border px-1 py-1"
         role="img"
         aria-label={[
           fromBar != null ? `Leave at bar ${fromBar}` : null,
@@ -392,8 +392,8 @@ function NeighborCard({
         className={cn(
           "bg-background flex w-full items-start gap-3 px-4 py-3.5 text-left",
           "transition-colors duration-300",
-          "hover:bg-muted/50 focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
-          expanded && "bg-muted/30",
+          "hover:bg-surface-2 focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
+          expanded && "bg-surface-1",
         )}
       >
         <Artwork
@@ -495,8 +495,8 @@ function NeighborCard({
                       className={cn(
                         "rounded-md border px-2.5 py-1 text-left text-xs transition-colors",
                         selectedEdge
-                          ? "border-foreground/40 bg-muted/50"
-                          : "border-border hover:bg-muted/30",
+                          ? "border-foreground/40 bg-surface-2"
+                          : "border-border hover:bg-surface-1",
                       )}
                     >
                       <span className="font-medium">{label}</span>
@@ -688,7 +688,7 @@ function AddTransitionPanel({
   }
 
   return (
-    <div className="border-border bg-muted/20 space-y-4 rounded-2xl border px-4 py-4">
+    <div className="border-border bg-surface-1 space-y-4 rounded-2xl border px-4 py-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium">Add transition</p>
@@ -739,7 +739,7 @@ function AddTransitionPanel({
                 <li key={track.id}>
                   <button
                     type="button"
-                    className="hover:bg-muted/50 w-full rounded-md px-2 py-1.5 text-left text-sm"
+                    className="hover:bg-surface-2 w-full rounded-md px-2 py-1.5 text-left text-sm"
                     onClick={() => {
                       setSelected(track);
                       setQuery("");
@@ -937,7 +937,7 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
   if (error || !current) {
     return (
       <div className="motion-safe:animate-in motion-safe:fade-in-0 space-y-4 duration-500">
-        <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm">
+        <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm">
           {error ?? "Track not found."}
         </p>
         <div className="flex flex-wrap gap-3">
@@ -1096,7 +1096,7 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
           ) : null}
 
           {neighbors.length === 0 ? (
-            <div className="border-border bg-muted/20 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 space-y-3 rounded-2xl border border-dashed px-5 py-10 text-center duration-500">
+            <div className="border-border bg-surface-1 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 space-y-3 rounded-2xl border border-dashed px-5 py-10 text-center duration-500">
               <p className="text-sm font-medium">No outbound transitions yet</p>
               <p className="text-muted-foreground mx-auto max-w-sm text-sm text-pretty">
                 Add a transition to a library track, or capture a mix note that links this song

@@ -55,8 +55,8 @@ export function AddWorkspace({ mode }: { mode: AddMode }) {
                 className={cn(
                   "rounded-md px-3 py-1.5 text-sm transition-colors",
                   isActive
-                    ? "bg-foreground text-background"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    ? "bg-selected text-selected-foreground"
+                    : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
                 )}
                 aria-current={isActive ? "page" : undefined}
               >

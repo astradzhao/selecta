@@ -10,14 +10,20 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/80",
+        brand: "bg-brand text-brand-foreground hover:bg-brand/80",
         outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "border-border bg-background hover:bg-surface-2 hover:text-foreground aria-expanded:bg-surface-2 aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+          "hover:bg-surface-2 hover:text-foreground aria-expanded:bg-surface-2 aria-expanded:text-foreground",
         destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
+          "bg-destructive-subtle text-destructive hover:bg-[color-mix(in_oklch,var(--destructive-subtle),var(--destructive)_12%)] focus-visible:border-destructive/40 focus-visible:ring-destructive/20",
+        success:
+          "bg-success-subtle text-success hover:bg-[color-mix(in_oklch,var(--success-subtle),var(--success)_12%)]",
+        warning:
+          "bg-warning-subtle text-warning hover:bg-[color-mix(in_oklch,var(--warning-subtle),var(--warning)_12%)]",
+        info: "bg-info-subtle text-info hover:bg-[color-mix(in_oklch,var(--info-subtle),var(--info)_12%)]",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

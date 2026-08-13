@@ -103,7 +103,7 @@ export function TagEditor({
               {item.name}
               <button
                 type="button"
-                className="rounded-full p-0.5 hover:bg-black/10"
+                className="rounded-full p-0.5 hover:bg-overlay"
                 aria-label={`Remove ${item.name}`}
                 onClick={() => onChange(values.filter((v) => v.name !== item.name))}
               >
@@ -115,7 +115,7 @@ export function TagEditor({
             <button
               key={`suggest-${item.name}`}
               type="button"
-              className="border-border bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground inline-flex w-fit items-center rounded-md border px-2 py-0.5 text-xs transition-colors"
+              className="border-border bg-surface-2 hover:bg-surface-3 text-muted-foreground hover:text-foreground inline-flex w-fit items-center rounded-md border px-2 py-0.5 text-xs transition-colors"
               onClick={() => addTag(item.name)}
             >
               {item.name}

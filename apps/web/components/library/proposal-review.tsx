@@ -428,7 +428,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
   if (loadError || !proposal || !note) {
     return (
       <div className="space-y-4">
-        <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm">
+        <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm">
           {loadError ?? "Proposal not found."}
         </p>
         <Button asChild variant="outline">
@@ -505,7 +505,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
       </header>
 
       {conflictMessage ? (
-        <div className="border-border bg-muted/40 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm">
+        <div className="border-border bg-surface-2 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm">
           <span>{conflictMessage}</span>
           <Button type="button" size="sm" variant="outline" onClick={() => void reloadDetail()}>
             Reload
@@ -515,7 +515,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
 
       {actionError ? (
         <p
-          className="border-destructive/40 bg-destructive/5 rounded-lg border px-4 py-3 text-sm"
+          className="border-destructive/40 bg-destructive-subtle text-destructive rounded-lg border px-4 py-3 text-sm"
           role="alert"
         >
           {actionError}
@@ -523,13 +523,13 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
       ) : null}
 
       {statusNotice ? (
-        <p className="border-border bg-muted/40 text-muted-foreground rounded-lg border px-4 py-3 text-sm">
+        <p className="border-border bg-surface-2 text-muted-foreground rounded-lg border px-4 py-3 text-sm">
           {statusNotice}
         </p>
       ) : null}
 
       {proposal.status === "failed" ? (
-        <div className="border-destructive/40 bg-destructive/5 space-y-1 rounded-lg border px-4 py-3">
+        <div className="border-destructive/40 bg-destructive-subtle space-y-1 rounded-lg border px-4 py-3">
           <p className="text-sm font-medium">Extraction failed for this span</p>
           <p className="text-muted-foreground text-sm">
             {proposal.error ?? "No error detail was recorded."} You can still fill it in by hand
@@ -539,7 +539,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
       ) : null}
 
       {gateLines.length > 0 && !readOnly ? (
-        <section className="border-border bg-muted/30 space-y-2 rounded-lg border px-4 py-3">
+        <section className="border-border bg-surface-1 space-y-2 rounded-lg border px-4 py-3">
           <h2 className="text-sm font-medium">Why this needs review</h2>
           <ul className="text-muted-foreground space-y-1 text-sm">
             {gateLines.map((line, index) => (
@@ -647,7 +647,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
             </>
           ) : null}
         </dl>
-        <pre className="bg-muted/30 text-muted-foreground mt-4 overflow-x-auto rounded-md p-3 font-mono text-xs whitespace-pre-wrap">
+        <pre className="bg-surface-1 text-muted-foreground mt-4 overflow-x-auto rounded-md p-3 font-mono text-xs whitespace-pre-wrap">
           {JSON.stringify(proposal.raw, null, 2)}
         </pre>
       </details>

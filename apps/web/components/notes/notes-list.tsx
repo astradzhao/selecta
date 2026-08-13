@@ -83,7 +83,7 @@ export function NotesList() {
         </p>
 
         {error ? (
-          <div className="border-border bg-muted/30 rounded-xl border px-5 py-6">
+          <div className="border-border bg-surface-1 rounded-xl border px-5 py-6">
             <h2 className="font-medium">Notes unavailable</h2>
             <p className="text-muted-foreground mt-1 max-w-xl text-sm">{error}</p>
           </div>
@@ -93,7 +93,7 @@ export function NotesList() {
               <li key={note.id}>
                 <Link
                   href={`/notes/${note.id}`}
-                  className="hover:bg-muted/50 flex flex-col gap-1 px-4 py-3 transition-colors"
+                  className="hover:bg-surface-2 flex flex-col gap-1 px-4 py-3 transition-colors"
                 >
                   <p className="line-clamp-2 font-medium text-pretty">
                     {notePreview(note.rawText)}

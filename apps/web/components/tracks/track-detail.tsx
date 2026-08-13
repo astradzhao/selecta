@@ -130,7 +130,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
     return (
       <div className="space-y-4">
         <LibraryBackLink />
-        <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm">
+        <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm">
           {loadError ?? "Track not found."}
         </p>
       </div>
@@ -261,7 +261,10 @@ export function TrackDetail({ trackId }: { trackId: string }) {
         </div>
 
         {actionError ? (
-          <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm" role="alert">
+          <p
+            className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm"
+            role="alert"
+          >
             {actionError}
           </p>
         ) : null}
@@ -375,7 +378,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
 
           {saveError ? (
             <p
-              className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm"
+              className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm"
               role="alert"
             >
               {saveError}
@@ -403,7 +406,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
       </div>
 
       {actionError ? (
-        <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm" role="alert">
+        <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm" role="alert">
           {actionError}
         </p>
       ) : null}

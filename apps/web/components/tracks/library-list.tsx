@@ -192,7 +192,7 @@ export function LibraryList({ embedded = false }: { embedded?: boolean } = {}) {
 
       <section aria-label="Tracks">
         {error && tracks.length === 0 ? (
-          <div className="border-border bg-muted/30 rounded-xl border px-5 py-6">
+          <div className="border-border bg-surface-1 rounded-xl border px-5 py-6">
             <h2 className="font-medium">Library unavailable</h2>
             <p className="text-muted-foreground mt-1 max-w-xl text-sm">{error}</p>
           </div>
@@ -209,7 +209,7 @@ export function LibraryList({ embedded = false }: { embedded?: boolean } = {}) {
               <li key={track.id}>
                 <Link
                   href={`/tracks/${track.id}`}
-                  className="hover:bg-muted/50 flex items-center gap-3 px-4 py-3 transition-colors"
+                  className="hover:bg-surface-2 flex items-center gap-3 px-4 py-3 transition-colors"
                 >
                   <div className="bg-muted relative size-12 shrink-0 overflow-hidden rounded-md">
                     {track.artworkUrl ? (

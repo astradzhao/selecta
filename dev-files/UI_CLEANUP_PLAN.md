@@ -40,12 +40,12 @@ utilities are dead code.
 
 ## Decisions
 
-| Question              | Decision                                                                                          |
-| --------------------- | ------------------------------------------------------------------------------------------------- |
-| Color direction       | Neutral surfaces + **one brand hue** + semantic status scales. Domain color encoding out of scope. |
-| Dark mode             | **Support both** light and dark, wired with `next-themes`.                                        |
-| Legacy `/notes`       | **Delete.** Do it early so later tickets don't migrate doomed code.                                |
-| `graph-explorer.tsx`  | Own sub-issue (UI-13), sequenced near the end.                                                    |
+| Question             | Decision                                                                                           |
+| -------------------- | -------------------------------------------------------------------------------------------------- |
+| Color direction      | Neutral surfaces + **one brand hue** + semantic status scales. Domain color encoding out of scope. |
+| Dark mode            | **Support both** light and dark, wired with `next-themes`.                                         |
+| Legacy `/notes`      | **Delete.** Do it early so later tickets don't migrate doomed code.                                |
+| `graph-explorer.tsx` | Own sub-issue (UI-13), sequenced near the end.                                                     |
 
 Explicitly deferred: BPM/energy heat scales, Camelot/key color wheels, per-genre
 colors, waveform rendering. File separately if wanted.
@@ -54,34 +54,34 @@ colors, waveform rendering. File separately if wanted.
 
 ### Duplicated composites
 
-| Pattern                                | Copies | Notes                                                     |
-| -------------------------------------- | -----: | --------------------------------------------------------- |
-| Filtered list view shell               |      3 | `library-list` 261 + `submissions-list` 339 + `transitions-list` 365 lines |
-| Page header block                      |      6 | plus 3 `embedded` props existing only to suppress it      |
-| Search input with icon                 |     8+ | one uses `ps-9` where the rest use `pl-10`                |
-| Segmented tab nav                      |      4 | one adds `rounded-[5px]` + `shadow-sm`                    |
-| Track row rendering                    |      6 | artwork at 40px, 44px, **and** 48px                       |
-| Track search-and-pick flow             |      8 | debounce delays of 200ms, 220ms, and 280ms                |
-| Alert / message pattern                |      6 | **errors styled as neutral info** in ~15 files            |
-| Loading state                          |     11 | zero skeletons, zero spinners in the repo                 |
-| Empty state                            |      8 | one already extracted locally, never promoted             |
-| Detail-page breadcrumb                 |      3 | all bare `<p>`, none a `<nav>`                            |
-| Native `<select>` styled inline        |      3 | no `Select` primitive exists                              |
-| Native `<input type="checkbox">`       |      3 | no focus or disabled styling                              |
+| Pattern                          | Copies | Notes                                                                      |
+| -------------------------------- | -----: | -------------------------------------------------------------------------- |
+| Filtered list view shell         |      3 | `library-list` 261 + `submissions-list` 339 + `transitions-list` 365 lines |
+| Page header block                |      6 | plus 3 `embedded` props existing only to suppress it                       |
+| Search input with icon           |     8+ | one uses `ps-9` where the rest use `pl-10`                                 |
+| Segmented tab nav                |      4 | one adds `rounded-[5px]` + `shadow-sm`                                     |
+| Track row rendering              |      6 | artwork at 40px, 44px, **and** 48px                                        |
+| Track search-and-pick flow       |      8 | debounce delays of 200ms, 220ms, and 280ms                                 |
+| Alert / message pattern          |      6 | **errors styled as neutral info** in ~15 files                             |
+| Loading state                    |     11 | zero skeletons, zero spinners in the repo                                  |
+| Empty state                      |      8 | one already extracted locally, never promoted                              |
+| Detail-page breadcrumb           |      3 | all bare `<p>`, none a `<nav>`                                             |
+| Native `<select>` styled inline  |      3 | no `Select` primitive exists                                               |
+| Native `<input type="checkbox">` |      3 | no focus or disabled styling                                               |
 
 ### Duplicated logic
 
-| Helper                    | Copies | Notes                                                       |
-| ------------------------- | -----: | ----------------------------------------------------------- |
-| `formatTimestamp`         |      5 | byte-identical                                              |
-| `artistLine`              |      5 | one overloads for `string[]`                                |
-| `optionalNumber`          |      3 | one is **already exported** and ignored twice               |
-| preview-text truncator    |      5 | differ only in max length and fallback string               |
-| `isReviewable`            |      2 | identical                                                   |
-| Status label map          |      5 | across 2 enums                                              |
-| debounced-search block    |      8 | same `isFirstFetch` + `setTimeout` + `cancelled` shape      |
-| offset pagination         |      2 | same `PAGE_SIZE = 50` and `loadMore`                        |
-| db-not-configured copy    |      5 | same string inlined verbatim                                |
+| Helper                 | Copies | Notes                                                  |
+| ---------------------- | -----: | ------------------------------------------------------ |
+| `formatTimestamp`      |      5 | byte-identical                                         |
+| `artistLine`           |      5 | one overloads for `string[]`                           |
+| `optionalNumber`       |      3 | one is **already exported** and ignored twice          |
+| preview-text truncator |      5 | differ only in max length and fallback string          |
+| `isReviewable`         |      2 | identical                                              |
+| Status label map       |      5 | across 2 enums                                         |
+| debounced-search block |      8 | same `isFirstFetch` + `setTimeout` + `cancelled` shape |
+| offset pagination      |      2 | same `PAGE_SIZE = 50` and `loadMore`                   |
+| db-not-configured copy |      5 | same string inlined verbatim                           |
 
 **The single worst offender:** `library/transition-detail.tsx:231–304` hand-rolls
 the exact field grid that `tracks/transition-fields.tsx:91–180` already provides
@@ -113,14 +113,14 @@ destructive red as `failed` and `commit_failed` (actual errors), while
 
 The 7 raw-palette sites:
 
-| File                                     | Line(s)   | Usage                          |
-| ---------------------------------------- | --------- | ------------------------------ |
-| `library/proposal-source-span.tsx`       | 40        | `bg-amber-200/80` highlight    |
-| `notes/note-detail.tsx`                  | 366       | `text-amber-700` warning       |
-| `notes/note-detail.tsx`                  | 374, 379  | `text-red-700` errors          |
-| `packages/ui/src/components/dialog.tsx`  | 34        | `bg-black/10` scrim            |
-| `tracks/tag-editor.tsx`                  | 106       | `hover:bg-black/10`            |
-| `tracks/folder-tag-editor.tsx`           | 117       | `hover:bg-black/10`            |
+| File                                    | Line(s)  | Usage                       |
+| --------------------------------------- | -------- | --------------------------- |
+| `library/proposal-source-span.tsx`      | 40       | `bg-amber-200/80` highlight |
+| `notes/note-detail.tsx`                 | 366      | `text-amber-700` warning    |
+| `notes/note-detail.tsx`                 | 374, 379 | `text-red-700` errors       |
+| `packages/ui/src/components/dialog.tsx` | 34       | `bg-black/10` scrim         |
+| `tracks/tag-editor.tsx`                 | 106      | `hover:bg-black/10`         |
+| `tracks/folder-tag-editor.tsx`          | 117      | `hover:bg-black/10`         |
 
 ### Typography and spacing
 
@@ -137,8 +137,8 @@ The 7 raw-palette sites:
 
 ### Component package adoption
 
-| Used in `apps/web`                                              | Never imported                                             |
-| --------------------------------------------------------------- | ---------------------------------------------------------- |
+| Used in `apps/web`                                                               | Never imported                                                   |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | `button`, `badge`, `input`, `label`, `textarea`, `separator` (3×), `dialog` (1×) | `card`, `field`, `combobox`, `command`, `input-group`, `popover` |
 
 `field.tsx` shipping unused is why validation display is inconsistent
@@ -158,20 +158,21 @@ everywhere else — `FieldError` exists and nothing uses it.
 
 ### File sizes
 
-| File                        | Lines |
-| --------------------------- | ----: |
-| `tracks/graph-explorer.tsx` |  1151 |
-| `notes/note-detail.tsx`     |   709 |
-| `library/proposal-review.tsx`|   687 |
-| `tracks/track-detail.tsx`   |   518 |
-| `library/proposal-endpoint-picker.tsx` | 423 |
+| File                                   | Lines |
+| -------------------------------------- | ----: |
+| `tracks/graph-explorer.tsx`            |  1151 |
+| `notes/note-detail.tsx`                |   709 |
+| `library/proposal-review.tsx`          |   687 |
+| `tracks/track-detail.tsx`              |   518 |
+| `library/proposal-endpoint-picker.tsx` |   423 |
 
 ## Recommended order
 
 ### Foundation — serial, `globals.css` conflicts otherwise
 
 1. [DJ-93](https://linear.app/dj-project-astradzhao/issue/DJ-93) — **UI-1**
-   Semantic color schema: brand hue, status scales, surface/overlay tokens
+   Semantic color schema: brand hue, status scales, surface/overlay tokens.
+   Implementation plan (review before coding): [`DJ93_SEMANTIC_COLOR_PLAN.md`](./DJ93_SEMANTIC_COLOR_PLAN.md)
 2. [DJ-96](https://linear.app/dj-project-astradzhao/issue/DJ-96) — **UI-2**
    Typography, spacing, and radius scale
 3. [DJ-95](https://linear.app/dj-project-astradzhao/issue/DJ-95) — **UI-3**
@@ -228,29 +229,74 @@ independent and can run on their own branches alongside the main lane.
 
 ## Target conventions
 
-These are proposals that UI-1 and UI-2 finalize, and UI-14 records durably in
-`UI_STYLE_GUIDE.md`.
+These are conventions that UI-1 (color) and UI-2 (type/space) finalize, and
+that UI-14 records durably in `UI_STYLE_GUIDE.md`.
 
-### Color tokens to add
+### Color tokens (shipped in UI-1 / DJ-93)
 
-Each status gets a solid, a `-foreground`, and a `-subtle` background so alerts
-and badges are buildable without opacity guesswork:
+Implementation plan: [`DJ93_SEMANTIC_COLOR_PLAN.md`](./DJ93_SEMANTIC_COLOR_PLAN.md).
+`--primary` stays grayscale. Brand is a separate accent. Selected nav is a
+named inversion (`bg-selected`), not a brand fill. `--chart-*` and
+`--sidebar-*` were deleted. `--muted-foreground` was left at 4.73:1 on white.
 
-```text
---brand / --brand-foreground / --brand-subtle
---success / --success-foreground / --success-subtle
---warning / --warning-foreground / --warning-subtle
---info / --info-foreground / --info-subtle
---destructive-foreground / --destructive-subtle
---overlay                                  (replaces bg-black/10)
---surface-1 / --surface-2 / --surface-3    (named elevation)
---selected / --selected-foreground         (replaces the inversion hack)
---highlight / --highlight-foreground       (source-span mark)
-```
+`--X` is ink / solid. `--X-foreground` is text on the solid. `--X-subtle` is
+the wash behind `text-X`.
 
-Brand hue starting proposal: electric indigo/violet near
-`oklch(0.62 0.19 264)` — already present as `--sidebar-primary` in the dark
-block. Verify AA contrast against its paired foreground in both themes.
+| Token                      | Light                                   | Dark                                    |
+| -------------------------- | --------------------------------------- | --------------------------------------- |
+| `--brand`                  | `oklch(0.48 0.19 264)`                  | `oklch(0.72 0.16 264)`                  |
+| `--brand-foreground`       | `oklch(0.985 0 0)`                      | `oklch(0.205 0 0)`                      |
+| `--brand-subtle`           | `oklch(0.96 0.03 264)`                  | `oklch(0.28 0.06 264)`                  |
+| `--success`                | `oklch(0.45 0.15 145)`                  | `oklch(0.78 0.14 145)`                  |
+| `--success-foreground`     | `oklch(0.985 0 0)`                      | `oklch(0.205 0 0)`                      |
+| `--success-subtle`         | `oklch(0.96 0.03 145)`                  | `oklch(0.28 0.05 145)`                  |
+| `--warning`                | `oklch(0.50 0.16 75)`                   | `oklch(0.82 0.12 75)`                   |
+| `--warning-foreground`     | `oklch(0.205 0 0)`                      | `oklch(0.205 0 0)`                      |
+| `--warning-subtle`         | `oklch(0.96 0.04 85)`                   | `oklch(0.30 0.05 75)`                   |
+| `--info`                   | `oklch(0.48 0.14 250)`                  | `oklch(0.76 0.10 250)`                  |
+| `--info-foreground`        | `oklch(0.985 0 0)`                      | `oklch(0.205 0 0)`                      |
+| `--info-subtle`            | `oklch(0.96 0.02 250)`                  | `oklch(0.28 0.04 250)`                  |
+| `--destructive`            | `oklch(0.577 0.245 27.325)` (unchanged) | `oklch(0.704 0.191 22.216)` (unchanged) |
+| `--destructive-foreground` | `oklch(0.985 0 0)`                      | `oklch(0.985 0 0)`                      |
+| `--destructive-subtle`     | `oklch(0.96 0.03 27)`                   | `oklch(0.30 0.08 22)`                   |
+| `--overlay`                | `oklch(0.145 0 0 / 10%)`                | `oklch(0 0 0 / 50%)`                    |
+| `--surface-1`              | `oklch(0.985 0 0)`                      | `oklch(0.18 0 0)`                       |
+| `--surface-2`              | `oklch(0.97 0 0)`                       | `oklch(0.205 0 0)`                      |
+| `--surface-3`              | `oklch(0.94 0 0)`                       | `oklch(0.269 0 0)`                      |
+| `--selected`               | `oklch(0.145 0 0)`                      | `oklch(0.985 0 0)`                      |
+| `--selected-foreground`    | `oklch(0.985 0 0)`                      | `oklch(0.145 0 0)`                      |
+| `--highlight`              | `oklch(0.93 0.06 85)`                   | `oklch(0.32 0.06 85)`                   |
+| `--highlight-foreground`   | `oklch(0.25 0.04 85)`                   | `oklch(0.93 0.04 85)`                   |
+
+Warning is the exception to the invert-solid pattern: amber is too light for
+white text, so `--warning-foreground` stays dark in both themes. The recipe is
+`bg-warning-subtle text-warning`. Dark `--destructive` solid + white is 2.75:1
+— do not use; components use `bg-destructive-subtle text-destructive`.
+
+WCAG AA for normal text is 4.5:1. Ratios from `oklch()` → linear sRGB →
+relative luminance.
+
+| Pair                                         | Theme |   Ratio | AA                    |
+| -------------------------------------------- | ----- | ------: | --------------------- |
+| `--brand` / `--brand-foreground`             | light |  6.55:1 | pass                  |
+| `--brand` as text on `--background`          | light |  6.84:1 | pass                  |
+| `--brand` / `--brand-foreground`             | dark  |  7.10:1 | pass                  |
+| `--success` / `--success-foreground`         | light |  6.64:1 | pass                  |
+| `--success` as text on `--background`        | light |  6.93:1 | pass                  |
+| `--warning` as text on `--background`        | light |  6.12:1 | pass                  |
+| `--info` / `--info-foreground`               | light |  6.25:1 | pass                  |
+| `--destructive` / `--destructive-foreground` | light |  4.56:1 | pass (tight)          |
+| `--destructive` as text on `--background`    | light |  4.76:1 | pass                  |
+| `--destructive` as text on `--background`    | dark  |  6.89:1 | pass                  |
+| `--destructive` solid + white                | dark  |  2.75:1 | **fail — do not use** |
+| `--highlight` / `--highlight-foreground`     | light | 13.03:1 | pass                  |
+| `--muted-foreground` on `--background`       | light |  4.73:1 | pass (tight)          |
+| `--muted-foreground` on `--background`       | dark  |  7.63:1 | pass                  |
+
+The ticket's starting brand `oklch(0.62 0.19 264)` + white was 3.60:1 and was
+rejected. `bg-muted/NN` sites were swept to `--surface-*` after review
+(`/20` `/30` → `surface-1`, `/40` `/50` → `surface-2`, `/60` `/80` →
+`surface-3`).
 
 ### Text roles
 
@@ -266,15 +312,15 @@ not at call sites.
 
 ### Spacing rhythm
 
-| Role                | Value          |
-| ------------------- | -------------- |
-| Page section stack  | `space-y-10`   |
-| In-page section     | `space-y-6`    |
-| Form field          | `space-y-2`    |
-| Tight group         | `space-y-1.5`  |
-| List row padding    | `px-4 py-3`    |
-| State panel         | `px-5 py-10`   |
-| Inline alert        | `px-3 py-2`    |
+| Role               | Value         |
+| ------------------ | ------------- |
+| Page section stack | `space-y-10`  |
+| In-page section    | `space-y-6`   |
+| Form field         | `space-y-2`   |
+| Tight group        | `space-y-1.5` |
+| List row padding   | `px-4 py-3`   |
+| State panel        | `px-5 py-10`  |
+| Inline alert       | `px-3 py-2`   |
 
 ### Where components live
 

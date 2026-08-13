@@ -229,7 +229,7 @@ export function TransitionsList() {
 
       <section aria-label="Transitions">
         {error && transitions.length === 0 && pendingProposals.length === 0 ? (
-          <div className="border-border bg-muted/30 rounded-xl border px-5 py-6">
+          <div className="border-border bg-surface-1 rounded-xl border px-5 py-6">
             <h2 className="font-medium">Transitions unavailable</h2>
             <p className="text-muted-foreground mt-1 max-w-xl text-sm">{error}</p>
           </div>
@@ -251,7 +251,7 @@ export function TransitionsList() {
                       <Link
                         href={`/library/submissions/${proposal.noteId}/proposals/${proposal.id}`}
                         className={cn(
-                          "hover:bg-muted/40 flex flex-col gap-2 rounded-xl border border-dashed px-4 py-3 transition-colors",
+                          "hover:bg-surface-2 flex flex-col gap-2 rounded-xl border border-dashed px-4 py-3 transition-colors",
                         )}
                       >
                         <p className="line-clamp-2 text-sm text-pretty">
@@ -287,7 +287,7 @@ export function TransitionsList() {
                     <li key={transition.id}>
                       <Link
                         href={`/library/transitions/${transition.id}`}
-                        className="hover:bg-muted/50 flex flex-col gap-2 px-4 py-3 transition-colors"
+                        className="hover:bg-surface-2 flex flex-col gap-2 px-4 py-3 transition-colors"
                       >
                         <div className="min-w-0">
                           <p className="truncate font-medium">

@@ -102,7 +102,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
   if (loadError || !transition || !form) {
     return (
       <div className="space-y-4">
-        <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm">
+        <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm">
           {loadError ?? "Transition not found."}
         </p>
         <Button asChild variant="outline">
@@ -304,7 +304,10 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
         </div>
 
         {saveError ? (
-          <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm" role="alert">
+          <p
+            className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm"
+            role="alert"
+          >
             {saveError}
           </p>
         ) : null}

@@ -191,7 +191,7 @@ export function NoteTrackLinks({
               <li key={track.id}>
                 <button
                   type="button"
-                  className="hover:bg-muted/50 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
+                  className="hover:bg-surface-2 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
                   disabled={mutating}
                   onClick={() => linkTrack(track)}
                 >
@@ -224,7 +224,7 @@ export function NoteTrackLinks({
       </div>
 
       {error ? (
-        <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm" role="alert">
+        <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm" role="alert">
           {error}
         </p>
       ) : null}

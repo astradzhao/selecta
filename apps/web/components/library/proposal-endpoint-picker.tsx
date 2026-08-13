@@ -219,7 +219,7 @@ export function ProposalEndpointPicker({
       <div
         className={cn(
           "flex items-start gap-2 rounded-lg border px-3 py-2 text-sm",
-          value ? "border-border bg-muted/40" : "border-dashed text-muted-foreground",
+          value ? "border-border bg-surface-2" : "border-dashed text-muted-foreground",
         )}
       >
         {value ? (
@@ -400,8 +400,8 @@ function ResultRow({
       aria-pressed={selected}
       onClick={onSelect}
       className={cn(
-        "hover:bg-muted/50 flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors disabled:opacity-50",
-        selected && "bg-muted/60",
+        "hover:bg-surface-2 flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors disabled:opacity-50",
+        selected && "bg-surface-3",
       )}
     >
       <span className="min-w-0 flex-1 space-y-1">
