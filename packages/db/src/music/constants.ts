@@ -53,3 +53,34 @@ const folderKindSet: ReadonlySet<string> = new Set(FOLDER_KINDS);
 export function isFolderKind(value: string): value is FolderKind {
   return folderKindSet.has(value);
 }
+
+/**
+ * Sequence kind on `blocks` — filter label only (DJ-111).
+ * Must stay aligned with Postgres `block_kind` enum (block | set).
+ */
+export const BLOCK_KINDS = ["block", "set"] as const;
+
+export type BlockKind = (typeof BLOCK_KINDS)[number];
+
+const blockKindSet: ReadonlySet<string> = new Set(BLOCK_KINDS);
+
+export function isBlockKind(value: string): value is BlockKind {
+  return blockKindSet.has(value);
+}
+
+/** Derived gap states. Only `seam` is stored; the rest are computed at read time. */
+export const GAP_STATES = ["linked", "available", "unmapped", "seam"] as const;
+
+export type GapState = (typeof GAP_STATES)[number];
+
+const gapStateSet: ReadonlySet<string> = new Set(GAP_STATES);
+
+export function isGapState(value: string): value is GapState {
+  return gapStateSet.has(value);
+}
+
+/**
+ * Max nesting depth for block connectors (cycle check + read-time expansion).
+ * Depth 0 = no nested blocks.
+ */
+export const SEQUENCE_MAX_NESTING_DEPTH = 8;

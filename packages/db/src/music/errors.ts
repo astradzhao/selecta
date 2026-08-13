@@ -1,7 +1,7 @@
 export class MusicWriteError extends Error {
-  readonly code: "invalid_input" | "not_found";
+  readonly code: "invalid_input" | "not_found" | "conflict";
 
-  constructor(code: "invalid_input" | "not_found", message: string) {
+  constructor(code: "invalid_input" | "not_found" | "conflict", message: string) {
     super(message);
     this.name = "MusicWriteError";
     this.code = code;
