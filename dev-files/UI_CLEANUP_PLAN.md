@@ -177,7 +177,8 @@ everywhere else — `FieldError` exists and nothing uses it.
    Typography, spacing, and radius scale.
    Implementation plan: [`DJ96_TYPOGRAPHY_SPACING_PLAN.md`](./DJ96_TYPOGRAPHY_SPACING_PLAN.md)
 3. [DJ-95](https://linear.app/dj-project-astradzhao/issue/DJ-95) — **UI-3**
-   Wire up light/dark theme switching
+   Wire up light/dark theme switching.
+   Implementation plan: [`DJ95_THEME_SWITCHING_PLAN.md`](./DJ95_THEME_SWITCHING_PLAN.md)
 
 ### Clear the decks
 
@@ -343,6 +344,25 @@ stays for avatars / radio dots. Source-span highlight keeps `rounded-sm`.
 | Control | `rounded-lg`  | buttons, inputs, alerts, nav pills   |
 | Card    | `rounded-xl`  | list shells, dialogs, inline panels  |
 | Panel   | `rounded-2xl` | large empty/hero wells, graph sticky |
+
+### Theme switching (shipped in UI-3 / DJ-95)
+
+Implementation plan: [`DJ95_THEME_SWITCHING_PLAN.md`](./DJ95_THEME_SWITCHING_PLAN.md).
+`next-themes` lives on `@selecta/web` only. `ThemeProvider` wraps `{children}`
+inside `<body>` with `attribute="class"`, `defaultTheme="system"`,
+`enableSystem`, and `disableTransitionOnChange`. `<html>` has
+`suppressHydrationWarning`. Font variable classes sit on `<body>` so the
+blocking script cannot wipe Geist.
+
+`:root` sets `color-scheme: light`; `.dark` sets `color-scheme: dark`. Native
+selects, checkboxes, and scrollbars follow the class.
+
+The sticky-header control is a ghost `icon-sm` button that cycles
+`system → light → dark → system`. The icon shows the stored setting (Monitor /
+Sun / Moon), not `resolvedTheme`. No layout shift: the same-size button renders
+before hydrate, disabled until `useTheme` has mounted.
+
+After this lands, later UI PRs must be checked in both themes before merge.
 
 ### Where components live
 
