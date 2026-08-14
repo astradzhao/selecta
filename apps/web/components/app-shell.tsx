@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { cn } from "@selecta/ui/lib/utils";
 
+import { ThemeToggle } from "@/components/theme-toggle";
+
 const links = [
   { href: "/add", label: "Add" },
   { href: "/library", label: "Library" },
@@ -22,26 +24,29 @@ export function AppShell({
           <Link href="/" className="text-eyebrow text-sm font-semibold text-foreground">
             Selecta
           </Link>
-          <nav className="flex items-center gap-1">
-            {links.map((link) => {
-              const active =
-                currentPath === link.href || (currentPath?.startsWith(`${link.href}/`) ?? false);
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    "rounded-lg px-3 py-1.5 text-sm transition-colors",
-                    active
-                      ? "bg-selected text-selected-foreground"
-                      : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
-                  )}
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
-          </nav>
+          <div className="flex items-center gap-2">
+            <nav className="flex items-center gap-1">
+              {links.map((link) => {
+                const active =
+                  currentPath === link.href || (currentPath?.startsWith(`${link.href}/`) ?? false);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                      "rounded-lg px-3 py-1.5 text-sm transition-colors",
+                      active
+                        ? "bg-selected text-selected-foreground"
+                        : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </nav>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-8 sm:px-6">
