@@ -64,16 +64,6 @@ export async function createNote(body: { rawText: string }): Promise<{ ok: true;
   });
 }
 
-export async function updateNote(
-  id: string,
-  body: { rawText: string },
-): Promise<{ ok: true; note: ApiNote }> {
-  return apiFetch(`/notes/${encodeURIComponent(id)}`, {
-    method: "PATCH",
-    body: JSON.stringify(body),
-  });
-}
-
 /** Retry extraction for the current note version. */
 export async function extractNote(id: string): Promise<{ ok: true; note: ApiNote }> {
   return apiFetch(`/notes/${encodeURIComponent(id)}/extract`, {
