@@ -237,3 +237,8 @@
 @utility text-numeric {
   @apply font-mono tabular-nums;
 }
+
+@utility text-crate-meta {
+  @apply font-mono text-muted-foreground tabular-nums;
+  font-size: 0.71875rem;
+}

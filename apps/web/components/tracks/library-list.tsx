@@ -7,14 +7,12 @@ import { Button } from "@selecta/ui/components/button";
 import { Input } from "@selecta/ui/components/input";
 import { SearchField } from "@selecta/ui/components/search-field";
 
-import { AddNewButton } from "@/components/common/add-new-button";
 import {
   ClearFiltersButton,
   FilterField,
   FilteredListShell,
 } from "@/components/common/filtered-list-shell";
-import { TrackChips } from "@/components/tracks/track-chips";
-import { TrackRow } from "@/components/tracks/track-row";
+import { LibraryTrackColumnHeader, LibraryTrackRow } from "@/components/tracks/library-track-row";
 import { useFilteredList } from "@/hooks/use-filtered-list";
 import {
   fetchLibraryListIfStale,
@@ -24,9 +22,7 @@ import {
   sameTrackList,
 } from "@/lib/library-cache";
 import { libraryAddHref } from "@/lib/library/add-routes";
-import { formatListCount } from "@/lib/library/list-view-state";
 import type { TrackListFilters } from "@/lib/library/list-params";
-import { rowFromApiTrack } from "@/lib/tracks/track-row-item";
 
 const EMPTY_FILTERS: TrackListFilters = { query: "", subgenre: "", folder: "" };
 
@@ -59,7 +55,7 @@ export function LibraryList() {
     <FilteredListShell
       filtersAriaLabel="Library filters"
       listAriaLabel="Tracks"
-      filterGridClassName="md:grid-cols-[minmax(0,2fr)_minmax(10rem,1fr)_minmax(10rem,1fr)]"
+      filterGridClassName="md:grid-cols-[minmax(0,1fr)_9.375rem_9.375rem]"
       filterControls={
         <>
           <FilterField htmlFor="library-q" label="Search">
@@ -73,7 +69,7 @@ export function LibraryList() {
           <FilterField htmlFor="filter-subgenre" label="Subgenre">
             <Input
               id="filter-subgenre"
-              placeholder="e.g. UKG"
+              placeholder="Subgenre"
               value={subgenre}
               onChange={(event) => setSubgenre(event.target.value)}
             />
@@ -81,34 +77,26 @@ export function LibraryList() {
           <FilterField htmlFor="filter-folder" label="Folder">
             <Input
               id="filter-folder"
-              placeholder="e.g. sunset set"
+              placeholder="Folder"
               value={folder}
               onChange={(event) => setFolder(event.target.value)}
             />
           </FilterField>
         </>
       }
-      count={
-        list.isInitialLoading
-          ? "Loading library…"
-          : list.error
-            ? null
-            : formatListCount(list.items.length, { singular: "track", plural: "tracks" })
+      filterBar={
+        hasFilters ? (
+          <ClearFiltersButton
+            onClick={() => {
+              setQuery("");
+              setSubgenre("");
+              setFolder("");
+            }}
+          />
+        ) : null
       }
-      toolbar={
-        <div className="flex items-center gap-2">
-          {hasFilters ? (
-            <ClearFiltersButton
-              onClick={() => {
-                setQuery("");
-                setSubgenre("");
-                setFolder("");
-              }}
-            />
-          ) : null}
-          <AddNewButton href={libraryAddHref("tracks")} label="Add track" />
-        </div>
-      }
+      count={null}
+      showCountRow={false}
       unavailableTitle="Library unavailable"
       loadingAriaLabel="Loading library"
       error={list.error}
@@ -116,16 +104,8 @@ export function LibraryList() {
       hasFilters={hasFilters}
       items={list.items}
       getItemKey={(track) => track.id}
-      renderRow={(track) => (
-        <TrackRow
-          item={rowFromApiTrack(track)}
-          size="md"
-          interaction="link"
-          href={`/tracks/${track.id}`}
-        >
-          <TrackChips subgenres={track.subgenres} />
-        </TrackRow>
-      )}
+      listHeading={<LibraryTrackColumnHeader />}
+      renderRow={(track) => <LibraryTrackRow track={track} />}
       empty={{
         noneTitle: "No tracks yet",
         noneDescription: "Add a track to start building your library.",

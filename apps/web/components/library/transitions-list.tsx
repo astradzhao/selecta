@@ -19,7 +19,6 @@ import {
   FilterField,
   FilteredListShell,
 } from "@/components/common/filtered-list-shell";
-import { AddNewButton } from "@/components/common/add-new-button";
 import { ProposalStatusBadge } from "@/components/common/status-badge";
 import { useFilteredList } from "@/hooks/use-filtered-list";
 import { DEFAULT_PAGE_SIZE } from "@/hooks/use-paginated-list";
@@ -93,7 +92,7 @@ export function TransitionsList() {
           <FilterField htmlFor="filter-technique" label="Technique">
             <Input
               id="filter-technique"
-              placeholder="e.g. cut"
+              placeholder="Technique"
               value={technique}
               onChange={(event) => setTechnique(event.target.value)}
               disabled={needsReviewOnly}
@@ -102,7 +101,7 @@ export function TransitionsList() {
           <FilterField htmlFor="filter-intent" label="Intent">
             <Input
               id="filter-intent"
-              placeholder="e.g. energy up"
+              placeholder="Intent"
               value={intent}
               onChange={(event) => setIntent(event.target.value)}
               disabled={needsReviewOnly}
@@ -155,9 +154,6 @@ export function TransitionsList() {
             : needsReviewOnly
               ? `${pendingProposals.length} need review`
               : `${pendingProposals.length} need review · ${list.items.length}${list.hasMore ? "+" : ""} committed`
-      }
-      toolbar={
-        <AddNewButton href={libraryAddHref("submissions", "transitions")} label="Add transition" />
       }
       unavailableTitle="Transitions unavailable"
       loadingAriaLabel="Loading transitions"

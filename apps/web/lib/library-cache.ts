@@ -7,7 +7,7 @@ import { trackListQuery } from "./library/list-params";
 
 export type LibraryCacheEntry = {
   tracks: ApiTrack[];
-  /** `${count}:${latestUpdatedAt ?? ""}` from GET /tracks/stats */
+  /** Fingerprint from GET /tracks/stats: tracks + transitions so crate counts stay fresh. */
   fingerprint: string;
 };
 
@@ -27,8 +27,15 @@ export function libraryCacheKey(input: {
 export function libraryFingerprint(stats: {
   count: number;
   latestUpdatedAt: string | null;
+  transitionCount?: number;
+  latestTransitionUpdatedAt?: string | null;
 }): string {
-  return `${stats.count}:${stats.latestUpdatedAt ?? ""}`;
+  return [
+    stats.count,
+    stats.latestUpdatedAt ?? "",
+    stats.transitionCount ?? 0,
+    stats.latestTransitionUpdatedAt ?? "",
+  ].join(":");
 }
 
 export function readLibraryCache(key: string): LibraryCacheEntry | null {
@@ -62,7 +69,12 @@ export function previewLibraryList(filters: TrackListFilters): ApiTrack[] | null
 }
 
 export type LibraryListDeps = {
-  getLibraryStats: () => Promise<{ count: number; latestUpdatedAt: string | null }>;
+  getLibraryStats: () => Promise<{
+    count: number;
+    latestUpdatedAt: string | null;
+    transitionCount?: number;
+    latestTransitionUpdatedAt?: string | null;
+  }>;
   listTracks: (input: {
     query?: string;
     subgenre?: string;

@@ -109,6 +109,17 @@ export type LibraryStats = {
   count: number;
   /** ISO timestamp of the most recently updated track, or null when empty. */
   latestUpdatedAt: string | null;
+  transitionCount: number;
+  /** ISO timestamp of the most recently updated transition, or null when none. */
+  latestTransitionUpdatedAt: string | null;
+  /** Tracks with no outbound transition. */
+  deadEndCount: number;
+};
+
+/** Track list row: summary plus committed inbound/outbound edge counts. */
+export type ListedTrack = TrackSummary & {
+  inboundTransitionCount: number;
+  outboundTransitionCount: number;
 };
 
 export type TrackSortField = "title" | "createdAt" | "updatedAt";
@@ -133,7 +144,7 @@ export type ListTracksInput = {
 };
 
 export type ListTracksResult = {
-  tracks: TrackSummary[];
+  tracks: ListedTrack[];
 } & ListPageMeta;
 
 export function assertFolderKind(value: string | undefined): FolderKind | undefined {

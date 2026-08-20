@@ -1,4 +1,18 @@
-import { and, asc, desc, eq, exists, gte, inArray, lte, max, or, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  exists,
+  gte,
+  inArray,
+  lte,
+  max,
+  notExists,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
@@ -68,6 +82,49 @@ async function loadExternalIdMaps(
     const existing = map.get(row.trackId) ?? {};
     existing[row.provider] = row.providerId;
     map.set(row.trackId, existing);
+  }
+  return map;
+}
+
+async function loadTransitionCounts(
+  executor: DbLike,
+  trackIds: string[],
+): Promise<Map<string, { inbound: number; outbound: number }>> {
+  const map = new Map<string, { inbound: number; outbound: number }>();
+  if (trackIds.length === 0) {
+    return map;
+  }
+
+  const bump = (id: string) => {
+    const entry = map.get(id) ?? { inbound: 0, outbound: 0 };
+    map.set(id, entry);
+    return entry;
+  };
+
+  const [outRows, inRows] = await Promise.all([
+    executor
+      .select({
+        id: transitions.fromTrackId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(transitions)
+      .where(inArray(transitions.fromTrackId, trackIds))
+      .groupBy(transitions.fromTrackId),
+    executor
+      .select({
+        id: transitions.toTrackId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(transitions)
+      .where(inArray(transitions.toTrackId, trackIds))
+      .groupBy(transitions.toTrackId),
+  ]);
+
+  for (const row of outRows) {
+    bump(row.id).outbound = Number(row.count);
+  }
+  for (const row of inRows) {
+    bump(row.id).inbound = Number(row.count);
   }
   return map;
 }
@@ -519,9 +576,20 @@ export async function listTracks(input: ListTracksInput = {}): Promise<ListTrack
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
   const summaries = await loadSummariesForTracks(executor, page);
+  const transitionCounts = await loadTransitionCounts(
+    executor,
+    summaries.map((summary) => summary.track.id),
+  );
 
   return {
-    tracks: summaries,
+    tracks: summaries.map((summary) => {
+      const counts = transitionCounts.get(summary.track.id);
+      return {
+        ...summary,
+        inboundTransitionCount: counts?.inbound ?? 0,
+        outboundTransitionCount: counts?.outbound ?? 0,
+      };
+    }),
     limit,
     offset,
     hasMore,
@@ -529,16 +597,41 @@ export async function listTracks(input: ListTracksInput = {}): Promise<ListTrack
 }
 
 export async function getLibraryStats(): Promise<LibraryStats> {
-  const [row] = await db()
-    .select({
-      count: sql<number>`count(*)::int`,
-      latestUpdatedAt: max(tracks.updatedAt),
-    })
-    .from(tracks);
+  const executor = db();
+  const [[trackRow], [transitionRow], [deadEndRow]] = await Promise.all([
+    executor
+      .select({
+        count: sql<number>`count(*)::int`,
+        latestUpdatedAt: max(tracks.updatedAt),
+      })
+      .from(tracks),
+    executor
+      .select({
+        count: sql<number>`count(*)::int`,
+        latestUpdatedAt: max(transitions.updatedAt),
+      })
+      .from(transitions),
+    executor
+      .select({ count: sql<number>`count(*)::int` })
+      .from(tracks)
+      .where(
+        notExists(
+          executor
+            .select({ one: sql`1` })
+            .from(transitions)
+            .where(eq(transitions.fromTrackId, tracks.id)),
+        ),
+      ),
+  ]);
 
   return {
-    count: row?.count ?? 0,
-    latestUpdatedAt: row?.latestUpdatedAt ? row.latestUpdatedAt.toISOString() : null,
+    count: trackRow?.count ?? 0,
+    latestUpdatedAt: trackRow?.latestUpdatedAt ? trackRow.latestUpdatedAt.toISOString() : null,
+    transitionCount: transitionRow?.count ?? 0,
+    latestTransitionUpdatedAt: transitionRow?.latestUpdatedAt
+      ? transitionRow.latestUpdatedAt.toISOString()
+      : null,
+    deadEndCount: deadEndRow?.count ?? 0,
   };
 }
 

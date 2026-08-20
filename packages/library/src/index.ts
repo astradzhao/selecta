@@ -40,6 +40,7 @@ export {
   type TrackDetail,
   type CreateTrackResult,
   type LibraryStats,
+  type ListedTrack,
   type TrackSortField,
   type ListSortOrder,
   type ListTracksInput,

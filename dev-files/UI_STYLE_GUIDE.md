@@ -87,6 +87,7 @@ Map by **visual role**, not by heading tag. Recipes are `@utility` classes in
 | `text-caption`       | `text-xs text-muted-foreground`                            | Meta, counts                             |
 | `text-eyebrow`       | `text-xs font-medium uppercase` + `letter-spacing: 0.16em` | Labels, `dt`                             |
 | `text-numeric`       | `font-mono tabular-nums`                                   | BPM, bars, timestamps, IDs               |
+| `text-crate-meta`    | Geist Mono 11.5px (`0.71875rem`) + muted + tabular         | Library crate BPM/key, in/out, time      |
 
 Documented one-offs: Home hero display size; App-shell wordmark
 (`text-eyebrow` + `text-sm font-semibold text-foreground`); graph now-playing
@@ -146,7 +147,8 @@ Primitives: `Button`, `Input`, `Textarea`, `Select`, `Checkbox`, `Label`,
 Feedback: `Alert`, `Skeleton`, `ListSkeleton`, `EmptyState`, `StatePanel`.
 
 Layout: `PageHeader` / `PageBreadcrumb` (`size="page"` is the default
-destination header; `size="section"` is the nested-task header — no
+destination header — title + description stack on the left, `actions` sit
+opposite on the right; `size="section"` is the nested-task header — no
 bottom border, `text-section-title` instead of `text-page-title`),
 `SectionHeading`, `SegmentedTabs`, `SearchField`, `DataList`.
 
@@ -156,14 +158,25 @@ bottom border, `text-section-title` instead of `text-page-title`),
 
 ### Feature folders
 
-`TrackRow` / `TrackPicker` / `TransitionFields` stay in `components/tracks`.
-Graph explorer pieces stay in `components/graph`.
+`TrackRow` / `TrackPicker` / `TrackChips` / `LibraryTrackRow` /
+`TransitionFields` stay in `components/tracks`. Graph explorer pieces stay in
+`components/graph`.
 
 ## Patterns
 
 - **Filtered list:** `FilteredListShell` + `SearchField` + `SegmentedTabs` +
-  `DataList`. Empty → `EmptyState`. First load → `StatePanel variant="loading"`
-  or `ListSkeleton`. Fetch errors → `Alert variant="destructive"`.
+  `DataList`. Filters, heading, and rows share one `rounded-xl border` card —
+  a workbench, not a form stacked above a list. Filter labels are `sr-only`;
+  placeholders (and selected `Select` values) name the controls. Empty →
+  `EmptyState`. First load → `ListSkeleton`. Fetch errors →
+  `Alert variant="destructive"`.
+- **Library crate:** `PageHeader` holds crate facts (`N` tracks · transitions ·
+  dead ends) under the title and the add button in `actions`. Tracks render
+  through `LibraryTrackRow`: Track · BPM/Key · inbound · outbound · time.
+  Empty BPM/key is a centered `—`. In and Out are separate columns (`← n` /
+  `→ n`) so a one-sided track still lines up; a zero side is a centered `—`.
+  Counts come from `GET /tracks` `inboundTransitionCount` /
+  `outboundTransitionCount`. Crate figures use `text-crate-meta`.
 - **Detail page:** `PageHeader` + `PageBreadcrumb` / `BackLink`. Destructive
   actions go through `ConfirmDialog`.
 - **Nested task page** (add sub-pages under `/library/add/*`): `PageHeader`

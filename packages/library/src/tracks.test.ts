@@ -18,6 +18,7 @@ import {
   createTrack,
   deleteTrackById,
   getTrackByExternalId,
+  getLibraryStats,
   getTrackById,
   listTracks,
   updateTrackById,
@@ -249,6 +250,48 @@ describe("music vocab + tracks", { skip: !pgIntegration }, () => {
     assert.ok(commit);
     assert.equal(commit.fromTrackId, null);
     assert.equal(commit.toTrackId, to.track.id);
+  });
+
+  it("listTracks returns inbound and outbound transition counts per track", async () => {
+    const suffix = randomUUID().slice(0, 8);
+    const from = await createTrack({
+      title: `Count From ${suffix}`,
+      artists: ["Counter"],
+    });
+    const to = await createTrack({
+      title: `Count To ${suffix}`,
+      artists: ["Counter"],
+    });
+    await createTransition({
+      fromTrackId: from.track.id,
+      toTrackId: to.track.id,
+      technique: "cut",
+    });
+
+    const fromListed = await listTracks({ query: `Count From ${suffix}`, limit: 20 });
+    const fromRow = fromListed.tracks.find((item) => item.track.id === from.track.id);
+    assert.ok(fromRow);
+    assert.equal(fromRow.outboundTransitionCount, 1);
+    assert.equal(fromRow.inboundTransitionCount, 0);
+
+    const toListed = await listTracks({ query: `Count To ${suffix}`, limit: 20 });
+    const toRow = toListed.tracks.find((item) => item.track.id === to.track.id);
+    assert.ok(toRow);
+    assert.equal(toRow.outboundTransitionCount, 0);
+    assert.equal(toRow.inboundTransitionCount, 1);
+
+    const stats = await getLibraryStats();
+    const listed = await listTracks({ limit: 100 });
+    if (!listed.hasMore) {
+      assert.equal(
+        stats.deadEndCount,
+        listed.tracks.filter((item) => item.outboundTransitionCount === 0).length,
+      );
+      assert.equal(
+        stats.transitionCount,
+        listed.tracks.reduce((sum, item) => sum + item.outboundTransitionCount, 0),
+      );
+    }
   });
 
   it("listSubgenres and listFolders return ensured vocab and filter by query", async () => {

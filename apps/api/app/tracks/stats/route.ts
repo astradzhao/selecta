@@ -3,7 +3,7 @@ import { getLibraryStats } from "@selecta/library";
 
 /**
  * Cheap library fingerprint for client cache checks.
- * GET /tracks/stats → { count, latestUpdatedAt }
+ * GET /tracks/stats → { count, latestUpdatedAt, transitionCount, latestTransitionUpdatedAt, deadEndCount }
  */
 export async function GET() {
   try {
@@ -12,6 +12,9 @@ export async function GET() {
       ok: true,
       count: stats.count,
       latestUpdatedAt: stats.latestUpdatedAt,
+      transitionCount: stats.transitionCount,
+      latestTransitionUpdatedAt: stats.latestTransitionUpdatedAt,
+      deadEndCount: stats.deadEndCount,
     });
   } catch (error) {
     console.error("get library stats failed", error);
