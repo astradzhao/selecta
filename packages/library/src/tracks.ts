@@ -699,7 +699,7 @@ export async function updateTrackById(id: string, input: UpdateTrackInput): Prom
 }
 
 /**
- * Hard-delete a track by id. Join rows, transitions, and note_track_links cascade;
+ * Hard-delete a track by id. Join rows, transitions, and submission_track_links cascade;
  * submission/proposal/audit rows are preserved (commit track refs SET NULL).
  * Sequence derived caches are rewritten after the FK CASCADE / SET NULL.
  */

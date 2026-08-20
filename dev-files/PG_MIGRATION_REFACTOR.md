@@ -25,7 +25,7 @@ cause of the most complex machinery in the codebase:
 
 1. **No cross-store transaction.** Committing a proposal requires the
    idempotent saga: Postgres intent → Neo4j MERGE → Postgres status update →
-   reconciliation for interrupted writes (`note_transition_commits` +
+   reconciliation for interrupted writes (`submission_transition_commits` +
    `getTransitionCommitByKey` replay checks in
    `apps/api/workflows/process-submission.steps.ts`). In one Postgres this is
    a single transaction; the whole failure class disappears.
@@ -33,9 +33,9 @@ cause of the most complex machinery in the codebase:
    then batch-loads Postgres proposals by `sourceProposalId` and merges in JS.
    `loadSerializedTrackLinks` does per-row `getTrackById` round trips. These
    become single SQL joins.
-3. **No referential integrity.** `note_track_links.track_id`,
-   `note_transition_commits.from_track_id/to_track_id`, and every
-   `sourceNoteId`/`sourceProposalId` edge property are opaque strings with no
+3. **No referential integrity.** `submission_track_links.track_id`,
+   `submission_transition_commits.from_track_id/to_track_id`, and every
+   `sourceSubmissionId`/`sourceProposalId` edge property are opaque strings with no
    FK. Postgres gives real FKs and cascade semantics.
 4. **Operational surface.** Second Docker service, second migration system
    (`graph:migrate` + constraints), second driver/client singleton, second
@@ -64,7 +64,7 @@ happens, migrating a `transitions` table into a graph DB is mechanical.
   `(:Track)-[:IN_SUBGENRE]->(:Subgenre)`, `(:Track)-[:IN_FOLDER]->(:Folder)`,
   `(:Track)-[:TRANSITION]->(:Track)`, `HAS_CUE` (declared, unused).
 - **TRANSITION props:** `id` (unique), `proposalKey` (AI idempotency, indexed),
-  `sourceNoteId`, `sourceNoteVersion`, `sourceProposalId`, `confidence`,
+  `sourceSubmissionId`, `sourceSubmissionVersion`, `sourceProposalId`, `confidence`,
   `fromBar`, `toBar`, `barsOverlap`, `technique`, `intent`, `quality`,
   `notes`, `createdAt`, `updatedAt`.
 - Vocab uniqueness via `nameNormalized` (`normalizeName`: trim → lower →
@@ -99,8 +99,8 @@ Public graph functions actually used by consumers:
 - `POST /notes/:id/tracks` — Neo4j existence check then Postgres write.
 - Workflow commit — Neo4j MERGE then Postgres `upsertTransitionCommit` audit
   - idempotency replay reads.
-- Opaque ids: `note_track_links.track_id`,
-  `note_transition_commits.from_track_id/to_track_id`, edge provenance props.
+- Opaque ids: `submission_track_links.track_id`,
+  `submission_transition_commits.from_track_id/to_track_id`, edge provenance props.
 
 ### 2.4 Infra to remove
 
@@ -158,9 +158,9 @@ transitions (
   from_track_id       text NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
   to_track_id         text NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
   proposal_key        text,             -- AI idempotency; NULL for manual edges
-  source_note_id      text REFERENCES notes(id) ON DELETE SET NULL,
-  source_note_version integer,
-  source_proposal_id  text REFERENCES note_proposals(id) ON DELETE SET NULL,
+  source_submission_id      text REFERENCES submissions(id) ON DELETE SET NULL,
+  source_submission_version integer,
+  source_proposal_id  text REFERENCES submission_proposals(id) ON DELETE SET NULL,
   confidence          real,
   from_bar            integer,
   to_bar              integer,
@@ -185,8 +185,8 @@ Notes:
   (then select) reproduces `commitTransitionProposal` MERGE semantics exactly,
   including the `${proposalKey}:rev` reverse-edge convention.
 - Existing tables get FK upgrades in the cutover ticket (see §5, PG-4):
-  `note_track_links.track_id` → FK to `tracks(id)` ON DELETE CASCADE;
-  `note_transition_commits.from_track_id/to_track_id` → FK SET NULL.
+  `submission_track_links.track_id` → FK to `tracks(id)` ON DELETE CASCADE;
+  `submission_transition_commits.from_track_id/to_track_id` → FK SET NULL.
 - `Cue`/`HAS_CUE` are intentionally dropped (never implemented). If cues
   return, they are a `cues` table with a `track_id` FK.
 - **Folder kinds are `folder` | `playlist` only.** Neo4j historically allowed
@@ -214,7 +214,7 @@ so route handlers change imports, not logic.
 | `mergeArtist/Genre/Subgenre/Folder`                               | `ensureArtist/...` internal                                                    | `INSERT … ON CONFLICT (name_normalized) DO …` preserving current ON CREATE / folder-kind coalesce semantics                                                |
 | `createTransition(input)`                                         | same                                                                           | plain INSERT, new UUID, no proposal_key                                                                                                                    |
 | `getTransitionById(id)`                                           | same                                                                           | join endpoints + artists                                                                                                                                   |
-| `listTransitions(input)`                                          | same                                                                           | same filters incl. `source` manual/ai (proposal_key + source_note_id nullness), q over titles/notes/artists                                                |
+| `listTransitions(input)`                                          | same                                                                           | same filters incl. `source` manual/ai (proposal_key + source_submission_id nullness), q over titles/notes/artists                                          |
 | `updateTransitionById(id, patch)`                                 | same                                                                           | partial UPDATE, bump updated_at, endpoints/provenance immutable                                                                                            |
 | `deleteTransitionById(id)`                                        | same                                                                           | DELETE by id                                                                                                                                               |
 | `commitTransitionProposal(input)`                                 | same                                                                           | `ON CONFLICT (proposal_key) DO NOTHING` + select-existing → `{ created }`                                                                                  |
@@ -231,10 +231,10 @@ with replay checks because any step can die between stores.
 
 After migration, the service-level `commitTransition` runs **one Postgres
 transaction**: insert transition (ON CONFLICT proposal_key) + upsert
-`note_transition_commits` + set proposal `status='committed'`. Replay is a
-no-op by construction. The `NoteAgentServices` interface shape in
+`submission_transition_commits` + set proposal `status='committed'`. Replay is a
+no-op by construction. The `SubmissionAgentServices` interface shape in
 `packages/agentics/src/submission-parser/agent/services.ts` does not change — only the
-injected implementation in `apps/api/lib/note-agent-services.ts` does.
+injected implementation in `apps/api/lib/submission-agent-services.ts` does.
 Reconciliation code for interrupted cross-store completion is deleted.
 
 ## 5. Ticket breakdown (implementation order)
@@ -256,8 +256,8 @@ Each ticket = one `dj-XXXX` branch. PG-1 → PG-4 are strictly serial.
 4. **PG-4 — Cutover: API routes, agent services, workflow, FKs**
    Swap all 12 `apps/api` import sites + web constants import; transactional
    commit path; single SQL join for `GET /transitions` review enrichment and
-   note track links; FK upgrades on `note_track_links` /
-   `note_transition_commits`; health endpoint PG-only; delete reconciliation.
+   note track links; FK upgrades on `submission_track_links` /
+   `submission_transition_commits`; health endpoint PG-only; delete reconciliation.
 5. **PG-5 — Remove Neo4j from the stack**
    Delete `packages/graph`, `neo4j-driver`, Compose service, `graph:migrate`,
    env vars, README/docs references, `transpilePackages` entries.
@@ -300,7 +300,7 @@ Replacements for `NEXT_PRODUCT_ARCHITECTURE.md` §10 (applied in PG-7):
 - **`release_date`/date bounds are stored as ISO strings today** — keep text
   comparison semantics in v1 to avoid subtle behavior changes; typed columns
   can follow later.
-- **In-flight rows** — `note_transition_commits.payload.transitionId` values
+- **In-flight rows** — `submission_transition_commits.payload.transitionId` values
   from old runs reference Neo4j edge ids; PG-6 maps them or they are accepted
   as historical audit (payload is jsonb, no FK).
 - **Live Mode future pathfinding** — bounded recursive CTE over

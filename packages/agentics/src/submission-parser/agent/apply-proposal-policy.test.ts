@@ -3,10 +3,10 @@ import { describe, it } from "node:test";
 
 import { applyProposalPolicy } from "./apply-proposal-policy";
 import type { ProposalPolicyResult } from "./proposal-policy";
-import type { NoteProcessingPlan } from "./schema";
-import type { NoteAgentServices } from "./services";
+import type { SubmissionProcessingPlan } from "./schema";
+import type { SubmissionAgentServices } from "./services";
 
-const plan: NoteProcessingPlan = {
+const plan: SubmissionProcessingPlan = {
   noteType: "transition",
   confidence: "high",
   ambiguities: [],
@@ -51,7 +51,7 @@ const plan: NoteProcessingPlan = {
 describe("applyProposalPolicy", () => {
   it("commits with fingerprint proposal keys independently", async () => {
     const commits: Array<{ proposalKey: string; sourceProposalId?: string | null }> = [];
-    const services: NoteAgentServices = {
+    const services: SubmissionAgentServices = {
       searchLibraryTracks: async () => ({ results: [] }),
       searchSpotifyTracks: async () => ({ results: [] }),
       findLibraryTrackByExternalId: async () => null,
@@ -87,7 +87,7 @@ describe("applyProposalPolicy", () => {
       plan,
       policy,
       services,
-      noteId: "note-1",
+      submissionId: "note-1",
       extractionVersion: 2,
       proposalKey: key,
       sourceProposalId: "proposal-99",
@@ -100,7 +100,7 @@ describe("applyProposalPolicy", () => {
 
   it("commits both directions when bidirectional is true", async () => {
     const commits: string[] = [];
-    const services: NoteAgentServices = {
+    const services: SubmissionAgentServices = {
       searchLibraryTracks: async () => ({ results: [] }),
       searchSpotifyTracks: async () => ({ results: [] }),
       findLibraryTrackByExternalId: async () => null,
@@ -133,7 +133,7 @@ describe("applyProposalPolicy", () => {
       plan: { ...plan, bidirectional: true },
       policy,
       services,
-      noteId: "note-1",
+      submissionId: "note-1",
       extractionVersion: 2,
       proposalKey: key,
     });
@@ -144,7 +144,7 @@ describe("applyProposalPolicy", () => {
 
   it("does not commit when a sibling-style needs_review decision is applied", async () => {
     let commitCalls = 0;
-    const services: NoteAgentServices = {
+    const services: SubmissionAgentServices = {
       searchLibraryTracks: async () => ({ results: [] }),
       searchSpotifyTracks: async () => ({ results: [] }),
       findLibraryTrackByExternalId: async () => null,
@@ -165,7 +165,7 @@ describe("applyProposalPolicy", () => {
         resolvedTrackIdsByMention: {},
       },
       services,
-      noteId: "note-1",
+      submissionId: "note-1",
       extractionVersion: 1,
       proposalKey: "note-1:1:span:zzz",
     });

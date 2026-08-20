@@ -9,8 +9,8 @@ import { getTrackById, getTrackSummariesByIds } from "./tracks";
 export type TransitionEdgeSummary = {
   id: string | null;
   proposalKey: string | null;
-  sourceNoteId: string | null;
-  sourceNoteVersion: number | null;
+  sourceSubmissionId: string | null;
+  sourceSubmissionVersion: number | null;
   sourceProposalId: string | null;
   confidence: number | null;
   fromBar: number | null;
@@ -73,8 +73,8 @@ export function asTransitionEdge(props: Record<string, unknown> | null): Transit
     return {
       id: null,
       proposalKey: null,
-      sourceNoteId: null,
-      sourceNoteVersion: null,
+      sourceSubmissionId: null,
+      sourceSubmissionVersion: null,
       sourceProposalId: null,
       confidence: null,
       fromBar: null,
@@ -91,8 +91,8 @@ export function asTransitionEdge(props: Record<string, unknown> | null): Transit
   return {
     id: asOptionalString(props.id),
     proposalKey: asOptionalString(props.proposalKey),
-    sourceNoteId: asOptionalString(props.sourceNoteId),
-    sourceNoteVersion: asOptionalNumber(props.sourceNoteVersion),
+    sourceSubmissionId: asOptionalString(props.sourceSubmissionId),
+    sourceSubmissionVersion: asOptionalNumber(props.sourceSubmissionVersion),
     sourceProposalId: asOptionalString(props.sourceProposalId),
     confidence: asOptionalNumber(props.confidence),
     fromBar: asOptionalNumber(props.fromBar),
@@ -111,8 +111,8 @@ export function transitionRowToEdge(row: TransitionRow): TransitionEdgeSummary {
   return {
     id: row.id,
     proposalKey: row.proposalKey ?? null,
-    sourceNoteId: row.sourceNoteId ?? null,
-    sourceNoteVersion: row.sourceNoteVersion ?? null,
+    sourceSubmissionId: row.sourceSubmissionId ?? null,
+    sourceSubmissionVersion: row.sourceSubmissionVersion ?? null,
     sourceProposalId: row.sourceProposalId ?? null,
     confidence: row.confidence ?? null,
     fromBar: row.fromBar ?? null,

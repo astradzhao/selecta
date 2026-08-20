@@ -6,9 +6,9 @@ import {
   buildReviewerPolicyResult,
   type ReviewerEndpoint,
 } from "./reviewer-policy";
-import type { NoteProcessingPlan } from "./schema";
+import type { SubmissionProcessingPlan } from "./schema";
 
-function basePlan(): NoteProcessingPlan {
+function basePlan(): SubmissionProcessingPlan {
   return {
     noteType: "transition",
     confidence: "moderate",

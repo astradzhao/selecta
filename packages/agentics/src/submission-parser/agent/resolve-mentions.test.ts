@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { resolveNoteMentions } from "./resolve-mentions";
-import type { NoteProcessingPlan } from "./schema";
-import type { NoteAgentServices, TrackCandidate } from "./services";
+import { resolveSubmissionMentions } from "./resolve-mentions";
+import type { SubmissionProcessingPlan } from "./schema";
+import type { SubmissionAgentServices, TrackCandidate } from "./services";
 
-function plan(): NoteProcessingPlan {
+function plan(): SubmissionProcessingPlan {
   return {
     noteType: "transition",
     confidence: "high",
@@ -50,7 +50,7 @@ function plan(): NoteProcessingPlan {
 }
 
 type ResolveServices = Pick<
-  NoteAgentServices,
+  SubmissionAgentServices,
   "searchLibraryTracks" | "searchSpotifyTracks" | "findLibraryTrackByExternalId"
 >;
 
@@ -65,7 +65,7 @@ function withExternalLookup(
   };
 }
 
-describe("resolveNoteMentions", () => {
+describe("resolveSubmissionMentions", () => {
   it("takes the top Spotify hit for each query", async () => {
     const services = withExternalLookup({
       searchSpotifyTracks: async () => ({
@@ -107,7 +107,7 @@ describe("resolveNoteMentions", () => {
       }),
     });
 
-    const result = await resolveNoteMentions({ plan: plan(), services });
+    const result = await resolveSubmissionMentions({ plan: plan(), services });
     assert.equal(result.plan.mentions[0]?.selectedCandidateId, "spotify:levels");
     assert.equal(result.plan.mentions[0]?.resolutionStatus, "catalog_match");
     assert.equal(result.plan.mentions[1]?.selectedCandidateId, "spotify:a");
@@ -157,7 +157,7 @@ describe("resolveNoteMentions", () => {
         providerId === "sp1" ? existing : null,
     });
 
-    const result = await resolveNoteMentions({ plan: plan(), services });
+    const result = await resolveSubmissionMentions({ plan: plan(), services });
     assert.equal(result.plan.mentions[1]?.selectedCandidateId, "graph:existing");
     assert.equal(result.plan.mentions[1]?.resolutionStatus, "resolved");
     assert.equal(result.candidates.byHandle.get("graph:existing")?.trackId, "existing");
@@ -173,7 +173,7 @@ describe("resolveNoteMentions", () => {
       }),
     });
 
-    const result = await resolveNoteMentions({ plan: plan(), services });
+    const result = await resolveSubmissionMentions({ plan: plan(), services });
     assert.equal(result.plan.mentions[0]?.selectedCandidateId, null);
     assert.equal(result.plan.mentions[0]?.resolutionStatus, "unresolved");
     assert.equal(result.plan.mentions[1]?.resolutionStatus, "unresolved");

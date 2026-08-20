@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { PageHeader } from "@selecta/ui/components/page-header";
 import { SegmentedTab, SegmentedTabs } from "@selecta/ui/components/segmented-tabs";
 
-import { NewNoteForm } from "@/components/add/new-note-form";
+import { NewSubmissionForm } from "@/components/add/new-submission-form";
 import { AddTrackFlow } from "@/components/tracks/add-track-flow";
 import { type AddMode } from "@/lib/add/mode";
 
@@ -59,7 +59,7 @@ export function AddWorkspace({ mode }: { mode: AddMode }) {
       </PageHeader>
 
       {mode === "track" ? <AddTrackFlow /> : null}
-      {mode === "transition" ? <NewNoteForm /> : null}
+      {mode === "transition" ? <NewSubmissionForm /> : null}
     </div>
   );
 }

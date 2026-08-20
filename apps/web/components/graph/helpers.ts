@@ -7,10 +7,10 @@ export function edgeKey(edge: ApiTransitionEdge, fallback: string): string {
 
 export function provenanceLabel(edge: ApiTransitionEdge): {
   kind: "manual" | "ai";
-  noteId: string | null;
+  submissionId: string | null;
 } {
-  const isAi = Boolean(edge.proposalKey || edge.sourceNoteId);
-  return { kind: isAi ? "ai" : "manual", noteId: edge.sourceNoteId };
+  const isAi = Boolean(edge.proposalKey || edge.sourceSubmissionId);
+  return { kind: isAi ? "ai" : "manual", submissionId: edge.sourceSubmissionId };
 }
 
 export { formatGraphLabel };

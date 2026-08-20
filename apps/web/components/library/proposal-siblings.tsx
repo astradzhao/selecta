@@ -12,23 +12,23 @@ function transitionIdFromProposal(proposal: ApiProposal): string | null {
   return typeof transitionId === "string" ? transitionId : null;
 }
 
-function siblingHref(noteId: string, proposal: ApiProposal): string {
+function siblingHref(submissionId: string, proposal: ApiProposal): string {
   if (isReviewable(proposal.status)) {
-    return `/library/submissions/${noteId}/proposals/${proposal.id}`;
+    return `/library/submissions/${submissionId}/proposals/${proposal.id}`;
   }
   if (proposal.status === "committed") {
     const transitionId = transitionIdFromProposal(proposal);
     if (transitionId) return `/library/transitions/${transitionId}`;
   }
-  return `/library/submissions/${noteId}`;
+  return `/library/submissions/${submissionId}`;
 }
 
 export function ProposalSiblings({
-  noteId,
+  submissionId,
   siblings,
   currentProposalId,
 }: {
-  noteId: string;
+  submissionId: string;
   siblings: ApiProposal[];
   currentProposalId: string;
 }) {
@@ -63,7 +63,7 @@ export function ProposalSiblings({
           return (
             <li key={proposal.id}>
               <Link
-                href={siblingHref(noteId, proposal)}
+                href={siblingHref(submissionId, proposal)}
                 className="hover:bg-surface-2 block px-4 py-3 transition-colors"
               >
                 {row}

@@ -16,16 +16,16 @@ import { SubmissionTrackLinks } from "@/components/library/submission-track-link
 import { describeApiError } from "@/lib/api/errors";
 import { formatTimestamp } from "@/lib/format";
 import {
-  extractNote,
-  getNote,
-  type ApiNote,
-  type ApiNoteTrackLink,
-  type NoteExtractionStatus,
-} from "@/lib/notes/api";
+  extractSubmission,
+  getSubmission,
+  type ApiSubmission,
+  type ApiSubmissionTrackLink,
+  type SubmissionExtractionStatus,
+} from "@/lib/submissions/api";
 
 const LIST_HREF = "/library?view=submissions";
 
-function canRetry(status: NoteExtractionStatus): boolean {
+function canRetry(status: SubmissionExtractionStatus): boolean {
   return (
     status === "failed" ||
     status === "idle" ||
@@ -35,15 +35,15 @@ function canRetry(status: NoteExtractionStatus): boolean {
   );
 }
 
-function proposalCountsLine(note: ApiNote): string | null {
-  const counts = note.proposalCounts;
+function proposalCountsLine(submission: ApiSubmission): string | null {
+  const counts = submission.proposalCounts;
   if (!counts) return null;
   return `${counts.committed} committed · ${counts.needsReview} need review · ${counts.failed} failed`;
 }
 
-export function SubmissionDetail({ noteId }: { noteId: string }) {
-  const [note, setNote] = useState<ApiNote | null>(null);
-  const [trackLinks, setTrackLinks] = useState<ApiNoteTrackLink[]>([]);
+export function SubmissionDetail({ submissionId }: { submissionId: string }) {
+  const [submission, setSubmission] = useState<ApiSubmission | null>(null);
+  const [trackLinks, setTrackLinks] = useState<ApiSubmissionTrackLink[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retryError, setRetryError] = useState<string | null>(null);
   const [loading, startLoad] = useTransition();
@@ -53,49 +53,49 @@ export function SubmissionDetail({ noteId }: { noteId: string }) {
     let cancelled = false;
     startLoad(async () => {
       try {
-        const response = await getNote(noteId);
+        const response = await getSubmission(submissionId);
         if (cancelled) return;
-        setNote(response.note);
-        setTrackLinks(response.note.trackLinks ?? []);
+        setSubmission(response.submission);
+        setTrackLinks(response.submission.trackLinks ?? []);
         setLoadError(null);
       } catch (err) {
         if (cancelled) return;
-        setNote(null);
+        setSubmission(null);
         setLoadError(describeApiError(err, { fallback: "Failed to load submission." }));
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [noteId]);
+  }, [submissionId]);
 
   useEffect(() => {
-    if (note?.extractionStatus !== "extracting") return;
+    if (submission?.extractionStatus !== "extracting") return;
     let cancelled = false;
     const timer = window.setInterval(() => {
-      void getNote(noteId)
+      void getSubmission(submissionId)
         .then((response) => {
           if (cancelled) return;
-          setNote(response.note);
-          setTrackLinks(response.note.trackLinks ?? []);
+          setSubmission(response.submission);
+          setTrackLinks(response.submission.trackLinks ?? []);
         })
         .catch(() => {
-          /* keep last known note; next poll may succeed */
+          /* keep last known submission; next poll may succeed */
         });
     }, 1500);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [noteId, note?.extractionStatus]);
+  }, [submissionId, submission?.extractionStatus]);
 
   function onRetryExtraction() {
-    if (!note) return;
+    if (!submission) return;
     startRetry(async () => {
       try {
-        const response = await extractNote(note.id);
-        setNote(response.note);
-        setTrackLinks(response.note.trackLinks ?? trackLinks);
+        const response = await extractSubmission(submission.id);
+        setSubmission(response.submission);
+        setTrackLinks(response.submission.trackLinks ?? trackLinks);
         setRetryError(null);
       } catch (err) {
         setRetryError(
@@ -105,11 +105,11 @@ export function SubmissionDetail({ noteId }: { noteId: string }) {
     });
   }
 
-  if (loading && !note) {
+  if (loading && !submission) {
     return <StatePanel variant="loading">Loading submission…</StatePanel>;
   }
 
-  if (loadError || !note) {
+  if (loadError || !submission) {
     return (
       <div className="space-y-4">
         <Alert variant="destructive">{loadError ?? "Submission not found."}</Alert>
@@ -120,7 +120,7 @@ export function SubmissionDetail({ noteId }: { noteId: string }) {
     );
   }
 
-  const countsLine = proposalCountsLine(note);
+  const countsLine = proposalCountsLine(submission);
 
   return (
     <div className="space-y-10">
@@ -136,7 +136,7 @@ export function SubmissionDetail({ noteId }: { noteId: string }) {
         }
         title="Submission"
         description={
-          <span className="text-numeric">Created {formatTimestamp(note.createdAt)}</span>
+          <span className="text-numeric">Created {formatTimestamp(submission.createdAt)}</span>
         }
       />
 
@@ -146,7 +146,7 @@ export function SubmissionDetail({ noteId }: { noteId: string }) {
           label="Raw text"
           description="Submissions are immutable. Edit committed transitions or resolve review items instead."
         >
-          <Textarea value={note.rawText} readOnly className="bg-surface-1 min-h-56" />
+          <Textarea value={submission.rawText} readOnly className="bg-surface-1 min-h-56" />
         </FormField>
         <Button asChild type="button" variant="outline">
           <Link href={LIST_HREF}>Back to submissions</Link>
@@ -157,16 +157,16 @@ export function SubmissionDetail({ noteId }: { noteId: string }) {
         <section className="space-y-1" aria-live="polite">
           <p className="text-card-title flex flex-wrap items-center gap-2">
             Extraction
-            <ExtractionStatusBadge status={note.extractionStatus} />
+            <ExtractionStatusBadge status={submission.extractionStatus} />
           </p>
           {countsLine ? <p className="text-muted-foreground text-sm">{countsLine}</p> : null}
-          {note.extractionStatus === "failed" && note.extractionError ? (
-            <Alert variant="destructive">{note.extractionError}</Alert>
+          {submission.extractionStatus === "failed" && submission.extractionError ? (
+            <Alert variant="destructive">{submission.extractionError}</Alert>
           ) : null}
         </section>
-        <SubmissionProposals noteId={note.id} rawText={note.rawText} />
+        <SubmissionProposals submissionId={submission.id} rawText={submission.rawText} />
         {retryError ? <Alert variant="destructive">{retryError}</Alert> : null}
-        {canRetry(note.extractionStatus) ? (
+        {canRetry(submission.extractionStatus) ? (
           <Button
             type="button"
             variant="outline"
@@ -180,11 +180,11 @@ export function SubmissionDetail({ noteId }: { noteId: string }) {
       </div>
 
       <SubmissionTrackLinks
-        noteId={note.id}
+        submissionId={submission.id}
         initialLinks={trackLinks}
         onLinksChange={(next) => {
           setTrackLinks(next);
-          setNote((current) => (current ? { ...current, trackLinks: next } : current));
+          setSubmission((current) => (current ? { ...current, trackLinks: next } : current));
         }}
       />
     </div>

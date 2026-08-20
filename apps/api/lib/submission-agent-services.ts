@@ -8,7 +8,7 @@ import {
 import {
   graphCandidateHandle,
   spotifyCandidateHandle,
-  type NoteAgentServices,
+  type SubmissionAgentServices,
   type SearchCandidatesOutput,
   type SearchQueriesInput,
 } from "@selecta/agentics/submission-parser";
@@ -24,11 +24,11 @@ function emptyResults(input: SearchQueriesInput): SearchCandidatesOutput {
 }
 
 /**
- * Concrete adapters for note / submission processing.
+ * Concrete adapters for submission processing.
  * Search is used by the deterministic resolver; mutations by the policy executor only.
  * Not exposed as LLM tools.
  */
-export function createNoteAgentServices(): NoteAgentServices {
+export function createSubmissionAgentServices(): SubmissionAgentServices {
   return {
     searchLibraryTracks: async (input) => {
       const results = await Promise.all(

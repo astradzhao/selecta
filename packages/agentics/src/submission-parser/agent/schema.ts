@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { NOTE_TYPES, TRANSITION_QUALITIES } from "../note-types";
+import { SUBMISSION_CONTENT_TYPES, TRANSITION_QUALITIES } from "../content-types";
 import { CONFIDENCE_LEVELS } from "./confidence";
 
 export const MENTION_RESOLUTION_STATUSES = [
@@ -25,7 +25,7 @@ export const CandidateHandleSchema = z
   .string()
   .regex(/^(graph|spotify):.+/, 'Candidate handle must be "graph:…" or "spotify:…"');
 
-export const NoteMentionPlanSchema = z.object({
+export const SubmissionMentionPlanSchema = z.object({
   mentionId: z.string().min(1),
   mention: z.string().min(1),
   titleHint: nullableString,
@@ -35,9 +35,9 @@ export const NoteMentionPlanSchema = z.object({
   confidence: nullableConfidence,
   ambiguityReason: nullableString,
 });
-export type NoteMentionPlan = z.infer<typeof NoteMentionPlanSchema>;
+export type SubmissionMentionPlan = z.infer<typeof SubmissionMentionPlanSchema>;
 
-export const NoteTransitionPlanSchema = z.object({
+export const SubmissionTransitionPlanSchema = z.object({
   fromMentionId: z.string().min(1),
   toMentionId: z.string().min(1),
   fromBar: nullableNonNegInt,
@@ -48,18 +48,18 @@ export const NoteTransitionPlanSchema = z.object({
   quality: z.enum(TRANSITION_QUALITIES).nullable(),
   notes: nullableString,
 });
-export type NoteTransitionPlan = z.infer<typeof NoteTransitionPlanSchema>;
+export type SubmissionTransitionPlan = z.infer<typeof SubmissionTransitionPlanSchema>;
 
-export const NoteProcessingPlanSchema = z.object({
-  noteType: z.enum(NOTE_TYPES),
-  mentions: z.array(NoteMentionPlanSchema),
-  transitions: z.array(NoteTransitionPlanSchema),
+export const SubmissionProcessingPlanSchema = z.object({
+  noteType: z.enum(SUBMISSION_CONTENT_TYPES),
+  mentions: z.array(SubmissionMentionPlanSchema),
+  transitions: z.array(SubmissionTransitionPlanSchema),
   confidence: z.enum(CONFIDENCE_LEVELS),
   ambiguities: z.array(z.string()),
   /** When true, apply commits A→B and B→A as separate edges. */
   bidirectional: z.boolean(),
 });
-export type NoteProcessingPlan = z.infer<typeof NoteProcessingPlanSchema>;
+export type SubmissionProcessingPlan = z.infer<typeof SubmissionProcessingPlanSchema>;
 
 export function parseCandidateHandle(
   handle: string,

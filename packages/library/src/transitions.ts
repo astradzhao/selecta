@@ -20,12 +20,12 @@ import { getExecutor, runInDbTransaction } from "@selecta/db";
 import { collectSequenceIdsUsingTransition, recomputeSequencesDerived } from "./blocks";
 import {
   artists,
-  noteProposals,
+  submissionProposals,
   trackArtists,
   trackExternalIds,
   tracks,
   transitions,
-  type NoteProposalStatus,
+  type SubmissionProposalStatus,
   type Track,
   type TransitionRow,
 } from "@selecta/db/schema";
@@ -49,10 +49,10 @@ export type TransitionRecord = {
   edge: TransitionEdgeSummary;
 };
 
-/** Review enrichment from note_proposals (LEFT JOIN on source_proposal_id). */
+/** Review enrichment from submission_proposals (LEFT JOIN on source_proposal_id). */
 export type TransitionProposalReview = {
   id: string;
-  status: NoteProposalStatus;
+  status: SubmissionProposalStatus;
   proposalKey: string;
   sourceStart: number;
   sourceEnd: number;
@@ -74,8 +74,8 @@ export type CreateTransitionInput = {
   quality?: string | null;
   notes?: string | null;
   /** Optional provenance for non-manual edges. */
-  sourceNoteId?: string | null;
-  sourceNoteVersion?: number | null;
+  sourceSubmissionId?: string | null;
+  sourceSubmissionVersion?: number | null;
   sourceProposalId?: string | null;
   confidence?: number | null;
 };
@@ -92,7 +92,7 @@ export type UpdateTransitionInput = {
 
 export type TransitionSortField = "updatedAt" | "createdAt";
 export type TransitionSortOrder = "asc" | "desc";
-/** `manual` = no sourceNoteId and no proposalKey; `ai` = either set. */
+/** `manual` = no sourceSubmissionId and no proposalKey; `ai` = either set. */
 export type TransitionSourceFilter = "manual" | "ai";
 
 export type ListTransitionsInput = {
@@ -102,7 +102,7 @@ export type ListTransitionsInput = {
   technique?: string;
   intent?: string;
   quality?: string;
-  sourceNoteId?: string;
+  sourceSubmissionId?: string;
   source?: TransitionSourceFilter;
   createdAfter?: string;
   createdBefore?: string;
@@ -112,7 +112,7 @@ export type ListTransitionsInput = {
   order?: TransitionSortOrder;
   limit?: number;
   offset?: number;
-  /** When true (default), LEFT JOIN note_proposals for Library review enrichment. */
+  /** When true (default), LEFT JOIN submission_proposals for Library review enrichment. */
   includeProposal?: boolean;
 };
 
@@ -123,11 +123,11 @@ export type ListTransitionsResult = {
 export type CommitTransitionInput = {
   fromTrackId: string;
   toTrackId: string;
-  /** Deterministic idempotency key: noteId:extractionVersion:span:fingerprint */
+  /** Deterministic idempotency key: submissionId:extractionVersion:span:fingerprint */
   proposalKey: string;
-  sourceNoteId: string;
-  sourceNoteVersion: number;
-  /** Postgres note_proposals.id when committing from the agent pipeline. */
+  sourceSubmissionId: string;
+  sourceSubmissionVersion: number;
+  /** Postgres submission_proposals.id when committing from the agent pipeline. */
   sourceProposalId?: string | null;
   confidence?: number | null;
   fromBar?: number | null;
@@ -277,8 +277,8 @@ function transitionProperties(row: TransitionRow): Record<string, unknown> {
   return {
     id: row.id,
     proposalKey: row.proposalKey,
-    sourceNoteId: row.sourceNoteId,
-    sourceNoteVersion: row.sourceNoteVersion,
+    sourceSubmissionId: row.sourceSubmissionId,
+    sourceSubmissionVersion: row.sourceSubmissionVersion,
     sourceProposalId: row.sourceProposalId,
     confidence: row.confidence,
     fromBar: row.fromBar,
@@ -302,15 +302,18 @@ function transitionProperties(row: TransitionRow): Record<string, unknown> {
 export async function createTransition(input: CreateTransitionInput): Promise<TransitionRecord> {
   const fromTrackId = requireTrimmed(input.fromTrackId, "fromTrackId");
   const toTrackId = requireTrimmed(input.toTrackId, "toTrackId");
-  const sourceNoteVersion =
-    input.sourceNoteVersion === undefined || input.sourceNoteVersion === null
+  const sourceSubmissionVersion =
+    input.sourceSubmissionVersion === undefined || input.sourceSubmissionVersion === null
       ? null
-      : input.sourceNoteVersion;
+      : input.sourceSubmissionVersion;
   if (
-    sourceNoteVersion !== null &&
-    (!Number.isInteger(sourceNoteVersion) || sourceNoteVersion < 0)
+    sourceSubmissionVersion !== null &&
+    (!Number.isInteger(sourceSubmissionVersion) || sourceSubmissionVersion < 0)
   ) {
-    throw new MusicWriteError("invalid_input", "sourceNoteVersion must be a non-negative integer.");
+    throw new MusicWriteError(
+      "invalid_input",
+      "sourceSubmissionVersion must be a non-negative integer.",
+    );
   }
 
   await assertTracksExist(fromTrackId, toTrackId);
@@ -323,8 +326,8 @@ export async function createTransition(input: CreateTransitionInput): Promise<Tr
       fromTrackId,
       toTrackId,
       proposalKey: null,
-      sourceNoteId: optionalString(input.sourceNoteId),
-      sourceNoteVersion,
+      sourceSubmissionId: optionalString(input.sourceSubmissionId),
+      sourceSubmissionVersion,
       sourceProposalId: optionalString(input.sourceProposalId),
       confidence: optionalNumber(input.confidence),
       fromBar: optionalNumber(input.fromBar),
@@ -374,7 +377,7 @@ export async function listTransitions(
   const technique = input.technique?.trim() || null;
   const intent = input.intent?.trim() || null;
   const quality = input.quality?.trim() || null;
-  const sourceNoteId = input.sourceNoteId?.trim() || null;
+  const sourceSubmissionId = input.sourceSubmissionId?.trim() || null;
   const source = input.source === "manual" || input.source === "ai" ? input.source : null;
   const createdAfter = parseBound(input.createdAfter?.trim() || null);
   const createdBefore = parseBound(input.createdBefore?.trim() || null);
@@ -403,13 +406,13 @@ export async function listTransitions(
   if (quality) {
     parts.push(sql`lower(coalesce(${transitions.quality}, '')) = lower(${quality})`);
   }
-  if (sourceNoteId) {
-    parts.push(eq(transitions.sourceNoteId, sourceNoteId));
+  if (sourceSubmissionId) {
+    parts.push(eq(transitions.sourceSubmissionId, sourceSubmissionId));
   }
   if (source === "manual") {
-    parts.push(and(isNull(transitions.proposalKey), isNull(transitions.sourceNoteId))!);
+    parts.push(and(isNull(transitions.proposalKey), isNull(transitions.sourceSubmissionId))!);
   } else if (source === "ai") {
-    parts.push(or(isNotNull(transitions.proposalKey), isNotNull(transitions.sourceNoteId))!);
+    parts.push(or(isNotNull(transitions.proposalKey), isNotNull(transitions.sourceSubmissionId))!);
   }
   if (createdAfter) {
     parts.push(gte(transitions.createdAt, createdAfter));
@@ -468,17 +471,17 @@ export async function listTransitions(
       edge: transitions,
       from: fromTracks,
       to: toTracks,
-      proposalId: noteProposals.id,
-      proposalStatus: noteProposals.status,
-      proposalKey: noteProposals.proposalKey,
-      proposalSourceStart: noteProposals.sourceStart,
-      proposalSourceEnd: noteProposals.sourceEnd,
-      proposalSourceText: noteProposals.sourceText,
+      proposalId: submissionProposals.id,
+      proposalStatus: submissionProposals.status,
+      proposalKey: submissionProposals.proposalKey,
+      proposalSourceStart: submissionProposals.sourceStart,
+      proposalSourceEnd: submissionProposals.sourceEnd,
+      proposalSourceText: submissionProposals.sourceText,
     })
     .from(transitions)
     .innerJoin(fromTracks, eq(transitions.fromTrackId, fromTracks.id))
     .innerJoin(toTracks, eq(transitions.toTrackId, toTracks.id))
-    .leftJoin(noteProposals, eq(transitions.sourceProposalId, noteProposals.id))
+    .leftJoin(submissionProposals, eq(transitions.sourceProposalId, submissionProposals.id))
     .where(where)
     .orderBy(...orderBy)
     .limit(fetchLimit)
@@ -623,9 +626,12 @@ export async function commitTransitionProposal(
   const fromTrackId = requireTrimmed(input.fromTrackId, "fromTrackId");
   const toTrackId = requireTrimmed(input.toTrackId, "toTrackId");
   const proposalKey = requireTrimmed(input.proposalKey, "proposalKey");
-  const sourceNoteId = requireTrimmed(input.sourceNoteId, "sourceNoteId");
-  if (!Number.isInteger(input.sourceNoteVersion) || input.sourceNoteVersion < 0) {
-    throw new MusicWriteError("invalid_input", "sourceNoteVersion must be a non-negative integer.");
+  const sourceSubmissionId = requireTrimmed(input.sourceSubmissionId, "sourceSubmissionId");
+  if (!Number.isInteger(input.sourceSubmissionVersion) || input.sourceSubmissionVersion < 0) {
+    throw new MusicWriteError(
+      "invalid_input",
+      "sourceSubmissionVersion must be a non-negative integer.",
+    );
   }
 
   await assertTracksExist(fromTrackId, toTrackId);
@@ -638,8 +644,8 @@ export async function commitTransitionProposal(
       fromTrackId,
       toTrackId,
       proposalKey,
-      sourceNoteId,
-      sourceNoteVersion: input.sourceNoteVersion,
+      sourceSubmissionId,
+      sourceSubmissionVersion: input.sourceSubmissionVersion,
       sourceProposalId: optionalString(input.sourceProposalId),
       confidence: optionalNumber(input.confidence),
       fromBar: optionalNumber(input.fromBar),

@@ -29,7 +29,7 @@ function parseExpectedUpdatedAt(value: unknown): Date {
 }
 
 /**
- * Fetch one proposal with note context, siblings, and commit audit.
+ * Fetch one proposal with submission context, siblings, and commit audit.
  * GET /proposals/:id
  */
 export async function GET(_request: Request, context: RouteContext) {
@@ -60,7 +60,7 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({
       ok: true,
       proposal: serialized.proposal,
-      note: serialized.note,
+      submission: serialized.submission,
       siblings: serialized.siblings,
       commit: serialized.commit,
     });

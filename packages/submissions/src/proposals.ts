@@ -2,7 +2,7 @@ import { and, asc, desc, eq, ilike, inArray, ne, sql, type SQL } from "drizzle-o
 
 import { getDb } from "@selecta/db";
 import { getExecutor } from "@selecta/db";
-import { NotesError } from "./errors";
+import { SubmissionsError } from "./errors";
 import {
   clampListLimit,
   clampListOffset,
@@ -10,20 +10,20 @@ import {
   MAX_LIST_LIMIT,
 } from "@selecta/library";
 import {
-  noteProposals,
-  notes,
-  noteTransitionCommits,
+  submissionProposals,
+  submissions,
+  submissionTransitionCommits,
   proposalReviewEvents,
-  type Note,
-  type NoteExtractionStatus,
-  type NoteProposal,
-  type NoteProposalStatus,
-  type NoteTransitionCommit,
+  type Submission,
+  type SubmissionExtractionStatus,
+  type SubmissionProposal,
+  type SubmissionProposalStatus,
+  type SubmissionTransitionCommit,
   type ProposalReviewAction,
 } from "@selecta/db/schema";
 
 export type ClaimProposalInput = {
-  noteId: string;
+  submissionId: string;
   extractionVersion: number;
   agentRunId?: string | null;
   sourceStart: number;
@@ -34,7 +34,7 @@ export type ClaimProposalInput = {
 };
 
 export type ClaimProposalResult = {
-  proposal: NoteProposal;
+  proposal: SubmissionProposal;
   /** True when this call inserted a new row (false on idempotent replay). */
   created: boolean;
 };
@@ -47,13 +47,16 @@ export async function claimProposal(input: ClaimProposalInput): Promise<ClaimPro
   const existing = await getProposalByKey(input.proposalKey);
   if (existing) {
     if (
-      existing.noteId !== input.noteId ||
+      existing.submissionId !== input.submissionId ||
       existing.extractionVersion !== input.extractionVersion
     ) {
-      throw new NotesError("invalid_input", `Proposal key collision for "${input.proposalKey}".`);
+      throw new SubmissionsError(
+        "invalid_input",
+        `Proposal key collision for "${input.proposalKey}".`,
+      );
     }
     if (existing.status === "superseded") {
-      throw new NotesError(
+      throw new SubmissionsError(
         "invalid_input",
         `Proposal "${input.proposalKey}" was superseded by a newer extraction version.`,
       );
@@ -63,9 +66,9 @@ export async function claimProposal(input: ClaimProposalInput): Promise<ClaimPro
 
   try {
     const [row] = await getDb()
-      .insert(noteProposals)
+      .insert(submissionProposals)
       .values({
-        noteId: input.noteId,
+        submissionId: input.submissionId,
         extractionVersion: input.extractionVersion,
         agentRunId: input.agentRunId ?? null,
         sourceStart: input.sourceStart,
@@ -78,7 +81,7 @@ export async function claimProposal(input: ClaimProposalInput): Promise<ClaimPro
       })
       .returning();
     if (!row) {
-      throw new NotesError("invalid_input", "Failed to claim proposal.");
+      throw new SubmissionsError("invalid_input", "Failed to claim proposal.");
     }
     return { proposal: row, created: true };
   } catch (error) {
@@ -90,28 +93,35 @@ export async function claimProposal(input: ClaimProposalInput): Promise<ClaimPro
   }
 }
 
-export async function getProposalByKey(proposalKey: string): Promise<NoteProposal | null> {
+export async function getProposalByKey(proposalKey: string): Promise<SubmissionProposal | null> {
   const [row] = await getDb()
     .select()
-    .from(noteProposals)
-    .where(eq(noteProposals.proposalKey, proposalKey))
+    .from(submissionProposals)
+    .where(eq(submissionProposals.proposalKey, proposalKey))
     .limit(1);
   return row ?? null;
 }
 
-export async function getProposalById(id: string): Promise<NoteProposal | null> {
-  const [row] = await getDb().select().from(noteProposals).where(eq(noteProposals.id, id)).limit(1);
+export async function getProposalById(id: string): Promise<SubmissionProposal | null> {
+  const [row] = await getDb()
+    .select()
+    .from(submissionProposals)
+    .where(eq(submissionProposals.id, id))
+    .limit(1);
   return row ?? null;
 }
 
 /** Batch-load proposals by id (Library transition enrichment). */
-export async function getProposalsByIds(ids: string[]): Promise<Map<string, NoteProposal>> {
+export async function getProposalsByIds(ids: string[]): Promise<Map<string, SubmissionProposal>> {
   const unique = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
-  const byId = new Map<string, NoteProposal>();
+  const byId = new Map<string, SubmissionProposal>();
   if (unique.length === 0) {
     return byId;
   }
-  const rows = await getDb().select().from(noteProposals).where(inArray(noteProposals.id, unique));
+  const rows = await getDb()
+    .select()
+    .from(submissionProposals)
+    .where(inArray(submissionProposals.id, unique));
   for (const row of rows) {
     byId.set(row.id, row);
   }
@@ -119,39 +129,39 @@ export async function getProposalsByIds(ids: string[]): Promise<Map<string, Note
 }
 
 export async function listProposalsForVersion(
-  noteId: string,
+  submissionId: string,
   extractionVersion: number,
-): Promise<NoteProposal[]> {
+): Promise<SubmissionProposal[]> {
   return getDb()
     .select()
-    .from(noteProposals)
+    .from(submissionProposals)
     .where(
       and(
-        eq(noteProposals.noteId, noteId),
-        eq(noteProposals.extractionVersion, extractionVersion),
-        ne(noteProposals.status, "superseded"),
+        eq(submissionProposals.submissionId, submissionId),
+        eq(submissionProposals.extractionVersion, extractionVersion),
+        ne(submissionProposals.status, "superseded"),
       ),
     )
-    .orderBy(asc(noteProposals.sourceStart), asc(noteProposals.createdAt));
+    .orderBy(asc(submissionProposals.sourceStart), asc(submissionProposals.createdAt));
 }
 
 export type ListProposalsInput = {
-  noteId?: string;
+  submissionId?: string;
   extractionVersion?: number;
-  statuses?: NoteProposalStatus[];
+  statuses?: SubmissionProposalStatus[];
   query?: string;
   limit?: number;
   offset?: number;
 };
 
 export type ListProposalsResult = {
-  proposals: NoteProposal[];
+  proposals: SubmissionProposal[];
   limit: number;
   offset: number;
   hasMore: boolean;
 };
 
-/** Cross-submission proposal query for review queues and note-scoped lists. */
+/** Cross-submission proposal query for review queues and submission-scoped lists. */
 export async function listProposals(input: ListProposalsInput = {}): Promise<ListProposalsResult> {
   const limit = clampListLimit(input.limit);
   const offset = clampListOffset(input.offset);
@@ -162,36 +172,36 @@ export async function listProposals(input: ListProposalsInput = {}): Promise<Lis
   const excludeSuperseded = !statuses?.includes("superseded");
 
   if (excludeSuperseded) {
-    filters.push(ne(noteProposals.status, "superseded"));
+    filters.push(ne(submissionProposals.status, "superseded"));
   }
   if (statuses && statuses.length > 0) {
-    filters.push(inArray(noteProposals.status, statuses));
+    filters.push(inArray(submissionProposals.status, statuses));
   }
-  if (input.noteId?.trim()) {
-    filters.push(eq(noteProposals.noteId, input.noteId.trim()));
+  if (input.submissionId?.trim()) {
+    filters.push(eq(submissionProposals.submissionId, input.submissionId.trim()));
   }
   if (input.extractionVersion !== undefined && Number.isFinite(input.extractionVersion)) {
-    filters.push(eq(noteProposals.extractionVersion, Math.floor(input.extractionVersion)));
+    filters.push(eq(submissionProposals.extractionVersion, Math.floor(input.extractionVersion)));
   }
   const query = input.query?.trim();
   if (query) {
-    filters.push(ilike(noteProposals.sourceText, `%${query}%`));
+    filters.push(ilike(submissionProposals.sourceText, `%${query}%`));
   }
 
   const where = filters.length > 0 ? and(...filters) : undefined;
   const versionScoped =
-    input.noteId?.trim() &&
+    input.submissionId?.trim() &&
     input.extractionVersion !== undefined &&
     Number.isFinite(input.extractionVersion);
 
   const rows = await getDb()
     .select()
-    .from(noteProposals)
+    .from(submissionProposals)
     .where(where)
     .orderBy(
       ...(versionScoped
-        ? [asc(noteProposals.sourceStart), asc(noteProposals.createdAt)]
-        : [desc(noteProposals.updatedAt), desc(noteProposals.id)]),
+        ? [asc(submissionProposals.sourceStart), asc(submissionProposals.createdAt)]
+        : [desc(submissionProposals.updatedAt), desc(submissionProposals.id)]),
     )
     .limit(fetchLimit)
     .offset(offset);
@@ -207,8 +217,8 @@ export async function listProposals(input: ListProposalsInput = {}): Promise<Lis
   };
 }
 
-export type ProposalDetailNote = Pick<
-  Note,
+export type ProposalDetailSubmission = Pick<
+  Submission,
   | "id"
   | "rawText"
   | "extractionVersion"
@@ -220,13 +230,13 @@ export type ProposalDetailNote = Pick<
 >;
 
 export type ProposalDetail = {
-  proposal: NoteProposal;
-  note: ProposalDetailNote;
-  siblings: NoteProposal[];
-  commit: NoteTransitionCommit | null;
+  proposal: SubmissionProposal;
+  submission: ProposalDetailSubmission;
+  siblings: SubmissionProposal[];
+  commit: SubmissionTransitionCommit | null;
 };
 
-/** Load one proposal with note context, siblings, and commit audit. */
+/** Load one proposal with submission context, siblings, and commit audit. */
 export async function getProposalDetail(id: string): Promise<ProposalDetail | null> {
   const proposalId = id.trim();
   if (!proposalId) {
@@ -238,33 +248,33 @@ export async function getProposalDetail(id: string): Promise<ProposalDetail | nu
     return null;
   }
 
-  const [noteRow] = await getDb()
+  const [submissionRow] = await getDb()
     .select()
-    .from(notes)
-    .where(eq(notes.id, proposal.noteId))
+    .from(submissions)
+    .where(eq(submissions.id, proposal.submissionId))
     .limit(1);
-  if (!noteRow) {
+  if (!submissionRow) {
     return null;
   }
 
-  const siblings = await listProposalsForVersion(proposal.noteId, proposal.extractionVersion);
+  const siblings = await listProposalsForVersion(proposal.submissionId, proposal.extractionVersion);
   const [commitRow] = await getDb()
     .select()
-    .from(noteTransitionCommits)
-    .where(eq(noteTransitionCommits.proposalKey, proposal.proposalKey))
+    .from(submissionTransitionCommits)
+    .where(eq(submissionTransitionCommits.proposalKey, proposal.proposalKey))
     .limit(1);
 
   return {
     proposal,
-    note: {
-      id: noteRow.id,
-      rawText: noteRow.rawText,
-      extractionVersion: noteRow.extractionVersion,
-      extractionStatus: noteRow.extractionStatus,
-      extractionError: noteRow.extractionError,
-      extractionStartedAt: noteRow.extractionStartedAt,
-      extractionFinishedAt: noteRow.extractionFinishedAt,
-      updatedAt: noteRow.updatedAt,
+    submission: {
+      id: submissionRow.id,
+      rawText: submissionRow.rawText,
+      extractionVersion: submissionRow.extractionVersion,
+      extractionStatus: submissionRow.extractionStatus,
+      extractionError: submissionRow.extractionError,
+      extractionStartedAt: submissionRow.extractionStartedAt,
+      extractionFinishedAt: submissionRow.extractionFinishedAt,
+      updatedAt: submissionRow.updatedAt,
     },
     siblings,
     commit: commitRow ?? null,
@@ -272,7 +282,7 @@ export async function getProposalDetail(id: string): Promise<ProposalDetail | nu
 }
 
 export type UpdateProposalInput = {
-  status?: NoteProposalStatus;
+  status?: SubmissionProposalStatus;
   draft?: Record<string, unknown> | null;
   resolution?: Record<string, unknown> | null;
   policyResult?: Record<string, unknown> | null;
@@ -290,7 +300,7 @@ export type UpdateProposalInput = {
 
 function buildProposalPatch(
   input: UpdateProposalInput,
-): Partial<typeof noteProposals.$inferInsert> {
+): Partial<typeof submissionProposals.$inferInsert> {
   return {
     status: input.status,
     draft: input.draft === undefined ? undefined : input.draft,
@@ -313,18 +323,18 @@ function buildProposalPatch(
 export async function updateProposal(
   proposalId: string,
   input: UpdateProposalInput,
-): Promise<NoteProposal | null> {
+): Promise<SubmissionProposal | null> {
   const [row] = await getExecutor()
-    .update(noteProposals)
+    .update(submissionProposals)
     .set(buildProposalPatch(input))
-    .where(eq(noteProposals.id, proposalId))
+    .where(eq(submissionProposals.id, proposalId))
     .returning();
   return row ?? null;
 }
 
 export type UpdateProposalGuardedInput = {
   expectedUpdatedAt: Date;
-  fromStatuses: NoteProposalStatus[];
+  fromStatuses: SubmissionProposalStatus[];
   set: UpdateProposalInput;
 };
 
@@ -332,19 +342,19 @@ export type UpdateProposalGuardedInput = {
 export async function updateProposalGuarded(
   id: string,
   input: UpdateProposalGuardedInput,
-): Promise<NoteProposal | null> {
+): Promise<SubmissionProposal | null> {
   if (input.fromStatuses.length === 0) {
-    throw new NotesError("invalid_input", "fromStatuses must include at least one status.");
+    throw new SubmissionsError("invalid_input", "fromStatuses must include at least one status.");
   }
 
   const [row] = await getExecutor()
-    .update(noteProposals)
+    .update(submissionProposals)
     .set(buildProposalPatch(input.set))
     .where(
       and(
-        eq(noteProposals.id, id),
-        eq(noteProposals.updatedAt, input.expectedUpdatedAt),
-        inArray(noteProposals.status, input.fromStatuses),
+        eq(submissionProposals.id, id),
+        eq(submissionProposals.updatedAt, input.expectedUpdatedAt),
+        inArray(submissionProposals.status, input.fromStatuses),
       ),
     )
     .returning();
@@ -371,24 +381,24 @@ export async function insertProposalReviewEvent(
     })
     .returning();
   if (!row) {
-    throw new NotesError("invalid_input", "Failed to insert proposal review event.");
+    throw new SubmissionsError("invalid_input", "Failed to insert proposal review event.");
   }
   return row;
 }
 
 /** Mark proposals from older extraction versions as superseded. */
-export async function supersedeProposalsForNote(
-  noteId: string,
+export async function supersedeProposalsForSubmission(
+  submissionId: string,
   exceptVersion: number,
 ): Promise<number> {
   const result = await getDb()
-    .update(noteProposals)
+    .update(submissionProposals)
     .set({ status: "superseded" })
     .where(
       and(
-        eq(noteProposals.noteId, noteId),
-        ne(noteProposals.extractionVersion, exceptVersion),
-        inArray(noteProposals.status, [
+        eq(submissionProposals.submissionId, submissionId),
+        ne(submissionProposals.extractionVersion, exceptVersion),
+        inArray(submissionProposals.status, [
           "queued",
           "parsing",
           "resolving",
@@ -398,7 +408,7 @@ export async function supersedeProposalsForNote(
         ]),
       ),
     )
-    .returning({ id: noteProposals.id });
+    .returning({ id: submissionProposals.id });
   return result.length;
 }
 
@@ -416,19 +426,22 @@ export type ProposalStatusCounts = {
 };
 
 export async function countProposalsForVersion(
-  noteId: string,
+  submissionId: string,
   extractionVersion: number,
 ): Promise<ProposalStatusCounts> {
   const rows = await getExecutor()
     .select({
-      status: noteProposals.status,
+      status: submissionProposals.status,
       count: sql<number>`count(*)::int`,
     })
-    .from(noteProposals)
+    .from(submissionProposals)
     .where(
-      and(eq(noteProposals.noteId, noteId), eq(noteProposals.extractionVersion, extractionVersion)),
+      and(
+        eq(submissionProposals.submissionId, submissionId),
+        eq(submissionProposals.extractionVersion, extractionVersion),
+      ),
     )
-    .groupBy(noteProposals.status);
+    .groupBy(submissionProposals.status);
 
   const counts: ProposalStatusCounts = {
     total: 0,
@@ -458,7 +471,7 @@ export async function countProposalsForVersion(
 export function deriveSubmissionExtractionStatus(
   counts: ProposalStatusCounts,
 ): Extract<
-  NoteExtractionStatus,
+  SubmissionExtractionStatus,
   | "no_proposal"
   | "needs_review"
   | "committed"
@@ -513,16 +526,18 @@ export function deriveSubmissionExtractionStatus(
  * Does not CAS on `extracting` — safe to call outside the workflow finalize step.
  */
 export async function refreshSubmissionExtractionStatus(
-  noteId: string,
+  submissionId: string,
   extractionVersion: number,
-): Promise<Note | null> {
-  const counts = await countProposalsForVersion(noteId, extractionVersion);
+): Promise<Submission | null> {
+  const counts = await countProposalsForVersion(submissionId, extractionVersion);
   const extractionStatus = deriveSubmissionExtractionStatus(counts);
 
   const [existing] = await getExecutor()
     .select()
-    .from(notes)
-    .where(and(eq(notes.id, noteId), eq(notes.extractionVersion, extractionVersion)))
+    .from(submissions)
+    .where(
+      and(eq(submissions.id, submissionId), eq(submissions.extractionVersion, extractionVersion)),
+    )
     .limit(1);
   if (!existing) {
     return null;
@@ -548,12 +563,14 @@ export async function refreshSubmissionExtractionStatus(
   }
 
   const [row] = await getExecutor()
-    .update(notes)
+    .update(submissions)
     .set({
       extractionStatus,
       extraction,
     })
-    .where(and(eq(notes.id, noteId), eq(notes.extractionVersion, extractionVersion)))
+    .where(
+      and(eq(submissions.id, submissionId), eq(submissions.extractionVersion, extractionVersion)),
+    )
     .returning();
 
   return row ?? null;

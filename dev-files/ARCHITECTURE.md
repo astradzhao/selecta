@@ -5,7 +5,7 @@
 > Status: historical planning record — storage decision superseded by
 > [`PG_MIGRATION_REFACTOR.md`](./PG_MIGRATION_REFACTOR.md) (single Postgres).
 > Product model: [`NEXT_PRODUCT_ARCHITECTURE.md`](./NEXT_PRODUCT_ARCHITECTURE.md).
-> Last updated: 2026-08-11 (PG-7 reconciliation)
+> Last updated: 2026-08-20 (DJ-136: `notes` → `submissions` in live schema; this file keeps historical `/notes` endpoint names)
 > Linear: DJ Project team document (see “Linear tracking” below)
 
 ---

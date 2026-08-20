@@ -1,4 +1,4 @@
-import type { NoteExtractionStatus, NoteProposalStatus } from "@selecta/db";
+import type { SubmissionExtractionStatus, SubmissionProposalStatus } from "@selecta/db";
 
 export type ApiProposalTrackSummary = {
   id: string;
@@ -26,9 +26,9 @@ export type ApiProposalReviewReason = {
 
 export type ApiProposal = {
   id: string;
-  noteId: string;
+  submissionId: string;
   extractionVersion: number;
-  status: NoteProposalStatus;
+  status: SubmissionProposalStatus;
   sourceStart: number;
   sourceEnd: number;
   sourceText: string;
@@ -58,11 +58,11 @@ export type ApiProposal = {
   };
 };
 
-export type ApiProposalNoteSummary = {
+export type ApiProposalSubmissionSummary = {
   id: string;
   rawText: string;
   extractionVersion: number;
-  extractionStatus: NoteExtractionStatus;
+  extractionStatus: SubmissionExtractionStatus;
   extractionError: string | null;
   extractionStartedAt: string | null;
   extractionFinishedAt: string | null;
@@ -71,7 +71,7 @@ export type ApiProposalNoteSummary = {
 
 export type ApiTransitionCommit = {
   id: string;
-  noteId: string;
+  submissionId: string;
   extractionVersion: number;
   proposalKey: string;
   status: string;
@@ -86,7 +86,7 @@ export type ApiTransitionCommit = {
 
 export type ApiProposalDetail = {
   proposal: ApiProposal;
-  note: ApiProposalNoteSummary;
+  submission: ApiProposalSubmissionSummary;
   siblings: ApiProposal[];
   commit: ApiTransitionCommit | null;
 };

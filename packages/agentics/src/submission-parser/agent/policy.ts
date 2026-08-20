@@ -1,4 +1,4 @@
-import type { NoteTransitionPlan } from "./schema";
+import type { SubmissionTransitionPlan } from "./schema";
 import type { TrackCandidate } from "./services";
 
 export type PolicyGateCode =
@@ -29,5 +29,5 @@ export type PolicyCommitAction = {
   toMentionId: string;
   fromTrackId: string;
   toTrackId: string;
-  transition: NoteTransitionPlan;
+  transition: SubmissionTransitionPlan;
 };

@@ -176,7 +176,9 @@ export function TransitionsList() {
             <DataList variant="plain">
               {pendingProposals.map((proposal) => (
                 <DataListRow key={proposal.id} variant="dashed" className="flex-col gap-2">
-                  <Link href={`/library/submissions/${proposal.noteId}/proposals/${proposal.id}`}>
+                  <Link
+                    href={`/library/submissions/${proposal.submissionId}/proposals/${proposal.id}`}
+                  >
                     <p className="line-clamp-2 text-sm text-pretty">
                       {previewText(proposal.sourceText, {
                         maxLength: 100,
@@ -234,7 +236,7 @@ export function TransitionsList() {
       )}
       empty={{
         noneTitle: "No transitions yet",
-        noneDescription: "Add a transition note to start capturing mix knowledge.",
+        noneDescription: "Add a transition to start capturing mix knowledge.",
         filteredTitle: "No matching transitions",
         action: (
           <Button asChild size="sm">

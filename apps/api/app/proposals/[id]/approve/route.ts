@@ -3,8 +3,8 @@ import {
   assertReviewerEndpoint,
   buildReviewerPolicyResult,
   draftToSingleUnresolvedPlan,
-  type NoteProcessingPlan,
-  type NoteTransitionPlan,
+  type SubmissionProcessingPlan,
+  type SubmissionTransitionPlan,
   type SingleTransitionDraft,
 } from "@selecta/agentics/submission-parser";
 import { isPostgresConfigured } from "@selecta/db";
@@ -50,7 +50,7 @@ function asOptionalNumber(value: unknown): number | null | undefined {
   return value;
 }
 
-function parseTransitionPatch(value: unknown): Partial<NoteTransitionPlan> {
+function parseTransitionPatch(value: unknown): Partial<SubmissionTransitionPlan> {
   if (!isRecord(value)) {
     throw new Error("transition must be an object.");
   }
@@ -60,16 +60,16 @@ function parseTransitionPatch(value: unknown): Partial<NoteTransitionPlan> {
     barsOverlap: asOptionalNumber(value.barsOverlap),
     technique: asOptionalString(value.technique),
     intent: asOptionalString(value.intent),
-    quality: asOptionalString(value.quality) as NoteTransitionPlan["quality"],
+    quality: asOptionalString(value.quality) as SubmissionTransitionPlan["quality"],
     notes: asOptionalString(value.notes),
   };
 }
 
 function buildReviewerPlan(
   draft: SingleTransitionDraft,
-  transitionPatch: Partial<NoteTransitionPlan>,
+  transitionPatch: Partial<SubmissionTransitionPlan>,
   bidirectional: boolean,
-): NoteProcessingPlan {
+): SubmissionProcessingPlan {
   const base = draftToSingleUnresolvedPlan(draft);
   return {
     ...base,
@@ -117,7 +117,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   let expectedUpdatedAt: Date;
-  let transitionPatch: Partial<NoteTransitionPlan>;
+  let transitionPatch: Partial<SubmissionTransitionPlan>;
   try {
     expectedUpdatedAt = parseExpectedUpdatedAt(json.expectedUpdatedAt);
     transitionPatch = parseTransitionPatch(json.transition ?? {});

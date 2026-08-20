@@ -18,12 +18,12 @@ export const DEFAULT_TEST_DATABASE_NAME = "selecta_test";
 
 /** Application tables wiped between integration suites (not drizzle meta). */
 const TRUNCATE_TABLES = [
-  "note_track_links",
-  "note_agent_runs",
-  "note_proposals",
+  "submission_track_links",
+  "submission_agent_runs",
+  "submission_proposals",
   "proposal_review_events",
-  "note_transition_commits",
-  "notes",
+  "submission_transition_commits",
+  "submissions",
   "block_version_choices",
   "block_versions",
   "block_alternates",

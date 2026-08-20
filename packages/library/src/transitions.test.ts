@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { before, describe, it } from "node:test";
 
 import { runInDbTransaction } from "@selecta/db";
-import { createNote } from "@selecta/submissions";
+import { createSubmission } from "@selecta/submissions";
 import { isDbIntegrationEnabled, resetDbIntegrationData } from "@selecta/db/testing";
 import { asTransitionEdge } from "./neighborhood";
 import { createTrack } from "./tracks";
@@ -23,8 +23,8 @@ describe("asTransitionEdge", () => {
     const edge = asTransitionEdge({
       id: "edge-1",
       proposalKey: "note:1:span:abc",
-      sourceNoteId: "note-1",
-      sourceNoteVersion: 2,
+      sourceSubmissionId: "note-1",
+      sourceSubmissionVersion: 2,
       sourceProposalId: "proposal-1",
       quality: "great",
     });
@@ -114,15 +114,15 @@ describe("transition CRUD + AI commit", { skip: !pgIntegration }, () => {
       title: `DJ-83 AI To ${suffix}`,
       artists: [`DJ-83 AI Artist ${suffix}`],
     });
-    const note = await createNote({ rawText: `DJ-83 commit note ${suffix}` });
+    const note = await createSubmission({ rawText: `DJ-83 commit note ${suffix}` });
     const proposalKey = `dj83-test:${randomUUID()}:span:fp`;
 
     const first = await commitTransitionProposal({
       fromTrackId: from.track.id,
       toTrackId: to.track.id,
       proposalKey,
-      sourceNoteId: note.id,
-      sourceNoteVersion: 1,
+      sourceSubmissionId: note.id,
+      sourceSubmissionVersion: 1,
       quality: "ok",
       notes: "ai edge",
     });
@@ -134,8 +134,8 @@ describe("transition CRUD + AI commit", { skip: !pgIntegration }, () => {
       fromTrackId: from.track.id,
       toTrackId: to.track.id,
       proposalKey,
-      sourceNoteId: note.id,
-      sourceNoteVersion: 1,
+      sourceSubmissionId: note.id,
+      sourceSubmissionVersion: 1,
       quality: "great",
       notes: "should not replace",
     });
@@ -148,8 +148,8 @@ describe("transition CRUD + AI commit", { skip: !pgIntegration }, () => {
       fromTrackId: from.track.id,
       toTrackId: to.track.id,
       proposalKey: otherKey,
-      sourceNoteId: note.id,
-      sourceNoteVersion: 1,
+      sourceSubmissionId: note.id,
+      sourceSubmissionVersion: 1,
       notes: "distinct key",
     });
     assert.equal(second.created, true);
@@ -167,7 +167,7 @@ describe("transition CRUD + AI commit", { skip: !pgIntegration }, () => {
       title: `DJ-83 Src To ${suffix}`,
       artists: [`DJ-83 Src Artist ${suffix}`],
     });
-    const note = await createNote({ rawText: `DJ-83 source filter ${suffix}` });
+    const note = await createSubmission({ rawText: `DJ-83 source filter ${suffix}` });
 
     const manual = await createTransition({
       fromTrackId: from.track.id,
@@ -178,8 +178,8 @@ describe("transition CRUD + AI commit", { skip: !pgIntegration }, () => {
       fromTrackId: from.track.id,
       toTrackId: to.track.id,
       proposalKey: `dj83-src:${suffix}:span:fp`,
-      sourceNoteId: note.id,
-      sourceNoteVersion: 1,
+      sourceSubmissionId: note.id,
+      sourceSubmissionVersion: 1,
       notes: `ai ${suffix}`,
     });
     assert.ok(ai.id);
@@ -211,7 +211,7 @@ describe("transition CRUD + AI commit", { skip: !pgIntegration }, () => {
       title: `DJ-84 To ${suffix}`,
       artists: [`DJ-84 Artist ${suffix}`],
     });
-    const note = await createNote({
+    const note = await createSubmission({
       rawText: `DJ-84 transactional rollback ${suffix}`,
     });
     const proposalKey = `dj-84-tx-${suffix}`;
@@ -222,8 +222,8 @@ describe("transition CRUD + AI commit", { skip: !pgIntegration }, () => {
           fromTrackId: from.track.id,
           toTrackId: to.track.id,
           proposalKey,
-          sourceNoteId: note.id,
-          sourceNoteVersion: 1,
+          sourceSubmissionId: note.id,
+          sourceSubmissionVersion: 1,
           technique: "cut",
         });
         assert.equal(result.created, true);

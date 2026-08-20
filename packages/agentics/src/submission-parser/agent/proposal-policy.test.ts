@@ -2,13 +2,17 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { evaluateProposalPolicy } from "./proposal-policy";
-import type { NoteMentionPlan, NoteProcessingPlan, NoteTransitionPlan } from "./schema";
+import type {
+  SubmissionMentionPlan,
+  SubmissionProcessingPlan,
+  SubmissionTransitionPlan,
+} from "./schema";
 import type { TrackCandidate } from "./services";
 
 function mention(
-  partial: Pick<NoteMentionPlan, "mentionId" | "mention" | "resolutionStatus"> &
-    Partial<NoteMentionPlan>,
-): NoteMentionPlan {
+  partial: Pick<SubmissionMentionPlan, "mentionId" | "mention" | "resolutionStatus"> &
+    Partial<SubmissionMentionPlan>,
+): SubmissionMentionPlan {
   return {
     titleHint: null,
     artistHint: null,
@@ -20,8 +24,9 @@ function mention(
 }
 
 function transition(
-  partial: Pick<NoteTransitionPlan, "fromMentionId" | "toMentionId"> & Partial<NoteTransitionPlan>,
-): NoteTransitionPlan {
+  partial: Pick<SubmissionTransitionPlan, "fromMentionId" | "toMentionId"> &
+    Partial<SubmissionTransitionPlan>,
+): SubmissionTransitionPlan {
   return {
     fromBar: null,
     toBar: null,
@@ -35,8 +40,9 @@ function transition(
 }
 
 function plan(
-  partial: Partial<NoteProcessingPlan> & Pick<NoteProcessingPlan, "noteType" | "confidence">,
-): NoteProcessingPlan {
+  partial: Partial<SubmissionProcessingPlan> &
+    Pick<SubmissionProcessingPlan, "noteType" | "confidence">,
+): SubmissionProcessingPlan {
   return {
     mentions: [],
     transitions: [],

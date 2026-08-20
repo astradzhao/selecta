@@ -175,9 +175,9 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
           <Button asChild variant="outline" size="sm">
             <Link href={`/tracks/${transition.toTrack.id}`}>To track</Link>
           </Button>
-          {transition.sourceNoteId ? (
+          {transition.sourceSubmissionId ? (
             <Button asChild variant="outline" size="sm">
-              <Link href={`/library/submissions/${transition.sourceNoteId}`}>
+              <Link href={`/library/submissions/${transition.sourceSubmissionId}`}>
                 Source submission
               </Link>
             </Button>

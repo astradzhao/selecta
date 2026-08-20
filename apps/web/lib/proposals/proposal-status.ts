@@ -1,4 +1,4 @@
-import type { NoteProposalStatus } from "@selecta/db";
+import type { SubmissionProposalStatus } from "@selecta/db";
 
 import type { StatusDisplay } from "@/lib/status";
 
@@ -12,12 +12,12 @@ export const PROPOSAL_STATUS = {
   failed: { label: "Failed", tone: "destructive" },
   rejected: { label: "Rejected", tone: "neutral" },
   superseded: { label: "Superseded", tone: "neutral" },
-} as const satisfies Record<NoteProposalStatus, StatusDisplay>;
+} as const satisfies Record<SubmissionProposalStatus, StatusDisplay>;
 
-export function proposalStatus(status: NoteProposalStatus): StatusDisplay {
+export function proposalStatus(status: SubmissionProposalStatus): StatusDisplay {
   return PROPOSAL_STATUS[status];
 }
 
-export function proposalStatusLabel(status: NoteProposalStatus): string {
+export function proposalStatusLabel(status: SubmissionProposalStatus): string {
   return PROPOSAL_STATUS[status].label;
 }

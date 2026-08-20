@@ -18,7 +18,7 @@ import {
   type ParseSingleTransitionReceipt,
   type SingleTransitionDraft,
 } from "@selecta/agentics/submission-parser";
-import { isPostgresConfigured, runInDbTransaction, type NoteProposal } from "@selecta/db";
+import { isPostgresConfigured, runInDbTransaction, type SubmissionProposal } from "@selecta/db";
 import {
   claimProposal,
   completeExtraction,
@@ -26,7 +26,7 @@ import {
   deriveSubmissionExtractionStatus,
   failExtraction,
   finishAgentRun,
-  getNoteById,
+  getSubmissionById,
   getProposalById,
   getProposalByKey,
   listProposalsForVersion,
@@ -36,15 +36,15 @@ import {
 } from "@selecta/submissions";
 import { FatalError, RetryableError } from "workflow";
 
-import { createNoteAgentServices } from "@/lib/note-agent-services";
+import { createSubmissionAgentServices } from "@/lib/submission-agent-services";
 
 export type ProcessSubmissionInput = {
-  noteId: string;
+  submissionId: string;
   extractionVersion: number;
 };
 
 export type OrchestratorContext = {
-  noteId: string;
+  submissionId: string;
   extractionVersion: number;
   agentRunId: string;
   workflowRunId: string;
@@ -81,30 +81,30 @@ export async function beginOrchestration(
   "use step";
 
   console.log(
-    `[submission-workflow] begin note=${input.noteId} version=${input.extractionVersion} run=${input.workflowRunId}`,
+    `[submission-workflow] begin submission=${input.submissionId} version=${input.extractionVersion} run=${input.workflowRunId}`,
   );
 
   if (!isPostgresConfigured()) {
     return null;
   }
 
-  const note = await getNoteById(input.noteId);
-  if (!note) {
+  const submission = await getSubmissionById(input.submissionId);
+  if (!submission) {
     return null;
   }
   if (
-    note.extractionVersion !== input.extractionVersion ||
-    note.extractionStatus !== "extracting"
+    submission.extractionVersion !== input.extractionVersion ||
+    submission.extractionStatus !== "extracting"
   ) {
     console.log(
-      `[submission-workflow] skip stale note=${input.noteId} version=${input.extractionVersion} status=${note.extractionStatus}`,
+      `[submission-workflow] skip stale submission=${input.submissionId} version=${input.extractionVersion} status=${submission.extractionStatus}`,
     );
     return null;
   }
 
   if (!hasAiGatewayAuth()) {
     await failExtraction(
-      input.noteId,
+      input.submissionId,
       input.extractionVersion,
       "AI Gateway auth is not configured (set AI_GATEWAY_API_KEY locally, or use Vercel OIDC when deployed).",
     );
@@ -112,7 +112,7 @@ export async function beginOrchestration(
   }
 
   const agentRun = await startAgentRun({
-    noteId: input.noteId,
+    submissionId: input.submissionId,
     extractionVersion: input.extractionVersion,
     agentName: ORCHESTRATOR_AGENT_NAME,
     workflowRunId: input.workflowRunId,
@@ -120,11 +120,11 @@ export async function beginOrchestration(
   });
 
   return {
-    noteId: input.noteId,
+    submissionId: input.submissionId,
     extractionVersion: input.extractionVersion,
     agentRunId: agentRun.id,
     workflowRunId: input.workflowRunId,
-    rawText: note.rawText,
+    rawText: submission.rawText,
   };
 }
 
@@ -138,8 +138,8 @@ export async function resolveOrchestratorConfig(
   "use step";
 
   const model =
-    process.env.NOTE_ORCHESTRATOR_MODEL?.trim() ||
-    process.env.NOTE_AGENT_MODEL?.trim() ||
+    process.env.SUBMISSION_ORCHESTRATOR_MODEL?.trim() ||
+    process.env.SUBMISSION_AGENT_MODEL?.trim() ||
     DEFAULT_ORCHESTRATOR_MODEL;
   const prompt = buildOrchestratorPrompt(SUBMISSION_LIMITS.maxTransitions);
 
@@ -147,7 +147,7 @@ export async function resolveOrchestratorConfig(
     model,
     systemPrompt: prompt.system,
     userPrompt: buildOrchestratorUserPrompt(ctx.rawText, {
-      submissionId: ctx.noteId,
+      submissionId: ctx.submissionId,
       extractionVersion: ctx.extractionVersion,
     }),
     maxSteps: SUBMISSION_LIMITS.maxOrchestrationSteps,
@@ -203,7 +203,7 @@ export async function parseSingleTransitionTool(rawInput: {
   }
 
   const claimed = await claimProposal({
-    noteId: submissionId,
+    submissionId: submissionId,
     extractionVersion,
     agentRunId: rawInput.agentRunId,
     sourceStart,
@@ -300,10 +300,10 @@ export async function resolveAndApplyProposals(ctx: OrchestratorContext): Promis
   "use step";
 
   console.log(
-    `[submission-workflow] resolve/apply note=${ctx.noteId} version=${ctx.extractionVersion}`,
+    `[submission-workflow] resolve/apply submission=${ctx.submissionId} version=${ctx.extractionVersion}`,
   );
 
-  const proposals = await listProposalsForVersion(ctx.noteId, ctx.extractionVersion);
+  const proposals = await listProposalsForVersion(ctx.submissionId, ctx.extractionVersion);
   const ready = proposals.filter(
     (proposal) =>
       proposal.status === "ready" ||
@@ -315,7 +315,7 @@ export async function resolveAndApplyProposals(ctx: OrchestratorContext): Promis
     return { proposalCount: 0, committed: 0, needsReview: 0, failed: 0 };
   }
 
-  const services = createNoteAgentServices();
+  const services = createSubmissionAgentServices();
   const items = [];
 
   for (const proposal of ready) {
@@ -391,7 +391,7 @@ export async function resolveAndApplyProposals(ctx: OrchestratorContext): Promis
           plan: item.plan,
           policy,
           services,
-          noteId: ctx.noteId,
+          submissionId: ctx.submissionId,
           extractionVersion: ctx.extractionVersion,
           proposalKey: proposal.proposalKey,
           sourceProposalId: proposal.id,
@@ -400,7 +400,7 @@ export async function resolveAndApplyProposals(ctx: OrchestratorContext): Promis
           throw new Error(result.commitError ?? "Transition commit failed.");
         }
         await upsertTransitionCommit({
-          noteId: ctx.noteId,
+          submissionId: ctx.submissionId,
           extractionVersion: ctx.extractionVersion,
           proposalKey: proposal.proposalKey,
           status: "committed",
@@ -415,7 +415,7 @@ export async function resolveAndApplyProposals(ctx: OrchestratorContext): Promis
         });
         if (item.plan.bidirectional && result.fromTrackId && result.toTrackId) {
           await upsertTransitionCommit({
-            noteId: ctx.noteId,
+            submissionId: ctx.submissionId,
             extractionVersion: ctx.extractionVersion,
             proposalKey: `${proposal.proposalKey}:rev`,
             status: "committed",
@@ -442,7 +442,7 @@ export async function resolveAndApplyProposals(ctx: OrchestratorContext): Promis
     } catch (error) {
       const message = error instanceof Error ? error.message : "Transition commit failed.";
       await upsertTransitionCommit({
-        noteId: ctx.noteId,
+        submissionId: ctx.submissionId,
         extractionVersion: ctx.extractionVersion,
         proposalKey: proposal.proposalKey,
         status: "commit_failed",
@@ -476,7 +476,7 @@ export async function finalizeSubmission(
 ): Promise<void> {
   "use step";
 
-  const counts = await countProposalsForVersion(ctx.noteId, ctx.extractionVersion);
+  const counts = await countProposalsForVersion(ctx.submissionId, ctx.extractionVersion);
   let extractionStatus = deriveSubmissionExtractionStatus(counts);
   let extractionError: string | null = null;
 
@@ -489,7 +489,7 @@ export async function finalizeSubmission(
     }
   }
 
-  const proposals = await listProposalsForVersion(ctx.noteId, ctx.extractionVersion);
+  const proposals = await listProposalsForVersion(ctx.submissionId, ctx.extractionVersion);
   const extractionPayload: Record<string, unknown> = {
     pipeline: "durable-multi-transition",
     limits: SUBMISSION_LIMITS,
@@ -530,7 +530,7 @@ export async function finalizeSubmission(
 
   if (extractionStatus === "failed" && counts.committed === 0 && applySummary.proposalCount === 0) {
     await failExtraction(
-      ctx.noteId,
+      ctx.submissionId,
       ctx.extractionVersion,
       extractionError ?? "No transition proposals were produced.",
     );
@@ -547,7 +547,7 @@ export async function finalizeSubmission(
       .filter((value): value is number => value != null)
       .reduce((sum, value, _, arr) => sum + value / arr.length, 0) || 0;
 
-  await completeExtraction(ctx.noteId, ctx.extractionVersion, {
+  await completeExtraction(ctx.submissionId, ctx.extractionVersion, {
     extraction: extractionPayload,
     rawResponse: {
       workflowRunId: ctx.workflowRunId,
@@ -570,11 +570,11 @@ export async function finalizeSubmission(
   });
 
   console.log(
-    `[submission-workflow] finalize note=${ctx.noteId} status=${extractionStatus} committed=${counts.committed}`,
+    `[submission-workflow] finalize submission=${ctx.submissionId} status=${extractionStatus} committed=${counts.committed}`,
   );
 }
 
-function summarizeProposal(proposal: NoteProposal): Record<string, unknown> {
+function summarizeProposal(proposal: SubmissionProposal): Record<string, unknown> {
   const draft = proposal.draft as {
     confidence?: string;
     bidirectional?: boolean;
@@ -675,24 +675,24 @@ function summarizeProposal(proposal: NoteProposal): Record<string, unknown> {
 }
 
 export async function failWorkflow(
-  noteId: string,
+  submissionId: string,
   extractionVersion: number,
   agentRunId: string | null,
   message: string,
 ): Promise<void> {
   "use step";
-  console.error(`[submission-workflow] fail note=${noteId}: ${message}`);
+  console.error(`[submission-workflow] fail submission=${submissionId}: ${message}`);
   if (agentRunId) {
     await finishAgentRun(agentRunId, { status: "failed", error: message });
   }
-  await failExtraction(noteId, extractionVersion, message);
+  await failExtraction(submissionId, extractionVersion, message);
 }
 
 export async function countProposalsStep(
-  noteId: string,
+  submissionId: string,
   extractionVersion: number,
 ): Promise<{ total: number }> {
   "use step";
-  const counts = await countProposalsForVersion(noteId, extractionVersion);
+  const counts = await countProposalsForVersion(submissionId, extractionVersion);
   return { total: counts.total };
 }

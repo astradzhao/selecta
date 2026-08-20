@@ -1,19 +1,19 @@
 import { CandidateRegistry } from "./candidate-registry";
 import { SUBMISSION_LIMITS } from "./limits";
 import { mentionSearchQuery, topSearchHit } from "./match";
-import type { NoteMentionPlan, NoteProcessingPlan } from "./schema";
-import type { NoteAgentServices, SearchQueriesInput, TrackCandidate } from "./services";
+import type { SubmissionMentionPlan, SubmissionProcessingPlan } from "./schema";
+import type { SubmissionAgentServices, SearchQueriesInput, TrackCandidate } from "./services";
 
 export type ProposalResolveItem = {
   proposalId: string;
   proposalKey: string;
-  plan: NoteProcessingPlan;
+  plan: SubmissionProcessingPlan;
 };
 
 export type ResolveProposalsBatchInput = {
   items: ProposalResolveItem[];
   services: Pick<
-    NoteAgentServices,
+    SubmissionAgentServices,
     "searchLibraryTracks" | "searchSpotifyTracks" | "findLibraryTrackByExternalId"
   >;
   batchSize?: number;
@@ -22,7 +22,7 @@ export type ResolveProposalsBatchInput = {
 export type ResolvedProposalItem = {
   proposalId: string;
   proposalKey: string;
-  plan: NoteProcessingPlan;
+  plan: SubmissionProcessingPlan;
   candidatesByHandle: Map<string, TrackCandidate>;
   candidatesByMentionId: Map<string, TrackCandidate[]>;
 };
@@ -36,7 +36,7 @@ export type ResolveProposalsBatchResult = {
 
 type PendingMention = {
   proposalId: string;
-  mention: NoteMentionPlan;
+  mention: SubmissionMentionPlan;
   query: string;
 };
 

@@ -2,23 +2,23 @@ import { and, asc, desc, eq, gte, ilike, lte, max, sql, type SQL } from "drizzle
 
 import { getDb } from "@selecta/db";
 import { getExecutor } from "@selecta/db";
-import { NotesError } from "./errors";
+import { SubmissionsError } from "./errors";
 import {
   countProposalsForVersion,
   listProposalsForVersion,
-  supersedeProposalsForNote,
+  supersedeProposalsForSubmission,
 } from "./proposals";
 import {
-  noteAgentRuns,
-  notes,
-  noteTransitionCommits,
-  type Note,
-  type NoteAgentRun,
-  type NoteAgentRunStatus,
-  type NoteExtractionStatus,
-  type NoteProposal,
-  type NoteTransitionCommit,
-  type NoteTransitionCommitStatus,
+  submissionAgentRuns,
+  submissions,
+  submissionTransitionCommits,
+  type Submission,
+  type SubmissionAgentRun,
+  type SubmissionAgentRunStatus,
+  type SubmissionExtractionStatus,
+  type SubmissionProposal,
+  type SubmissionTransitionCommit,
+  type SubmissionTransitionCommitStatus,
 } from "@selecta/db/schema";
 
 const DEFAULT_LIMIT = 50;
@@ -26,19 +26,19 @@ const MAX_LIMIT = 100;
 /** UTF-8 byte cap for immutable submission intake (DJ-66). */
 export const MAX_SUBMISSION_RAW_BYTES = 64 * 1024;
 
-export type CreateNoteInput = {
+export type CreateSubmissionInput = {
   rawText: string;
 };
 
-export type UpdateNoteInput = {
+export type UpdateSubmissionInput = {
   rawText: string;
 };
 
-export type ListNotesInput = {
+export type ListSubmissionsInput = {
   /** Free-text search over raw submission body. */
   query?: string;
   /** Exact extractionStatus filter. */
-  status?: NoteExtractionStatus;
+  status?: SubmissionExtractionStatus;
   /** When true, only submissions whose current version has needs_review proposals or status. */
   needsReview?: boolean;
   createdAfter?: Date;
@@ -47,28 +47,28 @@ export type ListNotesInput = {
   offset?: number;
 };
 
-export type NoteProposalLink = {
+export type SubmissionProposalLink = {
   id: string;
   proposalKey: string;
-  status: NoteProposal["status"];
+  status: SubmissionProposal["status"];
   sourceStart: number;
   sourceEnd: number;
   sourceText: string;
 };
 
-export type NoteListItem = {
-  note: Note;
+export type SubmissionListItem = {
+  submission: Submission;
   proposalCounts: {
     committed: number;
     needsReview: number;
     failed: number;
     total: number;
   };
-  proposals: NoteProposalLink[];
+  proposals: SubmissionProposalLink[];
 };
 
-export type ListNotesResult = {
-  notes: NoteListItem[];
+export type ListSubmissionsResult = {
+  submissions: SubmissionListItem[];
   limit: number;
   offset: number;
   hasMore: boolean;
@@ -82,7 +82,7 @@ export type CompleteExtractionInput = {
   promptVersion: string;
   extractionConfidence: number;
   extractionStatus: Extract<
-    NoteExtractionStatus,
+    SubmissionExtractionStatus,
     | "no_proposal"
     | "needs_review"
     | "committed"
@@ -103,13 +103,13 @@ function clampLimit(limit: number | undefined): number {
 function requireRawText(rawText: string): string {
   const trimmed = rawText.trim();
   if (!trimmed) {
-    throw new NotesError("invalid_input", "rawText is required.");
+    throw new SubmissionsError("invalid_input", "rawText is required.");
   }
   const bytes = new TextEncoder().encode(trimmed).byteLength;
   if (bytes > MAX_SUBMISSION_RAW_BYTES) {
-    throw new NotesError(
+    throw new SubmissionsError(
       "invalid_input",
-      `Submission exceeds max raw size (${bytes} bytes > ${MAX_SUBMISSION_RAW_BYTES} bytes). Shorten the note and retry.`,
+      `Submission exceeds max raw size (${bytes} bytes > ${MAX_SUBMISSION_RAW_BYTES} bytes). Shorten the text and retry.`,
     );
   }
   return trimmed;
@@ -127,14 +127,14 @@ const clearExtractionFields = {
 } as const;
 
 /**
- * Create a free-form note from raw text and mark extraction as in-flight.
+ * Create a submission from raw text and mark extraction as in-flight.
  * Extraction must run after the row is durable (caller schedules it).
  */
-export async function createNote(input: CreateNoteInput): Promise<Note> {
+export async function createSubmission(input: CreateSubmissionInput): Promise<Submission> {
   const rawText = requireRawText(input.rawText);
   const now = new Date();
   const [row] = await getDb()
-    .insert(notes)
+    .insert(submissions)
     .values({
       rawText,
       extractionStatus: "extracting",
@@ -144,13 +144,15 @@ export async function createNote(input: CreateNoteInput): Promise<Note> {
     })
     .returning();
   if (!row) {
-    throw new NotesError("invalid_input", "Failed to create note.");
+    throw new SubmissionsError("invalid_input", "Failed to create submission.");
   }
   return row;
 }
 
-/** List notes newest-first with optional Library filters (DJ-72). */
-export async function listNotes(input: ListNotesInput = {}): Promise<ListNotesResult> {
+/** List submissions newest-first with optional Library filters (DJ-72). */
+export async function listSubmissions(
+  input: ListSubmissionsInput = {},
+): Promise<ListSubmissionsResult> {
   const limit = clampLimit(input.limit);
   const offset =
     input.offset !== undefined && Number.isFinite(input.offset)
@@ -161,49 +163,49 @@ export async function listNotes(input: ListNotesInput = {}): Promise<ListNotesRe
   const filters: SQL[] = [];
   const query = input.query?.trim();
   if (query) {
-    filters.push(ilike(notes.rawText, `%${query}%`));
+    filters.push(ilike(submissions.rawText, `%${query}%`));
   }
   if (input.status) {
-    filters.push(eq(notes.extractionStatus, input.status));
+    filters.push(eq(submissions.extractionStatus, input.status));
   }
   if (input.needsReview === true) {
     filters.push(
       sql`(
-        ${notes.extractionStatus} IN ('needs_review', 'partially_committed')
+        ${submissions.extractionStatus} IN ('needs_review', 'partially_committed')
         OR EXISTS (
-          SELECT 1 FROM note_proposals p
-          WHERE p.note_id = ${notes.id}
-            AND p.extraction_version = ${notes.extractionVersion}
+          SELECT 1 FROM submission_proposals p
+          WHERE p.submission_id = ${submissions.id}
+            AND p.extraction_version = ${submissions.extractionVersion}
             AND p.status = 'needs_review'
         )
       )`,
     );
   }
   if (input.createdAfter) {
-    filters.push(gte(notes.createdAt, input.createdAfter));
+    filters.push(gte(submissions.createdAt, input.createdAfter));
   }
   if (input.createdBefore) {
-    filters.push(lte(notes.createdAt, input.createdBefore));
+    filters.push(lte(submissions.createdAt, input.createdBefore));
   }
 
   const where = filters.length > 0 ? and(...filters) : undefined;
   const rows = await getDb()
     .select()
-    .from(notes)
+    .from(submissions)
     .where(where)
-    .orderBy(desc(notes.createdAt), asc(notes.id))
+    .orderBy(desc(submissions.createdAt), asc(submissions.id))
     .limit(fetchLimit)
     .offset(offset);
 
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
 
-  const notesWithMeta: NoteListItem[] = await Promise.all(
-    page.map(async (note) => {
-      const counts = await countProposalsForVersion(note.id, note.extractionVersion);
-      const proposals = await listProposalsForVersion(note.id, note.extractionVersion);
+  const submissionsWithMeta: SubmissionListItem[] = await Promise.all(
+    page.map(async (submission) => {
+      const counts = await countProposalsForVersion(submission.id, submission.extractionVersion);
+      const proposals = await listProposalsForVersion(submission.id, submission.extractionVersion);
       return {
-        note,
+        submission,
         proposalCounts: {
           committed: counts.committed,
           needsReview: counts.needs_review,
@@ -223,52 +225,59 @@ export async function listNotes(input: ListNotesInput = {}): Promise<ListNotesRe
   );
 
   return {
-    notes: notesWithMeta,
+    submissions: submissionsWithMeta,
     limit,
     offset,
     hasMore,
   };
 }
 
-export async function getNoteById(id: string): Promise<Note | null> {
-  const noteId = id.trim();
-  if (!noteId) {
-    throw new NotesError("invalid_input", "Note id is required.");
+export async function getSubmissionById(id: string): Promise<Submission | null> {
+  const submissionId = id.trim();
+  if (!submissionId) {
+    throw new SubmissionsError("invalid_input", "Submission id is required.");
   }
-  const [row] = await getDb().select().from(notes).where(eq(notes.id, noteId)).limit(1);
+  const [row] = await getDb()
+    .select()
+    .from(submissions)
+    .where(eq(submissions.id, submissionId))
+    .limit(1);
   return row ?? null;
 }
 
-export type UpdateNoteResult = {
-  note: Note;
+export type UpdateSubmissionResult = {
+  submission: Submission;
   /** True when text changed and a new extraction version should run. */
   extractionQueued: boolean;
 };
 
 /**
- * Update raw note text.
+ * Update raw submission text.
  * Text changes invalidate uncommitted extraction payloads, bump `extractionVersion`,
- * and mark the note `extracting` for a new async run.
+ * and mark the submission `extracting` for a new async run.
  */
-export async function updateNote(id: string, input: UpdateNoteInput): Promise<UpdateNoteResult> {
-  const noteId = id.trim();
-  if (!noteId) {
-    throw new NotesError("invalid_input", "Note id is required.");
+export async function updateSubmission(
+  id: string,
+  input: UpdateSubmissionInput,
+): Promise<UpdateSubmissionResult> {
+  const submissionId = id.trim();
+  if (!submissionId) {
+    throw new SubmissionsError("invalid_input", "Submission id is required.");
   }
   const rawText = requireRawText(input.rawText);
 
-  const existing = await getNoteById(noteId);
+  const existing = await getSubmissionById(submissionId);
   if (!existing) {
-    throw new NotesError("not_found", `Note "${noteId}" was not found.`);
+    throw new SubmissionsError("not_found", `Submission "${submissionId}" was not found.`);
   }
 
   if (existing.rawText === rawText) {
-    return { note: existing, extractionQueued: false };
+    return { submission: existing, extractionQueued: false };
   }
 
   const now = new Date();
   const [row] = await getDb()
-    .update(notes)
+    .update(submissions)
     .set({
       rawText,
       extractionStatus: "extracting",
@@ -276,14 +285,14 @@ export async function updateNote(id: string, input: UpdateNoteInput): Promise<Up
       extractionStartedAt: now,
       ...clearExtractionFields,
     })
-    .where(eq(notes.id, noteId))
+    .where(eq(submissions.id, submissionId))
     .returning();
 
   if (!row) {
-    throw new NotesError("not_found", `Note "${noteId}" was not found.`);
+    throw new SubmissionsError("not_found", `Submission "${submissionId}" was not found.`);
   }
-  await supersedeProposalsForNote(noteId, row.extractionVersion);
-  return { note: row, extractionQueued: true };
+  await supersedeProposalsForSubmission(submissionId, row.extractionVersion);
+  return { submission: row, extractionQueued: true };
 }
 
 /**
@@ -291,29 +300,29 @@ export async function updateNote(id: string, input: UpdateNoteInput): Promise<Up
  * Bumps `extractionVersion` and supersedes prior proposals so retries do not
  * accumulate overlapping spans from older prompt/agent runs.
  */
-export async function requeueExtraction(id: string): Promise<Note> {
-  const existing = await getNoteById(id);
+export async function requeueExtraction(id: string): Promise<Submission> {
+  const existing = await getSubmissionById(id);
   if (!existing) {
-    throw new NotesError("not_found", `Note "${id}" was not found.`);
+    throw new SubmissionsError("not_found", `Submission "${id}" was not found.`);
   }
 
   const now = new Date();
   const nextVersion = existing.extractionVersion > 0 ? existing.extractionVersion + 1 : 1;
   const [row] = await getDb()
-    .update(notes)
+    .update(submissions)
     .set({
       extractionStatus: "extracting",
       extractionVersion: nextVersion,
       extractionStartedAt: now,
       ...clearExtractionFields,
     })
-    .where(eq(notes.id, existing.id))
+    .where(eq(submissions.id, existing.id))
     .returning();
 
   if (!row) {
-    throw new NotesError("not_found", `Note "${id}" was not found.`);
+    throw new SubmissionsError("not_found", `Submission "${id}" was not found.`);
   }
-  await supersedeProposalsForNote(row.id, row.extractionVersion);
+  await supersedeProposalsForSubmission(row.id, row.extractionVersion);
   return row;
 }
 
@@ -325,10 +334,10 @@ export async function completeExtraction(
   id: string,
   version: number,
   input: CompleteExtractionInput,
-): Promise<Note | null> {
+): Promise<Submission | null> {
   const now = new Date();
   const [row] = await getDb()
-    .update(notes)
+    .update(submissions)
     .set({
       extraction: input.extraction,
       rawResponse: input.rawResponse,
@@ -342,9 +351,9 @@ export async function completeExtraction(
     })
     .where(
       and(
-        eq(notes.id, id),
-        eq(notes.extractionVersion, version),
-        eq(notes.extractionStatus, "extracting"),
+        eq(submissions.id, id),
+        eq(submissions.extractionVersion, version),
+        eq(submissions.extractionStatus, "extracting"),
       ),
     )
     .returning();
@@ -359,10 +368,10 @@ export async function failExtraction(
   id: string,
   version: number,
   errorMessage: string,
-): Promise<Note | null> {
+): Promise<Submission | null> {
   const now = new Date();
   const [row] = await getDb()
-    .update(notes)
+    .update(submissions)
     .set({
       extractionStatus: "failed",
       extractionError: errorMessage.slice(0, 2000),
@@ -370,9 +379,9 @@ export async function failExtraction(
     })
     .where(
       and(
-        eq(notes.id, id),
-        eq(notes.extractionVersion, version),
-        eq(notes.extractionStatus, "extracting"),
+        eq(submissions.id, id),
+        eq(submissions.extractionVersion, version),
+        eq(submissions.extractionStatus, "extracting"),
       ),
     )
     .returning();
@@ -381,7 +390,7 @@ export async function failExtraction(
 }
 
 export type StartAgentRunInput = {
-  noteId: string;
+  submissionId: string;
   extractionVersion: number;
   agentName: string;
   model?: string | null;
@@ -391,22 +400,22 @@ export type StartAgentRunInput = {
   workflowRunId?: string | null;
 };
 
-export async function startAgentRun(input: StartAgentRunInput): Promise<NoteAgentRun> {
+export async function startAgentRun(input: StartAgentRunInput): Promise<SubmissionAgentRun> {
   const attempts = await getDb()
-    .select({ maxAttempt: max(noteAgentRuns.attempt) })
-    .from(noteAgentRuns)
+    .select({ maxAttempt: max(submissionAgentRuns.attempt) })
+    .from(submissionAgentRuns)
     .where(
       and(
-        eq(noteAgentRuns.noteId, input.noteId),
-        eq(noteAgentRuns.extractionVersion, input.extractionVersion),
+        eq(submissionAgentRuns.submissionId, input.submissionId),
+        eq(submissionAgentRuns.extractionVersion, input.extractionVersion),
       ),
     );
   const nextAttempt = (attempts[0]?.maxAttempt ?? 0) + 1;
 
   const [row] = await getDb()
-    .insert(noteAgentRuns)
+    .insert(submissionAgentRuns)
     .values({
-      noteId: input.noteId,
+      submissionId: input.submissionId,
       extractionVersion: input.extractionVersion,
       attempt: nextAttempt,
       agentName: input.agentName,
@@ -420,7 +429,7 @@ export async function startAgentRun(input: StartAgentRunInput): Promise<NoteAgen
     .returning();
 
   if (!row) {
-    throw new NotesError("invalid_input", "Failed to start agent run.");
+    throw new SubmissionsError("invalid_input", "Failed to start agent run.");
   }
   return row;
 }
@@ -428,17 +437,17 @@ export async function startAgentRun(input: StartAgentRunInput): Promise<NoteAgen
 export async function attachWorkflowRunId(
   runId: string,
   workflowRunId: string,
-): Promise<NoteAgentRun | null> {
+): Promise<SubmissionAgentRun | null> {
   const [row] = await getDb()
-    .update(noteAgentRuns)
+    .update(submissionAgentRuns)
     .set({ workflowRunId })
-    .where(eq(noteAgentRuns.id, runId))
+    .where(eq(submissionAgentRuns.id, runId))
     .returning();
   return row ?? null;
 }
 
 export type FinishAgentRunInput = {
-  status: Extract<NoteAgentRunStatus, "completed" | "failed" | "superseded">;
+  status: Extract<SubmissionAgentRunStatus, "completed" | "failed" | "superseded">;
   stepCount?: number;
   toolCallCount?: number;
   usage?: Record<string, unknown> | null;
@@ -455,9 +464,9 @@ export type FinishAgentRunInput = {
 export async function finishAgentRun(
   runId: string,
   input: FinishAgentRunInput,
-): Promise<NoteAgentRun | null> {
+): Promise<SubmissionAgentRun | null> {
   const [row] = await getDb()
-    .update(noteAgentRuns)
+    .update(submissionAgentRuns)
     .set({
       status: input.status,
       stepCount: input.stepCount ?? 0,
@@ -473,25 +482,28 @@ export async function finishAgentRun(
       promptHash: input.promptHash ?? undefined,
       finishedAt: new Date(),
     })
-    .where(and(eq(noteAgentRuns.id, runId), eq(noteAgentRuns.status, "running")))
+    .where(and(eq(submissionAgentRuns.id, runId), eq(submissionAgentRuns.status, "running")))
     .returning();
   return row ?? null;
 }
 
-export async function listAgentRunsForNote(noteId: string, limit = 10): Promise<NoteAgentRun[]> {
+export async function listAgentRunsForSubmission(
+  submissionId: string,
+  limit = 10,
+): Promise<SubmissionAgentRun[]> {
   return getDb()
     .select()
-    .from(noteAgentRuns)
-    .where(eq(noteAgentRuns.noteId, noteId))
-    .orderBy(desc(noteAgentRuns.createdAt))
+    .from(submissionAgentRuns)
+    .where(eq(submissionAgentRuns.submissionId, submissionId))
+    .orderBy(desc(submissionAgentRuns.createdAt))
     .limit(clampLimit(limit));
 }
 
 export type UpsertTransitionCommitInput = {
-  noteId: string;
+  submissionId: string;
   extractionVersion: number;
   proposalKey: string;
-  status: NoteTransitionCommitStatus;
+  status: SubmissionTransitionCommitStatus;
   fromTrackId?: string | null;
   toTrackId?: string | null;
   payload?: Record<string, unknown> | null;
@@ -500,17 +512,17 @@ export type UpsertTransitionCommitInput = {
 
 export async function upsertTransitionCommit(
   input: UpsertTransitionCommitInput,
-): Promise<NoteTransitionCommit> {
+): Promise<SubmissionTransitionCommit> {
   const db = getExecutor();
   const existing = await db
     .select()
-    .from(noteTransitionCommits)
-    .where(eq(noteTransitionCommits.proposalKey, input.proposalKey))
+    .from(submissionTransitionCommits)
+    .where(eq(submissionTransitionCommits.proposalKey, input.proposalKey))
     .limit(1);
 
   if (existing[0]) {
     const [row] = await db
-      .update(noteTransitionCommits)
+      .update(submissionTransitionCommits)
       .set({
         status: input.status,
         fromTrackId: input.fromTrackId ?? existing[0].fromTrackId,
@@ -519,18 +531,18 @@ export async function upsertTransitionCommit(
         error: input.error?.slice(0, 2000) ?? null,
         committedAt: input.status === "committed" ? new Date() : existing[0].committedAt,
       })
-      .where(eq(noteTransitionCommits.proposalKey, input.proposalKey))
+      .where(eq(submissionTransitionCommits.proposalKey, input.proposalKey))
       .returning();
     if (!row) {
-      throw new NotesError("invalid_input", "Failed to update transition commit.");
+      throw new SubmissionsError("invalid_input", "Failed to update transition commit.");
     }
     return row;
   }
 
   const [row] = await db
-    .insert(noteTransitionCommits)
+    .insert(submissionTransitionCommits)
     .values({
-      noteId: input.noteId,
+      submissionId: input.submissionId,
       extractionVersion: input.extractionVersion,
       proposalKey: input.proposalKey,
       status: input.status,
@@ -542,18 +554,18 @@ export async function upsertTransitionCommit(
     })
     .returning();
   if (!row) {
-    throw new NotesError("invalid_input", "Failed to create transition commit.");
+    throw new SubmissionsError("invalid_input", "Failed to create transition commit.");
   }
   return row;
 }
 
 export async function getTransitionCommitByKey(
   proposalKey: string,
-): Promise<NoteTransitionCommit | null> {
+): Promise<SubmissionTransitionCommit | null> {
   const [row] = await getDb()
     .select()
-    .from(noteTransitionCommits)
-    .where(eq(noteTransitionCommits.proposalKey, proposalKey))
+    .from(submissionTransitionCommits)
+    .where(eq(submissionTransitionCommits.proposalKey, proposalKey))
     .limit(1);
   return row ?? null;
 }
