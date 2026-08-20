@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { SUBMISSION_CONTENT_TYPES } from "../content-types";
+import { SUBMISSION_CONTENT_TYPES } from "./content-types";
 import { CONFIDENCE_LEVELS } from "./confidence";
 import { MENTION_RESOLUTION_STATUSES, SubmissionTransitionPlanSchema } from "./schema";
 
@@ -8,7 +8,6 @@ import { MENTION_RESOLUTION_STATUSES, SubmissionTransitionPlanSchema } from "./s
  * OpenAI structured outputs require every `properties` key to appear in `required`.
  * Represent "missing" values as `null` — never Zod `.optional()`.
  */
-const nullableNonEmptyString = z.string().min(1).nullable();
 const nullableString = z.string().nullable();
 const nullableConfidence = z.number().min(0).max(1).nullable();
 
@@ -75,10 +74,3 @@ export function draftToSingleUnresolvedPlan(draft: SingleTransitionDraft) {
     })),
   };
 }
-
-/** Orchestrator output when finishing without structured spans (spans come from tool calls). */
-export const OrchestratorFinishSchema = z.object({
-  transitionCount: z.number().int().nonnegative(),
-  notes: nullableNonEmptyString,
-});
-export type OrchestratorFinish = z.infer<typeof OrchestratorFinishSchema>;

@@ -6,7 +6,7 @@ import {
   buildReviewerPolicyResult,
   type ReviewerEndpoint,
 } from "./reviewer-policy";
-import type { SubmissionProcessingPlan } from "./schema";
+import type { SubmissionProcessingPlan } from "@selecta/agentics/submission-parser";
 
 function basePlan(): SubmissionProcessingPlan {
   return {

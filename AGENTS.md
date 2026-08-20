@@ -46,8 +46,8 @@ This is a pnpm workspace monorepo:
 - `apps/api` (`@selecta/api`) — Next.js API deployable (port 3001)
 - `packages/db` (`@selecta/db`) — Postgres client, Drizzle schema, and migrations only (no domain logic)
 - `packages/library` (`@selecta/library`) — music domain: tracks, transitions, vocab, neighborhood, sequences/blocks
-- `packages/submissions` (`@selecta/submissions`) — notes, proposals, and extraction bookkeeping
-- `packages/catalog|agentics|ui` — shared libraries (`@selecta/*`). Note extraction lives at `@selecta/agentics/submission-parser`.
+- `packages/submissions` (`@selecta/submissions`) — notes, proposals, extraction bookkeeping, and the resolve/decide/apply pipeline (`src/pipeline/`)
+- `packages/catalog|agentics|ui` — shared libraries (`@selecta/*`). NL parse (prompt → model → validated draft) lives at `@selecta/agentics/submission-parser`. Agentics owns code that talks to a model; Postgres writes and durable proposal keys belong in domain packages.
 - `packages/eslint-config` (`@selecta/eslint-config`) — shared ESLint flat configs
 
 Domain packages depend on `@selecta/db` for the client/executor (`getDb`, `getExecutor`, `runInDbTransaction`) and table definitions (`@selecta/db/schema`); `@selecta/db` never imports domain logic.

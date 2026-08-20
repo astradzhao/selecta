@@ -1,17 +1,11 @@
 import { isCatalogConfigured, searchCatalog } from "@selecta/catalog";
+import { commitTransitionProposal, createTrack, getTrackByExternalId } from "@selecta/library";
+import { graphCandidateHandle, spotifyCandidateHandle } from "@selecta/agentics/submission-parser";
 import {
-  commitTransitionProposal,
-  createTrack,
-  getTrackByExternalId,
-  listTracks,
-} from "@selecta/library";
-import {
-  graphCandidateHandle,
-  spotifyCandidateHandle,
-  type SubmissionAgentServices,
   type SearchCandidatesOutput,
   type SearchQueriesInput,
-} from "@selecta/agentics/submission-parser";
+  type SubmissionAgentServices,
+} from "@selecta/submissions";
 
 function emptyResults(input: SearchQueriesInput): SearchCandidatesOutput {
   return {
@@ -30,34 +24,6 @@ function emptyResults(input: SearchQueriesInput): SearchCandidatesOutput {
  */
 export function createSubmissionAgentServices(): SubmissionAgentServices {
   return {
-    searchLibraryTracks: async (input) => {
-      const results = await Promise.all(
-        input.queries.map(async ({ mentionId, query }) => {
-          try {
-            const hits = await listTracks({ query, limit: 5 });
-            return {
-              mentionId,
-              query,
-              candidates: hits.tracks.slice(0, 5).map((hit) => ({
-                handle: graphCandidateHandle(hit.track.id),
-                title: hit.track.title,
-                artists: hit.artists.map((artist) => artist.name),
-                durationMs:
-                  hit.track.durationSec != null ? Math.round(hit.track.durationSec * 1000) : null,
-                artworkUrl: hit.track.artworkUrl,
-                trackId: hit.track.id,
-                provider: "graph",
-              })),
-            };
-          } catch (error) {
-            console.error("searchLibraryTracks failed", error);
-            return { mentionId, query, candidates: [] };
-          }
-        }),
-      );
-      return { results };
-    },
-
     searchSpotifyTracks: async (input) => {
       if (!isCatalogConfigured()) {
         return emptyResults(input);

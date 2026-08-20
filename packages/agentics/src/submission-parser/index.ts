@@ -1,22 +1,14 @@
 /** Submission NL parse / preview / commit orchestration + schemas. */
 
-import { ORCHESTRATOR_PROMPT_VERSION } from "./agent/orchestrator-prompt";
-
-export {
-  SUBMISSION_CONTENT_TYPES,
-  TRANSITION_QUALITIES,
-  type SubmissionContentType,
-  type TransitionQuality,
-} from "./content-types";
+export { SUBMISSION_CONTENT_TYPES, type SubmissionContentType } from "./content-types";
 
 export {
   CONFIDENCE_LEVELS,
   AUTO_COMMIT_CONFIDENCE_FLOOR,
   confidenceOrdinal,
   confidenceToUnitInterval,
-  meetsAutoCommitConfidence,
   type ConfidenceLevel,
-} from "./agent/confidence";
+} from "./confidence";
 
 export {
   CandidateHandleSchema,
@@ -31,19 +23,17 @@ export {
   type SubmissionMentionPlan,
   type SubmissionTransitionPlan,
   type SubmissionProcessingPlan,
-} from "./agent/schema";
+} from "./schema";
 
 export {
   SingleTransitionDraftSchema,
   ParseSingleTransitionReceiptSchema,
   ParseSingleTransitionInputSchema,
   draftToSingleUnresolvedPlan,
-  OrchestratorFinishSchema,
   type SingleTransitionDraft,
   type ParseSingleTransitionReceipt,
   type ParseSingleTransitionInput,
-  type OrchestratorFinish,
-} from "./agent/single-transition-schema";
+} from "./single-transition-schema";
 
 export {
   ORCHESTRATOR_AGENT_NAME,
@@ -55,71 +45,11 @@ export {
   buildOrchestratorUserPrompt,
   buildSingleTransitionPrompt,
   buildSingleTransitionUserPrompt,
-} from "./agent/orchestrator-prompt";
+} from "./orchestrator-prompt";
 
-export {
-  TrackCandidateSchema,
-  SearchQueriesInputSchema,
-  SearchCandidatesOutputSchema,
-  type TrackCandidate,
-  type SearchQueriesInput,
-  type SearchCandidatesOutput,
-  type SubmissionAgentServices,
-} from "./agent/services";
-
-export { CandidateRegistry, withCandidateRegistry } from "./agent/candidate-registry";
-export {
-  type PolicyGateCode,
-  type PolicyImportAction,
-  type PolicyCommitAction,
-} from "./agent/policy";
-export {
-  evaluateProposalPolicy,
-  type ProposalPolicyDecision,
-  type ProposalPolicyResult,
-  type EvaluateProposalPolicyInput,
-} from "./agent/proposal-policy";
-export {
-  applyProposalPolicy,
-  type ApplyProposalPolicyInput,
-  type ApplyProposalPolicyResult,
-} from "./agent/apply-proposal-policy";
-export {
-  buildReviewerPolicyResult,
-  assertReviewerEndpoint,
-  type ReviewerEndpoint,
-  type BuildReviewerPolicyResultInput,
-} from "./agent/reviewer-policy";
-export {
-  resolveSubmissionMentions,
-  type ResolveMentionsInput,
-  type ResolveMentionsResult,
-} from "./agent/resolve-mentions";
-export {
-  resolveProposalsBatch,
-  type ProposalResolveItem,
-  type ResolveProposalsBatchInput,
-  type ResolveProposalsBatchResult,
-  type ResolvedProposalItem,
-} from "./agent/resolve-proposals-batch";
 export {
   parseSingleTransitionDraft,
   type ParseSingleTransitionDraftInput,
   type ParseSingleTransitionDraftResult,
-} from "./agent/parse-single-transition";
-export { sourceFingerprint, spanProposalKey } from "./agent/proposal-key";
-export {
-  SUBMISSION_LIMITS,
-  utf8ByteLength,
-  assertRawTextWithinLimit,
-  type SubmissionLimits,
-} from "./agent/limits";
-export { providerFromModel } from "./agent/provider";
-
-export function getSubmissionParserStatus() {
-  return {
-    configured: true as const,
-    feature: "submission-parser" as const,
-    promptVersion: ORCHESTRATOR_PROMPT_VERSION,
-  };
-}
+} from "./parse-single-transition";
+export { SUBMISSION_LIMITS, type SubmissionLimits } from "./limits";

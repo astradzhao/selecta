@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-import { SUBMISSION_CONTENT_TYPES, TRANSITION_QUALITIES } from "../content-types";
+import { TRANSITION_QUALITIES } from "@selecta/library/constants";
+
+import { SUBMISSION_CONTENT_TYPES } from "./content-types";
 import { CONFIDENCE_LEVELS } from "./confidence";
 
 export const MENTION_RESOLUTION_STATUSES = [

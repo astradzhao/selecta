@@ -1,9 +1,8 @@
 import { generateText, NoOutputGeneratedError, Output } from "ai";
 
-import { createAgentLogger, type AgentLogger } from "../../core/logging";
-import type { AgentUsage } from "../../core/types";
-
-import { providerFromModel } from "./provider";
+import { createAgentLogger, type AgentLogger } from "../core/logging";
+import { providerFromModel } from "../core/provider";
+import type { AgentUsage } from "../core/types";
 import {
   buildSingleTransitionPrompt,
   buildSingleTransitionUserPrompt,
@@ -59,7 +58,7 @@ function toUsage(raw: unknown): AgentUsage | undefined {
 
 /**
  * Cheap structured-output parse for exactly one transition span.
- * Domain-only — persistence and Neo4j writes happen in deterministic application code.
+ * Domain-only — persistence and music writes happen in deterministic application code.
  */
 export async function parseSingleTransitionDraft(
   input: ParseSingleTransitionDraftInput,

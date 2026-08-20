@@ -109,7 +109,7 @@ describe("runBoundedAgent", () => {
           {
             type: "tool-call",
             toolCallId: "call-1",
-            toolName: "searchLibraryTracks",
+            toolName: "searchCatalog",
             input: JSON.stringify({ queries: [{ mentionId: "m1", query: "levels" }] }),
           },
         ],
@@ -132,7 +132,7 @@ describe("runBoundedAgent", () => {
       outputSchema: OutputSchema,
       limits: { maxSteps: 1 },
       tools: {
-        searchLibraryTracks: tool({
+        searchCatalog: tool({
           description: "search",
           inputSchema: z.object({
             queries: z.array(

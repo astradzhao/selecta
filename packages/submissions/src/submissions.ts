@@ -3,6 +3,7 @@ import { and, asc, desc, eq, gte, ilike, lte, max, sql, type SQL } from "drizzle
 import { getDb } from "@selecta/db";
 import { getExecutor } from "@selecta/db";
 import { SubmissionsError } from "./errors";
+import { MAX_SUBMISSION_RAW_BYTES, utf8ByteLength } from "./constants";
 import {
   countProposalsForVersion,
   listProposalsForVersion,
@@ -23,8 +24,7 @@ import {
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
-/** UTF-8 byte cap for immutable submission intake (DJ-66). */
-export const MAX_SUBMISSION_RAW_BYTES = 64 * 1024;
+export { MAX_SUBMISSION_RAW_BYTES };
 
 export type CreateSubmissionInput = {
   rawText: string;
@@ -105,7 +105,7 @@ function requireRawText(rawText: string): string {
   if (!trimmed) {
     throw new SubmissionsError("invalid_input", "rawText is required.");
   }
-  const bytes = new TextEncoder().encode(trimmed).byteLength;
+  const bytes = utf8ByteLength(trimmed);
   if (bytes > MAX_SUBMISSION_RAW_BYTES) {
     throw new SubmissionsError(
       "invalid_input",

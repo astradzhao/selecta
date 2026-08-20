@@ -15,7 +15,7 @@ export function sourceFingerprint(
 }
 
 /**
- * Durable proposal identity for Neo4j MERGE + Postgres unique constraint.
+ * Durable proposal identity for the Postgres unique constraint.
  * Format: `{submissionId}:{extractionVersion}:span:{fingerprint}`
  */
 export function spanProposalKey(

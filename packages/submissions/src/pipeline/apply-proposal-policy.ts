@@ -1,12 +1,14 @@
-import { confidenceToUnitInterval } from "./confidence";
+import {
+  confidenceToUnitInterval,
+  type SubmissionProcessingPlan,
+} from "@selecta/agentics/submission-parser";
 import type { ProposalPolicyResult } from "./proposal-policy";
-import type { SubmissionProcessingPlan } from "./schema";
-import type { SubmissionAgentServices } from "./services";
+import type { MusicWritePort } from "./ports";
 
 export type ApplyProposalPolicyInput = {
   plan: SubmissionProcessingPlan;
   policy: ProposalPolicyResult;
-  services: SubmissionAgentServices;
+  services: MusicWritePort;
   submissionId: string;
   extractionVersion: number;
   /** Fingerprint-based key: `{submissionId}:{version}:span:{fingerprint}`. */
