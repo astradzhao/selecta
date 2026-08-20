@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
+import { MAX_SUBMISSION_RAW_BYTES, utf8ByteLength } from "@selecta/submissions/constants";
 import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
 import { Textarea } from "@selecta/ui/components/textarea";
@@ -11,11 +12,6 @@ import { Textarea } from "@selecta/ui/components/textarea";
 import { FormField } from "@/components/common/form-field";
 import { describeApiError } from "@/lib/api/errors";
 import { createSubmission } from "@/lib/submissions/api";
-import { MAX_SUBMISSION_RAW_BYTES } from "@/lib/submissions/limits";
-
-function utf8ByteLength(value: string): number {
-  return new TextEncoder().encode(value).byteLength;
-}
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
