@@ -70,3 +70,13 @@ Only write tests that provide real value.
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
+
+## Cursor Cloud specific instructions
+
+The update script (`pnpm install`) only refreshes dependencies. Docker, Postgres, and the dev servers are **not** started automatically — start them yourself.
+
+- **Docker daemon:** there is no systemd, so start the daemon manually before any DB work: run `sudo dockerd` in a background/tmux session. If `docker` commands hit a permission error, run `sudo chmod 666 /var/run/docker.sock` (the `ubuntu` user is in the `docker` group, but that only applies to a fresh login shell). Docker is configured with the `fuse-overlayfs` storage driver and `iptables-legacy` — do not switch these.
+- **`.env.local` is required** or `pnpm dev` fails fast. If missing, `cp .env.example .env.local`. The committed defaults (Postgres on host port `5433`, `API_ORIGIN=http://localhost:3001`) work as-is. `AI_GATEWAY_API_KEY` (NL note extraction) and `SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET` (catalog search) are optional — both degrade gracefully, and manual track entry works without them.
+- **Run the stack:** `pnpm dev` (Docker Postgres → migrate → web `:3000` + api `:3001`); open `http://localhost:3000/library`. Once Postgres is up you can use `pnpm dev:apps`. See the README for all escape-hatch scripts.
+- **Tests:** `pnpm db:test` needs the Docker daemon + Postgres running (it runs `docker compose up`). `pnpm lint` / `pnpm typecheck` do not.
+- **Gotcha:** the API dev server regenerates `apps/api/AGENTS.md` and `apps/api/CLAUDE.md` on startup (Next.js `agentRules`). These are untracked build artifacts — do not commit them.
