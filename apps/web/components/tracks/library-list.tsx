@@ -7,7 +7,6 @@ import { Button } from "@selecta/ui/components/button";
 import { Input } from "@selecta/ui/components/input";
 import { SearchField } from "@selecta/ui/components/search-field";
 
-import { AddNewButton } from "@/components/common/add-new-button";
 import {
   ClearFiltersButton,
   FilterField,
@@ -96,18 +95,15 @@ export function LibraryList() {
             : formatListCount(list.items.length, { singular: "track", plural: "tracks" })
       }
       toolbar={
-        <div className="flex items-center gap-2">
-          {hasFilters ? (
-            <ClearFiltersButton
-              onClick={() => {
-                setQuery("");
-                setSubgenre("");
-                setFolder("");
-              }}
-            />
-          ) : null}
-          <AddNewButton href={libraryAddHref("tracks")} label="Add track" />
-        </div>
+        hasFilters ? (
+          <ClearFiltersButton
+            onClick={() => {
+              setQuery("");
+              setSubgenre("");
+              setFolder("");
+            }}
+          />
+        ) : null
       }
       unavailableTitle="Library unavailable"
       loadingAriaLabel="Loading library"

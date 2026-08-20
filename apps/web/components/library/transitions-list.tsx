@@ -19,7 +19,6 @@ import {
   FilterField,
   FilteredListShell,
 } from "@/components/common/filtered-list-shell";
-import { AddNewButton } from "@/components/common/add-new-button";
 import { ProposalStatusBadge } from "@/components/common/status-badge";
 import { useFilteredList } from "@/hooks/use-filtered-list";
 import { DEFAULT_PAGE_SIZE } from "@/hooks/use-paginated-list";
@@ -155,9 +154,6 @@ export function TransitionsList() {
             : needsReviewOnly
               ? `${pendingProposals.length} need review`
               : `${pendingProposals.length} need review · ${list.items.length}${list.hasMore ? "+" : ""} committed`
-      }
-      toolbar={
-        <AddNewButton href={libraryAddHref("submissions", "transitions")} label="Add transition" />
       }
       unavailableTitle="Transitions unavailable"
       loadingAriaLabel="Loading transitions"

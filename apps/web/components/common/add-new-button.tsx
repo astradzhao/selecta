@@ -5,7 +5,7 @@ import { Button } from "@selecta/ui/components/button";
 
 export function AddNewButton({ href, label }: { href: string; label: string }) {
   return (
-    <Button asChild size="sm" variant="outline">
+    <Button asChild>
       <Link href={href}>
         <PlusIcon />
         {label}

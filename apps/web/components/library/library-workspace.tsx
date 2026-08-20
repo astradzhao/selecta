@@ -8,10 +8,11 @@ import { ListSkeleton } from "@selecta/ui/components/list-skeleton";
 import { PageHeader } from "@selecta/ui/components/page-header";
 import { SegmentedTab, SegmentedTabs } from "@selecta/ui/components/segmented-tabs";
 
+import { AddNewButton } from "@/components/common/add-new-button";
 import { LibraryList } from "@/components/tracks/library-list";
 import { SubmissionsList } from "@/components/library/submissions-list";
 import { TransitionsList } from "@/components/library/transitions-list";
-import { libraryViewHref } from "@/lib/library/add-routes";
+import { libraryAddHref, libraryViewHref } from "@/lib/library/add-routes";
 import { listProposals } from "@/lib/proposals/api";
 import { type LibraryView } from "@/lib/library/view";
 
@@ -32,6 +33,12 @@ const VIEWS: Array<{ id: LibraryView; label: string; description: string }> = [
     description: "Read-only raw inputs and the transitions they produced.",
   },
 ];
+
+const ADD_ACTIONS: Record<LibraryView, { href: string; label: string }> = {
+  tracks: { href: libraryAddHref("tracks"), label: "Add track" },
+  transitions: { href: libraryAddHref("submissions", "transitions"), label: "Add transition" },
+  submissions: { href: libraryAddHref("submissions"), label: "New submission" },
+};
 
 export function LibraryWorkspace({ view }: { view: LibraryView }) {
   const router = useRouter();
@@ -77,25 +84,28 @@ export function LibraryWorkspace({ view }: { view: LibraryView }) {
           ) : null
         }
       >
-        <SegmentedTabs aria-label="Library views">
-          {VIEWS.map((item) => {
-            const isActive = item.id === view;
-            const href = libraryViewHref(item.id);
-            return (
-              <SegmentedTab
-                key={item.id}
-                asChild
-                active={isActive}
-                onClick={(event) => {
-                  event.preventDefault();
-                  setView(item.id);
-                }}
-              >
-                <Link href={href}>{item.label}</Link>
-              </SegmentedTab>
-            );
-          })}
-        </SegmentedTabs>
+        <div className="space-y-4">
+          <AddNewButton href={ADD_ACTIONS[view].href} label={ADD_ACTIONS[view].label} />
+          <SegmentedTabs aria-label="Library views">
+            {VIEWS.map((item) => {
+              const isActive = item.id === view;
+              const href = libraryViewHref(item.id);
+              return (
+                <SegmentedTab
+                  key={item.id}
+                  asChild
+                  active={isActive}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setView(item.id);
+                  }}
+                >
+                  <Link href={href}>{item.label}</Link>
+                </SegmentedTab>
+              );
+            })}
+          </SegmentedTabs>
+        </div>
       </PageHeader>
 
       {view === "tracks" ? <LibraryList /> : null}

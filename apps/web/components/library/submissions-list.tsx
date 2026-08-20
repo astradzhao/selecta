@@ -11,7 +11,6 @@ import { Label } from "@selecta/ui/components/label";
 import { SearchField } from "@selecta/ui/components/search-field";
 import { Select } from "@selecta/ui/components/select";
 
-import { AddNewButton } from "@/components/common/add-new-button";
 import {
   ClearFiltersButton,
   FilterField,
@@ -116,7 +115,6 @@ export function SubmissionsList() {
                 hasMore: list.hasMore,
               })
       }
-      toolbar={<AddNewButton href={libraryAddHref("submissions")} label="New submission" />}
       unavailableTitle="Submissions unavailable"
       loadingAriaLabel="Loading submissions"
       error={list.error}
