@@ -4,13 +4,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { ArrowLeftIcon } from "lucide-react";
 
 import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
 import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
+import { PageBreadcrumb, PageHeader } from "@selecta/ui/components/page-header";
 import { Separator } from "@selecta/ui/components/separator";
+import { StatePanel } from "@selecta/ui/components/state-panel";
+
+import { BackLink } from "@/components/common/back-link";
 
 import { ApiClientError } from "@/lib/api/client";
 import { invalidateLibraryCache } from "@/lib/library-cache";
@@ -76,18 +79,6 @@ function transitionWarning(track: ApiTrack): string {
   return `This also deletes related ${parts.join(" and ")} transitions. This cannot be undone.`;
 }
 
-function LibraryBackLink() {
-  return (
-    <Link
-      href="/library"
-      className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
-    >
-      <ArrowLeftIcon className="size-4" aria-hidden />
-      Library
-    </Link>
-  );
-}
-
 export function TrackDetail({ trackId }: { trackId: string }) {
   const router = useRouter();
   const [track, setTrack] = useState<ApiTrack | null>(null);
@@ -124,13 +115,13 @@ export function TrackDetail({ trackId }: { trackId: string }) {
   }, [trackId]);
 
   if (loading && !track) {
-    return <p className="text-muted-foreground text-sm">Loading track…</p>;
+    return <StatePanel variant="loading">Loading track…</StatePanel>;
   }
 
   if (loadError || !track || !form) {
     return (
       <div className="space-y-4">
-        <LibraryBackLink />
+        <BackLink href="/library">Library</BackLink>
         <Alert variant="destructive">{loadError ?? "Track not found."}</Alert>
       </div>
     );
@@ -229,11 +220,15 @@ export function TrackDetail({ trackId }: { trackId: string }) {
   if (editing) {
     return (
       <div className="space-y-10">
-        <div className="space-y-3">
-          <LibraryBackLink />
-          <p className="text-eyebrow">Edit track</p>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <h1 className="text-page-title min-w-0 flex-1 text-balance">{track.title}</h1>
+        <PageHeader
+          lead={
+            <>
+              <BackLink href="/library">Library</BackLink>
+              <PageBreadcrumb>Edit track</PageBreadcrumb>
+            </>
+          }
+          title={track.title}
+          actions={
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               <Button
                 type="button"
@@ -254,8 +249,8 @@ export function TrackDetail({ trackId }: { trackId: string }) {
                 {deleting ? "Deleting…" : "Delete"}
               </Button>
             </div>
-          </div>
-        </div>
+          }
+        />
 
         {actionError ? <Alert variant="destructive">{actionError}</Alert> : null}
 
@@ -387,8 +382,8 @@ export function TrackDetail({ trackId }: { trackId: string }) {
   return (
     <div className="space-y-10">
       <div className="space-y-3">
-        <LibraryBackLink />
-        <p className="text-eyebrow">Track</p>
+        <BackLink href="/library">Library</BackLink>
+        <PageBreadcrumb>Track</PageBreadcrumb>
       </div>
 
       {actionError ? <Alert variant="destructive">{actionError}</Alert> : null}

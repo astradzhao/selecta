@@ -3,13 +3,17 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useState, useTransition } from "react";
-import { ArrowLeftIcon } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
 import { Checkbox } from "@selecta/ui/components/checkbox";
 import { Label } from "@selecta/ui/components/label";
+import { PageHeader } from "@selecta/ui/components/page-header";
+import { SectionHeading } from "@selecta/ui/components/section-heading";
 import { Separator } from "@selecta/ui/components/separator";
+import { StatePanel } from "@selecta/ui/components/state-panel";
+
+import { BackLink } from "@/components/common/back-link";
 
 import { ProposalEndpointPicker } from "@/components/library/proposal-endpoint-picker";
 import { ProposalSiblings } from "@/components/library/proposal-siblings";
@@ -424,7 +428,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
   }
 
   if (loading && !proposal) {
-    return <p className="text-muted-foreground text-sm">Loading proposal…</p>;
+    return <StatePanel variant="loading">Loading proposal…</StatePanel>;
   }
 
   if (loadError || !proposal || !note) {
@@ -451,27 +455,20 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
 
   return (
     <div className="space-y-10">
-      <header className="space-y-5">
-        <Link
-          href={submissionHref}
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
-        >
-          <ArrowLeftIcon className="size-4" aria-hidden />
-          Submission
-        </Link>
-
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <ProposalStatusBadge status={proposal.status} />
-            {queueLabel ? (
-              <span className="text-muted-foreground text-sm">{queueLabel}</span>
-            ) : null}
-          </div>
-          <h1 className="text-page-title text-balance">
-            {titleFromProposal(proposal, fromMention, toMention)}
-          </h1>
-        </div>
-
+      <PageHeader
+        lead={
+          <>
+            <BackLink href={submissionHref}>Submission</BackLink>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <ProposalStatusBadge status={proposal.status} />
+              {queueLabel ? (
+                <span className="text-muted-foreground text-sm">{queueLabel}</span>
+              ) : null}
+            </div>
+          </>
+        }
+        title={titleFromProposal(proposal, fromMention, toMention)}
+      >
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           {canApprove ? (
             <Button type="button" size="sm" disabled={approveDisabled} onClick={onApprove}>
@@ -502,7 +499,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
             <p className="text-caption">Pick a track on both sides to approve.</p>
           ) : null}
         </div>
-      </header>
+      </PageHeader>
 
       {conflictMessage ? (
         <Alert variant="destructive" className="flex flex-wrap items-center justify-between gap-3">
@@ -638,15 +635,6 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
           {JSON.stringify(proposal.raw, null, 2)}
         </pre>
       </details>
-    </div>
-  );
-}
-
-function SectionHeading({ title, hint }: { title: string; hint?: string }) {
-  return (
-    <div className="space-y-1">
-      <h2 className="text-section-title">{title}</h2>
-      {hint ? <p className="text-caption">{hint}</p> : null}
     </div>
   );
 }

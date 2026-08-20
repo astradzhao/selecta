@@ -3,12 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
-import { PlusIcon, SearchIcon, XIcon } from "lucide-react";
+import { PlusIcon, XIcon } from "lucide-react";
 
 import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
-import { Input } from "@selecta/ui/components/input";
+import { EmptyState } from "@selecta/ui/components/empty-state";
 import { Label } from "@selecta/ui/components/label";
+import { SearchField } from "@selecta/ui/components/search-field";
+import { SectionHeading } from "@selecta/ui/components/section-heading";
 
 import { ApiClientError } from "@/lib/api/client";
 import { addNoteTrackLink, removeNoteTrackLink, type ApiNoteTrackLink } from "@/lib/notes/api";
@@ -97,13 +99,10 @@ export function SubmissionTrackLinks({
 
   return (
     <section aria-label="Linked tracks" className="space-y-4">
-      <div className="space-y-1">
-        <h2 className="text-section-title">Linked tracks</h2>
-        <p className="text-body text-muted-foreground">
-          Optionally attach existing library tracks. Links are manual — parsing never adds them
-          silently.
-        </p>
-      </div>
+      <SectionHeading
+        title="Linked tracks"
+        hint="Optionally attach existing library tracks. Links are manual — parsing never adds them silently."
+      />
 
       <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
         {initialLinks.map((link) => (
@@ -153,26 +152,26 @@ export function SubmissionTrackLinks({
           </li>
         ))}
         {initialLinks.length === 0 ? (
-          <li className="text-muted-foreground px-4 py-6 text-sm">No tracks linked yet.</li>
+          <li>
+            <EmptyState compact className="rounded-none border-0">
+              No tracks linked yet.
+            </EmptyState>
+          </li>
         ) : null}
       </ul>
 
       <div className="space-y-2">
         <Label htmlFor="submission-link-track-search">Add track from library</Label>
-        <div className="relative">
-          <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-          <Input
-            id="submission-link-track-search"
-            className="pl-10"
-            placeholder="Search title or artist"
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setError(null);
-            }}
-            disabled={mutating}
-          />
-        </div>
+        <SearchField
+          id="submission-link-track-search"
+          placeholder="Search title or artist"
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setError(null);
+          }}
+          disabled={mutating}
+        />
         {searching ? (
           <p className="text-caption" aria-live="polite">
             Searching library…
@@ -210,7 +209,11 @@ export function SubmissionTrackLinks({
               </li>
             ))}
             {results.length === 0 ? (
-              <li className="text-muted-foreground px-4 py-5 text-sm">No matching tracks.</li>
+              <li>
+                <EmptyState compact className="rounded-none border-0">
+                  No matching tracks.
+                </EmptyState>
+              </li>
             ) : null}
           </ul>
         ) : null}

@@ -2,15 +2,20 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { SearchIcon, XIcon } from "lucide-react";
+import { XIcon } from "lucide-react";
 
 import { Alert } from "@selecta/ui/components/alert";
 import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
 import { Checkbox } from "@selecta/ui/components/checkbox";
+import { EmptyState } from "@selecta/ui/components/empty-state";
 import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
+import { ListSkeleton } from "@selecta/ui/components/list-skeleton";
+import { SearchField } from "@selecta/ui/components/search-field";
+import { SectionHeading } from "@selecta/ui/components/section-heading";
 import { Select } from "@selecta/ui/components/select";
+import { StatePanel } from "@selecta/ui/components/state-panel";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { ProposalStatusBadge } from "@/components/library/proposal-status-badge";
@@ -135,17 +140,13 @@ export function TransitionsList() {
         <div className="grid items-end gap-4 md:grid-cols-[minmax(0,2fr)_minmax(8rem,1fr)_minmax(8rem,1fr)_minmax(8rem,1fr)]">
           <div className="space-y-2">
             <Label htmlFor="transitions-q">Search</Label>
-            <div className="relative">
-              <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-              <Input
-                id="transitions-q"
-                className="pl-10"
-                placeholder="Track title or artist"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                disabled={needsReviewOnly}
-              />
-            </div>
+            <SearchField
+              id="transitions-q"
+              placeholder="Track title or artist"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              disabled={needsReviewOnly}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="filter-technique">Technique</Label>
@@ -229,17 +230,9 @@ export function TransitionsList() {
 
       <section aria-label="Transitions">
         {error && transitions.length === 0 && pendingProposals.length === 0 ? (
-          <div className="border-border bg-surface-1 rounded-xl border px-5 py-6">
-            <h2 className="text-card-title">Transitions unavailable</h2>
-            <p className="text-body text-muted-foreground mt-1 max-w-xl">{error}</p>
-          </div>
+          <StatePanel variant="error" title="Transitions unavailable" description={error} />
         ) : isInitialLoading ? (
-          <div
-            className="border-border text-muted-foreground rounded-xl border px-5 py-10 text-sm"
-            aria-busy="true"
-          >
-            Loading transitions…
-          </div>
+          <ListSkeleton aria-label="Loading transitions" />
         ) : (
           <div className="space-y-6">
             {visiblePending.length > 0 ? (
@@ -269,18 +262,17 @@ export function TransitionsList() {
                 </ul>
               </div>
             ) : needsReviewOnly ? (
-              <div className="border-border rounded-xl border px-5 py-10">
-                <h2 className="text-card-title">No proposals need review</h2>
-                <p className="text-body text-muted-foreground mt-1">
-                  Committed transitions are hidden while this filter is on.
-                </p>
-              </div>
+              <StatePanel
+                variant="empty"
+                title="No proposals need review"
+                description="Committed transitions are hidden while this filter is on."
+              />
             ) : null}
 
             {showCommitted ? (
               <div className="space-y-3">
                 {visiblePending.length > 0 ? (
-                  <h2 className="text-section-title">Committed transitions</h2>
+                  <SectionHeading title="Committed transitions" />
                 ) : null}
                 <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
                   {transitions.map((transition) => (
@@ -319,22 +311,21 @@ export function TransitionsList() {
                     </li>
                   ))}
                   {hasFetched && transitions.length === 0 && !needsReviewOnly ? (
-                    <li className="flex flex-col items-start gap-3 px-5 py-10">
-                      <div>
-                        <h2 className="text-card-title">
-                          {hasFilters ? "No matching transitions" : "No transitions yet"}
-                        </h2>
-                        <p className="text-body text-muted-foreground mt-1">
-                          {hasFilters
+                    <li>
+                      <EmptyState
+                        title={hasFilters ? "No matching transitions" : "No transitions yet"}
+                        description={
+                          hasFilters
                             ? "Try clearing a filter or searching for something else."
-                            : "Add a transition note to start capturing mix knowledge."}
-                        </p>
-                      </div>
-                      {!hasFilters ? (
-                        <Button asChild size="sm">
-                          <Link href="/add?mode=transition">Add a transition</Link>
-                        </Button>
-                      ) : null}
+                            : "Add a transition note to start capturing mix knowledge."
+                        }
+                      >
+                        {!hasFilters ? (
+                          <Button asChild size="sm">
+                            <Link href="/add?mode=transition">Add a transition</Link>
+                          </Button>
+                        ) : null}
+                      </EmptyState>
                     </li>
                   ) : null}
                 </ul>

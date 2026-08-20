@@ -3,16 +3,18 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { PlusIcon, SearchIcon, XIcon } from "lucide-react";
+import { PlusIcon, XIcon } from "lucide-react";
 
 import { Alert } from "@selecta/ui/components/alert";
 import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
 import { Checkbox } from "@selecta/ui/components/checkbox";
-import { Input } from "@selecta/ui/components/input";
+import { EmptyState } from "@selecta/ui/components/empty-state";
 import { Label } from "@selecta/ui/components/label";
+import { ListSkeleton } from "@selecta/ui/components/list-skeleton";
+import { SearchField } from "@selecta/ui/components/search-field";
 import { Select } from "@selecta/ui/components/select";
-import { Skeleton } from "@selecta/ui/components/skeleton";
+import { StatePanel } from "@selecta/ui/components/state-panel";
 
 import { ApiClientError } from "@/lib/api/client";
 import { listSubmissions, type ApiNote, type NoteExtractionStatus } from "@/lib/notes/api";
@@ -171,16 +173,12 @@ export function SubmissionsList() {
         <div className="grid items-end gap-4 md:grid-cols-[minmax(0,2fr)_minmax(10rem,1fr)]">
           <div className="space-y-2">
             <Label htmlFor="submissions-q">Search</Label>
-            <div className="relative">
-              <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-              <Input
-                id="submissions-q"
-                className="pl-10"
-                placeholder="Search submission text"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-              />
-            </div>
+            <SearchField
+              id="submissions-q"
+              placeholder="Search submission text"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="filter-status">Status</Label>
@@ -247,23 +245,9 @@ export function SubmissionsList() {
 
       <section aria-label="Submissions">
         {error && submissions.length === 0 ? (
-          <div className="border-border bg-surface-1 rounded-xl border px-5 py-6">
-            <h2 className="text-card-title">Submissions unavailable</h2>
-            <p className="text-body text-muted-foreground mt-1 max-w-xl">{error}</p>
-          </div>
+          <StatePanel variant="error" title="Submissions unavailable" description={error} />
         ) : isInitialLoading ? (
-          <div
-            className="divide-border border-border divide-y overflow-hidden rounded-xl border"
-            aria-busy="true"
-            aria-label="Loading submissions"
-          >
-            {Array.from({ length: 5 }, (_, index) => (
-              <div key={index} className="space-y-2 px-4 py-3">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-24" />
-              </div>
-            ))}
-          </div>
+          <ListSkeleton aria-label="Loading submissions" />
         ) : (
           <div className="space-y-3">
             <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
@@ -303,22 +287,21 @@ export function SubmissionsList() {
                 );
               })}
               {hasFetched && submissions.length === 0 ? (
-                <li className="flex flex-col items-start gap-3 px-5 py-10">
-                  <div>
-                    <h2 className="text-card-title">
-                      {hasFilters ? "No matching submissions" : "No submissions yet"}
-                    </h2>
-                    <p className="text-body text-muted-foreground mt-1">
-                      {hasFilters
+                <li>
+                  <EmptyState
+                    title={hasFilters ? "No matching submissions" : "No submissions yet"}
+                    description={
+                      hasFilters
                         ? "Try clearing a filter or searching for something else."
-                        : "Submit a transition note to capture mix knowledge."}
-                    </p>
-                  </div>
-                  {!hasFilters ? (
-                    <Button asChild size="sm">
-                      <Link href="/add?mode=transition">Write your first submission</Link>
-                    </Button>
-                  ) : null}
+                        : "Submit a transition note to capture mix knowledge."
+                    }
+                  >
+                    {!hasFilters ? (
+                      <Button asChild size="sm">
+                        <Link href="/add?mode=transition">Write your first submission</Link>
+                      </Button>
+                    ) : null}
+                  </EmptyState>
                 </li>
               ) : null}
             </ul>

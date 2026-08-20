@@ -7,7 +7,9 @@ import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { Alert } from "@selecta/ui/components/alert";
 import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
-import { Input } from "@selecta/ui/components/input";
+import { EmptyState } from "@selecta/ui/components/empty-state";
+import { SearchField } from "@selecta/ui/components/search-field";
+import { StatePanel } from "@selecta/ui/components/state-panel";
 import { cn } from "@selecta/ui/lib/utils";
 
 import {
@@ -721,7 +723,7 @@ function AddTransitionPanel({
         </div>
       ) : (
         <div className="space-y-2">
-          <Input
+          <SearchField
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search library tracks"
@@ -919,9 +921,12 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
 
   if (pending && !current) {
     return (
-      <p className="text-muted-foreground motion-safe:animate-in motion-safe:fade-in-0 text-sm duration-300">
+      <StatePanel
+        variant="loading"
+        className="motion-safe:animate-in motion-safe:fade-in-0 duration-300"
+      >
         Loading neighborhood…
-      </p>
+      </StatePanel>
     );
   }
 
@@ -1083,12 +1088,11 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
           ) : null}
 
           {neighbors.length === 0 ? (
-            <div className="border-border bg-surface-1 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 space-y-3 rounded-2xl border border-dashed px-5 py-10 text-center duration-500">
-              <p className="text-card-title">No outbound transitions yet</p>
-              <p className="text-body text-muted-foreground mx-auto max-w-sm">
-                Add a transition to a library track, or capture a mix note that links this song
-                onward.
-              </p>
+            <EmptyState
+              className="bg-surface-1 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 items-center rounded-2xl border border-dashed text-center duration-500"
+              title="No outbound transitions yet"
+              description="Add a transition to a library track, or capture a mix note that links this song onward."
+            >
               <div className="flex flex-wrap justify-center gap-2 pt-1">
                 <Button type="button" variant="secondary" size="sm" onClick={() => setAdding(true)}>
                   Add transition
@@ -1100,7 +1104,7 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
                   <Link href="/add">Add a track</Link>
                 </Button>
               </div>
-            </div>
+            </EmptyState>
           ) : (
             <ul key={current.id} className="space-y-2">
               {neighbors.map((neighbor, index) => {

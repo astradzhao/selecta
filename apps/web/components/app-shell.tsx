@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { cn } from "@selecta/ui/lib/utils";
+import { SegmentedTab, SegmentedTabs } from "@selecta/ui/components/segmented-tabs";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -25,26 +25,17 @@ export function AppShell({
             Selecta
           </Link>
           <div className="flex items-center gap-2">
-            <nav className="flex items-center gap-1">
+            <SegmentedTabs aria-label="Primary">
               {links.map((link) => {
                 const active =
                   currentPath === link.href || (currentPath?.startsWith(`${link.href}/`) ?? false);
                 return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={cn(
-                      "rounded-lg px-3 py-1.5 text-sm transition-colors",
-                      active
-                        ? "bg-selected text-selected-foreground"
-                        : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
-                    )}
-                  >
-                    {link.label}
-                  </Link>
+                  <SegmentedTab key={link.href} asChild active={active}>
+                    <Link href={link.href}>{link.label}</Link>
+                  </SegmentedTab>
                 );
               })}
-            </nav>
+            </SegmentedTabs>
             <ThemeToggle />
           </div>
         </div>
