@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isPostgresConfigured } from "@selecta/db";
-import { getNoteById, listProposals } from "@selecta/submissions";
+import { getSubmissionById, listProposals } from "@selecta/submissions";
 
 import { serializeProposals } from "@/lib/proposals";
 
@@ -16,7 +16,7 @@ function parseVersion(raw: string | null): number | undefined {
 
 /**
  * List proposals for one submission (defaults to current extraction version).
- * GET /notes/:id/proposals?version=
+ * GET /submissions/:id/proposals?version=
  */
 export async function GET(request: Request, context: RouteContext) {
   if (!isPostgresConfigured()) {
@@ -29,22 +29,22 @@ export async function GET(request: Request, context: RouteContext) {
   const { id } = await context.params;
   if (!id?.trim()) {
     return NextResponse.json(
-      { ok: false, error: "invalid_id", message: "Note id is required." },
+      { ok: false, error: "invalid_id", message: "Submission id is required." },
       { status: 400 },
     );
   }
 
-  const note = await getNoteById(id);
-  if (!note) {
+  const submission = await getSubmissionById(id);
+  if (!submission) {
     return NextResponse.json(
-      { ok: false, error: "not_found", message: `Note "${id}" was not found.` },
+      { ok: false, error: "not_found", message: `Submission "${id}" was not found.` },
       { status: 404 },
     );
   }
 
   const { searchParams } = new URL(request.url);
   const versionRaw = searchParams.get("version");
-  const version = parseVersion(versionRaw) ?? note.extractionVersion;
+  const version = parseVersion(versionRaw) ?? submission.extractionVersion;
   if (versionRaw && parseVersion(versionRaw) === undefined) {
     return NextResponse.json(
       { ok: false, error: "invalid_query", message: "version must be a number." },
@@ -54,7 +54,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   try {
     const result = await listProposals({
-      noteId: note.id,
+      submissionId: submission.id,
       extractionVersion: version,
     });
 
@@ -66,7 +66,7 @@ export async function GET(request: Request, context: RouteContext) {
       hasMore: result.hasMore,
     });
   } catch (error) {
-    console.error("list note proposals failed", error);
+    console.error("list submission proposals failed", error);
     return NextResponse.json(
       { ok: false, error: "internal_error", message: "Failed to list proposals." },
       { status: 500 },

@@ -1,12 +1,12 @@
 import { CandidateRegistry } from "./candidate-registry";
 import { mentionSearchQuery, mentionSpotifySearchQuery, topSearchHit } from "./match";
-import type { NoteMentionPlan, NoteProcessingPlan } from "./schema";
-import type { NoteAgentServices, TrackCandidate } from "./services";
+import type { SubmissionMentionPlan, SubmissionProcessingPlan } from "./schema";
+import type { SubmissionAgentServices, TrackCandidate } from "./services";
 
 export type ResolveMentionsInput = {
-  plan: NoteProcessingPlan;
+  plan: SubmissionProcessingPlan;
   services: Pick<
-    NoteAgentServices,
+    SubmissionAgentServices,
     "searchLibraryTracks" | "searchSpotifyTracks" | "findLibraryTrackByExternalId"
   >;
   /** Max mentions to search in one batch (library + Spotify). */
@@ -14,11 +14,11 @@ export type ResolveMentionsInput = {
 };
 
 export type ResolveMentionsResult = {
-  plan: NoteProcessingPlan;
+  plan: SubmissionProcessingPlan;
   candidates: CandidateRegistry;
 };
 
-function batchQueries(mentions: NoteMentionPlan[], maxMentions: number) {
+function batchQueries(mentions: SubmissionMentionPlan[], maxMentions: number) {
   return mentions.slice(0, maxMentions).map((mention) => ({
     mentionId: mention.mentionId,
     query: mentionSearchQuery(mention).slice(0, 200),
@@ -32,7 +32,7 @@ function batchQueries(mentions: NoteMentionPlan[], maxMentions: number) {
  *
  * No local title/artist scoring — trust the catalog ranker.
  */
-export async function resolveNoteMentions(
+export async function resolveSubmissionMentions(
   input: ResolveMentionsInput,
 ): Promise<ResolveMentionsResult> {
   const maxMentions = input.maxMentions ?? 4;
@@ -94,7 +94,7 @@ export async function resolveNoteMentions(
 
 /** Test helper: attach an already-known candidate map without searching. */
 export function attachCandidatesForTests(
-  plan: NoteProcessingPlan,
+  plan: SubmissionProcessingPlan,
   candidatesByMentionId: Map<string, TrackCandidate[]>,
 ): ResolveMentionsResult {
   const registry = new CandidateRegistry();

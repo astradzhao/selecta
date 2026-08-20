@@ -54,7 +54,7 @@ export async function processSubmissionWorkflow(input: ProcessSubmissionInput) {
           }) =>
             parseSingleTransitionTool({
               ...toolInput,
-              submissionId: ctx.noteId,
+              submissionId: ctx.submissionId,
               extractionVersion: ctx.extractionVersion,
               agentRunId: ctx.agentRunId,
             }),
@@ -75,7 +75,7 @@ export async function processSubmissionWorkflow(input: ProcessSubmissionInput) {
     });
 
     const applySummary = await resolveAndApplyProposals(ctx);
-    const counts = await countProposalsStep(ctx.noteId, ctx.extractionVersion);
+    const counts = await countProposalsStep(ctx.submissionId, ctx.extractionVersion);
     const orchestrator = {
       toolCallCount: counts.total,
       stepCount: streamResult.steps?.length ?? 0,
@@ -91,7 +91,7 @@ export async function processSubmissionWorkflow(input: ProcessSubmissionInput) {
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Submission workflow failed.";
-    await failWorkflow(ctx.noteId, ctx.extractionVersion, ctx.agentRunId, message);
+    await failWorkflow(ctx.submissionId, ctx.extractionVersion, ctx.agentRunId, message);
     throw error;
   }
 }

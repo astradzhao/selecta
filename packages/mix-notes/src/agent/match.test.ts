@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { mentionSearchQuery, stripCueSuffixesFromSearchQuery, topSearchHit } from "./match";
-import type { NoteMentionPlan } from "./schema";
+import type { SubmissionMentionPlan } from "./schema";
 import type { TrackCandidate } from "./services";
 
 function mention(
-  partial: Partial<NoteMentionPlan> & Pick<NoteMentionPlan, "mention">,
-): NoteMentionPlan {
+  partial: Partial<SubmissionMentionPlan> & Pick<SubmissionMentionPlan, "mention">,
+): SubmissionMentionPlan {
   return {
     mentionId: "m1",
     titleHint: null,

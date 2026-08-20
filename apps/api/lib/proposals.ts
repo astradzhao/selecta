@@ -1,4 +1,4 @@
-import { type NoteProposal, type NoteTransitionCommit } from "@selecta/db";
+import { type SubmissionProposal, type SubmissionTransitionCommit } from "@selecta/db";
 import { getTrackSummariesByIds, type TrackSummary } from "@selecta/library";
 import { type ProposalDetail } from "@selecta/submissions";
 import { parseCandidateHandle } from "@selecta/mix-notes";
@@ -24,9 +24,9 @@ export type SerializedCandidate = {
 
 export type SerializedProposal = {
   id: string;
-  noteId: string;
+  submissionId: string;
   extractionVersion: number;
-  status: NoteProposal["status"];
+  status: SubmissionProposal["status"];
   sourceStart: number;
   sourceEnd: number;
   sourceText: string;
@@ -58,10 +58,10 @@ export type SerializedProposal = {
 
 export type SerializedTransitionCommit = {
   id: string;
-  noteId: string;
+  submissionId: string;
   extractionVersion: number;
   proposalKey: string;
-  status: NoteTransitionCommit["status"];
+  status: SubmissionTransitionCommit["status"];
   fromTrackId: string | null;
   toTrackId: string | null;
   payload: Record<string, unknown> | null;
@@ -73,11 +73,11 @@ export type SerializedTransitionCommit = {
 
 export type SerializedProposalDetail = {
   proposal: SerializedProposal;
-  note: {
+  submission: {
     id: string;
     rawText: string;
     extractionVersion: number;
-    extractionStatus: ProposalDetail["note"]["extractionStatus"];
+    extractionStatus: ProposalDetail["submission"]["extractionStatus"];
     extractionError: string | null;
     extractionStartedAt: string | null;
     extractionFinishedAt: string | null;
@@ -127,7 +127,7 @@ function readReviewReasons(
 }
 
 function collectTrackIds(
-  proposal: NoteProposal,
+  proposal: SubmissionProposal,
   resolution: Record<string, unknown> | null,
 ): string[] {
   const ids = new Set<string>();
@@ -210,7 +210,7 @@ function extractMentions(
   });
 }
 
-export async function serializeProposal(proposal: NoteProposal): Promise<SerializedProposal> {
+export async function serializeProposal(proposal: SubmissionProposal): Promise<SerializedProposal> {
   const draft = proposal.draft;
   const resolution = proposal.resolution;
   const policyResult = proposal.policyResult;
@@ -241,7 +241,7 @@ export async function serializeProposal(proposal: NoteProposal): Promise<Seriali
 
   return {
     id: proposal.id,
-    noteId: proposal.noteId,
+    submissionId: proposal.submissionId,
     extractionVersion: proposal.extractionVersion,
     status: proposal.status,
     sourceStart: proposal.sourceStart,
@@ -274,10 +274,10 @@ export async function serializeProposal(proposal: NoteProposal): Promise<Seriali
   };
 }
 
-function serializeCommit(commit: NoteTransitionCommit): SerializedTransitionCommit {
+function serializeCommit(commit: SubmissionTransitionCommit): SerializedTransitionCommit {
   return {
     id: commit.id,
-    noteId: commit.noteId,
+    submissionId: commit.submissionId,
     extractionVersion: commit.extractionVersion,
     proposalKey: commit.proposalKey,
     status: commit.status,
@@ -299,21 +299,23 @@ export async function serializeProposalDetail(
 
   return {
     proposal,
-    note: {
-      id: detail.note.id,
-      rawText: detail.note.rawText,
-      extractionVersion: detail.note.extractionVersion,
-      extractionStatus: detail.note.extractionStatus,
-      extractionError: detail.note.extractionError,
-      extractionStartedAt: detail.note.extractionStartedAt?.toISOString() ?? null,
-      extractionFinishedAt: detail.note.extractionFinishedAt?.toISOString() ?? null,
-      updatedAt: detail.note.updatedAt.toISOString(),
+    submission: {
+      id: detail.submission.id,
+      rawText: detail.submission.rawText,
+      extractionVersion: detail.submission.extractionVersion,
+      extractionStatus: detail.submission.extractionStatus,
+      extractionError: detail.submission.extractionError,
+      extractionStartedAt: detail.submission.extractionStartedAt?.toISOString() ?? null,
+      extractionFinishedAt: detail.submission.extractionFinishedAt?.toISOString() ?? null,
+      updatedAt: detail.submission.updatedAt.toISOString(),
     },
     siblings,
     commit: detail.commit ? serializeCommit(detail.commit) : null,
   };
 }
 
-export async function serializeProposals(proposals: NoteProposal[]): Promise<SerializedProposal[]> {
+export async function serializeProposals(
+  proposals: SubmissionProposal[],
+): Promise<SerializedProposal[]> {
   return Promise.all(proposals.map((proposal) => serializeProposal(proposal)));
 }

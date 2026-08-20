@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import {
   isPostgresConfigured,
-  noteExtractionStatusEnum,
-  type NoteExtractionStatus,
+  submissionExtractionStatusEnum,
+  type SubmissionExtractionStatus,
 } from "@selecta/db";
-import { createNote, isNotesError, listNotes } from "@selecta/submissions";
+import { createSubmission, isSubmissionsError, listSubmissions } from "@selecta/submissions";
 
-import { serializeNote } from "@/lib/notes";
+import { serializeSubmission } from "@/lib/submissions";
 
 /** Durable workflow continues after the create response. */
 export const maxDuration = 300;
@@ -37,10 +37,10 @@ function parseListOffset(raw: string | null): number | undefined {
   return value;
 }
 
-function parseStatus(raw: string | null): NoteExtractionStatus | undefined {
+function parseStatus(raw: string | null): SubmissionExtractionStatus | undefined {
   if (!raw) return undefined;
-  return (noteExtractionStatusEnum.enumValues as readonly string[]).includes(raw)
-    ? (raw as NoteExtractionStatus)
+  return (submissionExtractionStatusEnum.enumValues as readonly string[]).includes(raw)
+    ? (raw as SubmissionExtractionStatus)
     : undefined;
 }
 
@@ -66,8 +66,8 @@ function parseCreateBody(value: unknown): { rawText: string } {
 }
 
 /**
- * List submissions (notes) with Library filters (DJ-72).
- * GET /notes?q=&status=&needsReview=&createdAfter=&createdBefore=&limit=&offset=
+ * List submissions with Library filters (DJ-72).
+ * GET /submissions?q=&status=&needsReview=&createdAfter=&createdBefore=&limit=&offset=
  */
 export async function GET(request: Request) {
   if (!isPostgresConfigured()) {
@@ -105,7 +105,7 @@ export async function GET(request: Request) {
           ? false
           : undefined;
 
-    const result = await listNotes({
+    const result = await listSubmissions({
       query: searchParams.get("q") ?? undefined,
       status,
       needsReview,
@@ -115,21 +115,16 @@ export async function GET(request: Request) {
       offset: parseListOffset(searchParams.get("offset")),
     });
 
+    const serialized = result.submissions.map((item) =>
+      serializeSubmission(item.submission, undefined, {
+        proposalCounts: item.proposalCounts,
+        proposals: item.proposals,
+      }),
+    );
+
     return NextResponse.json({
       ok: true,
-      notes: result.notes.map((item) =>
-        serializeNote(item.note, undefined, {
-          proposalCounts: item.proposalCounts,
-          proposals: item.proposals,
-        }),
-      ),
-      // Alias for Library "Submissions" wording.
-      submissions: result.notes.map((item) =>
-        serializeNote(item.note, undefined, {
-          proposalCounts: item.proposalCounts,
-          proposals: item.proposals,
-        }),
-      ),
+      submissions: serialized,
       limit: result.limit,
       offset: result.offset,
       hasMore: result.hasMore,
@@ -141,17 +136,17 @@ export async function GET(request: Request) {
         { status: 400 },
       );
     }
-    console.error("list notes failed", error);
+    console.error("list submissions failed", error);
     return NextResponse.json(
-      { ok: false, error: "internal_error", message: "Failed to list notes." },
+      { ok: false, error: "internal_error", message: "Failed to list submissions." },
       { status: 500 },
     );
   }
 }
 
 /**
- * Create a free-form note from raw text alone, then extract via durable workflow.
- * POST /notes
+ * Create a free-form submission from raw text, then extract via durable workflow.
+ * POST /submissions
  */
 export async function POST(request: Request) {
   if (!isPostgresConfigured()) {
@@ -190,23 +185,26 @@ export async function POST(request: Request) {
   }
 
   try {
-    const note = await createNote(body);
+    const submission = await createSubmission(body);
     const { startSubmissionWorkflow } = await import("@/lib/start-submission-workflow");
-    const { workflowRunId } = await startSubmissionWorkflow(note.id, note.extractionVersion);
+    const { workflowRunId } = await startSubmissionWorkflow(
+      submission.id,
+      submission.extractionVersion,
+    );
     return NextResponse.json(
-      { ok: true, note: serializeNote(note, []), workflowRunId },
+      { ok: true, submission: serializeSubmission(submission, []), workflowRunId },
       { status: 201 },
     );
   } catch (error) {
-    if (isNotesError(error)) {
+    if (isSubmissionsError(error)) {
       return NextResponse.json(
         { ok: false, error: error.code, message: error.message },
         { status: 400 },
       );
     }
-    console.error("create note failed", error);
+    console.error("create submission failed", error);
     return NextResponse.json(
-      { ok: false, error: "internal_error", message: "Failed to create note." },
+      { ok: false, error: "internal_error", message: "Failed to create submission." },
       { status: 500 },
     );
   }

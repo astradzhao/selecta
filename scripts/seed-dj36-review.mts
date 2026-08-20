@@ -18,7 +18,7 @@ const {
   claimProposal,
   completeExtraction,
   commitTransitionProposal,
-  createNote,
+  createSubmission,
   createTrack,
   createTransition,
   isPostgresConfigured,
@@ -77,17 +77,17 @@ async function main() {
     "Obvs works into an unknown UKG cut I still need to ID.",
   ].join("\n");
 
-  const note = await createNote({ rawText });
-  const version = note.extractionVersion;
+  const submission = await createSubmission({ rawText });
+  const version = submission.extractionVersion;
 
   // --- Proposal 1: clear, auto-committed ---
   const span1 = "Destination → Latch @ bar 64 with a long blend, energy up.";
   const start1 = rawText.indexOf(span1);
   const end1 = start1 + span1.length;
   const fp1 = sourceFingerprint(start1, end1, span1);
-  const key1 = spanProposalKey(note.id, version, fp1);
+  const key1 = spanProposalKey(submission.id, version, fp1);
   const claim1 = await claimProposal({
-    noteId: note.id,
+    submissionId: submission.id,
     extractionVersion: version,
     sourceStart: start1,
     sourceEnd: end1,
@@ -134,8 +134,8 @@ async function main() {
     fromTrackId: trackA.track.id,
     toTrackId: trackB.track.id,
     proposalKey: key1,
-    sourceNoteId: note.id,
-    sourceNoteVersion: version,
+    sourceSubmissionId: submission.id,
+    sourceSubmissionVersion: version,
     sourceProposalId: claim1.proposal.id,
     confidence: 0.8,
     fromBar: 64,
@@ -197,9 +197,9 @@ async function main() {
   const start2 = rawText.indexOf(span2);
   const end2 = start2 + span2.length;
   const fp2 = sourceFingerprint(start2, end2, span2);
-  const key2 = spanProposalKey(note.id, version, fp2);
+  const key2 = spanProposalKey(submission.id, version, fp2);
   const claim2 = await claimProposal({
-    noteId: note.id,
+    submissionId: submission.id,
     extractionVersion: version,
     sourceStart: start2,
     sourceEnd: end2,
@@ -309,9 +309,9 @@ async function main() {
   const start3 = rawText.indexOf(span3);
   const end3 = start3 + span3.length;
   const fp3 = sourceFingerprint(start3, end3, span3);
-  const key3 = spanProposalKey(note.id, version, fp3);
+  const key3 = spanProposalKey(submission.id, version, fp3);
   const claim3 = await claimProposal({
-    noteId: note.id,
+    submissionId: submission.id,
     extractionVersion: version,
     sourceStart: start3,
     sourceEnd: end3,
@@ -423,7 +423,7 @@ async function main() {
     barsOverlap: 4,
   });
 
-  await completeExtraction(note.id, version, {
+  await completeExtraction(submission.id, version, {
     extraction: {
       pipeline: "seed-dj36-review",
       counts: { committed: 1, needs_review: 2, failed: 0, rejected: 0, total: 3 },
@@ -442,16 +442,16 @@ async function main() {
     extractionStatus: "partially_committed",
   });
 
-  await refreshSubmissionExtractionStatus(note.id, version);
+  await refreshSubmissionExtractionStatus(submission.id, version);
 
   console.log(
     JSON.stringify(
       {
         ok: true,
-        submissionId: note.id,
+        submissionId: submission.id,
         reviewUrls: [
-          `/library/submissions/${note.id}/proposals/${claim2.proposal.id}`,
-          `/library/submissions/${note.id}/proposals/${claim3.proposal.id}`,
+          `/library/submissions/${submission.id}/proposals/${claim2.proposal.id}`,
+          `/library/submissions/${submission.id}/proposals/${claim3.proposal.id}`,
         ],
         tracks: [trackA, trackB, trackC, trackD].map((t) => ({
           id: t.track.id,

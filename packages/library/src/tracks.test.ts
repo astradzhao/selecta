@@ -4,10 +4,10 @@ import { eq } from "drizzle-orm";
 import { before, describe, it } from "node:test";
 
 import { getDb } from "@selecta/db";
-import { addNoteTrackLink, listNoteTrackLinks } from "@selecta/submissions";
-import { createNote, getNoteById, upsertTransitionCommit } from "@selecta/submissions";
+import { addSubmissionTrackLink, listSubmissionTrackLinks } from "@selecta/submissions";
+import { createSubmission, getSubmissionById, upsertTransitionCommit } from "@selecta/submissions";
 import {
-  noteTransitionCommits,
+  submissionTransitionCommits,
   trackArtists,
   trackExternalIds,
   transitions,
@@ -200,11 +200,11 @@ describe("music vocab + tracks", { skip: !pgIntegration }, () => {
       technique: "cut",
     });
 
-    const note = await createNote({ rawText: `DJ-67 delete preserve ${suffix}` });
-    await addNoteTrackLink(note.id, { trackId: from.track.id, role: "from" });
+    const note = await createSubmission({ rawText: `DJ-67 delete preserve ${suffix}` });
+    await addSubmissionTrackLink(note.id, { trackId: from.track.id, role: "from" });
     const proposalKey = `dj67:del:${suffix}`;
     await upsertTransitionCommit({
-      noteId: note.id,
+      submissionId: note.id,
       extractionVersion: 1,
       proposalKey,
       status: "committed",
@@ -235,17 +235,17 @@ describe("music vocab + tracks", { skip: !pgIntegration }, () => {
       .where(eq(transitions.fromTrackId, from.track.id));
     assert.equal(edgeRows.length, 0);
 
-    const links = await listNoteTrackLinks(note.id);
+    const links = await listSubmissionTrackLinks(note.id);
     assert.equal(links.length, 0);
 
-    const preservedNote = await getNoteById(note.id);
+    const preservedNote = await getSubmissionById(note.id);
     assert.ok(preservedNote);
     assert.equal(preservedNote!.id, note.id);
 
     const [commit] = await db
       .select()
-      .from(noteTransitionCommits)
-      .where(eq(noteTransitionCommits.proposalKey, proposalKey));
+      .from(submissionTransitionCommits)
+      .where(eq(submissionTransitionCommits.proposalKey, proposalKey));
     assert.ok(commit);
     assert.equal(commit.fromTrackId, null);
     assert.equal(commit.toTrackId, to.track.id);

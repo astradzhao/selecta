@@ -122,7 +122,7 @@ export async function POST(request: Request, context: RouteContext) {
       proposalId: id,
       action: "reopen",
     });
-    await refreshSubmissionExtractionStatus(proposal.noteId, proposal.extractionVersion);
+    await refreshSubmissionExtractionStatus(proposal.submissionId, proposal.extractionVersion);
     const refreshed = await getProposalById(id);
     return NextResponse.json({
       ok: true,

@@ -1,10 +1,10 @@
-import type { NoteExtractionStatus } from "@selecta/db";
+import type { SubmissionExtractionStatus } from "@selecta/db";
 
 import type { ApiNamedNode } from "@/lib/tracks/types";
 
-export type { NoteExtractionStatus };
+export type { SubmissionExtractionStatus };
 
-export type ApiNoteTrackLink = {
+export type ApiSubmissionTrackLink = {
   id: string;
   trackId: string;
   role: string | null;
@@ -18,7 +18,7 @@ export type ApiNoteTrackLink = {
   } | null;
 };
 
-export type ApiNoteProposalLink = {
+export type ApiSubmissionProposalLink = {
   id: string;
   proposalKey: string;
   status: string;
@@ -27,17 +27,17 @@ export type ApiNoteProposalLink = {
   sourceText: string;
 };
 
-export type ApiNoteProposalCounts = {
+export type ApiSubmissionProposalCounts = {
   committed: number;
   needsReview: number;
   failed: number;
   total: number;
 };
 
-export type ApiNote = {
+export type ApiSubmission = {
   id: string;
   rawText: string;
-  extractionStatus: NoteExtractionStatus;
+  extractionStatus: SubmissionExtractionStatus;
   extractionVersion: number;
   extractionError: string | null;
   extractionConfidence: number | null;
@@ -50,7 +50,7 @@ export type ApiNote = {
   rawResponse: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
-  trackLinks?: ApiNoteTrackLink[];
-  proposalCounts?: ApiNoteProposalCounts;
-  proposals?: ApiNoteProposalLink[];
+  trackLinks?: ApiSubmissionTrackLink[];
+  proposalCounts?: ApiSubmissionProposalCounts;
+  proposals?: ApiSubmissionProposalLink[];
 };

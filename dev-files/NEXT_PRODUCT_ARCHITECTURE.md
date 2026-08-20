@@ -2,7 +2,7 @@
 
 > Decision record and implementation order for transition intake, durable extraction, review, Library, and Graph management.
 >
-> Last updated: 2026-08-11
+> Last updated: 2026-08-20
 >
 > This document is the product architecture source of truth for Add → Library →
 > Graph. Storage is **one Postgres** (see `PG_MIGRATION_REFACTOR.md`). Older
@@ -35,7 +35,7 @@ Library is the browse and management workspace:
 - **Transitions** — search/filter committed edges and pending review proposals; manually add/edit/delete transitions.
 - **Submissions** — read-only raw text previously surfaced as Notes, with processing counts, audit history, and links to resulting transitions/reviews.
 
-Notes are no longer a top-level editable product object. Existing `notes` database naming may remain temporarily to avoid a risky mechanical migration, but product/API language should move toward **submission**.
+Notes are no longer a top-level editable product object. Storage, API, and TypeScript use **submission** for the pasted text (`submissions` table, `/submissions`, `submissionId`). **Note** is reserved for free-text annotations (`transitions.notes`, `reviewNote`, `block_steps.note`).
 
 ### Graph
 
@@ -65,7 +65,7 @@ Storage ownership:
 - Unresolved or temporary proposals never become committed transition rows.
 
 Proposal commit is **one ACID transaction** (transition insert(s) +
-`note_transition_commits` audit + proposal status). Idempotency is via the
+`submission_transition_commits` audit + proposal status). Idempotency is via the
 `transitions.proposal_key` unique index (replay-safe by construction). The
 former cross-store saga (Postgres intent → Neo4j MERGE → Postgres status →
 reconciliation) is historical — see `PG_MIGRATION_REFACTOR.md`.
@@ -170,9 +170,9 @@ workflow start that returns a run ID.
 
 Reuse (still current):
 
-- `notes.extractionVersion` as the submission-version CAS boundary;
-- `note_agent_runs` for parent workflow/model audit;
-- `note_transition_commits` for transition-application audit;
+- `submissions.extractionVersion` as the submission-version CAS boundary;
+- `submission_agent_runs` for parent workflow/model audit;
+- `submission_transition_commits` for transition-application audit;
 - parameterized track resolve/import and transition commit helpers.
 
 ~~Cross-store reconciliation for interrupted Postgres/Neo4j completion~~ —
@@ -180,30 +180,30 @@ Reuse (still current):
 replay short-circuits that guarded Neo4j-vs-Postgres partial failure are gone.
 Idempotency remains via `proposal_key`.
 
-The existing proposal key `{noteId}:{extractionVersion}:{transitionIndex}` was
+The existing proposal key `{submissionId}:{extractionVersion}:{transitionIndex}` was
 safe only while one stable plan owned transition ordering. Agent-discovered
 spans may be reordered across retries, so proposal idempotency uses a stable
-source-span/content fingerprint (`{noteId}:{version}:span:{fingerprint}`).
+source-span/content fingerprint (`{submissionId}:{version}:span:{fingerprint}`).
 
 ## 4. Proposal and status model
 
-Proposals are the durable per-transition units. Submissions (`notes` table for now) are parent containers of immutable raw text. Do not confuse:
+Proposals are the durable per-transition units. Submissions are parent containers of immutable raw text. Do not confuse:
 
-| Term       | Meaning                                    | Storage          |
-| ---------- | ------------------------------------------ | ---------------- |
-| Submission | Immutable raw text the user pasted         | `notes`          |
-| Proposal   | One parsed transition from that submission | `note_proposals` |
-| Transition | Committed music-domain edge                | `transitions`    |
+| Term       | Meaning                                    | Storage                |
+| ---------- | ------------------------------------------ | ---------------------- |
+| Submission | Immutable raw text the user pasted         | `submissions`          |
+| Proposal   | One parsed transition from that submission | `submission_proposals` |
+| Transition | Committed music-domain edge                | `transitions`          |
 
 ### Proposal record (minimal)
 
 - `id`
-- `noteId` / submission id
+- `submissionId` / submission id
 - `extractionVersion`
-- `agentRunId` (optional join to parent `note_agent_runs`)
+- `agentRunId` (optional join to parent `submission_agent_runs`)
 - `sourceStart`, `sourceEnd`, `sourceText`, `sourceFingerprint`
-- `proposalKey` — keep this name end-to-end (`{noteId}:{version}:span:{fingerprint}`)
-- `status` — source of truth (`note_proposal_status`)
+- `proposalKey` — keep this name end-to-end (`{submissionId}:{version}:span:{fingerprint}`)
+- `status` — source of truth (`submission_proposal_status`)
 - `draft`, `resolution`
 - `policyResult` — includes nested `reviewReasons`
 - `model`, `promptVersion`, `usage` (per-child audit when the workflow writes them)
@@ -211,7 +211,7 @@ Proposals are the durable per-transition units. Submissions (`notes` table for n
 - `error`
 - timestamps
 
-Sort proposals by `sourceStart` then `createdAt`. Do not store display-only `ordinal`, a redundant `transitionId` copy of `proposalKey`, or proposal-level `workflowRunId` (keep workflow identity on `note_agent_runs`).
+Sort proposals by `sourceStart` then `createdAt`. Do not store display-only `ordinal`, a redundant `transitionId` copy of `proposalKey`, or proposal-level `workflowRunId` (keep workflow identity on `submission_agent_runs`).
 
 ### Proposal states
 
@@ -232,7 +232,7 @@ parsing/resolving/ready
 
 ### Submission extraction status (derived cache only)
 
-`notes.extractionStatus` (`note_extraction_status`) is **not** independent business logic. Always write it via `deriveSubmissionExtractionStatus` after proposal status changes. Used for list badges / filters / “still extracting?” CAS.
+`submissions.extractionStatus` (`submission_extraction_status`) is **not** independent business logic. Always write it via `deriveSubmissionExtractionStatus` after proposal status changes. Used for list badges / filters / “still extracting?” CAS.
 
 Derived outcomes include:
 
@@ -261,8 +261,8 @@ transitions (
   from_track_id,
   to_track_id,
   proposal_key?,
-  source_note_id?,
-  source_note_version?,
+  source_submission_id?,
+  source_submission_version?,
   source_proposal_id?,
   from_bar?,
   to_bar?,
@@ -280,7 +280,7 @@ Rules:
 
 - `(fromTrackId, toTrackId)` is not unique.
 - technique/intent is not identity.
-- AI-created rows retain an idempotency/proposal key and note provenance (`sourceNoteId`, `sourceProposalId`).
+- AI-created rows retain an idempotency/proposal key and note provenance (`sourceSubmissionId`, `sourceProposalId`).
 - manual rows use the same stable ID and domain fields without requiring note provenance.
 - update/delete APIs address one row by ID.
 - deleting one parallel transition must not affect siblings.

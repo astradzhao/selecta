@@ -219,7 +219,13 @@ function isReadOnly(status: ApiProposal["status"]): boolean {
   return status === "committed" || status === "rejected" || status === "superseded";
 }
 
-export function ProposalReview({ noteId, proposalId }: { noteId: string; proposalId: string }) {
+export function ProposalReview({
+  submissionId,
+  proposalId,
+}: {
+  submissionId: string;
+  proposalId: string;
+}) {
   const router = useRouter();
   const fieldId = useId();
   const [detail, setDetail] = useState<ApiProposalDetail | null>(null);
@@ -235,7 +241,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
   const [loading, startLoad] = useTransition();
   const [acting, startAct] = useTransition();
 
-  const submissionHref = `/library/submissions/${noteId}`;
+  const submissionHref = `/library/submissions/${submissionId}`;
 
   function applyDetail(next: ApiProposalDetail) {
     setDetail(next);
@@ -258,7 +264,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
     const response = await getProposal(proposalId);
     applyDetail({
       proposal: response.proposal,
-      note: response.note,
+      submission: response.submission,
       siblings: response.siblings,
       commit: response.commit,
     });
@@ -274,7 +280,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
         if (cancelled) return;
         applyDetail({
           proposal: response.proposal,
-          note: response.note,
+          submission: response.submission,
           siblings: response.siblings,
           commit: response.commit,
         });
@@ -291,7 +297,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
   }, [proposalId]);
 
   const proposal = detail?.proposal ?? null;
-  const note = detail?.note ?? null;
+  const submission = detail?.submission ?? null;
   const siblings = detail?.siblings ?? [];
 
   const reviewQueue = useMemo(
@@ -309,7 +315,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
   const approveDisabled = !fromEndpoint || !toEndpoint || acting || readOnly;
 
   const siblingDimSpans = useMemo(() => {
-    if (!proposal || !note) return [];
+    if (!proposal || !submission) return [];
     return siblings
       .filter((sibling) => sibling.id !== proposal.id && isReviewable(sibling.status))
       .map((sibling) => ({
@@ -317,7 +323,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
         end: sibling.sourceEnd,
         sourceText: sibling.sourceText,
       }));
-  }, [proposal, note, siblings]);
+  }, [proposal, submission, siblings]);
 
   const gateLines = proposal ? gateReasonsForProposal(proposal) : [];
   const committedTransitionId = proposal ? transitionIdFromProposal(proposal) : null;
@@ -341,7 +347,9 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
   function advanceAfterDecision() {
     invalidateLibraryCache();
     router.push(
-      nextInQueue ? `/library/submissions/${noteId}/proposals/${nextInQueue.id}` : submissionHref,
+      nextInQueue
+        ? `/library/submissions/${submissionId}/proposals/${nextInQueue.id}`
+        : submissionHref,
     );
     router.refresh();
   }
@@ -429,7 +437,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
     return <StatePanel variant="loading">Loading proposal…</StatePanel>;
   }
 
-  if (loadError || !proposal || !note) {
+  if (loadError || !proposal || !submission) {
     return (
       <div className="space-y-4">
         <Alert variant="destructive">{loadError ?? "Proposal not found."}</Alert>
@@ -542,7 +550,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
           hint="The highlighted span is what this proposal came from. Dimmed spans are other proposals in this submission."
         />
         <ProposalSourceSpan
-          rawText={note.rawText}
+          rawText={submission.rawText}
           sourceStart={proposal.sourceStart}
           sourceEnd={proposal.sourceEnd}
           sourceText={proposal.sourceText}
@@ -603,7 +611,11 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
       {siblings.length > 1 ? (
         <>
           <Separator />
-          <ProposalSiblings noteId={noteId} siblings={siblings} currentProposalId={proposalId} />
+          <ProposalSiblings
+            submissionId={submissionId}
+            siblings={siblings}
+            currentProposalId={proposalId}
+          />
         </>
       ) : null}
 

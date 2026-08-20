@@ -1,17 +1,17 @@
 import { confidenceToUnitInterval } from "./confidence";
 import type { ProposalPolicyResult } from "./proposal-policy";
-import type { NoteProcessingPlan } from "./schema";
-import type { NoteAgentServices } from "./services";
+import type { SubmissionProcessingPlan } from "./schema";
+import type { SubmissionAgentServices } from "./services";
 
 export type ApplyProposalPolicyInput = {
-  plan: NoteProcessingPlan;
+  plan: SubmissionProcessingPlan;
   policy: ProposalPolicyResult;
-  services: NoteAgentServices;
-  noteId: string;
+  services: SubmissionAgentServices;
+  submissionId: string;
   extractionVersion: number;
-  /** Fingerprint-based key: `{noteId}:{version}:span:{fingerprint}`. */
+  /** Fingerprint-based key: `{submissionId}:{version}:span:{fingerprint}`. */
   proposalKey: string;
-  /** Postgres note_proposals.id for transition provenance. */
+  /** Postgres submission_proposals.id for transition provenance. */
   sourceProposalId?: string | null;
 };
 
@@ -36,7 +36,7 @@ export type ApplyProposalPolicyResult = {
 export async function applyProposalPolicy(
   input: ApplyProposalPolicyInput,
 ): Promise<ApplyProposalPolicyResult> {
-  const { plan, policy, services, noteId, extractionVersion, proposalKey, sourceProposalId } =
+  const { plan, policy, services, submissionId, extractionVersion, proposalKey, sourceProposalId } =
     input;
   const resolved = { ...policy.resolvedTrackIdsByMention };
   const importedTrackIds: string[] = [];
@@ -111,8 +111,8 @@ export async function applyProposalPolicy(
   }
 
   const shared = {
-    sourceNoteId: noteId,
-    sourceNoteVersion: extractionVersion,
+    sourceSubmissionId: submissionId,
+    sourceSubmissionVersion: extractionVersion,
     sourceProposalId: sourceProposalId ?? null,
     confidence: confidenceToUnitInterval(plan.confidence),
     fromBar: policy.commit.transition.fromBar ?? null,

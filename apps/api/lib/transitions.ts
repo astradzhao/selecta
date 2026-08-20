@@ -1,9 +1,9 @@
-import type { NoteProposal, NoteProposalStatus } from "@selecta/db";
+import type { SubmissionProposal, SubmissionProposalStatus } from "@selecta/db";
 import type { TransitionProposalReview, TransitionRecord } from "@selecta/library";
 
 export type TransitionProposalSummary = {
   id: string;
-  status: NoteProposalStatus;
+  status: SubmissionProposalStatus;
   proposalKey: string;
   sourceStart: number;
   sourceEnd: number;
@@ -28,8 +28,8 @@ export function serializeTransition(
       artists: record.to.artists,
     },
     proposalKey: record.edge.proposalKey,
-    sourceNoteId: record.edge.sourceNoteId,
-    sourceNoteVersion: record.edge.sourceNoteVersion,
+    sourceSubmissionId: record.edge.sourceSubmissionId,
+    sourceSubmissionVersion: record.edge.sourceSubmissionVersion,
     sourceProposalId: record.edge.sourceProposalId,
     confidence: record.edge.confidence,
     fromBar: record.edge.fromBar,
@@ -45,7 +45,9 @@ export function serializeTransition(
   };
 }
 
-export function summarizeProposalForTransition(proposal: NoteProposal): TransitionProposalSummary {
+export function summarizeProposalForTransition(
+  proposal: SubmissionProposal,
+): TransitionProposalSummary {
   return {
     id: proposal.id,
     status: proposal.status,

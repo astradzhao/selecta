@@ -14,7 +14,7 @@ export type {
   ApiProposal,
   ApiProposalCandidate,
   ApiProposalDetail,
-  ApiProposalNoteSummary,
+  ApiProposalSubmissionSummary,
   ApiProposalReviewReason,
   ApiProposalTrackSummary,
   ApiTransitionCommit,
@@ -28,7 +28,7 @@ export type {
 export async function listProposals(
   input: {
     status?: string;
-    noteId?: string;
+    submissionId?: string;
     q?: string;
     limit?: number;
     offset?: number;
@@ -42,7 +42,7 @@ export async function listProposals(
 }> {
   const params = new URLSearchParams();
   if (input.status?.trim()) params.set("status", input.status.trim());
-  if (input.noteId?.trim()) params.set("noteId", input.noteId.trim());
+  if (input.submissionId?.trim()) params.set("submissionId", input.submissionId.trim());
   if (input.q?.trim()) params.set("q", input.q.trim());
   if (input.limit != null) params.set("limit", String(input.limit));
   if (input.offset != null) params.set("offset", String(input.offset));
@@ -53,15 +53,15 @@ export async function listProposals(
 export async function getProposal(id: string): Promise<{
   ok: true;
   proposal: ApiProposalDetail["proposal"];
-  note: ApiProposalDetail["note"];
+  submission: ApiProposalDetail["submission"];
   siblings: ApiProposalDetail["siblings"];
   commit: ApiProposalDetail["commit"];
 }> {
   return apiFetch(`/proposals/${encodeURIComponent(id)}`);
 }
 
-export async function listNoteProposals(
-  noteId: string,
+export async function listSubmissionProposals(
+  submissionId: string,
   input: { version?: number } = {},
 ): Promise<{
   ok: true;
@@ -73,7 +73,9 @@ export async function listNoteProposals(
   const params = new URLSearchParams();
   if (input.version != null) params.set("version", String(input.version));
   const qs = params.toString();
-  return apiFetch(`/notes/${encodeURIComponent(noteId)}/proposals${qs ? `?${qs}` : ""}`);
+  return apiFetch(
+    `/submissions/${encodeURIComponent(submissionId)}/proposals${qs ? `?${qs}` : ""}`,
+  );
 }
 
 export async function approveProposal(

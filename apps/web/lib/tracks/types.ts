@@ -1,4 +1,4 @@
-/** Shared named-node shapes returned on tracks and note links. */
+/** Shared named-node shapes returned on tracks and submission links. */
 
 export type ApiNamedNode = {
   id: string;

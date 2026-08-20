@@ -1,4 +1,4 @@
-import { runInDbTransaction, type NoteProposal } from "@selecta/db";
+import { runInDbTransaction, type SubmissionProposal } from "@selecta/db";
 import { getTransitionById } from "@selecta/library";
 import {
   getProposalById,
@@ -12,13 +12,13 @@ import {
   draftToSingleUnresolvedPlan,
   evaluateProposalPolicy,
   resolveProposalsBatch,
-  type NoteAgentServices,
-  type NoteProcessingPlan,
+  type SubmissionAgentServices,
+  type SubmissionProcessingPlan,
   type ProposalPolicyResult,
   type SingleTransitionDraft,
 } from "@selecta/mix-notes";
 
-import { createNoteAgentServices } from "@/lib/note-agent-services";
+import { createSubmissionAgentServices } from "@/lib/submission-agent-services";
 import { serializeProposal } from "@/lib/proposals";
 import { serializeTransition, summarizeProposalForTransition } from "@/lib/transitions";
 
@@ -29,7 +29,7 @@ export type CommitProposalResult = {
   alreadyCommitted: boolean;
 };
 
-export async function loadCommittedTransition(proposal: NoteProposal) {
+export async function loadCommittedTransition(proposal: SubmissionProposal) {
   const policyResult = proposal.policyResult;
   const applied =
     policyResult && typeof policyResult === "object" && !Array.isArray(policyResult)
@@ -62,15 +62,15 @@ export async function loadCommittedTransition(proposal: NoteProposal) {
 }
 
 export async function commitProposalPolicy(input: {
-  proposal: NoteProposal;
-  plan: NoteProcessingPlan;
+  proposal: SubmissionProposal;
+  plan: SubmissionProcessingPlan;
   policy: ProposalPolicyResult;
-  services?: NoteAgentServices;
+  services?: SubmissionAgentServices;
   reviewNote?: string | null;
   reviewedBy?: string | null;
   reviewAction?: "approve" | "resolve";
 }): Promise<CommitProposalResult> {
-  const services = input.services ?? createNoteAgentServices();
+  const services = input.services ?? createSubmissionAgentServices();
   const reviewReasons = input.policy.reasons.filter((reason) => reason.code !== "ok");
   const now = new Date();
 
@@ -79,7 +79,7 @@ export async function commitProposalPolicy(input: {
       plan: input.plan,
       policy: input.policy,
       services,
-      noteId: input.proposal.noteId,
+      submissionId: input.proposal.submissionId,
       extractionVersion: input.proposal.extractionVersion,
       proposalKey: input.proposal.proposalKey,
       sourceProposalId: input.proposal.id,
@@ -89,7 +89,7 @@ export async function commitProposalPolicy(input: {
     }
 
     await upsertTransitionCommit({
-      noteId: input.proposal.noteId,
+      submissionId: input.proposal.submissionId,
       extractionVersion: input.proposal.extractionVersion,
       proposalKey: input.proposal.proposalKey,
       status: "committed",
@@ -106,7 +106,7 @@ export async function commitProposalPolicy(input: {
 
     if (input.plan.bidirectional && result.fromTrackId && result.toTrackId) {
       await upsertTransitionCommit({
-        noteId: input.proposal.noteId,
+        submissionId: input.proposal.submissionId,
         extractionVersion: input.proposal.extractionVersion,
         proposalKey: `${input.proposal.proposalKey}:rev`,
         status: "committed",
@@ -145,7 +145,7 @@ export async function commitProposalPolicy(input: {
     });
 
     await refreshSubmissionExtractionStatus(
-      input.proposal.noteId,
+      input.proposal.submissionId,
       input.proposal.extractionVersion,
     );
   });
@@ -189,7 +189,7 @@ export async function resolveSingleProposal(proposalId: string): Promise<{
     throw new Error("missing_draft");
   }
 
-  const services = createNoteAgentServices();
+  const services = createSubmissionAgentServices();
   await updateProposal(proposal.id, { status: "resolving" });
 
   const resolved = await resolveProposalsBatch({
@@ -240,7 +240,7 @@ export async function resolveSingleProposal(proposalId: string): Promise<{
       action: "resolve",
       payload: { decision: policy.decision, reviewReasons },
     });
-    await refreshSubmissionExtractionStatus(proposal.noteId, proposal.extractionVersion);
+    await refreshSubmissionExtractionStatus(proposal.submissionId, proposal.extractionVersion);
     const refreshed = await getProposalById(proposal.id);
     if (!refreshed) {
       throw new Error("not_found");

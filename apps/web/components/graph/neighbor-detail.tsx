@@ -142,7 +142,7 @@ export function NeighborDetail({
               >
                 <span className="font-medium">{label}</span>
                 <span className="text-muted-foreground ml-1.5">
-                  {provenanceLabel(edge).kind === "ai" ? "note" : "manual"}
+                  {provenanceLabel(edge).kind === "ai" ? "submission" : "manual"}
                 </span>
               </button>
             );
@@ -156,12 +156,12 @@ export function NeighborDetail({
             {technique ? <Badge variant="outline">{technique}</Badge> : null}
             {intent ? <Badge variant="secondary">{intent}</Badge> : null}
             <p className="text-caption">
-              {provenance?.kind === "ai" ? "From note" : "Manual"}
-              {provenance?.noteId ? (
+              {provenance?.kind === "ai" ? "From submission" : "Manual"}
+              {provenance?.submissionId ? (
                 <>
                   {" · "}
                   <Link
-                    href={`/library/submissions/${provenance.noteId}`}
+                    href={`/library/submissions/${provenance.submissionId}`}
                     className="underline-offset-4 hover:underline"
                   >
                     Source submission

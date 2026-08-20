@@ -1,4 +1,8 @@
-import { parseCandidateHandle, type NoteProcessingPlan, type NoteTransitionPlan } from "./schema";
+import {
+  parseCandidateHandle,
+  type SubmissionProcessingPlan,
+  type SubmissionTransitionPlan,
+} from "./schema";
 import { SUBMISSION_LIMITS } from "./limits";
 import {
   AUTO_COMMIT_CONFIDENCE_FLOOR,
@@ -20,7 +24,7 @@ export type ProposalPolicyResult = {
 
 export type EvaluateProposalPolicyInput = {
   /** Mini-plan with exactly one transition (index 0). */
-  plan: NoteProcessingPlan;
+  plan: SubmissionProcessingPlan;
   candidatesByHandle: Map<string, TrackCandidate>;
   candidatesByMentionId?: Map<string, TrackCandidate[]>;
   /** Inclusive floor; defaults to `strong`. */
@@ -40,7 +44,7 @@ export function evaluateProposalPolicy(input: EvaluateProposalPolicyInput): Prop
   const resolvedTrackIdsByMention: Record<string, string> = {};
 
   const { plan, candidatesByHandle } = input;
-  const transition: NoteTransitionPlan | undefined = plan.transitions[0];
+  const transition: SubmissionTransitionPlan | undefined = plan.transitions[0];
 
   if (!transition) {
     return {

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { isPostgresConfigured } from "@selecta/db";
-import { isNotesError, requeueExtraction } from "@selecta/submissions";
+import { isSubmissionsError, requeueExtraction } from "@selecta/submissions";
 
-import { loadSerializedTrackLinks, serializeNote } from "@/lib/notes";
+import { loadSerializedTrackLinks, serializeSubmission } from "@/lib/submissions";
 
 /** Durable workflow continues after the retry response. */
 export const maxDuration = 300;
@@ -12,8 +12,8 @@ type RouteContext = {
 };
 
 /**
- * Retry / re-run extraction for the current note version (idempotent queue).
- * POST /notes/:id/extract
+ * Retry / re-run extraction for the current submission version (idempotent queue).
+ * POST /submissions/:id/extract
  */
 export async function POST(_request: Request, context: RouteContext) {
   if (!isPostgresConfigured()) {
@@ -30,29 +30,32 @@ export async function POST(_request: Request, context: RouteContext) {
   const { id } = await context.params;
   if (!id?.trim()) {
     return NextResponse.json(
-      { ok: false, error: "invalid_id", message: "Note id is required." },
+      { ok: false, error: "invalid_id", message: "Submission id is required." },
       { status: 400 },
     );
   }
 
   try {
-    const note = await requeueExtraction(id);
+    const submission = await requeueExtraction(id);
     const { startSubmissionWorkflow } = await import("@/lib/start-submission-workflow");
-    const { workflowRunId } = await startSubmissionWorkflow(note.id, note.extractionVersion);
-    const trackLinks = await loadSerializedTrackLinks(note.id);
+    const { workflowRunId } = await startSubmissionWorkflow(
+      submission.id,
+      submission.extractionVersion,
+    );
+    const trackLinks = await loadSerializedTrackLinks(submission.id);
     return NextResponse.json({
       ok: true,
-      note: serializeNote(note, trackLinks),
+      submission: serializeSubmission(submission, trackLinks),
       workflowRunId,
     });
   } catch (error) {
-    if (isNotesError(error)) {
+    if (isSubmissionsError(error)) {
       return NextResponse.json(
         { ok: false, error: error.code, message: error.message },
         { status: error.code === "not_found" ? 404 : 400 },
       );
     }
-    console.error("requeue note extraction failed", error);
+    console.error("requeue submission extraction failed", error);
     return NextResponse.json(
       { ok: false, error: "internal_error", message: "Failed to requeue extraction." },
       { status: 500 },

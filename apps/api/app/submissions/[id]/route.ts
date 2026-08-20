@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { isPostgresConfigured } from "@selecta/db";
-import { getNoteById, isNotesError, updateNote } from "@selecta/submissions";
+import { getSubmissionById, isSubmissionsError, updateSubmission } from "@selecta/submissions";
 
-import { loadSerializedTrackLinks, serializeNote } from "@/lib/notes";
+import { loadSerializedTrackLinks, serializeSubmission } from "@/lib/submissions";
 
 /** Durable workflow continues after the update response. */
 export const maxDuration = 300;
@@ -26,8 +26,8 @@ function parseUpdateBody(value: unknown): { rawText: string } {
 }
 
 /**
- * Fetch a single note (includes optional manual track links).
- * GET /notes/:id
+ * Fetch a single submission (includes optional manual track links).
+ * GET /submissions/:id
  */
 export async function GET(_request: Request, context: RouteContext) {
   if (!isPostgresConfigured()) {
@@ -44,39 +44,39 @@ export async function GET(_request: Request, context: RouteContext) {
   const { id } = await context.params;
   if (!id?.trim()) {
     return NextResponse.json(
-      { ok: false, error: "invalid_id", message: "Note id is required." },
+      { ok: false, error: "invalid_id", message: "Submission id is required." },
       { status: 400 },
     );
   }
 
   try {
-    const note = await getNoteById(id);
-    if (!note) {
+    const submission = await getSubmissionById(id);
+    if (!submission) {
       return NextResponse.json(
-        { ok: false, error: "not_found", message: `Note "${id}" was not found.` },
+        { ok: false, error: "not_found", message: `Submission "${id}" was not found.` },
         { status: 404 },
       );
     }
-    const trackLinks = await loadSerializedTrackLinks(note.id);
-    return NextResponse.json({ ok: true, note: serializeNote(note, trackLinks) });
+    const trackLinks = await loadSerializedTrackLinks(submission.id);
+    return NextResponse.json({ ok: true, submission: serializeSubmission(submission, trackLinks) });
   } catch (error) {
-    if (isNotesError(error)) {
+    if (isSubmissionsError(error)) {
       return NextResponse.json(
         { ok: false, error: error.code, message: error.message },
         { status: error.code === "not_found" ? 404 : 400 },
       );
     }
-    console.error("get note failed", error);
+    console.error("get submission failed", error);
     return NextResponse.json(
-      { ok: false, error: "internal_error", message: "Failed to load note." },
+      { ok: false, error: "internal_error", message: "Failed to load submission." },
       { status: 500 },
     );
   }
 }
 
 /**
- * Edit raw note text. Text changes invalidate prior extraction and start a new version.
- * PATCH /notes/:id
+ * Edit raw submission text. Text changes invalidate prior extraction and start a new version.
+ * PATCH /submissions/:id
  */
 export async function PATCH(request: Request, context: RouteContext) {
   if (!isPostgresConfigured()) {
@@ -93,7 +93,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   const { id } = await context.params;
   if (!id?.trim()) {
     return NextResponse.json(
-      { ok: false, error: "invalid_id", message: "Note id is required." },
+      { ok: false, error: "invalid_id", message: "Submission id is required." },
       { status: 400 },
     );
   }
@@ -123,28 +123,31 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   try {
-    const { note, extractionQueued } = await updateNote(id, body);
+    const { submission, extractionQueued } = await updateSubmission(id, body);
     let workflowRunId: string | undefined;
     if (extractionQueued) {
       const { startSubmissionWorkflow } = await import("@/lib/start-submission-workflow");
-      ({ workflowRunId } = await startSubmissionWorkflow(note.id, note.extractionVersion));
+      ({ workflowRunId } = await startSubmissionWorkflow(
+        submission.id,
+        submission.extractionVersion,
+      ));
     }
-    const trackLinks = await loadSerializedTrackLinks(note.id);
+    const trackLinks = await loadSerializedTrackLinks(submission.id);
     return NextResponse.json({
       ok: true,
-      note: serializeNote(note, trackLinks),
+      submission: serializeSubmission(submission, trackLinks),
       ...(workflowRunId ? { workflowRunId } : {}),
     });
   } catch (error) {
-    if (isNotesError(error)) {
+    if (isSubmissionsError(error)) {
       return NextResponse.json(
         { ok: false, error: error.code, message: error.message },
         { status: error.code === "not_found" ? 404 : 400 },
       );
     }
-    console.error("update note failed", error);
+    console.error("update submission failed", error);
     return NextResponse.json(
-      { ok: false, error: "internal_error", message: "Failed to update note." },
+      { ok: false, error: "internal_error", message: "Failed to update submission." },
       { status: 500 },
     );
   }

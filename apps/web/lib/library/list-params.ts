@@ -1,4 +1,4 @@
-import type { NoteExtractionStatus } from "@/lib/notes/api";
+import type { SubmissionExtractionStatus } from "@/lib/submissions/api";
 
 export type TrackListFilters = {
   query: string;
@@ -8,7 +8,7 @@ export type TrackListFilters = {
 
 export type SubmissionListFilters = {
   query: string;
-  status: "" | NoteExtractionStatus;
+  status: "" | SubmissionExtractionStatus;
   needsReviewOnly: boolean;
 };
 
