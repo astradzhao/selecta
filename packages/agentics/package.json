@@ -4,12 +4,14 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./core": "./src/core/index.ts",
+    "./submission-parser": "./src/submission-parser/index.ts"
   },
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/**/*.test.ts"
+    "test": "tsx --test --test-concurrency=1 \"src/**/*.test.ts\""
   },
   "dependencies": {
     "ai": "^7.0.48",

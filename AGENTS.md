@@ -47,7 +47,7 @@ This is a pnpm workspace monorepo:
 - `packages/db` (`@selecta/db`) — Postgres client, Drizzle schema, and migrations only (no domain logic)
 - `packages/library` (`@selecta/library`) — music domain: tracks, transitions, vocab, neighborhood, sequences/blocks
 - `packages/submissions` (`@selecta/submissions`) — notes, proposals, and extraction bookkeeping
-- `packages/catalog|mix-notes|agentics|ui` — shared libraries (`@selecta/*`)
+- `packages/catalog|agentics|ui` — shared libraries (`@selecta/*`). Note extraction lives at `@selecta/agentics/submission-parser`.
 - `packages/eslint-config` (`@selecta/eslint-config`) — shared ESLint flat configs
 
 Domain packages depend on `@selecta/db` for the client/executor (`getDb`, `getExecutor`, `runInDbTransaction`) and table definitions (`@selecta/db/schema`); `@selecta/db` never imports domain logic.

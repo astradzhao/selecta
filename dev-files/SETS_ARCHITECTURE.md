@@ -633,7 +633,7 @@ type EndpointSelection =
 Two improvements worth taking while building this:
 
 - **Technique, intent, and quality should be comboboxes**, not free text. The allow-lists exist in
-  `packages/db/src/music/constants.ts` and `packages/mix-notes`. Free text silently fragments the
+  `packages/library/src/constants.ts` and `packages/agentics/src/submission-parser`. Free text silently fragments the
   vocabulary that ranking depends on — `compareNeighborhoodNeighbors` sorts on `quality`, and a
   typo'd `"grate"` ranks as unknown. Keep free entry allowed; suggest the known values. Applies to
   the existing Library and Graph editors too.

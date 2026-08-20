@@ -606,10 +606,11 @@ selecta/                     # monorepo root (github.com/astradzhao/selecta)
     web/                     # Next.js UI (Vercel) — @selecta/web
     api/                     # Next.js API deployable (Vercel) — @selecta/api
   packages/
-    db/                      # Postgres client + music domain — @selecta/db
+    db/                      # Postgres client + schema + migrations — @selecta/db
+    library/                 # music domain — @selecta/library
+    submissions/             # notes, proposals — @selecta/submissions
     catalog/                 # External catalog search — @selecta/catalog
-    mix-notes/               # note agent + Zod schemas — @selecta/mix-notes
-    agentics/                # bounded AI agent harness — @selecta/agentics
+    agentics/                # bounded AI agent harness + submission parser — @selecta/agentics
     ui/                      # shadcn + shared UI — @selecta/ui
     eslint-config/           # shared ESLint — @selecta/eslint-config
   dev-files/                 # architecture, ADRs, prompts

@@ -82,7 +82,7 @@ happens, migrating a `transitions` table into a graph DB is mechanical.
 - `apps/web/components/tracks/folder-tag-editor.tsx` (**constants only**:
   `FOLDER_KINDS`, `FolderKind`)
 
-`packages/mix-notes`, `packages/db`, `packages/agentics` have **no** graph
+`packages/agentics`, `packages/db` have **no** graph
 dependency (services are injected; track ids are opaque strings).
 
 Public graph functions actually used by consumers:
@@ -233,7 +233,7 @@ After migration, the service-level `commitTransition` runs **one Postgres
 transaction**: insert transition (ON CONFLICT proposal_key) + upsert
 `note_transition_commits` + set proposal `status='committed'`. Replay is a
 no-op by construction. The `NoteAgentServices` interface shape in
-`packages/mix-notes/src/agent/services.ts` does not change — only the
+`packages/agentics/src/submission-parser/agent/services.ts` does not change — only the
 injected implementation in `apps/api/lib/note-agent-services.ts` does.
 Reconciliation code for interrupted cross-store completion is deleted.
 

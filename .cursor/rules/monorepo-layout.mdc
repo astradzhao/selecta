@@ -7,7 +7,7 @@ alwaysApply: true
 
 - `apps/web` (`@selecta/web`) — Next.js UI deployable (port 3000)
 - `apps/api` (`@selecta/api`) — Next.js API deployable (port 3001)
-- `packages/*` (`@selecta/catalog`, `@selecta/db`, `@selecta/library`, `@selecta/submissions`, `@selecta/mix-notes`, `@selecta/agentics`, `@selecta/ui`, `@selecta/eslint-config`) — shared libraries. `@selecta/db` is Postgres client + schema + migrations only; music domain lives in `@selecta/library` and notes/proposals in `@selecta/submissions`.
+- `packages/*` (`@selecta/catalog`, `@selecta/db`, `@selecta/library`, `@selecta/submissions`, `@selecta/agentics`, `@selecta/ui`, `@selecta/eslint-config`) — shared libraries. `@selecta/db` is Postgres client + schema + migrations only; music domain lives in `@selecta/library` and notes/proposals in `@selecta/submissions`. Note extraction lives in `@selecta/agentics/submission-parser`.
 
 Put deployable apps under `apps/`. Put shared domain/UI libraries under `packages/`. Import `@selecta/*` from apps; do not duplicate domain logic inside app folders.
 

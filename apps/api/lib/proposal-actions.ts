@@ -16,7 +16,7 @@ import {
   type NoteProcessingPlan,
   type ProposalPolicyResult,
   type SingleTransitionDraft,
-} from "@selecta/mix-notes";
+} from "@selecta/agentics/submission-parser";
 
 import { createNoteAgentServices } from "@/lib/note-agent-services";
 import { serializeProposal } from "@/lib/proposals";

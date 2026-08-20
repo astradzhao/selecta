@@ -15,7 +15,7 @@ packages/
   db/           # Postgres client + Drizzle schema + migrations (@selecta/db)
   library/      # Music domain: tracks, transitions, vocab, sequences (@selecta/library)
   submissions/  # Notes, proposals, extraction bookkeeping (@selecta/submissions)
-  mix-notes/    # NL parse / preview / commit (@selecta/mix-notes)
+  agentics/     # Bounded agent harness + submission parser (@selecta/agentics)
   ui/           # Shared UI / shadcn (@selecta/ui)
   eslint-config # Shared ESLint flat configs (@selecta/eslint-config)
 dev-files/      # Architecture + planning docs
