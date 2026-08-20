@@ -9,8 +9,10 @@ import { StatePanel } from "@selecta/ui/components/state-panel";
 import { ProposalSourceSpan } from "@/components/library/proposal-source-span";
 import { ProposalStatusBadge } from "@/components/library/proposal-status-badge";
 import { transitionIdFromProposal } from "@/components/library/proposal-siblings";
-import { ApiClientError } from "@/lib/api/client";
+import { describeApiError } from "@/lib/api/errors";
+import { previewText } from "@/lib/format";
 import { listNoteProposals, type ApiProposal } from "@/lib/proposals/api";
+import { isReviewable } from "@/lib/proposals/reviewable";
 
 const GROUP_ORDER: Array<{ key: string; label: string; statuses: ApiProposal["status"][] }> = [
   { key: "needs_review", label: "Needs review", statuses: ["needs_review"] },
@@ -18,16 +20,6 @@ const GROUP_ORDER: Array<{ key: string; label: string; statuses: ApiProposal["st
   { key: "committed", label: "Committed", statuses: ["committed"] },
   { key: "rejected", label: "Rejected", statuses: ["rejected"] },
 ];
-
-function previewText(proposal: ApiProposal): string {
-  const text = proposal.sourceText.trim();
-  if (!text) return "Empty span";
-  return text.length > 100 ? `${text.slice(0, 97)}…` : text;
-}
-
-function isReviewable(proposal: ApiProposal): boolean {
-  return proposal.status === "needs_review" || proposal.status === "failed";
-}
 
 export function SubmissionProposals({ noteId, rawText }: { noteId: string; rawText: string }) {
   const [proposals, setProposals] = useState<ApiProposal[]>([]);
@@ -46,9 +38,7 @@ export function SubmissionProposals({ noteId, rawText }: { noteId: string; rawTe
         if (cancelled) return;
         setProposals([]);
         setError(
-          err instanceof ApiClientError
-            ? err.message
-            : "Failed to load proposals for this submission.",
+          describeApiError(err, { fallback: "Failed to load proposals for this submission." }),
         );
       } finally {
         if (!cancelled) setLoading(false);
@@ -119,11 +109,13 @@ export function SubmissionProposals({ noteId, rawText }: { noteId: string; rawTe
                   className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0 space-y-2">
-                    <p className="line-clamp-2 text-sm text-pretty">{previewText(proposal)}</p>
+                    <p className="line-clamp-2 text-sm text-pretty">
+                      {previewText(proposal.sourceText, { maxLength: 100, fallback: "Empty span" })}
+                    </p>
                     <ProposalStatusBadge status={proposal.status} />
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2">
-                    {isReviewable(proposal) ? (
+                    {isReviewable(proposal.status) ? (
                       <Button asChild size="sm">
                         <Link href={`/library/submissions/${noteId}/proposals/${proposal.id}`}>
                           Review

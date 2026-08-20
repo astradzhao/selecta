@@ -9,7 +9,7 @@ import { Button } from "@selecta/ui/components/button";
 import { Label } from "@selecta/ui/components/label";
 import { Textarea } from "@selecta/ui/components/textarea";
 
-import { ApiClientError } from "@/lib/api/client";
+import { describeApiError } from "@/lib/api/errors";
 import { createNote } from "@/lib/notes/api";
 import { MAX_SUBMISSION_RAW_BYTES } from "@/lib/notes/limits";
 
@@ -54,11 +54,7 @@ export function NewNoteForm() {
         router.push(`/library/submissions/${response.note.id}`);
       } catch (err) {
         setError(
-          err instanceof ApiClientError
-            ? err.code === "db_not_configured"
-              ? "The local submissions database isn’t running. Start the full stack with `pnpm dev`."
-              : err.message
-            : "Failed to save submission. Is the API running?",
+          describeApiError(err, { fallback: "Failed to save submission. Is the API running?" }),
         );
       }
     });

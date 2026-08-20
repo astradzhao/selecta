@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CheckIcon } from "lucide-react";
 
 import { Alert } from "@selecta/ui/components/alert";
@@ -12,8 +12,10 @@ import { SearchField } from "@selecta/ui/components/search-field";
 import { SegmentedTab, SegmentedTabs } from "@selecta/ui/components/segmented-tabs";
 import { cn } from "@selecta/ui/lib/utils";
 
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { searchCatalog } from "@/lib/catalog/api";
 import type { CatalogTrack } from "@/lib/catalog/types";
+import { artistLine } from "@/lib/format";
 import type { ApiProposalCandidate, ReviewerEndpointBody } from "@/lib/proposals/types";
 import { listTracks, type ApiTrack } from "@/lib/tracks/api";
 
@@ -54,12 +56,6 @@ function mentionHints(mention: ProposalMention): string | null {
     (part) => part.toLowerCase() !== heading,
   );
   return parts.length > 0 ? parts.join(" · ") : null;
-}
-
-function artistLine(names: string[] | Array<{ name: string }>): string {
-  if (names.length === 0) return "Unknown artist";
-  if (typeof names[0] === "string") return (names as string[]).join(", ");
-  return (names as Array<{ name: string }>).map((artist) => artist.name).join(", ");
 }
 
 function endpointFromCandidate(candidate: ApiProposalCandidate): ReviewerEndpointBody | null {
@@ -140,7 +136,7 @@ export function ProposalEndpointPicker({
   const [catalogTracks, setCatalogTracks] = useState<CatalogTrack[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
-  const isFirstSearch = useRef(true);
+  const debouncedQuery = useDebouncedValue(query);
 
   const candidates = mention?.candidates ?? [];
   const selectedHandle = mention?.selectedCandidateId ?? null;
@@ -153,45 +149,40 @@ export function ProposalEndpointPicker({
   useEffect(() => {
     if (tab === "suggested") return;
     let cancelled = false;
-    const delay = isFirstSearch.current ? 0 : 220;
-    isFirstSearch.current = false;
-    const handle = window.setTimeout(() => {
-      void (async () => {
-        const q = query.trim() || defaultQuery;
-        if (!q) {
-          setLibraryTracks([]);
-          setCatalogTracks([]);
-          setSearchError(null);
-          return;
-        }
-        setSearching(true);
-        try {
-          if (tab === "library") {
-            const response = await listTracks({ query: q, limit: 10 });
-            if (cancelled) return;
-            setLibraryTracks(response.tracks);
-            setSearchError(null);
-          } else {
-            const response = await searchCatalog(q, 10);
-            if (cancelled) return;
-            setCatalogTracks(response.results);
-            setSearchError(null);
-          }
-        } catch (err) {
+    void (async () => {
+      const q = debouncedQuery.trim() || defaultQuery;
+      if (!q) {
+        setLibraryTracks([]);
+        setCatalogTracks([]);
+        setSearchError(null);
+        return;
+      }
+      setSearching(true);
+      try {
+        if (tab === "library") {
+          const response = await listTracks({ query: q, limit: 10 });
           if (cancelled) return;
-          setLibraryTracks([]);
-          setCatalogTracks([]);
-          setSearchError(err instanceof Error ? err.message : "Search failed.");
-        } finally {
-          if (!cancelled) setSearching(false);
+          setLibraryTracks(response.tracks);
+          setSearchError(null);
+        } else {
+          const response = await searchCatalog(q, 10);
+          if (cancelled) return;
+          setCatalogTracks(response.results);
+          setSearchError(null);
         }
-      })();
-    }, delay);
+      } catch (err) {
+        if (cancelled) return;
+        setLibraryTracks([]);
+        setCatalogTracks([]);
+        setSearchError(err instanceof Error ? err.message : "Search failed.");
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    })();
     return () => {
       cancelled = true;
-      window.clearTimeout(handle);
     };
-  }, [tab, query, defaultQuery]);
+  }, [tab, debouncedQuery, defaultQuery]);
 
   const searchResults = tab === "library" ? libraryTracks : catalogTracks;
 

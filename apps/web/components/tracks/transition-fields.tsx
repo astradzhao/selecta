@@ -4,6 +4,8 @@ import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
 import { Textarea } from "@selecta/ui/components/textarea";
 
+import { optionalNumber } from "@/lib/format";
+
 /** Compact editable fields shared by Library detail and Graph inline panel. */
 export type TransitionFieldValues = {
   fromBar: string;
@@ -45,13 +47,6 @@ export function transitionFieldsFromEdge(edge: {
     quality: edge.quality ?? "",
     notes: edge.notes ?? "",
   };
-}
-
-export function optionalNumber(raw: string): number | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  const value = Number(trimmed);
-  return Number.isFinite(value) ? value : Number.NaN;
 }
 
 export function parseTransitionFieldPatch(form: TransitionFieldValues):

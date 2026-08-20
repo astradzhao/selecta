@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import { ProposalStatusBadge } from "@/components/library/proposal-status-badge";
+import { previewText } from "@/lib/format";
+import { isReviewable } from "@/lib/proposals/reviewable";
 import type { ApiProposal } from "@/lib/proposals/types";
 
 function transitionIdFromProposal(proposal: ApiProposal): string | null {
@@ -10,14 +12,8 @@ function transitionIdFromProposal(proposal: ApiProposal): string | null {
   return typeof transitionId === "string" ? transitionId : null;
 }
 
-function previewText(proposal: ApiProposal): string {
-  const text = proposal.sourceText.trim();
-  if (!text) return "Empty span";
-  return text.length > 80 ? `${text.slice(0, 77)}…` : text;
-}
-
 function siblingHref(noteId: string, proposal: ApiProposal): string {
-  if (proposal.status === "needs_review" || proposal.status === "failed") {
+  if (isReviewable(proposal.status)) {
     return `/library/submissions/${noteId}/proposals/${proposal.id}`;
   }
   if (proposal.status === "committed") {
@@ -47,7 +43,7 @@ export function ProposalSiblings({
           const row = (
             <div className="flex items-start gap-3">
               <p className="line-clamp-2 min-w-0 flex-1 text-sm text-pretty">
-                {previewText(proposal)}
+                {previewText(proposal.sourceText, { maxLength: 80, fallback: "Empty span" })}
               </p>
               <div className="flex shrink-0 items-center gap-2">
                 <ProposalStatusBadge status={proposal.status} />

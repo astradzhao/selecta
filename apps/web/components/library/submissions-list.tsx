@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PlusIcon, XIcon } from "lucide-react";
 
@@ -16,10 +16,11 @@ import { SearchField } from "@selecta/ui/components/search-field";
 import { Select } from "@selecta/ui/components/select";
 import { StatePanel } from "@selecta/ui/components/state-panel";
 
-import { ApiClientError } from "@/lib/api/client";
-import { listSubmissions, type ApiNote, type NoteExtractionStatus } from "@/lib/notes/api";
-
-const PAGE_SIZE = 50;
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { DEFAULT_PAGE_SIZE, usePaginatedList } from "@/hooks/use-paginated-list";
+import { describeApiError } from "@/lib/api/errors";
+import { formatTimestamp, previewText } from "@/lib/format";
+import { listSubmissions, type NoteExtractionStatus } from "@/lib/notes/api";
 
 const STATUS_OPTIONS: Array<{ value: "" | NoteExtractionStatus; label: string }> = [
   { value: "", label: "Any status" },
@@ -31,22 +32,6 @@ const STATUS_OPTIONS: Array<{ value: "" | NoteExtractionStatus; label: string }>
   { value: "dismissed", label: "Dismissed" },
   { value: "commit_failed", label: "Commit failed" },
 ];
-
-function formatTimestamp(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
-function submissionPreview(rawText: string): string {
-  const trimmed = rawText.trim();
-  if (!trimmed) return "Empty submission";
-  const firstLine = trimmed.split(/\r?\n/, 1)[0] ?? trimmed;
-  return firstLine.length > 120 ? `${firstLine.slice(0, 117)}…` : firstLine;
-}
 
 function statusLabel(status: NoteExtractionStatus): string {
   switch (status) {
@@ -91,81 +76,56 @@ export function SubmissionsList() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"" | NoteExtractionStatus>("");
   const [needsReviewOnly, setNeedsReviewOnly] = useState(initialNeedsReview);
-  const [submissions, setSubmissions] = useState<ApiNote[]>([]);
-  const [hasMore, setHasMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [hasFetched, setHasFetched] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const isFirstFetch = useRef(true);
+  const filters = useMemo(
+    () => ({ query, status, needsReviewOnly }),
+    [query, status, needsReviewOnly],
+  );
+  const debouncedFilters = useDebouncedValue(filters);
+  const fetchPage = useCallback(
+    async ({ offset, limit }: { offset: number; limit: number }) => {
+      const response = await listSubmissions({
+        query: debouncedFilters.query,
+        status: debouncedFilters.status || undefined,
+        needsReview: debouncedFilters.needsReviewOnly ? true : undefined,
+        limit,
+        offset,
+      });
+      return { items: response.submissions ?? response.notes, hasMore: response.hasMore };
+    },
+    [debouncedFilters],
+  );
+  const {
+    items: submissions,
+    hasMore,
+    loadMore,
+    loadingMore,
+    error,
+    setError,
+    replace,
+  } = usePaginatedList({ fetchPage, resource: "submissions" });
   const hasFilters = Boolean(query || status || needsReviewOnly);
   const isInitialLoading = !hasFetched && !error;
 
   useEffect(() => {
     let cancelled = false;
-    const delay = isFirstFetch.current ? 0 : 220;
-    isFirstFetch.current = false;
-
-    const handle = window.setTimeout(() => {
-      void (async () => {
-        try {
-          const response = await listSubmissions({
-            query,
-            status: status || undefined,
-            needsReview: needsReviewOnly ? true : undefined,
-            limit: PAGE_SIZE,
-            offset: 0,
-          });
-          if (cancelled) return;
-          setSubmissions(response.submissions ?? response.notes);
-          setHasMore(response.hasMore);
-          setError(null);
-          setHasFetched(true);
-        } catch (err) {
-          if (cancelled) return;
-          setSubmissions([]);
-          setHasMore(false);
-          setError(
-            err instanceof ApiClientError
-              ? err.code === "db_not_configured"
-                ? "The local submissions database isn’t running. Start the full stack with `pnpm dev`."
-                : err.message
-              : "Failed to load submissions. Is the API running?",
-          );
-          setHasFetched(true);
-        }
-      })();
-    }, delay);
-
+    void (async () => {
+      try {
+        const page = await fetchPage({ offset: 0, limit: DEFAULT_PAGE_SIZE });
+        if (cancelled) return;
+        replace(page);
+      } catch (err) {
+        if (cancelled) return;
+        replace({ items: [], hasMore: false });
+        setError(describeApiError(err, { resource: "submissions" }));
+      } finally {
+        if (!cancelled) setHasFetched(true);
+      }
+    })();
     return () => {
       cancelled = true;
-      window.clearTimeout(handle);
     };
-  }, [query, status, needsReviewOnly]);
-
-  async function loadMore() {
-    setLoadingMore(true);
-    try {
-      const response = await listSubmissions({
-        query,
-        status: status || undefined,
-        needsReview: needsReviewOnly ? true : undefined,
-        limit: PAGE_SIZE,
-        offset: submissions.length,
-      });
-      const next = response.submissions ?? response.notes;
-      setSubmissions((current) => [...current, ...next]);
-      setHasMore(response.hasMore);
-      setError(null);
-    } catch (err) {
-      setError(
-        err instanceof ApiClientError
-          ? err.message
-          : "Failed to load more submissions. Is the API running?",
-      );
-    } finally {
-      setLoadingMore(false);
-    }
-  }
+  }, [fetchPage, replace, setError]);
 
   return (
     <div className="space-y-6">
@@ -260,7 +220,10 @@ export function SubmissionsList() {
                       className="hover:bg-surface-2 flex flex-col gap-2 px-4 py-3 transition-colors"
                     >
                       <p className="text-card-title line-clamp-2 text-pretty">
-                        {submissionPreview(submission.rawText)}
+                        {previewText(submission.rawText, {
+                          maxLength: 120,
+                          fallback: "Empty submission",
+                        })}
                       </p>
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant={statusVariant(submission.extractionStatus)}>

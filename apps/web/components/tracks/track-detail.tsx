@@ -15,28 +15,14 @@ import { StatePanel } from "@selecta/ui/components/state-panel";
 
 import { BackLink } from "@/components/common/back-link";
 
-import { ApiClientError } from "@/lib/api/client";
+import { describeApiError } from "@/lib/api/errors";
+import { formatDuration, optionalNumber } from "@/lib/format";
 import { invalidateLibraryCache } from "@/lib/library-cache";
 import { clearGraphSession, getGraphSessionSnapshot } from "@/lib/tracks/graph-session-store";
 import { deleteTrack, getTrack, updateTrack, type ApiTrack } from "@/lib/tracks/api";
 import { FolderTagEditor, type FolderTag } from "@/components/tracks/folder-tag-editor";
 import { TagEditor, type TagItem } from "@/components/tracks/tag-editor";
 import { TrackChips } from "@/components/tracks/track-chips";
-
-function formatDuration(sec: number | null): string | null {
-  if (sec == null || !Number.isFinite(sec)) return null;
-  const total = Math.round(sec);
-  const minutes = Math.floor(total / 60);
-  const seconds = total % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-function optionalNumber(raw: string): number | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  const value = Number(trimmed);
-  return Number.isFinite(value) ? value : Number.NaN;
-}
 
 type FormState = {
   title: string;
@@ -106,7 +92,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
         setTrack(null);
         setForm(null);
         setEditing(false);
-        setLoadError(err instanceof ApiClientError ? err.message : "Failed to load track.");
+        setLoadError(describeApiError(err, { fallback: "Failed to load track." }));
       }
     });
     return () => {
@@ -192,7 +178,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
         setSaveError(null);
         setEditing(false);
       } catch (err) {
-        setSaveError(err instanceof ApiClientError ? err.message : "Failed to save track.");
+        setSaveError(describeApiError(err, { fallback: "Failed to save track." }));
       }
     });
   }
@@ -212,7 +198,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
         router.push("/library");
         router.refresh();
       } catch (err) {
-        setActionError(err instanceof ApiClientError ? err.message : "Failed to delete track.");
+        setActionError(describeApiError(err, { fallback: "Failed to delete track." }));
       }
     });
   }

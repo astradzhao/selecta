@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { XIcon } from "lucide-react";
 
 import { Button } from "@selecta/ui/components/button";
@@ -13,15 +13,17 @@ import { ListSkeleton } from "@selecta/ui/components/list-skeleton";
 import { SearchField } from "@selecta/ui/components/search-field";
 import { StatePanel } from "@selecta/ui/components/state-panel";
 
-import { ApiClientError } from "@/lib/api/client";
-import { getLibraryStats, listTracks, type ApiTrack } from "@/lib/tracks/api";
+import { TrackChips } from "@/components/tracks/track-chips";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { describeApiError } from "@/lib/api/errors";
+import { artistLine } from "@/lib/format";
 import {
   libraryCacheKey,
   libraryFingerprint,
   readLibraryCache,
   writeLibraryCache,
 } from "@/lib/library-cache";
-import { TrackChips } from "@/components/tracks/track-chips";
+import { getLibraryStats, listTracks, type ApiTrack } from "@/lib/tracks/api";
 
 function initialCacheKey() {
   return libraryCacheKey({ query: "", subgenre: "", folder: "" });
@@ -48,77 +50,75 @@ export function LibraryList() {
   const [tracks, setTracks] = useState<ApiTrack[]>(() => initialCached?.tracks ?? []);
   const [error, setError] = useState<string | null>(null);
   const [hasFetched, setHasFetched] = useState(() => initialCached != null);
-  const isFirstFetch = useRef(true);
   const tracksRef = useRef(tracks);
-  tracksRef.current = tracks;
+  const filters = useMemo(() => ({ query, subgenre, folder }), [query, subgenre, folder]);
+  const debouncedFilters = useDebouncedValue(filters);
   const hasFilters = Boolean(query || subgenre || folder);
   const isInitialLoading = !hasFetched && !error;
 
   useEffect(() => {
+    tracksRef.current = tracks;
+  }, [tracks]);
+
+  useEffect(() => {
     let cancelled = false;
-    // Debounce filter typing only — first paint should check immediately so we
-    // never flash the empty state before data arrives.
-    const delay = isFirstFetch.current ? 0 : 220;
-    isFirstFetch.current = false;
+    const { query: nextQuery, subgenre: nextSubgenre, folder: nextFolder } = debouncedFilters;
+    const cacheKey = libraryCacheKey({
+      query: nextQuery,
+      subgenre: nextSubgenre,
+      folder: nextFolder,
+    });
 
-    const filters = { query, subgenre, folder };
-    const cacheKey = libraryCacheKey(filters);
-    const cached = readLibraryCache(cacheKey);
-    if (cached && !sameTrackList(tracksRef.current, cached.tracks)) {
-      setTracks(cached.tracks);
-      setError(null);
-      setHasFetched(true);
-    } else if (cached) {
-      setError(null);
-      setHasFetched(true);
-    }
+    void (async () => {
+      const cached = readLibraryCache(cacheKey);
+      if (cancelled) return;
+      if (cached && !sameTrackList(tracksRef.current, cached.tracks)) {
+        setTracks(cached.tracks);
+        setError(null);
+        setHasFetched(true);
+      } else if (cached) {
+        setError(null);
+        setHasFetched(true);
+      }
 
-    const handle = window.setTimeout(() => {
-      void (async () => {
-        try {
-          const stats = await getLibraryStats();
-          if (cancelled) return;
+      try {
+        const stats = await getLibraryStats();
+        if (cancelled) return;
 
-          const fingerprint = libraryFingerprint(stats);
-          const current = readLibraryCache(cacheKey);
-          if (current && current.fingerprint === fingerprint) {
-            // Cache is fresh — leave rendered UI alone.
-            return;
-          }
-
-          const response = await listTracks({
-            query,
-            subgenre,
-            folder,
-            limit: 100,
-          });
-          if (cancelled) return;
-          writeLibraryCache(cacheKey, response.tracks, fingerprint);
-          if (!sameTrackList(tracksRef.current, response.tracks)) {
-            setTracks(response.tracks);
-          }
-          setError(null);
-          setHasFetched(true);
-        } catch (err) {
-          if (cancelled) return;
-          if (!readLibraryCache(cacheKey) && tracksRef.current.length === 0) {
-            setTracks([]);
-          }
-          setError(
-            err instanceof ApiClientError
-              ? err.message
-              : "Failed to load library. Is the API running?",
-          );
-          setHasFetched(true);
+        const fingerprint = libraryFingerprint(stats);
+        const current = readLibraryCache(cacheKey);
+        if (current && current.fingerprint === fingerprint) {
+          // Cache is fresh — leave rendered UI alone.
+          return;
         }
-      })();
-    }, delay);
+
+        const response = await listTracks({
+          query: nextQuery,
+          subgenre: nextSubgenre,
+          folder: nextFolder,
+          limit: 100,
+        });
+        if (cancelled) return;
+        writeLibraryCache(cacheKey, response.tracks, fingerprint);
+        if (!sameTrackList(tracksRef.current, response.tracks)) {
+          setTracks(response.tracks);
+        }
+        setError(null);
+        setHasFetched(true);
+      } catch (err) {
+        if (cancelled) return;
+        if (!readLibraryCache(cacheKey) && tracksRef.current.length === 0) {
+          setTracks([]);
+        }
+        setError(describeApiError(err, { resource: "library" }));
+        setHasFetched(true);
+      }
+    })();
 
     return () => {
       cancelled = true;
-      window.clearTimeout(handle);
     };
-  }, [query, subgenre, folder]);
+  }, [debouncedFilters]);
 
   return (
     <div className="space-y-6">
@@ -209,7 +209,7 @@ export function LibraryList() {
                     <div>
                       <p className="text-card-title truncate">{track.title}</p>
                       <p className="text-muted-foreground truncate text-sm">
-                        {track.artists.map((artist) => artist.name).join(", ") || "Unknown artist"}
+                        {artistLine(track.artists)}
                       </p>
                     </div>
                     <TrackChips subgenres={track.subgenres} />
