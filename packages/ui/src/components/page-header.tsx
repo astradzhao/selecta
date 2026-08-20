@@ -7,6 +7,7 @@ function PageHeader({
   title,
   description,
   actions,
+  size = "page",
   className,
   children,
   ...props
@@ -15,17 +16,26 @@ function PageHeader({
   title: React.ReactNode;
   description?: React.ReactNode;
   actions?: React.ReactNode;
+  size?: "page" | "section";
 }) {
   return (
     <header
       data-slot="page-header"
-      className={cn("border-border space-y-4 border-b pb-6", className)}
+      data-size={size}
+      className={cn("space-y-4", size === "page" ? "border-border border-b pb-6" : null, className)}
       {...props}
     >
       {lead}
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-page-title text-balance">{title}</h1>
+          <h1
+            className={cn(
+              size === "page" ? "text-page-title" : "text-section-title",
+              "text-balance",
+            )}
+          >
+            {title}
+          </h1>
           {actions}
         </div>
         {description ? (

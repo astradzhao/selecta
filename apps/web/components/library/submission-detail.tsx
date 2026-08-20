@@ -15,6 +15,7 @@ import { SubmissionProposals } from "@/components/library/submission-proposals";
 import { SubmissionTrackLinks } from "@/components/library/submission-track-links";
 import { describeApiError } from "@/lib/api/errors";
 import { formatTimestamp } from "@/lib/format";
+import { libraryViewHref } from "@/lib/library/add-routes";
 import {
   extractSubmission,
   getSubmission,
@@ -23,7 +24,7 @@ import {
   type SubmissionExtractionStatus,
 } from "@/lib/submissions/api";
 
-const LIST_HREF = "/library?view=submissions";
+const LIST_HREF = libraryViewHref("submissions");
 
 function canRetry(status: SubmissionExtractionStatus): boolean {
   return (

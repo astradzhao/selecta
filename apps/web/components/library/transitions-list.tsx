@@ -19,10 +19,12 @@ import {
   FilterField,
   FilteredListShell,
 } from "@/components/common/filtered-list-shell";
+import { AddNewButton } from "@/components/common/add-new-button";
 import { ProposalStatusBadge } from "@/components/common/status-badge";
 import { useFilteredList } from "@/hooks/use-filtered-list";
 import { DEFAULT_PAGE_SIZE } from "@/hooks/use-paginated-list";
 import { artistLine, formatTimestamp, previewText } from "@/lib/format";
+import { libraryAddHref } from "@/lib/library/add-routes";
 import { transitionListQuery, type TransitionListFilters } from "@/lib/library/list-params";
 import { listProposals, type ApiProposal } from "@/lib/proposals/api";
 import { proposalStatusLabel } from "@/lib/proposals/proposal-status";
@@ -154,6 +156,9 @@ export function TransitionsList() {
               ? `${pendingProposals.length} need review`
               : `${pendingProposals.length} need review · ${list.items.length}${list.hasMore ? "+" : ""} committed`
       }
+      toolbar={
+        <AddNewButton href={libraryAddHref("submissions", "transitions")} label="Add transition" />
+      }
       unavailableTitle="Transitions unavailable"
       loadingAriaLabel="Loading transitions"
       error={list.error}
@@ -240,7 +245,7 @@ export function TransitionsList() {
         filteredTitle: "No matching transitions",
         action: (
           <Button asChild size="sm">
-            <Link href="/add?mode=transition">Add a transition</Link>
+            <Link href={libraryAddHref("submissions", "transitions")}>Add a transition</Link>
           </Button>
         ),
       }}

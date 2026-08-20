@@ -22,6 +22,7 @@ import {
 } from "@/components/tracks/transition-fields";
 import { describeApiError } from "@/lib/api/errors";
 import { artistLine, formatTimestamp } from "@/lib/format";
+import { libraryViewHref } from "@/lib/library/add-routes";
 import {
   deleteTransition,
   getTransition,
@@ -65,7 +66,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
     };
   }, [transitionId]);
 
-  const listHref = "/library?view=transitions";
+  const listHref = libraryViewHref("transitions");
 
   if (loading && !transition) {
     return <StatePanel variant="loading">Loading transition…</StatePanel>;

@@ -24,12 +24,12 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/tracks/new",
-        destination: "/add?mode=track",
+        destination: "/library/add/tracks",
         permanent: false,
       },
       {
         source: "/songs/new",
-        destination: "/add?mode=track",
+        destination: "/library/add/tracks",
         permanent: false,
       },
     ];

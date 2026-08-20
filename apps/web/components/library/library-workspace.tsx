@@ -11,6 +11,7 @@ import { SegmentedTab, SegmentedTabs } from "@selecta/ui/components/segmented-ta
 import { LibraryList } from "@/components/tracks/library-list";
 import { SubmissionsList } from "@/components/library/submissions-list";
 import { TransitionsList } from "@/components/library/transitions-list";
+import { libraryViewHref } from "@/lib/library/add-routes";
 import { listProposals } from "@/lib/proposals/api";
 import { type LibraryView } from "@/lib/library/view";
 
@@ -57,8 +58,7 @@ export function LibraryWorkspace({ view }: { view: LibraryView }) {
   }, []);
 
   function setView(next: LibraryView) {
-    const href = next === "tracks" ? "/library" : `/library?view=${next}`;
-    router.replace(href);
+    router.replace(libraryViewHref(next));
   }
 
   return (
@@ -69,7 +69,7 @@ export function LibraryWorkspace({ view }: { view: LibraryView }) {
         actions={
           needsReviewCount > 0 ? (
             <Link
-              href="/library?view=submissions&needsReview=1"
+              href={`${libraryViewHref("submissions")}&needsReview=1`}
               className="text-destructive text-sm font-medium underline-offset-4 hover:underline"
             >
               {needsReviewCount} need review
@@ -80,7 +80,7 @@ export function LibraryWorkspace({ view }: { view: LibraryView }) {
         <SegmentedTabs aria-label="Library views">
           {VIEWS.map((item) => {
             const isActive = item.id === view;
-            const href = item.id === "tracks" ? "/library" : `/library?view=${item.id}`;
+            const href = libraryViewHref(item.id);
             return (
               <SegmentedTab
                 key={item.id}

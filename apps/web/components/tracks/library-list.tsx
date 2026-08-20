@@ -7,6 +7,7 @@ import { Button } from "@selecta/ui/components/button";
 import { Input } from "@selecta/ui/components/input";
 import { SearchField } from "@selecta/ui/components/search-field";
 
+import { AddNewButton } from "@/components/common/add-new-button";
 import {
   ClearFiltersButton,
   FilterField,
@@ -22,6 +23,7 @@ import {
   readLibraryCache,
   sameTrackList,
 } from "@/lib/library-cache";
+import { libraryAddHref } from "@/lib/library/add-routes";
 import { formatListCount } from "@/lib/library/list-view-state";
 import type { TrackListFilters } from "@/lib/library/list-params";
 import { rowFromApiTrack } from "@/lib/tracks/track-row-item";
@@ -94,15 +96,18 @@ export function LibraryList() {
             : formatListCount(list.items.length, { singular: "track", plural: "tracks" })
       }
       toolbar={
-        hasFilters ? (
-          <ClearFiltersButton
-            onClick={() => {
-              setQuery("");
-              setSubgenre("");
-              setFolder("");
-            }}
-          />
-        ) : null
+        <div className="flex items-center gap-2">
+          {hasFilters ? (
+            <ClearFiltersButton
+              onClick={() => {
+                setQuery("");
+                setSubgenre("");
+                setFolder("");
+              }}
+            />
+          ) : null}
+          <AddNewButton href={libraryAddHref("tracks")} label="Add track" />
+        </div>
       }
       unavailableTitle="Library unavailable"
       loadingAriaLabel="Loading library"
@@ -127,7 +132,7 @@ export function LibraryList() {
         filteredTitle: "No matching tracks",
         action: (
           <Button asChild size="sm">
-            <Link href="/add">Add your first track</Link>
+            <Link href={libraryAddHref("tracks")}>Add your first track</Link>
           </Button>
         ),
       }}

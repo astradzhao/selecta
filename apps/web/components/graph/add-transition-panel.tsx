@@ -17,6 +17,7 @@ import {
   type TransitionFieldValues,
 } from "@/components/tracks/transition-fields";
 import { describeApiError } from "@/lib/api/errors";
+import { libraryAddHref } from "@/lib/library/add-routes";
 import type { ApiTrack } from "@/lib/tracks/api";
 import { rowFromApiTrack } from "@/lib/tracks/track-row-item";
 import { createTransition } from "@/lib/transitions/api";
@@ -72,7 +73,7 @@ export function AddTransitionPanel({
           <h3 className="text-card-title">Add transition</h3>
           <p className="text-muted-foreground text-xs text-pretty">
             Pick an existing library track. Missing a song?{" "}
-            <Link href="/add" className="underline-offset-4 hover:underline">
+            <Link href={libraryAddHref("tracks")} className="underline-offset-4 hover:underline">
               Add it first
             </Link>
             .

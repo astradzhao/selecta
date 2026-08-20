@@ -10,6 +10,7 @@ import { cn } from "@selecta/ui/lib/utils";
 import { TrackPicker } from "@/components/tracks/track-picker";
 import type { CatalogTrack } from "@/lib/catalog/types";
 import { artistLine } from "@/lib/format";
+import { libraryAddHref } from "@/lib/library/add-routes";
 import type { ApiProposalCandidate, ReviewerEndpointBody } from "@/lib/proposals/types";
 import type { ApiTrack } from "@/lib/tracks/api";
 import type { TrackRowItem } from "@/lib/tracks/track-row-item";
@@ -285,7 +286,10 @@ export function ProposalEndpointPicker({
 
           <p className="text-caption">
             Can&apos;t find it?{" "}
-            <Link href="/add" className="text-foreground underline-offset-4 hover:underline">
+            <Link
+              href={libraryAddHref("tracks")}
+              className="text-foreground underline-offset-4 hover:underline"
+            >
               Add the track manually
             </Link>
           </p>

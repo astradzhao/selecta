@@ -111,7 +111,6 @@ export function AddTrackFlow() {
             limit={10}
             size="md"
             autoFocus
-            searchClassName="h-12 text-base"
             placeholder="Search track or artist"
             emptyFiltered="No catalog hits. Try another query or enter the track manually."
             leading={
@@ -141,39 +140,79 @@ export function AddTrackFlow() {
           </div>
 
           {catalog?.artworkUrl ? (
-            <div className="bg-muted relative h-40 w-40 overflow-hidden rounded-xl">
-              <Image src={catalog.artworkUrl} alt="" fill className="object-cover" sizes="160px" />
+            <div className="flex items-start gap-4">
+              <div className="bg-muted relative h-20 w-20 shrink-0 overflow-hidden rounded-xl">
+                <Image src={catalog.artworkUrl} alt="" fill className="object-cover" sizes="80px" />
+              </div>
+              <div className="grid min-w-0 flex-1 gap-4 sm:grid-cols-2">
+                <FormField
+                  id="title"
+                  label="Title"
+                  error={fieldErrors.title}
+                  className="sm:col-span-2"
+                >
+                  <Input
+                    value={title}
+                    onChange={(event) => {
+                      setTitle(event.target.value);
+                      setFieldErrors((current) => omitFieldError(current, "title"));
+                    }}
+                    disabled={savePending}
+                  />
+                </FormField>
+                <FormField
+                  id="artists"
+                  label="Artists"
+                  error={fieldErrors.artistsText}
+                  className="sm:col-span-2"
+                >
+                  <Input
+                    value={artistsText}
+                    onChange={(event) => {
+                      setArtistsText(event.target.value);
+                      setFieldErrors((current) => omitFieldError(current, "artistsText"));
+                    }}
+                    placeholder="Comma-separated"
+                    disabled={savePending}
+                  />
+                </FormField>
+              </div>
             </div>
-          ) : null}
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FormField id="title" label="Title" error={fieldErrors.title} className="sm:col-span-2">
-              <Input
-                value={title}
-                onChange={(event) => {
-                  setTitle(event.target.value);
-                  setFieldErrors((current) => omitFieldError(current, "title"));
-                }}
-                disabled={savePending}
-              />
-            </FormField>
-            <FormField
-              id="artists"
-              label="Artists"
-              error={fieldErrors.artistsText}
-              className="sm:col-span-2"
-            >
-              <Input
-                value={artistsText}
-                onChange={(event) => {
-                  setArtistsText(event.target.value);
-                  setFieldErrors((current) => omitFieldError(current, "artistsText"));
-                }}
-                placeholder="Comma-separated"
-                disabled={savePending}
-              />
-            </FormField>
-          </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                id="title"
+                label="Title"
+                error={fieldErrors.title}
+                className="sm:col-span-2"
+              >
+                <Input
+                  value={title}
+                  onChange={(event) => {
+                    setTitle(event.target.value);
+                    setFieldErrors((current) => omitFieldError(current, "title"));
+                  }}
+                  disabled={savePending}
+                />
+              </FormField>
+              <FormField
+                id="artists"
+                label="Artists"
+                error={fieldErrors.artistsText}
+                className="sm:col-span-2"
+              >
+                <Input
+                  value={artistsText}
+                  onChange={(event) => {
+                    setArtistsText(event.target.value);
+                    setFieldErrors((current) => omitFieldError(current, "artistsText"));
+                  }}
+                  placeholder="Comma-separated"
+                  disabled={savePending}
+                />
+              </FormField>
+            </div>
+          )}
 
           <Separator />
 

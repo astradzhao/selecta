@@ -145,12 +145,14 @@ Primitives: `Button`, `Input`, `Textarea`, `Select`, `Checkbox`, `Label`,
 
 Feedback: `Alert`, `Skeleton`, `ListSkeleton`, `EmptyState`, `StatePanel`.
 
-Layout: `PageHeader` / `PageBreadcrumb`, `SectionHeading`, `SegmentedTabs`,
-`SearchField`, `DataList`.
+Layout: `PageHeader` / `PageBreadcrumb` (`size="page"` is the default
+destination header; `size="section"` is the nested-task header — no
+bottom border, `text-section-title` instead of `text-page-title`),
+`SectionHeading`, `SegmentedTabs`, `SearchField`, `DataList`.
 
 ### `apps/web/components/common`
 
-`FilteredListShell`, `FormField`, `StatusBadge`, `BackLink`.
+`FilteredListShell`, `FormField`, `StatusBadge`, `BackLink`, `AddNewButton`.
 
 ### Feature folders
 
@@ -164,6 +166,9 @@ Graph explorer pieces stay in `components/graph`.
   or `ListSkeleton`. Fetch errors → `Alert variant="destructive"`.
 - **Detail page:** `PageHeader` + `PageBreadcrumb` / `BackLink`. Destructive
   actions go through `ConfirmDialog`.
+- **Nested task page** (add sub-pages under `/library/add/*`): `PageHeader`
+  `size="section"` plus a `BackLink` in `lead`. Never `text-page-title`, never
+  a second page-header component.
 - **Form:** `FormField` wrapping `@selecta/ui` `Field*` + `Input` / `Select` /
   `Textarea`. Field errors use `aria-invalid` / `aria-describedby` (see
   `omitFieldError`). Reuse `TransitionFields` instead of a second field grid.
@@ -183,6 +188,8 @@ These are the drifts the cleanup epic fixed. Treat them as review blockers.
 - Local copies of `formatTimestamp` / `artistLine` / `optionalNumber` —
   import `@/lib/format`.
 - A second `TransitionFields` grid in a sibling file.
+- A second page-header component in a sibling file — extend `PageHeader`
+  with `size="page" | "section"` instead.
 - Six alert looks, eleven loading looks, eight empty states.
 - Native `<select>` and `<input type="checkbox">` in `apps/web`.
 - `window.confirm` / `window.alert`.
