@@ -7,7 +7,7 @@ import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
 import { DataList, DataListRow } from "@selecta/ui/components/data-list";
 import { EmptyState } from "@selecta/ui/components/empty-state";
-import { Label } from "@selecta/ui/components/label";
+import { Field, FieldLabel } from "@selecta/ui/components/field";
 import { SectionHeading } from "@selecta/ui/components/section-heading";
 
 import { TrackPicker } from "@/components/tracks/track-picker";
@@ -105,8 +105,8 @@ export function SubmissionTrackLinks({
         ) : null}
       </DataList>
 
-      <div className="space-y-2">
-        <Label htmlFor="submission-link-track-search">Add track from library</Label>
+      <Field>
+        <FieldLabel htmlFor="submission-link-track-search">Add track from library</FieldLabel>
         <TrackPicker
           id="submission-link-track-search"
           source="library"
@@ -125,7 +125,7 @@ export function SubmissionTrackLinks({
           emptyFiltered="No matching tracks."
           onSelect={linkTrack}
         />
-      </div>
+      </Field>
 
       {error ? <Alert variant="destructive">{error}</Alert> : null}
     </section>

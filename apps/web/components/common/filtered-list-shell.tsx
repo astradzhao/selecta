@@ -7,7 +7,7 @@ import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
 import { DataList, DataListRow } from "@selecta/ui/components/data-list";
 import { EmptyState } from "@selecta/ui/components/empty-state";
-import { Label } from "@selecta/ui/components/label";
+import { Field, FieldLabel } from "@selecta/ui/components/field";
 import { ListSkeleton } from "@selecta/ui/components/list-skeleton";
 import { StatePanel } from "@selecta/ui/components/state-panel";
 import { cn } from "@selecta/ui/lib/utils";
@@ -33,10 +33,10 @@ export function FilterField({
   children: ReactNode;
 }) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor={htmlFor}>{label}</Label>
+    <Field>
+      <FieldLabel htmlFor={htmlFor}>{label}</FieldLabel>
       {children}
-    </div>
+    </Field>
   );
 }
 

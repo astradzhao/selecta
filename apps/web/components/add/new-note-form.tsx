@@ -6,9 +6,9 @@ import { useMemo, useState, useTransition } from "react";
 
 import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
-import { Label } from "@selecta/ui/components/label";
 import { Textarea } from "@selecta/ui/components/textarea";
 
+import { FormField } from "@/components/common/form-field";
 import { describeApiError } from "@/lib/api/errors";
 import { createNote } from "@/lib/notes/api";
 import { MAX_SUBMISSION_RAW_BYTES } from "@/lib/notes/limits";
@@ -27,33 +27,39 @@ function formatBytes(bytes: number): string {
 export function NewNoteForm() {
   const router = useRouter();
   const [rawText, setRawText] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [pending, startSave] = useTransition();
   const trimmed = rawText.trim();
   const byteLength = useMemo(() => utf8ByteLength(trimmed), [trimmed]);
   const overLimit = byteLength > MAX_SUBMISSION_RAW_BYTES;
   const canSave = trimmed.length > 0 && !overLimit && !pending;
+  const limitError = overLimit
+    ? `Submission exceeds the ${formatBytes(MAX_SUBMISSION_RAW_BYTES)} limit (${formatBytes(byteLength)}). Shorten the text and retry.`
+    : null;
+  const textError = fieldError ?? limitError;
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!trimmed) {
-      setError("Write something before submitting.");
+      setFieldError("Write something before submitting.");
+      setSubmitError(null);
       return;
     }
     if (overLimit) {
-      setError(
-        `Submission exceeds the ${formatBytes(MAX_SUBMISSION_RAW_BYTES)} limit (${formatBytes(byteLength)}). Shorten the text and retry.`,
-      );
+      setFieldError(null);
+      setSubmitError(null);
       return;
     }
 
     startSave(async () => {
       try {
         const response = await createNote({ rawText });
-        setError(null);
+        setFieldError(null);
+        setSubmitError(null);
         router.push(`/library/submissions/${response.note.id}`);
       } catch (err) {
-        setError(
+        setSubmitError(
           describeApiError(err, { fallback: "Failed to save submission. Is the API running?" }),
         );
       }
@@ -62,30 +68,26 @@ export function NewNoteForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="note-raw-text">Transition notes</Label>
+      <FormField
+        id="note-raw-text"
+        label="Transition notes"
+        error={textError}
+        description={`${formatBytes(byteLength)} / ${formatBytes(MAX_SUBMISSION_RAW_BYTES)}`}
+      >
         <Textarea
-          id="note-raw-text"
           value={rawText}
           onChange={(event) => {
             setRawText(event.target.value);
-            if (error) setError(null);
+            if (fieldError) setFieldError(null);
+            if (submitError) setSubmitError(null);
           }}
           placeholder="e.g. Cut from Track A into Track B around bar 64 with a high-pass…"
           className="min-h-56"
-          aria-invalid={Boolean(error) || overLimit}
           disabled={pending}
         />
-        <p
-          className={overLimit ? "text-destructive text-xs" : "text-muted-foreground text-xs"}
-          aria-live="polite"
-        >
-          {formatBytes(byteLength)} / {formatBytes(MAX_SUBMISSION_RAW_BYTES)}
-          {overLimit ? " — too large to submit" : null}
-        </p>
-      </div>
+      </FormField>
 
-      {error ? <Alert variant="destructive">{error}</Alert> : null}
+      {submitError ? <Alert variant="destructive">{submitError}</Alert> : null}
 
       <div className="flex flex-wrap gap-3">
         <Button type="submit" disabled={!canSave}>

@@ -7,15 +7,20 @@ import { useEffect, useState, useTransition } from "react";
 import { Alert } from "@selecta/ui/components/alert";
 import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
-import { Input } from "@selecta/ui/components/input";
-import { Label } from "@selecta/ui/components/label";
 import { PageBreadcrumb, PageHeader } from "@selecta/ui/components/page-header";
 import { SectionHeading } from "@selecta/ui/components/section-heading";
 import { StatePanel } from "@selecta/ui/components/state-panel";
-import { Textarea } from "@selecta/ui/components/textarea";
 
+import { omitFieldError } from "@/components/common/form-field";
+import {
+  parseTransitionFieldPatch,
+  TransitionFields,
+  transitionFieldsFromEdge,
+  type TransitionFieldErrors,
+  type TransitionFieldValues,
+} from "@/components/tracks/transition-fields";
 import { describeApiError } from "@/lib/api/errors";
-import { artistLine, formatTimestamp, optionalNumber } from "@/lib/format";
+import { artistLine, formatTimestamp } from "@/lib/format";
 import {
   deleteTransition,
   getTransition,
@@ -23,32 +28,11 @@ import {
   type ApiTransition,
 } from "@/lib/transitions/api";
 
-type FormState = {
-  fromBar: string;
-  toBar: string;
-  barsOverlap: string;
-  technique: string;
-  intent: string;
-  quality: string;
-  notes: string;
-};
-
-function formFromTransition(transition: ApiTransition): FormState {
-  return {
-    fromBar: transition.fromBar != null ? String(transition.fromBar) : "",
-    toBar: transition.toBar != null ? String(transition.toBar) : "",
-    barsOverlap: transition.barsOverlap != null ? String(transition.barsOverlap) : "",
-    technique: transition.technique ?? "",
-    intent: transition.intent ?? "",
-    quality: transition.quality ?? "",
-    notes: transition.notes ?? "",
-  };
-}
-
 export function TransitionDetail({ transitionId }: { transitionId: string }) {
   const router = useRouter();
   const [transition, setTransition] = useState<ApiTransition | null>(null);
-  const [form, setForm] = useState<FormState | null>(null);
+  const [form, setForm] = useState<TransitionFieldValues | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<TransitionFieldErrors>({});
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -64,7 +48,8 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
         const response = await getTransition(transitionId);
         if (cancelled) return;
         setTransition(response.transition);
-        setForm(formFromTransition(response.transition));
+        setForm(transitionFieldsFromEdge(response.transition));
+        setFieldErrors({});
         setLoadError(null);
       } catch (err) {
         if (cancelled) return;
@@ -95,8 +80,9 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
     );
   }
 
-  function onFieldChange(field: keyof FormState, value: string) {
+  function onFieldChange(field: keyof TransitionFieldValues, value: string) {
     setForm((current) => (current ? { ...current, [field]: value } : current));
+    setFieldErrors((current) => omitFieldError(current, field));
     setSaveError(null);
     setSaveMessage(null);
   }
@@ -105,28 +91,20 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
     event.preventDefault();
     if (!form || !transition) return;
 
-    const fromBar = optionalNumber(form.fromBar);
-    const toBar = optionalNumber(form.toBar);
-    const barsOverlap = optionalNumber(form.barsOverlap);
-    if ([fromBar, toBar, barsOverlap].some((value) => Number.isNaN(value))) {
-      setSaveError("Bar fields must be numbers when set.");
+    const parsed = parseTransitionFieldPatch(form);
+    if (!parsed.ok) {
+      setFieldErrors(parsed.fields);
+      setSaveError(null);
       setSaveMessage(null);
       return;
     }
 
     startSave(async () => {
       try {
-        const response = await updateTransition(transition.id, {
-          fromBar,
-          toBar,
-          barsOverlap,
-          technique: form.technique.trim() || null,
-          intent: form.intent.trim() || null,
-          quality: form.quality.trim() || null,
-          notes: form.notes.trim() || null,
-        });
+        const response = await updateTransition(transition.id, parsed.patch);
         setTransition(response.transition);
-        setForm(formFromTransition(response.transition));
+        setForm(transitionFieldsFromEdge(response.transition));
+        setFieldErrors({});
         setSaveError(null);
         setSaveMessage("Saved.");
       } catch (err) {
@@ -215,82 +193,13 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
       </PageHeader>
 
       <form onSubmit={onSubmit} className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="transition-from-bar">From bar</Label>
-            <Input
-              id="transition-from-bar"
-              inputMode="decimal"
-              className="text-numeric"
-              value={form.fromBar}
-              onChange={(event) => onFieldChange("fromBar", event.target.value)}
-              disabled={saving}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="transition-to-bar">To bar</Label>
-            <Input
-              id="transition-to-bar"
-              inputMode="decimal"
-              className="text-numeric"
-              value={form.toBar}
-              onChange={(event) => onFieldChange("toBar", event.target.value)}
-              disabled={saving}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="transition-bars-overlap">Bars overlap</Label>
-            <Input
-              id="transition-bars-overlap"
-              inputMode="decimal"
-              className="text-numeric"
-              value={form.barsOverlap}
-              onChange={(event) => onFieldChange("barsOverlap", event.target.value)}
-              disabled={saving}
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="transition-technique">Technique</Label>
-            <Input
-              id="transition-technique"
-              value={form.technique}
-              onChange={(event) => onFieldChange("technique", event.target.value)}
-              disabled={saving}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="transition-intent">Intent</Label>
-            <Input
-              id="transition-intent"
-              value={form.intent}
-              onChange={(event) => onFieldChange("intent", event.target.value)}
-              disabled={saving}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="transition-quality">Quality</Label>
-            <Input
-              id="transition-quality"
-              value={form.quality}
-              onChange={(event) => onFieldChange("quality", event.target.value)}
-              disabled={saving}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="transition-notes">Notes</Label>
-          <Textarea
-            id="transition-notes"
-            value={form.notes}
-            onChange={(event) => onFieldChange("notes", event.target.value)}
-            className="min-h-28"
-            disabled={saving}
-          />
-        </div>
+        <TransitionFields
+          idPrefix="transition"
+          values={form}
+          onChange={onFieldChange}
+          errors={fieldErrors}
+          disabled={saving}
+        />
 
         {saveError ? <Alert variant="destructive">{saveError}</Alert> : null}
         {saveMessage ? <Alert variant="success">{saveMessage}</Alert> : null}

@@ -45,3 +45,10 @@ export function optionalNumber(raw: string): number | null {
   const value = Number(trimmed);
   return Number.isFinite(value) ? value : Number.NaN;
 }
+
+export function optionalNumberError(
+  raw: string,
+  message = "Must be a number.",
+): string | undefined {
+  return Number.isNaN(optionalNumber(raw)) ? message : undefined;
+}

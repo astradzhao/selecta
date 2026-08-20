@@ -5,11 +5,11 @@ import { useEffect, useState, useTransition } from "react";
 
 import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
-import { Label } from "@selecta/ui/components/label";
 import { PageBreadcrumb, PageHeader } from "@selecta/ui/components/page-header";
 import { StatePanel } from "@selecta/ui/components/state-panel";
 import { Textarea } from "@selecta/ui/components/textarea";
 
+import { FormField } from "@/components/common/form-field";
 import { ExtractionStatusBadge } from "@/components/common/status-badge";
 import { SubmissionProposals } from "@/components/library/submission-proposals";
 import { SubmissionTrackLinks } from "@/components/library/submission-track-links";
@@ -140,22 +140,17 @@ export function SubmissionDetail({ noteId }: { noteId: string }) {
         }
       />
 
-      <div className="space-y-2">
-        <Label htmlFor="submission-raw-text">Raw text</Label>
-        <Textarea
+      <div className="space-y-4">
+        <FormField
           id="submission-raw-text"
-          value={note.rawText}
-          readOnly
-          className="bg-surface-1 min-h-56"
-        />
-        <p className="text-caption">
-          Submissions are immutable. Edit committed transitions or resolve review items instead.
-        </p>
-        <div className="pt-2">
-          <Button asChild type="button" variant="outline">
-            <Link href={LIST_HREF}>Back to submissions</Link>
-          </Button>
-        </div>
+          label="Raw text"
+          description="Submissions are immutable. Edit committed transitions or resolve review items instead."
+        >
+          <Textarea value={note.rawText} readOnly className="bg-surface-1 min-h-56" />
+        </FormField>
+        <Button asChild type="button" variant="outline">
+          <Link href={LIST_HREF}>Back to submissions</Link>
+        </Button>
       </div>
 
       <div className="space-y-3">
