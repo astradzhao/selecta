@@ -34,7 +34,10 @@ export function FilterField({
 }) {
   return (
     <Field>
-      <FieldLabel htmlFor={htmlFor}>{label}</FieldLabel>
+      {/* text-xs is repeated so tailwind-merge drops Label's text-sm; text-eyebrow is opaque to it. */}
+      <FieldLabel htmlFor={htmlFor} className="text-eyebrow text-xs">
+        {label}
+      </FieldLabel>
       {children}
     </Field>
   );
@@ -109,8 +112,11 @@ export function FilteredListShell<T>({
 
   return (
     <div className="space-y-6">
-      <section aria-label={filtersAriaLabel} className="space-y-3">
-        <div className={cn("grid items-end gap-4", filterGridClassName)}>{filterControls}</div>
+      <section
+        aria-label={filtersAriaLabel}
+        className="border-border bg-surface-1 space-y-3 rounded-xl border px-4 py-4"
+      >
+        <div className={cn("grid items-end gap-3", filterGridClassName)}>{filterControls}</div>
         {filterBar}
         {countRowVisible ? (
           <div className="flex min-h-7 items-center justify-between gap-4">

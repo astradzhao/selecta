@@ -156,14 +156,24 @@ bottom border, `text-section-title` instead of `text-page-title`),
 
 ### Feature folders
 
-`TrackRow` / `TrackPicker` / `TransitionFields` stay in `components/tracks`.
-Graph explorer pieces stay in `components/graph`.
+`TrackRow` / `TrackPicker` / `TrackChips` / `TrackMeta` / `TransitionFields`
+stay in `components/tracks`. Graph explorer pieces stay in `components/graph`.
 
 ## Patterns
 
 - **Filtered list:** `FilteredListShell` + `SearchField` + `SegmentedTabs` +
   `DataList`. Empty → `EmptyState`. First load → `StatePanel variant="loading"`
   or `ListSkeleton`. Fetch errors → `Alert variant="destructive"`.
+  The filter section is one `bg-surface-1 rounded-xl border` panel holding the
+  control grid, `filterBar`, and the result count — the count is a status line
+  for that panel, not a floating row above the list. Filter labels are
+  `text-eyebrow` so controls read as instrument labels rather than a form; they
+  stay real `<label>`s because `Select` filters have no placeholder to fall back
+  on.
+- **Track row rail:** `TrackRow trailing={<TrackMeta …/>}` puts BPM, key, and
+  length in `text-numeric` at the right edge. Only `durationSec` comes from the
+  catalog, so empty slots are dropped and duration stays last — the common case
+  still aligns into a column down the list.
 - **Detail page:** `PageHeader` + `PageBreadcrumb` / `BackLink`. Destructive
   actions go through `ConfirmDialog`.
 - **Nested task page** (add sub-pages under `/library/add/*`): `PageHeader`

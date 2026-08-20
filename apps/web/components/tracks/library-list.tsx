@@ -13,6 +13,7 @@ import {
   FilteredListShell,
 } from "@/components/common/filtered-list-shell";
 import { TrackChips } from "@/components/tracks/track-chips";
+import { TrackMeta } from "@/components/tracks/track-meta";
 import { TrackRow } from "@/components/tracks/track-row";
 import { useFilteredList } from "@/hooks/use-filtered-list";
 import {
@@ -118,6 +119,7 @@ export function LibraryList() {
           size="md"
           interaction="link"
           href={`/tracks/${track.id}`}
+          trailing={<TrackMeta track={track} />}
         >
           <TrackChips subgenres={track.subgenres} />
         </TrackRow>

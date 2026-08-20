@@ -69,7 +69,7 @@ export function LibraryWorkspace({ view }: { view: LibraryView }) {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <PageHeader
         title="Library"
         description={active.description}
@@ -85,7 +85,7 @@ export function LibraryWorkspace({ view }: { view: LibraryView }) {
           ) : null
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-3">
           <SegmentedTabs aria-label="Library views">
             {VIEWS.map((item) => {
               const isActive = item.id === view;

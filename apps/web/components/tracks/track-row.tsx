@@ -59,7 +59,12 @@ export function TrackRow({
   const artworkPx = TRACK_ROW_ARTWORK_PX[size];
   const body = (
     <>
-      <div className={cn("bg-muted relative shrink-0 overflow-hidden", ARTWORK_CLASS[size])}>
+      <div
+        className={cn(
+          "bg-muted ring-border relative shrink-0 overflow-hidden ring-1 ring-inset",
+          ARTWORK_CLASS[size],
+        )}
+      >
         {item.artworkUrl ? (
           <Image
             src={item.artworkUrl}
