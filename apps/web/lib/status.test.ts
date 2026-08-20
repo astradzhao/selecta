@@ -10,7 +10,7 @@ describe("toneToBadgeVariant", () => {
       warning: "warning",
       info: "info",
       destructive: "destructive",
-      neutral: "outline",
+      neutral: "secondary",
     };
     for (const [tone, variant] of Object.entries(expected) as Array<
       [StatusTone, ReturnType<typeof toneToBadgeVariant>]

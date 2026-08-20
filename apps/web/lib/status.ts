@@ -6,9 +6,9 @@ export type StatusDisplay = {
   inProgress?: boolean;
 };
 
-export type StatusBadgeVariant = "success" | "warning" | "info" | "destructive" | "outline";
+export type StatusBadgeVariant = "success" | "warning" | "info" | "destructive" | "secondary";
 
 export function toneToBadgeVariant(tone: StatusTone): StatusBadgeVariant {
-  if (tone === "neutral") return "outline";
+  if (tone === "neutral") return "secondary";
   return tone;
 }
