@@ -17,7 +17,7 @@
     "db:test": "pnpm db:up && pnpm db:test:prepare && pnpm run --filter @selecta/db --filter @selecta/library --filter @selecta/submissions test",
     "db:studio": "pnpm --filter @selecta/db db:studio",
     "build": "pnpm run --filter @selecta/web --filter @selecta/api build",
-    "lint": "pnpm run --recursive --filter '!@selecta/eslint-config' lint",
+    "lint": "pnpm run --recursive --filter '!@selecta/eslint-config' lint && pnpm --filter @selecta/eslint-config test",
     "typecheck": "pnpm run --recursive --filter '!@selecta/eslint-config' typecheck",
     "format": "oxfmt",
     "format:check": "oxfmt --check"

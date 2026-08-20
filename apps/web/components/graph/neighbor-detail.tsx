@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { Alert } from "@selecta/ui/components/alert";
 import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
+import { ConfirmDialog } from "@selecta/ui/components/confirm-dialog";
 
 import { omitFieldError } from "@/components/common/form-field";
 import { BarChart } from "@/components/graph/bar-chart";
@@ -45,6 +46,7 @@ export function NeighborDetail({
   const [form, setForm] = useState<TransitionFieldValues>(emptyTransitionFields());
   const [fieldErrors, setFieldErrors] = useState<TransitionFieldErrors>({});
   const [actionError, setActionError] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [saving, startSave] = useTransition();
   const [deleting, startDelete] = useTransition();
 
@@ -85,15 +87,12 @@ export function NeighborDetail({
     });
   }
 
-  function onDelete() {
+  function confirmDelete() {
     if (!t?.id) {
       setActionError("This transition has no stable id yet.");
       return;
     }
-    const confirmed = window.confirm(
-      `Delete the transition to “${neighbor.title}”? Sibling transitions stay intact.`,
-    );
-    if (!confirmed) return;
+    setDeleteOpen(false);
     startDelete(async () => {
       try {
         await deleteTransition(t.id!);
@@ -193,7 +192,7 @@ export function NeighborDetail({
                   size="sm"
                   variant="destructive"
                   disabled={deleting}
-                  onClick={onDelete}
+                  onClick={() => setDeleteOpen(true)}
                 >
                   {deleting ? "Deleting…" : "Delete"}
                 </Button>
@@ -242,6 +241,16 @@ export function NeighborDetail({
       {actionError && panelMode === "view" ? (
         <Alert variant="destructive">{actionError}</Alert>
       ) : null}
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete transition?"
+        description={`Delete the transition to “${neighbor.title}”? Sibling transitions stay intact.`}
+        confirmLabel="Delete"
+        pending={deleting}
+        pendingLabel="Deleting…"
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

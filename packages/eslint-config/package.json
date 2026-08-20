@@ -5,10 +5,15 @@
   "type": "module",
   "exports": {
     "./base": "./base.js",
-    "./next": "./next.js"
+    "./next": "./next.js",
+    "./ui": "./ui.js"
+  },
+  "scripts": {
+    "test": "node --test ui.test.mjs"
   },
   "dependencies": {
     "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
     "eslint-config-next": "16.2.12",
     "typescript-eslint": "^8.65.0"
   },

@@ -7,6 +7,7 @@ import { useEffect, useState, useTransition } from "react";
 
 import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
+import { ConfirmDialog } from "@selecta/ui/components/confirm-dialog";
 import { Input } from "@selecta/ui/components/input";
 import { PageBreadcrumb, PageHeader } from "@selecta/ui/components/page-header";
 import { Separator } from "@selecta/ui/components/separator";
@@ -77,6 +78,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [actionError, setActionError] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [loading, startLoad] = useTransition();
   const [saving, startSave] = useTransition();
   const [deleting, startDelete] = useTransition();
@@ -197,11 +199,9 @@ export function TrackDetail({ trackId }: { trackId: string }) {
     });
   }
 
-  function onDelete() {
+  function confirmDelete() {
     if (!track) return;
-    const confirmed = window.confirm(`Delete “${track.title}”? ${transitionWarning(track)}`);
-    if (!confirmed) return;
-
+    setDeleteOpen(false);
     startDelete(async () => {
       try {
         await deleteTrack(track.id);
@@ -220,6 +220,16 @@ export function TrackDetail({ trackId }: { trackId: string }) {
   if (editing) {
     return (
       <div className="space-y-10">
+        <ConfirmDialog
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+          title="Delete track?"
+          description={`Delete “${track.title}”? ${transitionWarning(track)}`}
+          confirmLabel="Delete"
+          pending={deleting}
+          pendingLabel="Deleting…"
+          onConfirm={confirmDelete}
+        />
         <PageHeader
           lead={
             <>
@@ -244,7 +254,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
                 variant="destructive"
                 size="sm"
                 disabled={deleting || saving}
-                onClick={onDelete}
+                onClick={() => setDeleteOpen(true)}
               >
                 {deleting ? "Deleting…" : "Delete"}
               </Button>
@@ -369,6 +379,16 @@ export function TrackDetail({ trackId }: { trackId: string }) {
 
   return (
     <div className="space-y-10">
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete track?"
+        description={`Delete “${track.title}”? ${transitionWarning(track)}`}
+        confirmLabel="Delete"
+        pending={deleting}
+        pendingLabel="Deleting…"
+        onConfirm={confirmDelete}
+      />
       <div className="space-y-3">
         <BackLink href="/library">Library</BackLink>
         <PageBreadcrumb>Track</PageBreadcrumb>
@@ -395,7 +415,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
                   variant="destructive"
                   size="sm"
                   disabled={deleting}
-                  onClick={onDelete}
+                  onClick={() => setDeleteOpen(true)}
                 >
                   {deleting ? "Deleting…" : "Delete"}
                 </Button>
