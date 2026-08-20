@@ -12,10 +12,7 @@ export type ProposalResolveItem = {
 
 export type ResolveProposalsBatchInput = {
   items: ProposalResolveItem[];
-  services: Pick<
-    SubmissionAgentServices,
-    "searchLibraryTracks" | "searchSpotifyTracks" | "findLibraryTrackByExternalId"
-  >;
+  services: Pick<SubmissionAgentServices, "searchSpotifyTracks" | "findLibraryTrackByExternalId">;
   batchSize?: number;
 };
 

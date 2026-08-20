@@ -22,10 +22,6 @@ export function confidenceOrdinal(level: ConfidenceLevel): number {
   return ORDINAL[level];
 }
 
-export function meetsAutoCommitConfidence(level: ConfidenceLevel): boolean {
-  return confidenceOrdinal(level) >= confidenceOrdinal(AUTO_COMMIT_CONFIDENCE_FLOOR);
-}
-
 /** Map enum → 0..1 for Neo4j / notes.extractionConfidence storage that still expects a float. */
 export function confidenceToUnitInterval(level: ConfidenceLevel): number {
   return confidenceOrdinal(level) / (CONFIDENCE_LEVELS.length - 1);

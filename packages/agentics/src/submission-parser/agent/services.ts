@@ -37,7 +37,6 @@ export const SearchCandidatesOutputSchema = z.object({
 export type SearchCandidatesOutput = z.infer<typeof SearchCandidatesOutputSchema>;
 
 export type SubmissionAgentServices = {
-  searchLibraryTracks: (input: SearchQueriesInput) => Promise<SearchCandidatesOutput>;
   searchSpotifyTracks: (input: SearchQueriesInput) => Promise<SearchCandidatesOutput>;
   /**
    * Exact library lookup by catalog external id (e.g. Spotify).

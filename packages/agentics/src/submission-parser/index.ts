@@ -1,7 +1,5 @@
 /** Submission NL parse / preview / commit orchestration + schemas. */
 
-import { ORCHESTRATOR_PROMPT_VERSION } from "./agent/orchestrator-prompt";
-
 export {
   SUBMISSION_CONTENT_TYPES,
   TRANSITION_QUALITIES,
@@ -14,7 +12,6 @@ export {
   AUTO_COMMIT_CONFIDENCE_FLOOR,
   confidenceOrdinal,
   confidenceToUnitInterval,
-  meetsAutoCommitConfidence,
   type ConfidenceLevel,
 } from "./agent/confidence";
 
@@ -38,11 +35,9 @@ export {
   ParseSingleTransitionReceiptSchema,
   ParseSingleTransitionInputSchema,
   draftToSingleUnresolvedPlan,
-  OrchestratorFinishSchema,
   type SingleTransitionDraft,
   type ParseSingleTransitionReceipt,
   type ParseSingleTransitionInput,
-  type OrchestratorFinish,
 } from "./agent/single-transition-schema";
 
 export {
@@ -67,7 +62,7 @@ export {
   type SubmissionAgentServices,
 } from "./agent/services";
 
-export { CandidateRegistry, withCandidateRegistry } from "./agent/candidate-registry";
+export { CandidateRegistry } from "./agent/candidate-registry";
 export {
   type PolicyGateCode,
   type PolicyImportAction,
@@ -91,11 +86,6 @@ export {
   type BuildReviewerPolicyResultInput,
 } from "./agent/reviewer-policy";
 export {
-  resolveSubmissionMentions,
-  type ResolveMentionsInput,
-  type ResolveMentionsResult,
-} from "./agent/resolve-mentions";
-export {
   resolveProposalsBatch,
   type ProposalResolveItem,
   type ResolveProposalsBatchInput,
@@ -108,18 +98,5 @@ export {
   type ParseSingleTransitionDraftResult,
 } from "./agent/parse-single-transition";
 export { sourceFingerprint, spanProposalKey } from "./agent/proposal-key";
-export {
-  SUBMISSION_LIMITS,
-  utf8ByteLength,
-  assertRawTextWithinLimit,
-  type SubmissionLimits,
-} from "./agent/limits";
+export { SUBMISSION_LIMITS, type SubmissionLimits } from "./agent/limits";
 export { providerFromModel } from "./agent/provider";
-
-export function getSubmissionParserStatus() {
-  return {
-    configured: true as const,
-    feature: "submission-parser" as const,
-    promptVersion: ORCHESTRATOR_PROMPT_VERSION,
-  };
-}

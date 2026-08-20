@@ -5,15 +5,11 @@ import {
   AUTO_COMMIT_CONFIDENCE_FLOOR,
   confidenceOrdinal,
   confidenceToUnitInterval,
-  meetsAutoCommitConfidence,
 } from "./confidence";
 
 describe("confidence ladder", () => {
   it("auto-commits at strong and above", () => {
     assert.equal(AUTO_COMMIT_CONFIDENCE_FLOOR, "strong");
-    assert.equal(meetsAutoCommitConfidence("moderate"), false);
-    assert.equal(meetsAutoCommitConfidence("strong"), true);
-    assert.equal(meetsAutoCommitConfidence("full"), true);
   });
 
   it("maps levels to a stable 0..1 scale", () => {

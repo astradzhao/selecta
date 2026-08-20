@@ -1,9 +1,5 @@
 import type { TrackCandidate } from "./services";
-import type {
-  SubmissionAgentServices,
-  SearchCandidatesOutput,
-  SearchQueriesInput,
-} from "./services";
+import type { SearchCandidatesOutput } from "./services";
 
 /**
  * Collects tool-returned candidates so policy can reject invented handles.
@@ -24,24 +20,4 @@ export class CandidateRegistry {
       this.byMentionId.set(result.mentionId, list);
     }
   }
-}
-
-/** Wrap services so every search result is recorded for provenance checks. */
-export function withCandidateRegistry(
-  services: SubmissionAgentServices,
-  registry: CandidateRegistry,
-): SubmissionAgentServices {
-  return {
-    ...services,
-    searchLibraryTracks: async (input: SearchQueriesInput) => {
-      const output = await services.searchLibraryTracks(input);
-      registry.ingest(output);
-      return output;
-    },
-    searchSpotifyTracks: async (input: SearchQueriesInput) => {
-      const output = await services.searchSpotifyTracks(input);
-      registry.ingest(output);
-      return output;
-    },
-  };
 }
