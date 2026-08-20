@@ -1,6 +1,6 @@
 /** Shared column geometry for the Library crate header and each track row. */
 export const CRATE_TRACK_GRID =
-  "grid grid-cols-[minmax(0,1fr)_3.25rem] items-center gap-4 px-3.5 sm:grid-cols-[minmax(0,1fr)_5.75rem_3.5rem_3.5rem_3.25rem]";
+  "grid grid-cols-[minmax(0,1fr)_3.25rem] items-center gap-4 px-3.5 sm:grid-cols-[minmax(0,1fr)_7.5rem_3.5rem_3.5rem_3.25rem]";
 
 export function formatBpmKey(
   bpm: number | null | undefined,

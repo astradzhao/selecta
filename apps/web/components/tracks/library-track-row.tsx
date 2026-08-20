@@ -16,6 +16,11 @@ import type { ApiTrack } from "@/lib/tracks/types";
 
 const ARTWORK_PX = TRACK_ROW_ARTWORK_PX.sm;
 
+const CRATE_ROW_CLASS = cn(
+  CRATE_TRACK_GRID,
+  "hover:bg-surface-2 focus-visible:bg-surface-2 min-h-14 transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+);
+
 function CrateMeta({
   children,
   empty = false,
@@ -28,9 +33,9 @@ function CrateMeta({
   return (
     <span
       className={cn(
-        "text-crate-meta",
+        "text-crate-meta min-w-0 text-center",
         always ? null : "hidden sm:block",
-        empty ? "text-center opacity-40" : "text-right",
+        empty && "opacity-40",
       )}
     >
       {children}
@@ -46,7 +51,7 @@ function CrateEdgeCount({ count, direction }: { count: number; direction: "in" |
   const Icon = direction === "in" ? ArrowLeftIcon : ArrowRightIcon;
   return (
     <CrateMeta>
-      <span className="text-brand inline-flex items-center justify-end gap-0.5 font-medium">
+      <span className="text-brand inline-flex items-center justify-center gap-0.5 font-medium">
         <Icon className="size-3" aria-hidden />
         {count}
       </span>
@@ -62,10 +67,11 @@ export function LibraryTrackRow({ track }: { track: ApiTrack }) {
   const subgenre = track.subgenres[0];
 
   return (
-    <DataListRow className={cn(CRATE_TRACK_GRID, "min-h-14 py-0")}>
+    <DataListRow interactive={false}>
       <Link
         href={`/tracks/${track.id}`}
         aria-label={`${track.title}. ${inbound} inbound, ${outbound} outbound.`}
+        className={CRATE_ROW_CLASS}
       >
         <span className="flex min-w-0 items-center gap-2.5">
           <span className="bg-muted ring-border relative size-10 shrink-0 overflow-hidden rounded-md ring-1 ring-inset">
@@ -111,10 +117,10 @@ export function LibraryTrackColumnHeader() {
       aria-hidden
     >
       <span>Track</span>
-      <span className="text-right">BPM · Key</span>
-      <span className="text-right">In</span>
-      <span className="text-right">Out</span>
-      <span className="text-right">Time</span>
+      <span className="text-center">BPM · Key</span>
+      <span className="text-center">In</span>
+      <span className="text-center">Out</span>
+      <span className="text-center">Time</span>
     </div>
   );
 }
