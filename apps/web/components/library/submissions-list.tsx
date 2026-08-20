@@ -5,10 +5,14 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PlusIcon, SearchIcon, XIcon } from "lucide-react";
 
+import { Alert } from "@selecta/ui/components/alert";
 import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
+import { Checkbox } from "@selecta/ui/components/checkbox";
 import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
+import { Select } from "@selecta/ui/components/select";
+import { Skeleton } from "@selecta/ui/components/skeleton";
 
 import { ApiClientError } from "@/lib/api/client";
 import { listSubmissions, type ApiNote, type NoteExtractionStatus } from "@/lib/notes/api";
@@ -180,9 +184,8 @@ export function SubmissionsList() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="filter-status">Status</Label>
-            <select
+            <Select
               id="filter-status"
-              className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
               value={status}
               onChange={(event) => setStatus(event.target.value as "" | NoteExtractionStatus)}
             >
@@ -191,16 +194,14 @@ export function SubmissionsList() {
                   {option.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
-            <input
+            <Checkbox
               id="filter-needs-review"
-              type="checkbox"
-              className="size-4 rounded border"
               checked={needsReviewOnly}
               onChange={(event) => setNeedsReviewOnly(event.target.checked)}
             />
@@ -252,10 +253,16 @@ export function SubmissionsList() {
           </div>
         ) : isInitialLoading ? (
           <div
-            className="border-border text-muted-foreground rounded-xl border px-5 py-10 text-sm"
+            className="divide-border border-border divide-y overflow-hidden rounded-xl border"
             aria-busy="true"
+            aria-label="Loading submissions"
           >
-            Loading submissions…
+            {Array.from({ length: 5 }, (_, index) => (
+              <div key={index} className="space-y-2 px-4 py-3">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            ))}
           </div>
         ) : (
           <div className="space-y-3">
@@ -326,11 +333,7 @@ export function SubmissionsList() {
                 {loadingMore ? "Loading…" : "Load more"}
               </Button>
             ) : null}
-            {error && submissions.length > 0 ? (
-              <p className="text-sm" role="alert">
-                {error}
-              </p>
-            ) : null}
+            {error && submissions.length > 0 ? <Alert variant="destructive">{error}</Alert> : null}
           </div>
         )}
       </section>

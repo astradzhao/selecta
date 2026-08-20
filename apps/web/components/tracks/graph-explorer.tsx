@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 
+import { Alert } from "@selecta/ui/components/alert";
 import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
 import { Input } from "@selecta/ui/components/input";
@@ -580,11 +581,7 @@ function NeighborCard({
                     setActionError(null);
                   }}
                 />
-                {actionError ? (
-                  <p className="text-sm" role="alert">
-                    {actionError}
-                  </p>
-                ) : null}
+                {actionError ? <Alert variant="destructive">{actionError}</Alert> : null}
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" disabled={saving} onClick={onSaveEdit}>
                     {saving ? "Saving…" : "Save"}
@@ -605,9 +602,7 @@ function NeighborCard({
             ) : null}
 
             {actionError && panelMode === "view" ? (
-              <p className="text-sm" role="alert">
-                {actionError}
-              </p>
+              <Alert variant="destructive">{actionError}</Alert>
             ) : null}
           </div>
         </div>
@@ -770,11 +765,7 @@ function AddTransitionPanel({
         }}
       />
 
-      {error ? (
-        <p className="text-sm" role="alert">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Alert variant="destructive">{error}</Alert> : null}
 
       <Button type="button" disabled={saving || !selected} onClick={onSubmit}>
         {saving ? "Saving…" : "Create transition"}
@@ -937,9 +928,7 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
   if (error || !current) {
     return (
       <div className="motion-safe:animate-in motion-safe:fade-in-0 space-y-4 duration-500">
-        <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm">
-          {error ?? "Track not found."}
-        </p>
+        <Alert variant="destructive">{error ?? "Track not found."}</Alert>
         <div className="flex flex-wrap gap-3">
           <Button type="button" variant="outline" onClick={onExit}>
             Back to Graph

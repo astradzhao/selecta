@@ -4,10 +4,13 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { SearchIcon, XIcon } from "lucide-react";
 
+import { Alert } from "@selecta/ui/components/alert";
 import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
+import { Checkbox } from "@selecta/ui/components/checkbox";
 import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
+import { Select } from "@selecta/ui/components/select";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { ProposalStatusBadge } from "@/components/library/proposal-status-badge";
@@ -166,9 +169,8 @@ export function TransitionsList() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="filter-source">Source</Label>
-            <select
+            <Select
               id="filter-source"
-              className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
               value={source}
               onChange={(event) => setSource(event.target.value as "" | "manual" | "ai")}
               disabled={needsReviewOnly}
@@ -176,16 +178,14 @@ export function TransitionsList() {
               <option value="">Any</option>
               <option value="manual">Manual</option>
               <option value="ai">From submission</option>
-            </select>
+            </Select>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
-            <input
+            <Checkbox
               id="filter-needs-review-only"
-              type="checkbox"
-              className="size-4 rounded border"
               checked={needsReviewOnly}
               onChange={(event) => setNeedsReviewOnly(event.target.checked)}
             />
@@ -352,11 +352,7 @@ export function TransitionsList() {
               </div>
             ) : null}
 
-            {error ? (
-              <p className="text-sm" role="alert">
-                {error}
-              </p>
-            ) : null}
+            {error ? <Alert variant="destructive">{error}</Alert> : null}
           </div>
         )}
       </section>

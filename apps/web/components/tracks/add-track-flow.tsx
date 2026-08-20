@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { SearchIcon } from "lucide-react";
 
+import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
 import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
@@ -177,11 +178,7 @@ export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) 
             ) : null}
           </div>
 
-          {visibleSearchError ? (
-            <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm">
-              {visibleSearchError}
-            </p>
-          ) : null}
+          {visibleSearchError ? <Alert variant="destructive">{visibleSearchError}</Alert> : null}
 
           <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
             {visibleResults.map((track) => (
@@ -285,11 +282,7 @@ export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) 
 
           <FolderTagEditor values={folders} onChange={setFolders} />
 
-          {saveError ? (
-            <p className="border-destructive/30 bg-destructive-subtle text-destructive rounded-lg border px-3 py-2 text-sm">
-              {saveError}
-            </p>
-          ) : null}
+          {saveError ? <Alert variant="destructive">{saveError}</Alert> : null}
 
           <div className="flex gap-3">
             <Button type="button" onClick={save} disabled={savePending}>

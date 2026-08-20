@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 
+import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
 import { Label } from "@selecta/ui/components/label";
 import { Textarea } from "@selecta/ui/components/textarea";
@@ -150,9 +151,7 @@ export function SubmissionDetail({ noteId }: { noteId: string }) {
   if (loadError || !note) {
     return (
       <div className="space-y-4">
-        <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm">
-          {loadError ?? "Submission not found."}
-        </p>
+        <Alert variant="destructive">{loadError ?? "Submission not found."}</Alert>
         <Button asChild variant="outline">
           <Link href={LIST_HREF}>Back to submissions</Link>
         </Button>
@@ -201,17 +200,11 @@ export function SubmissionDetail({ noteId }: { noteId: string }) {
           <p className="text-card-title">Extraction: {statusLabel(note.extractionStatus)}</p>
           {countsLine ? <p className="text-muted-foreground text-sm">{countsLine}</p> : null}
           {note.extractionStatus === "failed" && note.extractionError ? (
-            <p className="text-sm" role="alert">
-              {note.extractionError}
-            </p>
+            <Alert variant="destructive">{note.extractionError}</Alert>
           ) : null}
         </section>
         <SubmissionProposals noteId={note.id} rawText={note.rawText} />
-        {retryError ? (
-          <p className="text-sm" role="alert">
-            {retryError}
-          </p>
-        ) : null}
+        {retryError ? <Alert variant="destructive">{retryError}</Alert> : null}
         {canRetry(note.extractionStatus) ? (
           <Button
             type="button"

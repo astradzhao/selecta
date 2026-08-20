@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useState, useTransition } from "react";
 import { ArrowLeftIcon } from "lucide-react";
 
+import { Alert, AlertDescription, AlertTitle } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
+import { Checkbox } from "@selecta/ui/components/checkbox";
 import { Label } from "@selecta/ui/components/label";
 import { Separator } from "@selecta/ui/components/separator";
 
@@ -428,9 +430,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
   if (loadError || !proposal || !note) {
     return (
       <div className="space-y-4">
-        <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm">
-          {loadError ?? "Proposal not found."}
-        </p>
+        <Alert variant="destructive">{loadError ?? "Proposal not found."}</Alert>
         <Button asChild variant="outline">
           <Link href={submissionHref}>Back to submission</Link>
         </Button>
@@ -505,37 +505,26 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
       </header>
 
       {conflictMessage ? (
-        <div className="border-border bg-surface-2 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm">
+        <Alert variant="destructive" className="flex flex-wrap items-center justify-between gap-3">
           <span>{conflictMessage}</span>
           <Button type="button" size="sm" variant="outline" onClick={() => void reloadDetail()}>
             Reload
           </Button>
-        </div>
+        </Alert>
       ) : null}
 
-      {actionError ? (
-        <p
-          className="border-destructive/40 bg-destructive-subtle text-destructive rounded-lg border px-4 py-3 text-sm"
-          role="alert"
-        >
-          {actionError}
-        </p>
-      ) : null}
+      {actionError ? <Alert variant="destructive">{actionError}</Alert> : null}
 
-      {statusNotice ? (
-        <p className="border-border bg-surface-2 text-muted-foreground rounded-lg border px-4 py-3 text-sm">
-          {statusNotice}
-        </p>
-      ) : null}
+      {statusNotice ? <Alert variant="info">{statusNotice}</Alert> : null}
 
       {proposal.status === "failed" ? (
-        <div className="border-destructive/40 bg-destructive-subtle space-y-1 rounded-lg border px-4 py-3">
-          <p className="text-card-title">Extraction failed for this span</p>
-          <p className="text-muted-foreground text-sm">
+        <Alert variant="destructive">
+          <AlertTitle>Extraction failed for this span</AlertTitle>
+          <AlertDescription>
             {proposal.error ?? "No error detail was recorded."} You can still fill it in by hand
             below.
-          </p>
-        </div>
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       {gateLines.length > 0 && !readOnly ? (
@@ -603,10 +592,8 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
           disabled={readOnly || acting}
         />
         <div className="flex items-center gap-2">
-          <input
+          <Checkbox
             id={`${fieldId}-bidirectional`}
-            type="checkbox"
-            className="size-4 rounded border"
             checked={bidirectional}
             disabled={readOnly || acting}
             onChange={(event) => setBidirectional(event.target.checked)}
