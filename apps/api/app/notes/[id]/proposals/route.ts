@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getNoteById, isPostgresConfigured, listProposals } from "@selecta/db";
+import { isPostgresConfigured } from "@selecta/db";
+import { getNoteById, listProposals } from "@selecta/submissions";
 
 import { serializeProposals } from "@/lib/proposals";
 

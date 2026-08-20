@@ -1,4 +1,4 @@
-import type { FolderKind } from "../schema";
+import type { FolderKind } from "@selecta/db/schema";
 import { isFolderKind } from "./constants";
 import { MusicWriteError } from "./errors";
 import type { ListPageMeta } from "./list-page";

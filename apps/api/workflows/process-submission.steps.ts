@@ -18,6 +18,7 @@ import {
   type ParseSingleTransitionReceipt,
   type SingleTransitionDraft,
 } from "@selecta/mix-notes";
+import { isPostgresConfigured, runInDbTransaction, type NoteProposal } from "@selecta/db";
 import {
   claimProposal,
   completeExtraction,
@@ -28,14 +29,11 @@ import {
   getNoteById,
   getProposalById,
   getProposalByKey,
-  isPostgresConfigured,
   listProposalsForVersion,
-  runInDbTransaction,
   startAgentRun,
   updateProposal,
   upsertTransitionCommit,
-  type NoteProposal,
-} from "@selecta/db";
+} from "@selecta/submissions";
 import { FatalError, RetryableError } from "workflow";
 
 import { createNoteAgentServices } from "@/lib/note-agent-services";

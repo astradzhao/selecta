@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
-import { getDb } from "../client";
-import { transitions, type TransitionRow } from "../schema";
+import { getDb } from "@selecta/db";
+import { transitions, type TransitionRow } from "@selecta/db/schema";
 import type { FolderNode, NamedNode, TrackNode, TrackSummary } from "./types";
 import { getTrackById, getTrackSummariesByIds } from "./tracks";
 

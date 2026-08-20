@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { reorderSequence } from "@selecta/db";
+import { reorderSequence } from "@selecta/library";
 
 import {
   invalidBody,

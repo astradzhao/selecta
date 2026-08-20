@@ -1,11 +1,11 @@
 import { and, asc, eq } from "drizzle-orm";
 
-import { getDb } from "./client";
+import { getDb } from "@selecta/db";
 import { NotesError } from "./errors";
 import { getNoteById } from "./notes";
-import { getTrackSummariesByIds } from "./music/tracks";
-import { noteTrackLinks, tracks, type NoteTrackLink } from "./schema";
-import type { TrackSummary } from "./music/types";
+import { getTrackSummariesByIds } from "@selecta/library";
+import { noteTrackLinks, tracks, type NoteTrackLink } from "@selecta/db/schema";
+import type { TrackSummary } from "@selecta/library";
 
 export type AddNoteTrackLinkInput = {
   trackId: string;

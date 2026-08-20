@@ -1,4 +1,4 @@
-import type { FolderKind, Track, TrackExternalId } from "../schema";
+import type { FolderKind, Track, TrackExternalId } from "@selecta/db/schema";
 import { isFolderKind } from "./constants";
 import type { FolderNode, NamedNode, TrackNode } from "./types";
 

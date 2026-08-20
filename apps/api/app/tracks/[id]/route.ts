@@ -8,7 +8,7 @@ import {
   type NamedRef,
   type TrackDetail,
   type UpdateTrackInput,
-} from "@selecta/db";
+} from "@selecta/library";
 
 type RouteContext = {
   params: Promise<{ id: string }>;

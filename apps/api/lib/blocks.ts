@@ -16,7 +16,7 @@ import {
   type UpdateSequenceInput,
   type UpdateSequenceStepInput,
   type UpdateSequenceVersionInput,
-} from "@selecta/db";
+} from "@selecta/library";
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

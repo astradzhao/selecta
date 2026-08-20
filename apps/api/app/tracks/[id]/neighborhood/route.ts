@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTrackNeighborhood } from "@selecta/db";
+import { getTrackNeighborhood } from "@selecta/library";
 
 type RouteContext = {
   params: Promise<{ id: string }>;

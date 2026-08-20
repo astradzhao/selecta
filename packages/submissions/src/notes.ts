@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gte, ilike, lte, max, sql, type SQL } from "drizzle-orm";
 
-import { getDb } from "./client";
-import { getExecutor } from "./executor";
+import { getDb } from "@selecta/db";
+import { getExecutor } from "@selecta/db";
 import { NotesError } from "./errors";
 import {
   countProposalsForVersion,
@@ -19,7 +19,7 @@ import {
   type NoteProposal,
   type NoteTransitionCommit,
   type NoteTransitionCommitStatus,
-} from "./schema";
+} from "@selecta/db/schema";
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;

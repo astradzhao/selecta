@@ -1,0 +1,26 @@
+{
+  "name": "@selecta/submissions",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test --test-concurrency=1 src/*.test.ts src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@selecta/db": "workspace:*",
+    "@selecta/library": "workspace:*",
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "@selecta/eslint-config": "workspace:*",
+    "@types/node": "^20",
+    "eslint": "^9",
+    "tsx": "^4.23.1",
+    "typescript": "^5"
+  }
+}

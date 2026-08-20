@@ -5,7 +5,7 @@ import {
   listSubgenres,
   type FolderNode,
   type NamedNode,
-} from "@selecta/db";
+} from "@selecta/library";
 
 const VOCAB_TYPES = ["genres", "subgenres", "folders"] as const;
 type VocabType = (typeof VOCAB_TYPES)[number];

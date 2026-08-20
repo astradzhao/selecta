@@ -44,8 +44,13 @@ This is a pnpm workspace monorepo:
 
 - `apps/web` (`@selecta/web`) — Next.js UI deployable (port 3000)
 - `apps/api` (`@selecta/api`) — Next.js API deployable (port 3001)
-- `packages/catalog|db|mix-notes|agentics|ui` — shared libraries (`@selecta/*`)
+- `packages/db` (`@selecta/db`) — Postgres client, Drizzle schema, and migrations only (no domain logic)
+- `packages/library` (`@selecta/library`) — music domain: tracks, transitions, vocab, neighborhood, sequences/blocks
+- `packages/submissions` (`@selecta/submissions`) — notes, proposals, and extraction bookkeeping
+- `packages/catalog|mix-notes|agentics|ui` — shared libraries (`@selecta/*`)
 - `packages/eslint-config` (`@selecta/eslint-config`) — shared ESLint flat configs
+
+Domain packages depend on `@selecta/db` for the client/executor (`getDb`, `getExecutor`, `runInDbTransaction`) and table definitions (`@selecta/db/schema`); `@selecta/db` never imports domain logic.
 
 Put deployable apps under `apps/`. Put shared domain/UI libraries under `packages/`. Prefer importing `@selecta/*` from apps instead of duplicating logic.
 

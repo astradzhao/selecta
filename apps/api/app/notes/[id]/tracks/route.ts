@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
-import {
-  addNoteTrackLink,
-  getNoteById,
-  getTrackById,
-  isNotesError,
-  isPostgresConfigured,
-} from "@selecta/db";
+import { isPostgresConfigured } from "@selecta/db";
+import { getTrackById } from "@selecta/library";
+import { addNoteTrackLink, getNoteById, isNotesError } from "@selecta/submissions";
 
 import { loadSerializedTrackLinks, serializeNote, serializeNoteTrackLink } from "@/lib/notes";
 

@@ -16,7 +16,7 @@ import {
 import { alias } from "drizzle-orm/pg-core";
 import { randomUUID } from "node:crypto";
 
-import { getExecutor, runInDbTransaction } from "../executor";
+import { getExecutor, runInDbTransaction } from "@selecta/db";
 import { collectSequenceIdsUsingTransition, recomputeSequencesDerived } from "./blocks";
 import {
   artists,
@@ -28,7 +28,7 @@ import {
   type NoteProposalStatus,
   type Track,
   type TransitionRow,
-} from "../schema";
+} from "@selecta/db/schema";
 import { MusicWriteError } from "./errors";
 import { clampListLimit, clampListOffset, type ListPageMeta } from "./list-page";
 import { toNamedNode, toTrackNode } from "./mappers";

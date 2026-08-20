@@ -7,7 +7,7 @@
 import { and, asc, desc, eq, gte, inArray, or, sql, type SQL } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 
-import { getExecutor, runInDbTransaction } from "../executor";
+import { getExecutor, runInDbTransaction } from "@selecta/db";
 import {
   blockAlternates,
   blockSteps,
@@ -21,7 +21,7 @@ import {
   type BlockRow,
   type BlockStepRow,
   type BlockVersionRow,
-} from "../schema";
+} from "@selecta/db/schema";
 import { SEQUENCE_MAX_NESTING_DEPTH, isBlockKind, type GapState } from "./constants";
 import { MusicWriteError } from "./errors";
 import { clampListLimit, clampListOffset, type ListPageMeta } from "./list-page";

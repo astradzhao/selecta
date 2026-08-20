@@ -1,14 +1,14 @@
 import { and, asc, desc, eq, ilike, inArray, ne, sql, type SQL } from "drizzle-orm";
 
-import { getDb } from "./client";
-import { getExecutor } from "./executor";
+import { getDb } from "@selecta/db";
+import { getExecutor } from "@selecta/db";
 import { NotesError } from "./errors";
 import {
   clampListLimit,
   clampListOffset,
   DEFAULT_LIST_LIMIT,
   MAX_LIST_LIMIT,
-} from "./music/list-page";
+} from "@selecta/library";
 import {
   noteProposals,
   notes,
@@ -20,7 +20,7 @@ import {
   type NoteProposalStatus,
   type NoteTransitionCommit,
   type ProposalReviewAction,
-} from "./schema";
+} from "@selecta/db/schema";
 
 export type ClaimProposalInput = {
   noteId: string;

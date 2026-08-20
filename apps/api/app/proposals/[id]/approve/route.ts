@@ -7,7 +7,8 @@ import {
   type NoteTransitionPlan,
   type SingleTransitionDraft,
 } from "@selecta/mix-notes";
-import { getProposalById, isPostgresConfigured, updateProposalGuarded } from "@selecta/db";
+import { isPostgresConfigured } from "@selecta/db";
+import { getProposalById, updateProposalGuarded } from "@selecta/submissions";
 
 import { commitProposalPolicy, loadCommittedTransition } from "@/lib/proposal-actions";
 import { serializeProposal } from "@/lib/proposals";

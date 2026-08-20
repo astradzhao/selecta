@@ -68,10 +68,10 @@ The product is **not** a DAW or mixer. It is a **knowledge + decision surface** 
 
 ~~**Decision (locked): split stores. Neo4j holds only musical knowledge.**~~
 
-| Store        | Owns (historical plan)                                                                                    | Current |
-| ------------ | --------------------------------------------------------------------------------------------------------- | ------- |
-| **Postgres** | Users/auth, libraries, sessions, raw notes + extraction, membership, app audit **+ music domain tables** | **sole store** |
-| ~~**Neo4j**~~    | ~~Tracks, artists, genres, transitions, cues~~                                                            | **removed** |
+| Store         | Owns (historical plan)                                                                                   | Current        |
+| ------------- | -------------------------------------------------------------------------------------------------------- | -------------- |
+| **Postgres**  | Users/auth, libraries, sessions, raw notes + extraction, membership, app audit **+ music domain tables** | **sole store** |
+| ~~**Neo4j**~~ | ~~Tracks, artists, genres, transitions, cues~~                                                           | **removed**    |
 
 ### Why the split was reconsidered
 
@@ -431,7 +431,7 @@ No separate Go/Python API. No message bus. No extra BFF. Split a worker later on
 | UI       | **shadcn/ui + Tailwind**                      | Accessible primitives; Live Mode can still be custom/composition-light |
 | Auth     | Clerk (or Auth.js)                            | Stays in the Next app                                                  |
 | API      | Route Handlers + Server Actions               | Same-origin, typed, no separate API host                               |
-| Graph DB | ~~Neo4j Aura~~ → **Postgres music tables** | Single-store music domain (`@selecta/db`)                               |
+| Graph DB | ~~Neo4j Aura~~ → **Postgres music tables**    | Single-store music domain (`@selecta/db`)                              |
 | App DB   | Postgres (Neon / Marketplace)                 | Tenancy, sessions, notes, **and** music                                |
 | AI       | Vercel AI Gateway + AI SDK structured output  | NL → JSON; not on Live Mode hot path                                   |
 | Hosting  | Vercel Fluid Compute (Node)                   | Connection reuse, no edge runtime required                             |
@@ -467,16 +467,16 @@ UI uses **shadcn** primitives (`Button`, `Command`, `Dialog`, `Input`, etc.). Li
 
 ### 8.6 API surface (conceptual)
 
-| Method | Path                      | Purpose                                       |
-| ------ | ------------------------- | --------------------------------------------- |
-| `POST` | `/api/notes/parse`        | NL → structured preview (no write)            |
+| Method | Path                      | Purpose                                              |
+| ------ | ------------------------- | ---------------------------------------------------- |
+| `POST` | `/api/notes/parse`        | NL → structured preview (no write)                   |
 | `POST` | `/api/notes/commit`       | Apply accepted preview to music tables + PG note row |
-| `GET`  | `/api/tracks`             | Search/list (membership-scoped)               |
-| `POST` | `/api/tracks`             | Manual create (Artist + Genre required)       |
-| `GET`  | `/api/tracks/:id`         | Track + cues + outbound transitions           |
-| `GET`  | `/api/live/next`          | Session → ranked next tracks + nearby cues    |
-| `PUT`  | `/api/live/session`       | Update current track/bar/intent filter        |
-| `GET`  | `/api/graph/neighborhood` | Optional explorer (prep mode)                 |
+| `GET`  | `/api/tracks`             | Search/list (membership-scoped)                      |
+| `POST` | `/api/tracks`             | Manual create (Artist + Genre required)              |
+| `GET`  | `/api/tracks/:id`         | Track + cues + outbound transitions                  |
+| `GET`  | `/api/live/next`          | Session → ranked next tracks + nearby cues           |
+| `PUT`  | `/api/live/session`       | Update current track/bar/intent filter               |
+| `GET`  | `/api/graph/neighborhood` | Optional explorer (prep mode)                        |
 
 ---
 
@@ -679,21 +679,21 @@ Suggested early `dev-files/` companions (later, not now):
 
 ## 15. Risks & open decisions
 
-| Topic                          | Options                             | Recommendation                                                   |
-| ------------------------------ | ----------------------------------- | ---------------------------------------------------------------- |
+| Topic                          | Options                             | Recommendation                                                           |
+| ------------------------------ | ----------------------------------- | ------------------------------------------------------------------------ |
 | Neo4j only vs Neo4j + Postgres | Single store vs split               | **Superseded: single Postgres** (DJ-80) — see `PG_MIGRATION_REFACTOR.md` |
 | User/Note in graph             | OWNS edges vs external membership   | **Locked: no User/Note as music entities** — membership in Postgres      |
-| Artist / Genre modeling        | Properties vs nodes                 | **Locked: required nodes + edges**                               |
-| Backend shape                  | Next fullstack vs Go/Python service | **Locked: Next.js on Vercel** (fewest services, fewest hops)     |
-| UI kit                         | Custom vs shadcn                    | **Locked: shadcn/ui + Tailwind**                                 |
-| Auto-commit NL vs confirm      | Speed vs trust                      | Confirm in Phases 1–2                                            |
-| Cue as node vs properties      | Flexibility vs simplicity           | Cue nodes                                                        |
-| Intent/Technique               | Edge props vs nodes                 | Props in v1; promote to nodes if faceting needs hubs             |
-| Artist uniqueness              | Per-library vs global MERGE         | Global `nameNormalized` MERGE; tracks stay library-scoped        |
-| Bar tracking                   | Manual vs synced                    | Manual stepper in v1                                             |
-| Multi-device live              | Phone + laptop                      | PWA-friendly Live Mode early                                     |
-| Ontology strictness            | Enums vs free text                  | Hybrid: seeded enums + `notes` free text                         |
-| Extra infra (Redis/queue)      | Add early vs defer                  | **Defer** until measured need                                    |
+| Artist / Genre modeling        | Properties vs nodes                 | **Locked: required nodes + edges**                                       |
+| Backend shape                  | Next fullstack vs Go/Python service | **Locked: Next.js on Vercel** (fewest services, fewest hops)             |
+| UI kit                         | Custom vs shadcn                    | **Locked: shadcn/ui + Tailwind**                                         |
+| Auto-commit NL vs confirm      | Speed vs trust                      | Confirm in Phases 1–2                                                    |
+| Cue as node vs properties      | Flexibility vs simplicity           | Cue nodes                                                                |
+| Intent/Technique               | Edge props vs nodes                 | Props in v1; promote to nodes if faceting needs hubs                     |
+| Artist uniqueness              | Per-library vs global MERGE         | Global `nameNormalized` MERGE; tracks stay library-scoped                |
+| Bar tracking                   | Manual vs synced                    | Manual stepper in v1                                                     |
+| Multi-device live              | Phone + laptop                      | PWA-friendly Live Mode early                                             |
+| Ontology strictness            | Enums vs free text                  | Hybrid: seeded enums + `notes` free text                                 |
+| Extra infra (Redis/queue)      | Add early vs defer                  | **Defer** until measured need                                            |
 
 ### Open product questions
 

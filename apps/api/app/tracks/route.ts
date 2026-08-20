@@ -8,7 +8,7 @@ import {
   type FolderRef,
   type NamedRef,
   type TrackSummary,
-} from "@selecta/db";
+} from "@selecta/library";
 import { CATALOG_PROVIDERS, type CatalogProviderId } from "@selecta/catalog";
 
 type CatalogImportBody = {

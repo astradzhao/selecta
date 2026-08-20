@@ -3,11 +3,16 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { before, describe, it } from "node:test";
 
-import { getDb } from "../client";
-import { addNoteTrackLink, listNoteTrackLinks } from "../note-track-links";
-import { createNote, getNoteById, upsertTransitionCommit } from "../notes";
-import { noteTransitionCommits, trackArtists, trackExternalIds, transitions } from "../schema";
-import { isDbIntegrationEnabled, resetDbIntegrationData } from "../test-env";
+import { getDb } from "@selecta/db";
+import { addNoteTrackLink, listNoteTrackLinks } from "@selecta/submissions";
+import { createNote, getNoteById, upsertTransitionCommit } from "@selecta/submissions";
+import {
+  noteTransitionCommits,
+  trackArtists,
+  trackExternalIds,
+  transitions,
+} from "@selecta/db/schema";
+import { isDbIntegrationEnabled, resetDbIntegrationData } from "@selecta/db/testing";
 import { normalizeName } from "./normalize";
 import {
   createTrack,

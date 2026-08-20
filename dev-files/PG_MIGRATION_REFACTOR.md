@@ -98,7 +98,7 @@ Public graph functions actually used by consumers:
 - `loadSerializedTrackLinks` — Postgres links + per-link Neo4j `getTrackById`.
 - `POST /notes/:id/tracks` — Neo4j existence check then Postgres write.
 - Workflow commit — Neo4j MERGE then Postgres `upsertTransitionCommit` audit
-  + idempotency replay reads.
+  - idempotency replay reads.
 - Opaque ids: `note_track_links.track_id`,
   `note_transition_commits.from_track_id/to_track_id`, edge provenance props.
 
@@ -201,27 +201,27 @@ New module: `packages/db/src/music/` (exported from `@selecta/db` index).
 Function contracts are kept as close as possible to the current graph package
 so route handlers change imports, not logic.
 
-| Current (`@selecta/graph`) | Target (`@selecta/db` music module) | Notes |
-|---|---|---|
-| `isNeo4jConfigured()` | delete | PG is always required; callers drop the guard |
-| `getGraphStatus()` | delete | health endpoint reports Postgres only |
-| `createTrack(input)` | `createTrack(input)` | same input/result; dedupe via `track_external_ids` lookup; one transaction |
-| `listTracks(input)` | `listTracks(input)` | same filters (q, subgenre/folder by id or normalized name, date bounds, sort title/createdAt/updatedAt, limit/offset, hasMore via limit+1) |
-| `getTrackById(id)` | `getTrackById(id)` | + `hasOutbound/InboundTransitions` via EXISTS |
-| `getTrackByExternalId(provider, id)` | same | indexed lookup |
-| `getLibraryStats()` | same | `count(*)`, `max(updated_at)` |
-| `getTrackNeighborhood(id)` | same | SQL join for outbound edges; **port ranking helpers as-is** (`transitionQualityRank`, `compareNeighborhoodNeighbors`, `rankNeighborhoodNeighbors` + tests) |
-| `mergeArtist/Genre/Subgenre/Folder` | `ensureArtist/...` internal | `INSERT … ON CONFLICT (name_normalized) DO …` preserving current ON CREATE / folder-kind coalesce semantics |
-| `createTransition(input)` | same | plain INSERT, new UUID, no proposal_key |
-| `getTransitionById(id)` | same | join endpoints + artists |
-| `listTransitions(input)` | same | same filters incl. `source` manual/ai (proposal_key + source_note_id nullness), q over titles/notes/artists |
-| `updateTransitionById(id, patch)` | same | partial UPDATE, bump updated_at, endpoints/provenance immutable |
-| `deleteTransitionById(id)` | same | DELETE by id |
-| `commitTransitionProposal(input)` | same | `ON CONFLICT (proposal_key) DO NOTHING` + select-existing → `{ created }` |
-| `GraphWriteError` / `isGraphWriteError` | `MusicWriteError` / `isMusicWriteError` (codes `invalid_input` \| `not_found`) | keep thrown-shape parity for route handlers |
-| `FOLDER_KINDS`, `FolderKind`, intents/techniques, `normalizeName` | move to db music module (or small shared constants file) | `FOLDER_KINDS = ["folder","playlist"]` — drop `section`; web imports update |
-| `AGENT_SAFE_GRAPH_SCHEMA` | delete | exported but unused today |
-| `readCypher`/`writeCypher`/driver | delete | — |
+| Current (`@selecta/graph`)                                        | Target (`@selecta/db` music module)                                            | Notes                                                                                                                                                      |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isNeo4jConfigured()`                                             | delete                                                                         | PG is always required; callers drop the guard                                                                                                              |
+| `getGraphStatus()`                                                | delete                                                                         | health endpoint reports Postgres only                                                                                                                      |
+| `createTrack(input)`                                              | `createTrack(input)`                                                           | same input/result; dedupe via `track_external_ids` lookup; one transaction                                                                                 |
+| `listTracks(input)`                                               | `listTracks(input)`                                                            | same filters (q, subgenre/folder by id or normalized name, date bounds, sort title/createdAt/updatedAt, limit/offset, hasMore via limit+1)                 |
+| `getTrackById(id)`                                                | `getTrackById(id)`                                                             | + `hasOutbound/InboundTransitions` via EXISTS                                                                                                              |
+| `getTrackByExternalId(provider, id)`                              | same                                                                           | indexed lookup                                                                                                                                             |
+| `getLibraryStats()`                                               | same                                                                           | `count(*)`, `max(updated_at)`                                                                                                                              |
+| `getTrackNeighborhood(id)`                                        | same                                                                           | SQL join for outbound edges; **port ranking helpers as-is** (`transitionQualityRank`, `compareNeighborhoodNeighbors`, `rankNeighborhoodNeighbors` + tests) |
+| `mergeArtist/Genre/Subgenre/Folder`                               | `ensureArtist/...` internal                                                    | `INSERT … ON CONFLICT (name_normalized) DO …` preserving current ON CREATE / folder-kind coalesce semantics                                                |
+| `createTransition(input)`                                         | same                                                                           | plain INSERT, new UUID, no proposal_key                                                                                                                    |
+| `getTransitionById(id)`                                           | same                                                                           | join endpoints + artists                                                                                                                                   |
+| `listTransitions(input)`                                          | same                                                                           | same filters incl. `source` manual/ai (proposal_key + source_note_id nullness), q over titles/notes/artists                                                |
+| `updateTransitionById(id, patch)`                                 | same                                                                           | partial UPDATE, bump updated_at, endpoints/provenance immutable                                                                                            |
+| `deleteTransitionById(id)`                                        | same                                                                           | DELETE by id                                                                                                                                               |
+| `commitTransitionProposal(input)`                                 | same                                                                           | `ON CONFLICT (proposal_key) DO NOTHING` + select-existing → `{ created }`                                                                                  |
+| `GraphWriteError` / `isGraphWriteError`                           | `MusicWriteError` / `isMusicWriteError` (codes `invalid_input` \| `not_found`) | keep thrown-shape parity for route handlers                                                                                                                |
+| `FOLDER_KINDS`, `FolderKind`, intents/techniques, `normalizeName` | move to db music module (or small shared constants file)                       | `FOLDER_KINDS = ["folder","playlist"]` — drop `section`; web imports update                                                                                |
+| `AGENT_SAFE_GRAPH_SCHEMA`                                         | delete                                                                         | exported but unused today                                                                                                                                  |
+| `readCypher`/`writeCypher`/driver                                 | delete                                                                         | —                                                                                                                                                          |
 
 ### The commit path becomes transactional
 

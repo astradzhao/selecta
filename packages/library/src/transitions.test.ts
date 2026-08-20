@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { before, describe, it } from "node:test";
 
-import { runInDbTransaction } from "../executor";
-import { createNote } from "../notes";
-import { isDbIntegrationEnabled, resetDbIntegrationData } from "../test-env";
+import { runInDbTransaction } from "@selecta/db";
+import { createNote } from "@selecta/submissions";
+import { isDbIntegrationEnabled, resetDbIntegrationData } from "@selecta/db/testing";
 import { asTransitionEdge } from "./neighborhood";
 import { createTrack } from "./tracks";
 import {
