@@ -14,33 +14,14 @@ import { SectionHeading } from "@selecta/ui/components/section-heading";
 import { StatePanel } from "@selecta/ui/components/state-panel";
 import { Textarea } from "@selecta/ui/components/textarea";
 
-import { ApiClientError } from "@/lib/api/client";
+import { describeApiError } from "@/lib/api/errors";
+import { artistLine, formatTimestamp, optionalNumber } from "@/lib/format";
 import {
   deleteTransition,
   getTransition,
   updateTransition,
   type ApiTransition,
 } from "@/lib/transitions/api";
-
-function formatTimestamp(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
-function artistLine(artists: Array<{ name: string }>): string {
-  return artists.map((artist) => artist.name).join(", ") || "Unknown artist";
-}
-
-function optionalNumber(raw: string): number | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  const value = Number(trimmed);
-  return Number.isFinite(value) ? value : Number.NaN;
-}
 
 type FormState = {
   fromBar: string;
@@ -89,7 +70,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
         if (cancelled) return;
         setTransition(null);
         setForm(null);
-        setLoadError(err instanceof ApiClientError ? err.message : "Failed to load transition.");
+        setLoadError(describeApiError(err, { fallback: "Failed to load transition." }));
       }
     });
     return () => {
@@ -150,7 +131,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
         setSaveMessage("Saved.");
       } catch (err) {
         setSaveMessage(null);
-        setSaveError(err instanceof ApiClientError ? err.message : "Failed to save transition.");
+        setSaveError(describeApiError(err, { fallback: "Failed to save transition." }));
       }
     });
   }
@@ -168,9 +149,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
         router.push(listHref);
         router.refresh();
       } catch (err) {
-        setDeleteError(
-          err instanceof ApiClientError ? err.message : "Failed to delete transition.",
-        );
+        setDeleteError(describeApiError(err, { fallback: "Failed to delete transition." }));
       }
     });
   }

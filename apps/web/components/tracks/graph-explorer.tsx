@@ -19,7 +19,9 @@ import {
   transitionFieldsFromEdge,
   type TransitionFieldValues,
 } from "@/components/tracks/transition-fields";
-import { ApiClientError } from "@/lib/api/client";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { describeApiError } from "@/lib/api/errors";
+import { artistLine } from "@/lib/format";
 import {
   beginArtFlight,
   HERO_ART_SIZE,
@@ -68,10 +70,6 @@ type Neighborhood = {
   current: ApiNeighborhoodCurrent;
   neighbors: ApiNeighborhoodNeighbor[];
 };
-
-function artistLine(artists: { name: string }[]): string {
-  return artists.map((a) => a.name).join(", ") || "Unknown artist";
-}
 
 function formatLabel(value: string | null | undefined): string | null {
   if (!value?.trim()) return null;
@@ -295,15 +293,6 @@ function NeighborCard({
   const selected =
     edges.find((edge) => edgeKey(edge, neighbor.id) === selectedKey) ?? defaultEdge ?? null;
 
-  useEffect(() => {
-    const nextDefault = edges[0];
-    if (!nextDefault) return;
-    const stillPresent = edges.some((edge) => edgeKey(edge, neighbor.id) === selectedKey);
-    if (!stillPresent) {
-      setSelectedKey(edgeKey(nextDefault, neighbor.id));
-    }
-  }, [edges, neighbor.id, selectedKey]);
-
   const [panelMode, setPanelMode] = useState<"view" | "edit" | null>("view");
   const [form, setForm] = useState<TransitionFieldValues>(emptyTransitionFields());
   const [actionError, setActionError] = useState<string | null>(null);
@@ -339,7 +328,7 @@ function NeighborCard({
         setPanelMode("view");
         await onNeighborhoodChange();
       } catch (err) {
-        setActionError(err instanceof ApiClientError ? err.message : "Failed to save transition.");
+        setActionError(describeApiError(err, { fallback: "Failed to save transition." }));
       }
     });
   }
@@ -360,9 +349,7 @@ function NeighborCard({
         setPanelMode("view");
         await onNeighborhoodChange();
       } catch (err) {
-        setActionError(
-          err instanceof ApiClientError ? err.message : "Failed to delete transition.",
-        );
+        setActionError(describeApiError(err, { fallback: "Failed to delete transition." }));
       }
     });
   }
@@ -631,33 +618,31 @@ function AddTransitionPanel({
   const [error, setError] = useState<string | null>(null);
   const [searching, startSearch] = useTransition();
   const [saving, startSave] = useTransition();
+  const debouncedQuery = useDebouncedValue(query);
+  const visibleResults = query.trim() ? results : [];
 
   useEffect(() => {
-    const q = query.trim();
-    if (!q || selected) {
-      if (!q) setResults([]);
-      return;
-    }
+    const live = query.trim();
+    if (!live || selected) return;
+    const q = debouncedQuery.trim();
+    if (!q) return;
     let cancelled = false;
-    const handle = window.setTimeout(() => {
-      startSearch(async () => {
-        try {
-          const response = await listTracks({ query: q, limit: 8 });
-          if (cancelled) return;
-          setResults(response.tracks.filter((track) => track.id !== excludeTrackId));
-          setError(null);
-        } catch (err) {
-          if (cancelled) return;
-          setResults([]);
-          setError(err instanceof ApiClientError ? err.message : "Failed to search tracks.");
-        }
-      });
-    }, 220);
+    startSearch(async () => {
+      try {
+        const response = await listTracks({ query: q, limit: 8 });
+        if (cancelled) return;
+        setResults(response.tracks.filter((track) => track.id !== excludeTrackId));
+        setError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setResults([]);
+        setError(describeApiError(err, { fallback: "Failed to search tracks." }));
+      }
+    });
     return () => {
       cancelled = true;
-      window.clearTimeout(handle);
     };
-  }, [query, selected, excludeTrackId]);
+  }, [query, debouncedQuery, selected, excludeTrackId]);
 
   function onSubmit() {
     if (!selected) {
@@ -679,7 +664,7 @@ function AddTransitionPanel({
         setError(null);
         await onCreated();
       } catch (err) {
-        setError(err instanceof ApiClientError ? err.message : "Failed to create transition.");
+        setError(describeApiError(err, { fallback: "Failed to create transition." }));
       }
     });
   }
@@ -730,9 +715,9 @@ function AddTransitionPanel({
             aria-label="Search library tracks"
           />
           {searching ? <p className="text-caption">Searching…</p> : null}
-          {results.length > 0 ? (
+          {visibleResults.length > 0 ? (
             <ul className="border-border max-h-40 space-y-1 overflow-y-auto rounded-lg border p-1">
-              {results.map((track) => (
+              {visibleResults.map((track) => (
                 <li key={track.id}>
                   <button
                     type="button"
@@ -831,9 +816,7 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
         if (cancelled) return;
         setCurrent(null);
         setNeighbors([]);
-        setError(
-          err instanceof ApiClientError ? err.message : "Failed to load graph neighborhood.",
-        );
+        setError(describeApiError(err, { fallback: "Failed to load graph neighborhood." }));
       }
     });
     return () => {

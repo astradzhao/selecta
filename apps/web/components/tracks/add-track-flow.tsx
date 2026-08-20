@@ -13,22 +13,16 @@ import { SearchField } from "@selecta/ui/components/search-field";
 import { SectionHeading } from "@selecta/ui/components/section-heading";
 import { Separator } from "@selecta/ui/components/separator";
 
-import { ApiClientError } from "@/lib/api/client";
-import { searchCatalog, type CatalogTrack } from "@/lib/catalog/api";
-import { createTrack } from "@/lib/tracks/api";
-import { invalidateLibraryCache } from "@/lib/library-cache";
 import { FolderTagEditor, type FolderTag } from "@/components/tracks/folder-tag-editor";
 import { TagEditor, type TagItem } from "@/components/tracks/tag-editor";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { describeApiError } from "@/lib/api/errors";
+import { searchCatalog, type CatalogTrack } from "@/lib/catalog/api";
+import { formatDuration } from "@/lib/format";
+import { invalidateLibraryCache } from "@/lib/library-cache";
+import { createTrack } from "@/lib/tracks/api";
 
 type Mode = "search" | "review";
-
-function formatDuration(ms: number | null): string | null {
-  if (ms == null || !Number.isFinite(ms)) return null;
-  const totalSec = Math.round(ms / 1000);
-  const minutes = Math.floor(totalSec / 60);
-  const seconds = totalSec % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
 
 export function AddTrackFlow() {
   const router = useRouter();
@@ -46,44 +40,32 @@ export function AddTrackFlow() {
   const [genres, setGenres] = useState<TagItem[]>([]);
   const [subgenres, setSubgenres] = useState<TagItem[]>([]);
   const [folders, setFolders] = useState<FolderTag[]>([]);
+  const debouncedQuery = useDebouncedValue(query);
 
   useEffect(() => {
-    const trimmed = query.trim();
+    const trimmed = debouncedQuery.trim();
     if (trimmed.length < 2) {
       return;
     }
 
     let cancelled = false;
-    const handle = window.setTimeout(() => {
-      startSearch(async () => {
-        try {
-          const response = await searchCatalog(trimmed);
-          if (cancelled) return;
-          setResults(response.results);
-          setSearchError(null);
-        } catch (error) {
-          if (cancelled) return;
-          setResults([]);
-          if (error instanceof ApiClientError) {
-            if (error.code === "provider_not_configured") {
-              setSearchError(
-                "Catalog search isn’t configured. Use manual entry, or set Spotify credentials on the API.",
-              );
-              return;
-            }
-            setSearchError(error.message);
-            return;
-          }
-          setSearchError("Catalog search failed.");
-        }
-      });
-    }, 280);
+    startSearch(async () => {
+      try {
+        const response = await searchCatalog(trimmed);
+        if (cancelled) return;
+        setResults(response.results);
+        setSearchError(null);
+      } catch (error) {
+        if (cancelled) return;
+        setResults([]);
+        setSearchError(describeApiError(error, { fallback: "Catalog search failed." }));
+      }
+    });
 
     return () => {
       cancelled = true;
-      window.clearTimeout(handle);
     };
-  }, [query]);
+  }, [debouncedQuery]);
 
   const showResults = query.trim().length >= 2;
   const visibleResults = showResults ? results : [];
@@ -140,7 +122,7 @@ export function AddTrackFlow() {
         router.push(`/tracks/${response.track.id}`);
         router.refresh();
       } catch (error) {
-        setSaveError(error instanceof ApiClientError ? error.message : "Failed to save track.");
+        setSaveError(describeApiError(error, { fallback: "Failed to save track." }));
       }
     });
   }
@@ -194,7 +176,7 @@ export function AddTrackFlow() {
                     </p>
                   </div>
                   <div className="text-numeric text-muted-foreground hidden text-right text-xs sm:block">
-                    <p>{formatDuration(track.durationMs) ?? "—"}</p>
+                    <p>{formatDuration(track.durationMs, "milliseconds") ?? "—"}</p>
                     <p>{track.releaseDate ?? track.provider}</p>
                   </div>
                 </button>

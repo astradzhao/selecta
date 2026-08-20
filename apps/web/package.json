@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start --port 3000",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test lib/*.test.ts lib/**/*.test.ts hooks/*.test.ts hooks/*.test.tsx"
   },
   "dependencies": {
     "@selecta/db": "workspace:*",
@@ -25,8 +26,11 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/react-test-renderer": "19.1.0",
     "eslint": "^9",
+    "react-test-renderer": "19.2.4",
     "tailwindcss": "^4",
+    "tsx": "^4.23.1",
     "typescript": "^5"
   }
 }

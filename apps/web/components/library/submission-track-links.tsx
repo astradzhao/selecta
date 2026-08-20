@@ -12,7 +12,8 @@ import { Label } from "@selecta/ui/components/label";
 import { SearchField } from "@selecta/ui/components/search-field";
 import { SectionHeading } from "@selecta/ui/components/section-heading";
 
-import { ApiClientError } from "@/lib/api/client";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { describeApiError } from "@/lib/api/errors";
 import { addNoteTrackLink, removeNoteTrackLink, type ApiNoteTrackLink } from "@/lib/notes/api";
 import { listTracks, type ApiTrack } from "@/lib/tracks/api";
 
@@ -31,35 +32,31 @@ export function SubmissionTrackLinks({
   const [searching, startSearch] = useTransition();
   const [mutating, startMutate] = useTransition();
   const q = query.trim();
+  const debouncedQuery = useDebouncedValue(q);
   const results = q ? hits : [];
 
   useEffect(() => {
-    if (!q) return;
+    if (!debouncedQuery) return;
 
     let cancelled = false;
-    const handle = window.setTimeout(() => {
-      startSearch(async () => {
-        try {
-          const response = await listTracks({ query: q, limit: 8 });
-          if (cancelled) return;
-          const linkedIds = new Set(initialLinks.map((link) => link.trackId));
-          setHits(response.tracks.filter((track) => !linkedIds.has(track.id)));
-          setError(null);
-        } catch (err) {
-          if (cancelled) return;
-          setHits([]);
-          setError(
-            err instanceof ApiClientError ? err.message : "Failed to search library tracks.",
-          );
-        }
-      });
-    }, 220);
+    startSearch(async () => {
+      try {
+        const response = await listTracks({ query: debouncedQuery, limit: 8 });
+        if (cancelled) return;
+        const linkedIds = new Set(initialLinks.map((link) => link.trackId));
+        setHits(response.tracks.filter((track) => !linkedIds.has(track.id)));
+        setError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setHits([]);
+        setError(describeApiError(err, { fallback: "Failed to search library tracks." }));
+      }
+    });
 
     return () => {
       cancelled = true;
-      window.clearTimeout(handle);
     };
-  }, [q, initialLinks]);
+  }, [debouncedQuery, initialLinks]);
 
   function updateLinks(next: ApiNoteTrackLink[]) {
     onLinksChange?.(next);
@@ -74,9 +71,7 @@ export function SubmissionTrackLinks({
         setHits([]);
         setError(null);
       } catch (err) {
-        setError(
-          err instanceof ApiClientError ? err.message : "Failed to link track. Is the API running?",
-        );
+        setError(describeApiError(err, { fallback: "Failed to link track. Is the API running?" }));
       }
     });
   }
@@ -89,9 +84,7 @@ export function SubmissionTrackLinks({
         setError(null);
       } catch (err) {
         setError(
-          err instanceof ApiClientError
-            ? err.message
-            : "Failed to unlink track. Is the API running?",
+          describeApiError(err, { fallback: "Failed to unlink track. Is the API running?" }),
         );
       }
     });

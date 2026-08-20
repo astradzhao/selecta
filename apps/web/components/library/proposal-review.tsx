@@ -26,6 +26,7 @@ import {
   type TransitionFieldValues,
 } from "@/components/tracks/transition-fields";
 import { ApiClientError } from "@/lib/api/client";
+import { describeApiError } from "@/lib/api/errors";
 import { invalidateLibraryCache } from "@/lib/library-cache";
 import {
   approveProposal,
@@ -39,6 +40,7 @@ import {
   type ReviewerEndpointBody,
 } from "@/lib/proposals/api";
 import { gateReasonsForProposal } from "@/lib/proposals/gate-copy";
+import { isReviewable } from "@/lib/proposals/reviewable";
 import { transitionIdFromProposal } from "@/components/library/proposal-siblings";
 
 type ProposalMention = {
@@ -211,10 +213,6 @@ function titleFromProposal(
 
 type ReviewAction = "approve" | "reject" | "resolve" | "reopen";
 
-function isReviewable(status: ApiProposal["status"]): boolean {
-  return status === "needs_review" || status === "failed";
-}
-
 function isReadOnly(status: ApiProposal["status"]): boolean {
   return status === "committed" || status === "rejected" || status === "superseded";
 }
@@ -280,13 +278,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
       } catch (err) {
         if (cancelled) return;
         setDetail(null);
-        setLoadError(
-          err instanceof ApiClientError
-            ? err.code === "db_not_configured"
-              ? "The local database isn’t running. Start the full stack with `pnpm dev`."
-              : err.message
-            : "Failed to load proposal.",
-        );
+        setLoadError(describeApiError(err, { fallback: "Failed to load proposal." }));
       }
     });
     return () => {
@@ -337,7 +329,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
       setConflictMessage(err.message || "This proposal changed elsewhere. Reload to continue.");
       return;
     }
-    setActionError(err instanceof ApiClientError ? err.message : "Action failed.");
+    setActionError(describeApiError(err, { fallback: "Action failed." }));
   }
 
   /** Reviewing is a queue: once an item is decided, land on the next one that needs a human. */

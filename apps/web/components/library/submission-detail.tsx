@@ -12,7 +12,8 @@ import { Textarea } from "@selecta/ui/components/textarea";
 
 import { SubmissionProposals } from "@/components/library/submission-proposals";
 import { SubmissionTrackLinks } from "@/components/library/submission-track-links";
-import { ApiClientError } from "@/lib/api/client";
+import { describeApiError } from "@/lib/api/errors";
+import { formatTimestamp } from "@/lib/format";
 import {
   extractNote,
   getNote,
@@ -22,15 +23,6 @@ import {
 } from "@/lib/notes/api";
 
 const LIST_HREF = "/library?view=submissions";
-
-function formatTimestamp(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
 
 function statusLabel(status: NoteExtractionStatus): string {
   switch (status) {
@@ -94,13 +86,7 @@ export function SubmissionDetail({ noteId }: { noteId: string }) {
       } catch (err) {
         if (cancelled) return;
         setNote(null);
-        setLoadError(
-          err instanceof ApiClientError
-            ? err.code === "db_not_configured"
-              ? "The local submissions database isn’t running. Start the full stack with `pnpm dev`."
-              : err.message
-            : "Failed to load submission.",
-        );
+        setLoadError(describeApiError(err, { fallback: "Failed to load submission." }));
       }
     });
     return () => {
@@ -138,9 +124,7 @@ export function SubmissionDetail({ noteId }: { noteId: string }) {
         setRetryError(null);
       } catch (err) {
         setRetryError(
-          err instanceof ApiClientError
-            ? err.message
-            : "Failed to retry extraction. Is the API running?",
+          describeApiError(err, { fallback: "Failed to retry extraction. Is the API running?" }),
         );
       }
     });

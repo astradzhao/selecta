@@ -18,13 +18,11 @@ import { ListSkeleton } from "@selecta/ui/components/list-skeleton";
 import { SearchField } from "@selecta/ui/components/search-field";
 import { cn } from "@selecta/ui/lib/utils";
 
-import { ApiClientError } from "@/lib/api/client";
+import { DEFAULT_DEBOUNCE_MS, useDebouncedValue } from "@/hooks/use-debounced-value";
+import { describeApiError } from "@/lib/api/errors";
+import { artistLine } from "@/lib/format";
 import { motionDelay } from "@/lib/motion";
 import { listTracks, type ApiTrack } from "@/lib/tracks/api";
-
-function artistLine(artists: { name: string }[]): string {
-  return artists.map((a) => a.name).join(", ") || "Unknown artist";
-}
 
 export function TrackPickerDialog({
   open,
@@ -47,38 +45,36 @@ export function TrackPickerDialog({
   const [error, setError] = useState<string | null>(null);
   const [pending, startSearch] = useTransition();
   const [hasSearched, setHasSearched] = useState(false);
+  // Empty query should populate the picker immediately; typing still debounces.
+  const debouncedQuery = useDebouncedValue(query, query.trim() ? DEFAULT_DEBOUNCE_MS : 0);
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    const delay = query.trim() ? 200 : 0;
-    const handle = window.setTimeout(() => {
-      startSearch(async () => {
-        try {
-          const response = await listTracks({
-            query: query.trim() || undefined,
-            limit: 40,
-          });
-          if (cancelled) return;
-          setTracks(response.tracks);
-          setError(null);
-          setHasSearched(true);
-          setSelectedId((current) =>
-            current && response.tracks.some((t) => t.id === current) ? current : null,
-          );
-        } catch (err) {
-          if (cancelled) return;
-          setTracks([]);
-          setHasSearched(true);
-          setError(err instanceof ApiClientError ? err.message : "Failed to search library.");
-        }
-      });
-    }, delay);
+    startSearch(async () => {
+      try {
+        const response = await listTracks({
+          query: debouncedQuery.trim() || undefined,
+          limit: 40,
+        });
+        if (cancelled) return;
+        setTracks(response.tracks);
+        setError(null);
+        setHasSearched(true);
+        setSelectedId((current) =>
+          current && response.tracks.some((t) => t.id === current) ? current : null,
+        );
+      } catch (err) {
+        if (cancelled) return;
+        setTracks([]);
+        setHasSearched(true);
+        setError(describeApiError(err, { fallback: "Failed to search library." }));
+      }
+    });
     return () => {
       cancelled = true;
-      window.clearTimeout(handle);
     };
-  }, [open, query]);
+  }, [open, debouncedQuery]);
 
   function handleOpenChange(next: boolean) {
     if (!next) {

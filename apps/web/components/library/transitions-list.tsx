@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { XIcon } from "lucide-react";
 
 import { Alert } from "@selecta/ui/components/alert";
@@ -19,30 +19,12 @@ import { StatePanel } from "@selecta/ui/components/state-panel";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { ProposalStatusBadge } from "@/components/library/proposal-status-badge";
-import { ApiClientError } from "@/lib/api/client";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { DEFAULT_PAGE_SIZE, usePaginatedList } from "@/hooks/use-paginated-list";
+import { describeApiError } from "@/lib/api/errors";
+import { artistLine, formatTimestamp, previewText } from "@/lib/format";
 import { listProposals, type ApiProposal } from "@/lib/proposals/api";
-import { listTransitions, type ApiTransition } from "@/lib/transitions/api";
-
-const PAGE_SIZE = 50;
-
-function formatTimestamp(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
-function artistLine(artists: Array<{ name: string }>): string {
-  return artists.map((artist) => artist.name).join(", ") || "Unknown artist";
-}
-
-function proposalPreview(proposal: ApiProposal): string {
-  const text = proposal.sourceText.trim();
-  if (!text) return "Pending proposal";
-  return text.length > 100 ? `${text.slice(0, 97)}…` : text;
-}
+import { listTransitions } from "@/lib/transitions/api";
 
 export function TransitionsList() {
   const [query, setQuery] = useState("");
@@ -50,86 +32,63 @@ export function TransitionsList() {
   const [intent, setIntent] = useState("");
   const [source, setSource] = useState<"" | "manual" | "ai">("");
   const [needsReviewOnly, setNeedsReviewOnly] = useState(false);
-  const [transitions, setTransitions] = useState<ApiTransition[]>([]);
   const [pendingProposals, setPendingProposals] = useState<ApiProposal[]>([]);
-  const [hasMore, setHasMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [hasFetched, setHasFetched] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const isFirstFetch = useRef(true);
+  const filters = useMemo(
+    () => ({ query, technique, intent, source }),
+    [query, technique, intent, source],
+  );
+  const debouncedFilters = useDebouncedValue(filters);
+  const fetchPage = useCallback(
+    async ({ offset, limit }: { offset: number; limit: number }) => {
+      const response = await listTransitions({
+        query: debouncedFilters.query,
+        technique: debouncedFilters.technique,
+        intent: debouncedFilters.intent,
+        source: debouncedFilters.source || undefined,
+        limit,
+        offset,
+      });
+      return { items: response.transitions, hasMore: response.hasMore };
+    },
+    [debouncedFilters],
+  );
+  const {
+    items: transitions,
+    hasMore,
+    loadMore,
+    loadingMore,
+    error,
+    setError,
+    replace,
+  } = usePaginatedList({ fetchPage, resource: "transitions" });
   const hasFilters = Boolean(query || technique || intent || source);
   const isInitialLoading = !hasFetched && !error;
 
   useEffect(() => {
     let cancelled = false;
-    const delay = isFirstFetch.current ? 0 : 220;
-    isFirstFetch.current = false;
-
-    const handle = window.setTimeout(() => {
-      void (async () => {
-        try {
-          const [transitionResponse, proposalResponse] = await Promise.all([
-            listTransitions({
-              query,
-              technique,
-              intent,
-              source: source || undefined,
-              limit: PAGE_SIZE,
-              offset: 0,
-            }),
-            listProposals({ status: "needs_review,failed", limit: PAGE_SIZE }),
-          ]);
-          if (cancelled) return;
-          setTransitions(transitionResponse.transitions);
-          setPendingProposals(proposalResponse.proposals);
-          setHasMore(transitionResponse.hasMore);
-          setError(null);
-          setHasFetched(true);
-        } catch (err) {
-          if (cancelled) return;
-          setTransitions([]);
-          setPendingProposals([]);
-          setHasMore(false);
-          setError(
-            err instanceof ApiClientError
-              ? err.message
-              : "Failed to load transitions. Is the API running?",
-          );
-          setHasFetched(true);
-        }
-      })();
-    }, delay);
-
+    void (async () => {
+      try {
+        const [page, proposalResponse] = await Promise.all([
+          fetchPage({ offset: 0, limit: DEFAULT_PAGE_SIZE }),
+          listProposals({ status: "needs_review,failed", limit: DEFAULT_PAGE_SIZE }),
+        ]);
+        if (cancelled) return;
+        replace(page);
+        setPendingProposals(proposalResponse.proposals);
+      } catch (err) {
+        if (cancelled) return;
+        replace({ items: [], hasMore: false });
+        setPendingProposals([]);
+        setError(describeApiError(err, { resource: "transitions" }));
+      } finally {
+        if (!cancelled) setHasFetched(true);
+      }
+    })();
     return () => {
       cancelled = true;
-      window.clearTimeout(handle);
     };
-  }, [query, technique, intent, source]);
-
-  async function loadMore() {
-    setLoadingMore(true);
-    try {
-      const response = await listTransitions({
-        query,
-        technique,
-        intent,
-        source: source || undefined,
-        limit: PAGE_SIZE,
-        offset: transitions.length,
-      });
-      setTransitions((current) => [...current, ...response.transitions]);
-      setHasMore(response.hasMore);
-      setError(null);
-    } catch (err) {
-      setError(
-        err instanceof ApiClientError
-          ? err.message
-          : "Failed to load more transitions. Is the API running?",
-      );
-    } finally {
-      setLoadingMore(false);
-    }
-  }
+  }, [fetchPage, replace, setError]);
 
   const showCommitted = !needsReviewOnly;
   const visiblePending = needsReviewOnly ? pendingProposals : pendingProposals;
@@ -248,7 +207,10 @@ export function TransitionsList() {
                         )}
                       >
                         <p className="line-clamp-2 text-sm text-pretty">
-                          {proposalPreview(proposal)}
+                          {previewText(proposal.sourceText, {
+                            maxLength: 100,
+                            fallback: "Pending proposal",
+                          })}
                         </p>
                         <div className="flex flex-wrap items-center gap-2">
                           <ProposalStatusBadge status={proposal.status} />
