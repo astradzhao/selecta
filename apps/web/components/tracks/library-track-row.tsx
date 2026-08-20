@@ -10,7 +10,7 @@ import { DataListRow } from "@selecta/ui/components/data-list";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { artistLine, formatDuration } from "@/lib/format";
-import { CRATE_TRACK_GRID, formatBpmKey } from "@/lib/tracks/crate-row";
+import { CRATE_SUBGENRE_LIMIT, CRATE_TRACK_GRID, formatBpmKey } from "@/lib/tracks/crate-row";
 import { TRACK_ROW_ARTWORK_PX } from "@/lib/tracks/track-row-item";
 import type { ApiTrack } from "@/lib/tracks/types";
 
@@ -64,7 +64,7 @@ export function LibraryTrackRow({ track }: { track: ApiTrack }) {
   const duration = formatDuration(track.durationSec);
   const inbound = track.inboundTransitionCount ?? 0;
   const outbound = track.outboundTransitionCount ?? 0;
-  const subgenre = track.subgenres[0];
+  const subgenres = track.subgenres.slice(0, CRATE_SUBGENRE_LIMIT);
 
   return (
     <DataListRow interactive={false}>
@@ -87,12 +87,12 @@ export function LibraryTrackRow({ track }: { track: ApiTrack }) {
           </span>
           <span className="min-w-0">
             <span className="flex min-w-0 items-center gap-1.5">
-              <span className="text-card-title truncate">{track.title}</span>
-              {subgenre ? (
-                <Badge variant="secondary" className="max-w-28 shrink-0 truncate">
-                  {subgenre.name}
+              <span className="text-card-title min-w-0 truncate">{track.title}</span>
+              {subgenres.map((item) => (
+                <Badge key={item.id} variant="secondary" className="max-w-28 truncate">
+                  {item.name}
                 </Badge>
-              ) : null}
+              ))}
             </span>
             <span className="text-muted-foreground block truncate text-xs">
               {artistLine(track.artists)}
