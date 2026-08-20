@@ -6,19 +6,20 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@selecta/ui/components/button";
 import { StatePanel } from "@selecta/ui/components/state-panel";
 
+import { ProposalStatusBadge } from "@/components/common/status-badge";
 import { ProposalSourceSpan } from "@/components/library/proposal-source-span";
-import { ProposalStatusBadge } from "@/components/library/proposal-status-badge";
 import { transitionIdFromProposal } from "@/components/library/proposal-siblings";
 import { describeApiError } from "@/lib/api/errors";
 import { previewText } from "@/lib/format";
 import { listNoteProposals, type ApiProposal } from "@/lib/proposals/api";
+import { proposalStatusLabel } from "@/lib/proposals/proposal-status";
 import { isReviewable } from "@/lib/proposals/reviewable";
 
-const GROUP_ORDER: Array<{ key: string; label: string; statuses: ApiProposal["status"][] }> = [
-  { key: "needs_review", label: "Needs review", statuses: ["needs_review"] },
-  { key: "failed", label: "Failed", statuses: ["failed"] },
-  { key: "committed", label: "Committed", statuses: ["committed"] },
-  { key: "rejected", label: "Rejected", statuses: ["rejected"] },
+const GROUP_ORDER: Array<{ key: ApiProposal["status"]; statuses: ApiProposal["status"][] }> = [
+  { key: "needs_review", statuses: ["needs_review"] },
+  { key: "failed", statuses: ["failed"] },
+  { key: "committed", statuses: ["committed"] },
+  { key: "rejected", statuses: ["rejected"] },
 ];
 
 export function SubmissionProposals({ noteId, rawText }: { noteId: string; rawText: string }) {
@@ -98,7 +99,7 @@ export function SubmissionProposals({ noteId, rawText }: { noteId: string; rawTe
       {grouped.map((group) => (
         <section key={group.key} className="space-y-2">
           <h3 className="text-eyebrow">
-            {group.label} ({group.items.length})
+            {proposalStatusLabel(group.key)} ({group.items.length})
           </h3>
           <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
             {group.items.map((proposal) => {

@@ -1,16 +1,8 @@
+import type { NoteExtractionStatus } from "@selecta/db";
+
 import type { ApiNamedNode } from "@/lib/tracks/types";
 
-export type NoteExtractionStatus =
-  | "idle"
-  | "extracting"
-  | "no_proposal"
-  | "resolving"
-  | "needs_review"
-  | "committed"
-  | "partially_committed"
-  | "commit_failed"
-  | "failed"
-  | "dismissed";
+export type { NoteExtractionStatus };
 
 export type ApiNoteTrackLink = {
   id: string;

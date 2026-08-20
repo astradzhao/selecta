@@ -1,8 +1,10 @@
+import type { NoteProposalStatus } from "@selecta/db";
+
 import type { ApiNamedNode } from "@/lib/tracks/types";
 
 export type ApiTransitionProposalSummary = {
   id: string;
-  status: string;
+  status: NoteProposalStatus;
   proposalKey: string;
   sourceStart: number;
   sourceEnd: number;

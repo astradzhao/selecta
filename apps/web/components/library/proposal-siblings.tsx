@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { ProposalStatusBadge } from "@/components/library/proposal-status-badge";
+import { ProposalStatusBadge } from "@/components/common/status-badge";
 import { previewText } from "@/lib/format";
 import { isReviewable } from "@/lib/proposals/reviewable";
 import type { ApiProposal } from "@/lib/proposals/types";

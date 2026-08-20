@@ -18,7 +18,7 @@ import { BackLink } from "@/components/common/back-link";
 import { ProposalEndpointPicker } from "@/components/library/proposal-endpoint-picker";
 import { ProposalSiblings } from "@/components/library/proposal-siblings";
 import { ProposalSourceSpan } from "@/components/library/proposal-source-span";
-import { ProposalStatusBadge } from "@/components/library/proposal-status-badge";
+import { ProposalStatusBadge } from "@/components/common/status-badge";
 import {
   TransitionFields,
   emptyTransitionFields,

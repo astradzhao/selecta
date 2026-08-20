@@ -18,16 +18,13 @@ import {
   FilterField,
   FilteredListShell,
 } from "@/components/common/filtered-list-shell";
+import { ExtractionStatusBadge } from "@/components/common/status-badge";
 import { useFilteredList } from "@/hooks/use-filtered-list";
 import { formatTimestamp, previewText } from "@/lib/format";
 import { submissionListQuery, type SubmissionListFilters } from "@/lib/library/list-params";
 import { formatListCount } from "@/lib/library/list-view-state";
 import { listSubmissions, type NoteExtractionStatus } from "@/lib/notes/api";
-import {
-  extractionStatusLabel,
-  extractionStatusVariant,
-  SUBMISSION_STATUS_FILTER_OPTIONS,
-} from "@/lib/notes/extraction-status";
+import { SUBMISSION_STATUS_FILTER_OPTIONS } from "@/lib/notes/extraction-status";
 
 export function SubmissionsList() {
   const searchParams = useSearchParams();
@@ -146,9 +143,7 @@ export function SubmissionsList() {
                 })}
               </p>
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={extractionStatusVariant(submission.extractionStatus)}>
-                  {extractionStatusLabel(submission.extractionStatus)}
-                </Badge>
+                <ExtractionStatusBadge status={submission.extractionStatus} />
                 {counts && counts.total > 0 ? (
                   <span className="text-caption">
                     {counts.committed} committed
@@ -157,7 +152,7 @@ export function SubmissionsList() {
                   </span>
                 ) : null}
                 {(counts?.needsReview ?? 0) > 0 ? (
-                  <Badge variant="destructive" className="text-xs">
+                  <Badge variant="warning" className="text-xs">
                     Review {counts?.needsReview}
                   </Badge>
                 ) : null}

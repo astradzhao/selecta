@@ -10,6 +10,7 @@ import { PageBreadcrumb, PageHeader } from "@selecta/ui/components/page-header";
 import { StatePanel } from "@selecta/ui/components/state-panel";
 import { Textarea } from "@selecta/ui/components/textarea";
 
+import { ExtractionStatusBadge } from "@/components/common/status-badge";
 import { SubmissionProposals } from "@/components/library/submission-proposals";
 import { SubmissionTrackLinks } from "@/components/library/submission-track-links";
 import { describeApiError } from "@/lib/api/errors";
@@ -23,32 +24,6 @@ import {
 } from "@/lib/notes/api";
 
 const LIST_HREF = "/library?view=submissions";
-
-function statusLabel(status: NoteExtractionStatus): string {
-  switch (status) {
-    case "extracting":
-      return "Processing";
-    case "no_proposal":
-      return "No proposal";
-    case "resolving":
-      return "Resolving";
-    case "needs_review":
-      return "Needs review";
-    case "committed":
-      return "Committed";
-    case "partially_committed":
-      return "Partial";
-    case "commit_failed":
-      return "Commit failed";
-    case "failed":
-      return "Failed";
-    case "dismissed":
-      return "Dismissed";
-    case "idle":
-    default:
-      return "Idle";
-  }
-}
 
 function canRetry(status: NoteExtractionStatus): boolean {
   return (
@@ -185,7 +160,10 @@ export function SubmissionDetail({ noteId }: { noteId: string }) {
 
       <div className="space-y-3">
         <section className="space-y-1" aria-live="polite">
-          <p className="text-card-title">Extraction: {statusLabel(note.extractionStatus)}</p>
+          <p className="text-card-title flex flex-wrap items-center gap-2">
+            Extraction
+            <ExtractionStatusBadge status={note.extractionStatus} />
+          </p>
           {countsLine ? <p className="text-muted-foreground text-sm">{countsLine}</p> : null}
           {note.extractionStatus === "failed" && note.extractionError ? (
             <Alert variant="destructive">{note.extractionError}</Alert>
