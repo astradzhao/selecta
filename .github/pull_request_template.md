@@ -10,6 +10,10 @@
 
 <!-- Longer summary of the changes (keep it concise). -->
 
+## How to Test
+
+<!-- Concrete steps a reviewer can follow (UI path, expected copy/colors, or commands). -->
+
 ## Linear
 
 <!-- Replace DJ-XXXX with the issue id for this branch -->
