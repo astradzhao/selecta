@@ -183,7 +183,8 @@ everywhere else — `FieldError` exists and nothing uses it.
 ### Clear the decks
 
 4. [DJ-99](https://linear.app/dj-project-astradzhao/issue/DJ-99) — **UI-4**
-   Retire the legacy `/notes` surface
+   Retire the legacy `/notes` surface.
+   Implementation plan: [`DJ99_RETIRE_NOTES_PLAN.md`](./DJ99_RETIRE_NOTES_PLAN.md)
 
 ### Build the shared layer
 

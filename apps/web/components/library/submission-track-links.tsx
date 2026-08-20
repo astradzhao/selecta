@@ -13,7 +13,7 @@ import { ApiClientError } from "@/lib/api/client";
 import { addNoteTrackLink, removeNoteTrackLink, type ApiNoteTrackLink } from "@/lib/notes/api";
 import { listTracks, type ApiTrack } from "@/lib/tracks/api";
 
-export function NoteTrackLinks({
+export function SubmissionTrackLinks({
   noteId,
   initialLinks,
   onLinksChange,
@@ -22,23 +22,16 @@ export function NoteTrackLinks({
   initialLinks: ApiNoteTrackLink[];
   onLinksChange?: (links: ApiNoteTrackLink[]) => void;
 }) {
-  const [links, setLinks] = useState(initialLinks);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<ApiTrack[]>([]);
+  const [hits, setHits] = useState<ApiTrack[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searching, startSearch] = useTransition();
   const [mutating, startMutate] = useTransition();
+  const q = query.trim();
+  const results = q ? hits : [];
 
   useEffect(() => {
-    setLinks(initialLinks);
-  }, [initialLinks]);
-
-  useEffect(() => {
-    const q = query.trim();
-    if (!q) {
-      setResults([]);
-      return;
-    }
+    if (!q) return;
 
     let cancelled = false;
     const handle = window.setTimeout(() => {
@@ -46,12 +39,12 @@ export function NoteTrackLinks({
         try {
           const response = await listTracks({ query: q, limit: 8 });
           if (cancelled) return;
-          const linkedIds = new Set(links.map((link) => link.trackId));
-          setResults(response.tracks.filter((track) => !linkedIds.has(track.id)));
+          const linkedIds = new Set(initialLinks.map((link) => link.trackId));
+          setHits(response.tracks.filter((track) => !linkedIds.has(track.id)));
           setError(null);
         } catch (err) {
           if (cancelled) return;
-          setResults([]);
+          setHits([]);
           setError(
             err instanceof ApiClientError ? err.message : "Failed to search library tracks.",
           );
@@ -63,10 +56,9 @@ export function NoteTrackLinks({
       cancelled = true;
       window.clearTimeout(handle);
     };
-  }, [query, links]);
+  }, [q, initialLinks]);
 
   function updateLinks(next: ApiNoteTrackLink[]) {
-    setLinks(next);
     onLinksChange?.(next);
   }
 
@@ -76,7 +68,7 @@ export function NoteTrackLinks({
         const response = await addNoteTrackLink(noteId, { trackId: track.id });
         updateLinks(response.trackLinks);
         setQuery("");
-        setResults([]);
+        setHits([]);
         setError(null);
       } catch (err) {
         setError(
@@ -113,7 +105,7 @@ export function NoteTrackLinks({
       </div>
 
       <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
-        {links.map((link) => (
+        {initialLinks.map((link) => (
           <li key={link.id} className="flex items-center gap-3 px-4 py-3">
             <div className="bg-muted relative size-10 shrink-0 overflow-hidden rounded-md">
               {link.track?.artworkUrl ? (
@@ -159,17 +151,17 @@ export function NoteTrackLinks({
             </Button>
           </li>
         ))}
-        {links.length === 0 ? (
+        {initialLinks.length === 0 ? (
           <li className="text-muted-foreground px-4 py-6 text-sm">No tracks linked yet.</li>
         ) : null}
       </ul>
 
       <div className="space-y-2">
-        <Label htmlFor="note-link-track-search">Add track from library</Label>
+        <Label htmlFor="submission-link-track-search">Add track from library</Label>
         <div className="relative">
           <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input
-            id="note-link-track-search"
+            id="submission-link-track-search"
             className="pl-10"
             placeholder="Search title or artist"
             value={query}

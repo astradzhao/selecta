@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { cn } from "@selecta/ui/lib/utils";
 
-import { NewNoteForm } from "@/components/notes/new-note-form";
+import { NewNoteForm } from "@/components/add/new-note-form";
 import { AddTrackFlow } from "@/components/tracks/add-track-flow";
 import { type AddMode } from "@/lib/add/mode";
 
@@ -68,7 +68,7 @@ export function AddWorkspace({ mode }: { mode: AddMode }) {
       </header>
 
       {mode === "track" ? <AddTrackFlow embedded /> : null}
-      {mode === "transition" ? <NewNoteForm embedded /> : null}
+      {mode === "transition" ? <NewNoteForm /> : null}
     </div>
   );
 }
