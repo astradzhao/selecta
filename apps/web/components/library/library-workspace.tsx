@@ -73,6 +73,7 @@ export function LibraryWorkspace({ view }: { view: LibraryView }) {
       <PageHeader
         title="Library"
         description={active.description}
+        className="border-b-0 pb-0"
         actions={
           needsReviewCount > 0 ? (
             <Link
