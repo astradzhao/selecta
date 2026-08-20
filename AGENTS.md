@@ -53,6 +53,10 @@ Root scripts: `pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm format`, `pnpm format
 
 **Formatting:** use **oxfmt** only (`pnpm format` / `pnpm format:check`). Do not add Prettier or Biome.
 
+## Design system
+
+UI work follows [`dev-files/UI_STYLE_GUIDE.md`](./dev-files/UI_STYLE_GUIDE.md) and `.cursor/rules/ui-design-system.mdc`. Use semantic tokens and `@selecta/ui` primitives; do not invent palette classes, hex/oklch literals, `tracking-[…]`, raw `<select>` / checkbox inputs, or `window.confirm`. If a value does not exist, add a token in `packages/ui/src/styles/globals.css`.
+
 ## Testing
 
 Only write tests that provide real value.

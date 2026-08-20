@@ -1,0 +1,14 @@
+---
+description: Use the Selecta design system — tokens, primitives, and UI_STYLE_GUIDE
+alwaysApply: true
+---
+
+# Design system
+
+Read [`dev-files/UI_STYLE_GUIDE.md`](../../dev-files/UI_STYLE_GUIDE.md) before adding or restyling UI. Do not re-derive colors, type, or chrome.
+
+- **Color:** semantic tokens only (`bg-background`, `text-destructive`, `bg-surface-*`, `bg-overlay`). Never `bg-zinc-*`, `text-red-*`, hex, or `oklch()` in TS/TSX. Add new values in `packages/ui/src/styles/globals.css`.
+- **Type:** `text-page-title`, `text-section-title`, `text-card-title`, `text-body`, `text-caption`, `text-eyebrow`, `text-numeric`. No `tracking-[…]`.
+- **Motion:** `duration-fast|base|slow|hop` and `ease-standard|ease-out-soft`. JS waits live in `apps/web/lib/motion.ts` and must match `--motion-*`.
+- **Controls:** `Select` and `Checkbox` from `@selecta/ui`. Confirmations use `ConfirmDialog`, not `window.confirm` / `alert()`.
+- **Placement:** reuse across features → `packages/ui`. App-shaped but domain-agnostic → `apps/web/components/common`. Domain → `components/tracks|graph|library|add`.

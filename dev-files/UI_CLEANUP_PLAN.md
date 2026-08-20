@@ -211,7 +211,8 @@ everywhere else — `FieldError` exists and nothing uses it.
 ### Polish and lock in
 
 12. [DJ-107](https://linear.app/dj-project-astradzhao/issue/DJ-107) — **UI-12**
-    Accessibility and interaction consistency
+    Accessibility and interaction consistency — **canceled**. Confirm dialogs
+    and remaining interaction lint land in UI-14.
 13. [DJ-108](https://linear.app/dj-project-astradzhao/issue/DJ-108) — **UI-13**
     Decompose `graph-explorer.tsx`
 14. [DJ-109](https://linear.app/dj-project-astradzhao/issue/DJ-109) — **UI-14**

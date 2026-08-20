@@ -7,6 +7,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Alert } from "@selecta/ui/components/alert";
 import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
+import { ConfirmDialog } from "@selecta/ui/components/confirm-dialog";
 import { PageBreadcrumb, PageHeader } from "@selecta/ui/components/page-header";
 import { SectionHeading } from "@selecta/ui/components/section-heading";
 import { StatePanel } from "@selecta/ui/components/state-panel";
@@ -37,6 +38,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [loading, startLoad] = useTransition();
   const [saving, startSave] = useTransition();
   const [deleting, startDelete] = useTransition();
@@ -114,13 +116,9 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
     });
   }
 
-  function onDelete() {
+  function confirmDelete() {
     if (!transition) return;
-    const confirmed = window.confirm(
-      `Delete the transition from “${transition.fromTrack.title}” to “${transition.toTrack.title}”? This cannot be undone.`,
-    );
-    if (!confirmed) return;
-
+    setDeleteOpen(false);
     startDelete(async () => {
       try {
         await deleteTransition(transition.id);
@@ -225,10 +223,20 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
           variant="destructive"
           size="sm"
           disabled={deleting}
-          onClick={onDelete}
+          onClick={() => setDeleteOpen(true)}
         >
           {deleting ? "Deleting…" : "Delete transition"}
         </Button>
+        <ConfirmDialog
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+          title="Delete transition?"
+          description={`Delete the transition from “${transition.fromTrack.title}” to “${transition.toTrack.title}”? This cannot be undone.`}
+          confirmLabel="Delete"
+          pending={deleting}
+          pendingLabel="Deleting…"
+          onConfirm={confirmDelete}
+        />
       </section>
     </div>
   );

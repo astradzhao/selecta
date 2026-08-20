@@ -10,14 +10,15 @@
 > model) and [`PG_MIGRATION_REFACTOR.md`](./PG_MIGRATION_REFACTOR.md)
 > (Postgres-only music store — **implemented**).
 >
-> Last reconciled with Linear issues DJ-1–DJ-87: 2026-08-11
+> Last reconciled with Linear issues DJ-1–DJ-131: 2026-08-20
 
 ## How to use this file
 
 - Linear is authoritative for issue status, assignment, and blocking relations.
 - This file is authoritative for recommended serial order and parallel lanes.
 - One Linear issue means one `dj-XXXX` branch in general. DJ-85 + DJ-87 were
-  intentionally combined in one PR (pure removal + docs).
+  intentionally combined in one PR (pure removal + docs). DJ-108 + DJ-131 were
+  combined (graph explorer split + graph/track UI separation).
 - Parent issues DJ-7, DJ-11, DJ-9, and DJ-80 are trackers, not implementation
   branches unless their descriptions gain standalone work.
 - Deferred tickets are intentionally outside local MVP acceptance. Do not pull
@@ -37,6 +38,29 @@
 - `Genre`, `Subgenre`, and `Folder` remain distinct concepts; see
   [DJ-51](https://linear.app/dj-project-astradzhao/issue/DJ-51).
 - Folder kinds are **`folder` | `playlist` only** (`section` dropped).
+
+## UI cleanup epic (DJ-92) — implemented
+
+Parent: [DJ-92 — UI Cleanup](https://linear.app/dj-project-astradzhao/issue/DJ-92).
+Execution plan: [`UI_CLEANUP_PLAN.md`](./UI_CLEANUP_PLAN.md). Durable output:
+[`UI_STYLE_GUIDE.md`](./UI_STYLE_GUIDE.md).
+
+1. ~~[DJ-93 — UI-1 Semantic color](https://linear.app/dj-project-astradzhao/issue/DJ-93)~~
+2. ~~[DJ-96 — UI-2 Type / space / radius](https://linear.app/dj-project-astradzhao/issue/DJ-96)~~
+3. ~~[DJ-95 — UI-3 Theme switching](https://linear.app/dj-project-astradzhao/issue/DJ-95)~~
+4. ~~[DJ-99 — UI-4 Retire `/notes`](https://linear.app/dj-project-astradzhao/issue/DJ-99)~~
+5. ~~[DJ-100 — UI-5 Primitives](https://linear.app/dj-project-astradzhao/issue/DJ-100)~~
+6. ~~[DJ-101 — UI-6 Layout composites](https://linear.app/dj-project-astradzhao/issue/DJ-101)~~
+7. ~~[DJ-102 — UI-7 Formatters / hooks](https://linear.app/dj-project-astradzhao/issue/DJ-102)~~
+8. ~~[DJ-103 — UI-8 FilteredListShell](https://linear.app/dj-project-astradzhao/issue/DJ-103)~~
+9. ~~[DJ-104 — UI-9 TrackRow + TrackPicker](https://linear.app/dj-project-astradzhao/issue/DJ-104)~~
+10. ~~[DJ-105 — UI-10 Status vocabulary](https://linear.app/dj-project-astradzhao/issue/DJ-105)~~
+11. ~~[DJ-106 — UI-11 Forms](https://linear.app/dj-project-astradzhao/issue/DJ-106)~~
+12. [DJ-107 — UI-12 A11y / interaction](https://linear.app/dj-project-astradzhao/issue/DJ-107) — **canceled**
+13. ~~[DJ-108 — UI-13 Decompose graph explorer](https://linear.app/dj-project-astradzhao/issue/DJ-108)~~
+    - ~~[DJ-131](https://linear.app/dj-project-astradzhao/issue/DJ-131)~~ (graph vs track folders)
+14. [DJ-109 — UI-14 Lint guardrails + style guide](https://linear.app/dj-project-astradzhao/issue/DJ-109)
+    — this PR; last ticket in the epic.
 
 ## Milestone state
 
@@ -158,9 +182,9 @@ All completed issues are historical foundation and are not reordered:
 - DJ-64, DJ-65
 - DJ-69, DJ-70
 - DJ-81–DJ-84 (Postgres migration PG-1…PG-4)
+- DJ-93–DJ-96, DJ-99–DJ-106, DJ-108, DJ-131 (UI cleanup UI-1…UI-13 except UI-12)
 
 Merged on `main`, pending Linear closure: DJ-66, DJ-71, DJ-72, DJ-73, DJ-74.
-In flight on this PR: DJ-85, DJ-87.
 
 ## Canceled / superseded inventory
 
@@ -171,6 +195,7 @@ In flight on this PR: DJ-85, DJ-87.
 - DJ-44 — bar stepper intentionally removed from current traversal UX.
 - DJ-55 — standalone visualization superseded by the shipped explorer design.
 - DJ-68 — standalone Notes list superseded by DJ-71 Library → Submissions.
+- DJ-107 — UI-12 a11y/interaction pass canceled; ConfirmDialog + lint bans in DJ-109 cover the leftover `window.confirm` sites.
 
 Canceled issues must not be reopened merely because old architecture docs
 mention them. Create a focused new issue if the underlying product requirement

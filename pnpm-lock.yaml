@@ -208,7 +208,7 @@ importers:
         specifier: ^9.39.5
         version: 9.39.5
       eslint:
-        specifier: ^9
+        specifier: ^9.39.5
         version: 9.39.5(jiti@2.7.0)(supports-color@10.2.2)
       eslint-config-next:
         specifier: 16.2.12
