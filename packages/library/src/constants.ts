@@ -3,7 +3,7 @@
  * for filters, chips, and validation.
  *
  * This module is client-safe: no runtime imports from `client` / `pg` / drizzle
- * schema tables. Import from `@selecta/db/constants` in browser code.
+ * schema tables. Import from `@selecta/library/constants` in browser code.
  */
 export const TRANSITION_INTENTS = [
   "build_hype",

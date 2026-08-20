@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { before, describe, it } from "node:test";
 
 import { isMusicWriteError } from "./errors";
-import { isDbIntegrationEnabled, resetDbIntegrationData } from "../test-env";
+import { isDbIntegrationEnabled, resetDbIntegrationData } from "@selecta/db/testing";
 import {
   addSequenceStep,
   alternateSpansOverlap,

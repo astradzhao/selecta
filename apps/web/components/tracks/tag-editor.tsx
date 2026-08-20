@@ -3,7 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { XIcon } from "lucide-react";
 
-import { FOLDER_KINDS, type FolderKind } from "@selecta/db/constants";
+import { FOLDER_KINDS, type FolderKind } from "@selecta/library/constants";
 import { Badge } from "@selecta/ui/components/badge";
 import { Field, FieldDescription, FieldLabel } from "@selecta/ui/components/field";
 import { Input } from "@selecta/ui/components/input";

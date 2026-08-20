@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { addSequenceStep } from "@selecta/db";
+import { addSequenceStep } from "@selecta/library";
 
 import {
   invalidBody,

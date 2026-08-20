@@ -1,13 +1,12 @@
+import { runInDbTransaction, type NoteProposal } from "@selecta/db";
+import { getTransitionById } from "@selecta/library";
 import {
   getProposalById,
-  getTransitionById,
   insertProposalReviewEvent,
   refreshSubmissionExtractionStatus,
-  runInDbTransaction,
   updateProposal,
   upsertTransitionCommit,
-  type NoteProposal,
-} from "@selecta/db";
+} from "@selecta/submissions";
 import {
   applyProposalPolicy,
   draftToSingleUnresolvedPlan,

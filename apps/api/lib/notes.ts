@@ -1,11 +1,10 @@
+import { type Note, type NoteTrackLink } from "@selecta/db";
+import { type TrackSummary } from "@selecta/library";
 import {
   listNoteTrackLinksWithTracks,
-  type Note,
   type NoteListItem,
   type NoteProposalLink,
-  type NoteTrackLink,
-  type TrackSummary,
-} from "@selecta/db";
+} from "@selecta/submissions";
 
 export type SerializedTrackSummary = {
   id: string;

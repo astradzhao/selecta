@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./constants": "./src/music/constants.ts"
+    "./schema": "./src/schema.ts",
+    "./testing": "./src/test-env.ts"
   },
   "scripts": {
     "lint": "eslint .",

@@ -1,9 +1,5 @@
-import type {
-  NoteProposal,
-  NoteProposalStatus,
-  TransitionProposalReview,
-  TransitionRecord,
-} from "@selecta/db";
+import type { NoteProposal, NoteProposalStatus } from "@selecta/db";
+import type { TransitionProposalReview, TransitionRecord } from "@selecta/library";
 
 export type TransitionProposalSummary = {
   id: string;

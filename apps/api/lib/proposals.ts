@@ -1,10 +1,6 @@
-import {
-  getTrackSummariesByIds,
-  type NoteProposal,
-  type NoteTransitionCommit,
-  type ProposalDetail,
-  type TrackSummary,
-} from "@selecta/db";
+import { type NoteProposal, type NoteTransitionCommit } from "@selecta/db";
+import { getTrackSummariesByIds, type TrackSummary } from "@selecta/library";
+import { type ProposalDetail } from "@selecta/submissions";
 import { parseCandidateHandle } from "@selecta/mix-notes";
 
 export type SerializedTrackSummary = {

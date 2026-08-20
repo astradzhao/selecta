@@ -4,7 +4,7 @@ import {
   createTrack,
   getTrackByExternalId,
   listTracks,
-} from "@selecta/db";
+} from "@selecta/library";
 import {
   graphCandidateHandle,
   spotifyCandidateHandle,

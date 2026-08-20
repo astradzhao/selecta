@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getLibraryStats } from "@selecta/db";
+import { getLibraryStats } from "@selecta/library";
 
 /**
  * Cheap library fingerprint for client cache checks.

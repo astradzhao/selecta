@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
+import { isPostgresConfigured } from "@selecta/db";
 import {
   getProposalById,
   insertProposalReviewEvent,
-  isPostgresConfigured,
   refreshSubmissionExtractionStatus,
   updateProposalGuarded,
-} from "@selecta/db";
+} from "@selecta/submissions";
 
 import { serializeProposal } from "@/lib/proposals";
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { deleteSequence, getSequenceDetail, updateSequence } from "@selecta/db";
+import { deleteSequence, getSequenceDetail, updateSequence } from "@selecta/library";
 
 import {
   invalidBody,

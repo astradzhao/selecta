@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { detachSequenceStep } from "@selecta/db";
+import { detachSequenceStep } from "@selecta/library";
 
 import { invalidId, sequenceErrorResponse, serializeSequence } from "@/lib/blocks";
 

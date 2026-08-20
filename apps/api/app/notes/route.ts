@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import {
-  createNote,
-  isNotesError,
   isPostgresConfigured,
-  listNotes,
   noteExtractionStatusEnum,
   type NoteExtractionStatus,
 } from "@selecta/db";
+import { createNote, isNotesError, listNotes } from "@selecta/submissions";
 
 import { serializeNote } from "@/lib/notes";
 

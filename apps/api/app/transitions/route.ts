@@ -4,7 +4,7 @@ import {
   isMusicWriteError,
   listTransitions,
   type CreateTransitionInput,
-} from "@selecta/db";
+} from "@selecta/library";
 
 import { serializeTransition } from "@/lib/transitions";
 

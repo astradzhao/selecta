@@ -139,7 +139,7 @@ Say so if you want to see brand in the product in this PR.
 
 ### D3 — Sweep `bg-muted/NN` → `bg-surface-*` in this ticket?
 
-**Recommend: no.** *(Opted in on review.)* Define the tokens and the mapping
+**Recommend: no.** _(Opted in on review.)_ Define the tokens and the mapping
 table, then sweep call sites so later tickets cannot copy the opacity
 guesswork. Opaque `--surface-*` will look slightly different from
 translucent `muted`.
@@ -367,7 +367,7 @@ before commit) and repeat the same pages. Do not install `next-themes`
 - PageHeader / StatePanel / EmptyState / SegmentedTabs (UI-6)
 - Remapping status enums onto success/warning (UI-10)
 - Domain color encoding (BPM heat, Camelot wheel, per-genre) — never this epic
-- Sweeping `bg-muted/NN` *(done on review — mapped to `--surface-*`)*
+- Sweeping `bg-muted/NN` _(done on review — mapped to `--surface-*`)_
 - Painting default Buttons with brand (unless D1 is overridden)
 - Tests — token CSS has no silent-break behavior a unit test would catch
   that typecheck / the acceptance grep would miss

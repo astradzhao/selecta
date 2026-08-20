@@ -2,9 +2,9 @@ import { eq, sql, asc, type SQLWrapper } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import { getDb } from "../client";
-import * as schema from "../schema";
-import { artists, folders, genres, subgenres } from "../schema";
+import { getDb } from "@selecta/db";
+import * as schema from "@selecta/db/schema";
+import { artists, folders, genres, subgenres } from "@selecta/db/schema";
 import { MusicWriteError } from "./errors";
 import { clampListLimit } from "./list-page";
 import { toFolderNode, toNamedNode } from "./mappers";

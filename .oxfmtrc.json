@@ -7,6 +7,7 @@
     "**/build/**",
     "**/out/**",
     "**/coverage/**",
+    "**/drizzle/**",
     "pnpm-lock.yaml",
     "**/*.tsbuildinfo",
     "**/next-env.d.ts"

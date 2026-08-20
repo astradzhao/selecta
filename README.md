@@ -12,7 +12,9 @@ apps/
   api/          # Next.js API deployable (Vercel) — port 3001
 packages/
   catalog/      # External music catalog search (@selecta/catalog)
-  db/           # Postgres client + notes + music domain (@selecta/db)
+  db/           # Postgres client + Drizzle schema + migrations (@selecta/db)
+  library/      # Music domain: tracks, transitions, vocab, sequences (@selecta/library)
+  submissions/  # Notes, proposals, extraction bookkeeping (@selecta/submissions)
   mix-notes/    # NL parse / preview / commit (@selecta/mix-notes)
   ui/           # Shared UI / shadcn (@selecta/ui)
   eslint-config # Shared ESLint flat configs (@selecta/eslint-config)

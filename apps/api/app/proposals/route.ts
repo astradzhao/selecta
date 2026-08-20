@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-  isPostgresConfigured,
-  listProposals,
-  noteProposalStatusEnum,
-  type NoteProposalStatus,
-} from "@selecta/db";
+import { isPostgresConfigured, noteProposalStatusEnum, type NoteProposalStatus } from "@selecta/db";
+import { listProposals } from "@selecta/submissions";
 
 import { serializeProposals } from "@/lib/proposals";
 

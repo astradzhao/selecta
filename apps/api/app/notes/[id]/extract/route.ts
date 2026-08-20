@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { isNotesError, isPostgresConfigured, requeueExtraction } from "@selecta/db";
+import { isPostgresConfigured } from "@selecta/db";
+import { isNotesError, requeueExtraction } from "@selecta/submissions";
 
 import { loadSerializedTrackLinks, serializeNote } from "@/lib/notes";
 

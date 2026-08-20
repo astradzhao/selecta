@@ -2,10 +2,10 @@ import { and, asc, desc, eq, exists, gte, inArray, lte, max, or, sql, type SQL }
 import { randomUUID } from "node:crypto";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import { getDb } from "../client";
-import { getExecutor, runInDbTransaction } from "../executor";
+import { getDb } from "@selecta/db";
+import { getExecutor, runInDbTransaction } from "@selecta/db";
 import { collectSequenceIdsUsingTrack, recomputeSequencesDerived } from "./blocks";
-import * as schema from "../schema";
+import * as schema from "@selecta/db/schema";
 import {
   artists,
   folders,
@@ -19,7 +19,7 @@ import {
   tracks,
   transitions,
   type Track,
-} from "../schema";
+} from "@selecta/db/schema";
 import { MusicWriteError } from "./errors";
 import { clampListLimit, clampListOffset } from "./list-page";
 import { toFolderNode, toNamedNode, toTrackNode } from "./mappers";
