@@ -18,7 +18,7 @@ import { FormField, omitFieldError } from "@/components/common/form-field";
 import { describeApiError } from "@/lib/api/errors";
 import { formatDuration, optionalNumber, optionalNumberError } from "@/lib/format";
 import { invalidateLibraryCache } from "@/lib/library-cache";
-import { clearGraphSession, getGraphSessionSnapshot } from "@/lib/tracks/graph-session-store";
+import { clearGraphSession, getGraphSessionSnapshot } from "@/lib/graph/session-store";
 import { deleteTrack, getTrack, updateTrack, type ApiTrack } from "@/lib/tracks/api";
 import { TagEditor, type FolderTag, type TagItem } from "@/components/tracks/tag-editor";
 import { TrackChips } from "@/components/tracks/track-chips";

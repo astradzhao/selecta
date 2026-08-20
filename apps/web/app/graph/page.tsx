@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/app-shell";
-import { GraphSession } from "@/components/tracks/graph-session";
+import { GraphSession } from "@/components/graph/graph-session";
 
 type PageProps = {
   searchParams: Promise<{ track?: string | string[] }>;

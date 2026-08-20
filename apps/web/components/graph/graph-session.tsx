@@ -2,13 +2,9 @@
 
 import { useEffect } from "react";
 
-import { GraphExplorer } from "@/components/tracks/graph-explorer";
-import { GraphLanding } from "@/components/tracks/graph-landing";
-import {
-  clearGraphSession,
-  seedGraphSession,
-  useGraphSession,
-} from "@/lib/tracks/graph-session-store";
+import { GraphExplorer } from "@/components/graph/graph-explorer";
+import { GraphLanding } from "@/components/graph/graph-landing";
+import { clearGraphSession, seedGraphSession, useGraphSession } from "@/lib/graph/session-store";
 
 /**
  * Single `/graph` session: landing when idle, explorer when a track is active.

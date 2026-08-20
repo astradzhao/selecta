@@ -1,4 +1,13 @@
-/** Motion helpers that respect prefers-reduced-motion. */
+/** Motion helpers that respect prefers-reduced-motion. Must match CSS --motion-* tokens. */
+
+export const DURATION_FAST_MS = 200;
+export const DURATION_BASE_MS = 300;
+export const DURATION_SLOW_MS = 500;
+/** Shared hop timeline — copy exit, art flight, and copy enter all use these. */
+export const HOP_COPY_OUT_MS = 420;
+export const HOP_FLIGHT_MS = 420;
+export const HOP_COPY_IN_MS = 420;
+export const EASE_STANDARD = "cubic-bezier(0.2, 0, 0, 1)";
 
 export function prefersReducedMotion(): boolean {
   return (
@@ -10,11 +19,7 @@ export function motionDelay(ms: number): number {
   return prefersReducedMotion() ? 0 : ms;
 }
 
-/** Shared hop timeline — copy exit, art flight, and copy enter all use these. */
-export const HOP_COPY_OUT_MS = 420;
-export const HOP_FLIGHT_MS = 420;
-export const HOP_COPY_IN_MS = 420;
-/** Hero artwork is always this square — never trust a measured size that can drift. */
+/** Hero artwork is always this square — never trust a measured size that can drift. Must match GraphArtwork hero size (13.75rem). */
 export const HERO_ART_SIZE = 220;
 
 export function wait(ms: number): Promise<void> {
@@ -160,7 +165,7 @@ export function beginArtFlight(source: HTMLElement | null | undefined): ArtFligh
       try {
         await clone.animate(frames, {
           duration,
-          easing: "cubic-bezier(0.2, 0, 0, 1)",
+          easing: EASE_STANDARD,
           fill: "forwards",
         }).finished;
       } catch {

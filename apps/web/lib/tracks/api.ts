@@ -1,20 +1,11 @@
 import { apiFetch } from "@/lib/api/client";
 
-import type {
-  ApiNeighborhoodCurrent,
-  ApiNeighborhoodNeighbor,
-  ApiTrack,
-  CreateTrackBody,
-  UpdateTrackBody,
-} from "./types";
+import type { ApiTrack, CreateTrackBody, UpdateTrackBody } from "./types";
 
 export type {
   ApiFolderNode,
   ApiNamedNode,
-  ApiNeighborhoodCurrent,
-  ApiNeighborhoodNeighbor,
   ApiTrack,
-  ApiTransitionEdge,
   CreateTrackBody,
   FolderRefInput,
   NamedRefInput,
@@ -60,14 +51,6 @@ export async function getLibraryStats(): Promise<{
 
 export async function getTrack(id: string): Promise<{ ok: true; track: ApiTrack }> {
   return apiFetch(`/tracks/${encodeURIComponent(id)}`);
-}
-
-export async function getTrackNeighborhood(id: string): Promise<{
-  ok: true;
-  current: ApiNeighborhoodCurrent;
-  neighbors: ApiNeighborhoodNeighbor[];
-}> {
-  return apiFetch(`/tracks/${encodeURIComponent(id)}/neighborhood`);
 }
 
 export async function createTrack(body: CreateTrackBody): Promise<{ ok: true; track: ApiTrack }> {
