@@ -1,12 +1,12 @@
 import { confidenceToUnitInterval } from "./confidence";
 import type { ProposalPolicyResult } from "./proposal-policy";
 import type { SubmissionProcessingPlan } from "./schema";
-import type { SubmissionAgentServices } from "./services";
+import type { MusicWritePort } from "./services";
 
 export type ApplyProposalPolicyInput = {
   plan: SubmissionProcessingPlan;
   policy: ProposalPolicyResult;
-  services: SubmissionAgentServices;
+  services: MusicWritePort;
   submissionId: string;
   extractionVersion: number;
   /** Fingerprint-based key: `{submissionId}:{version}:span:{fingerprint}`. */

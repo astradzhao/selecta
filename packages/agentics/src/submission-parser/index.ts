@@ -54,6 +54,8 @@ export {
   type TrackCandidate,
   type SearchQueriesInput,
   type SearchCandidatesOutput,
+  type CandidateSearchPort,
+  type MusicWritePort,
   type SubmissionAgentServices,
 } from "./agent/services";
 

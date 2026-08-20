@@ -2,7 +2,7 @@ import { CandidateRegistry } from "./candidate-registry";
 import { SUBMISSION_LIMITS } from "./limits";
 import { mentionSearchQuery, topSearchHit } from "./match";
 import type { SubmissionMentionPlan, SubmissionProcessingPlan } from "./schema";
-import type { SubmissionAgentServices, SearchQueriesInput, TrackCandidate } from "./services";
+import type { CandidateSearchPort, SearchQueriesInput, TrackCandidate } from "./services";
 
 export type ProposalResolveItem = {
   proposalId: string;
@@ -12,7 +12,7 @@ export type ProposalResolveItem = {
 
 export type ResolveProposalsBatchInput = {
   items: ProposalResolveItem[];
-  services: Pick<SubmissionAgentServices, "searchSpotifyTracks" | "findLibraryTrackByExternalId">;
+  services: CandidateSearchPort;
   batchSize?: number;
 };
 

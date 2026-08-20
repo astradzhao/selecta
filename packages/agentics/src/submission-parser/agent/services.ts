@@ -36,7 +36,7 @@ export const SearchCandidatesOutputSchema = z.object({
 });
 export type SearchCandidatesOutput = z.infer<typeof SearchCandidatesOutputSchema>;
 
-export type SubmissionAgentServices = {
+export type CandidateSearchPort = {
   searchSpotifyTracks: (input: SearchQueriesInput) => Promise<SearchCandidatesOutput>;
   /**
    * Exact library lookup by catalog external id (e.g. Spotify).
@@ -46,6 +46,9 @@ export type SubmissionAgentServices = {
     provider: string;
     providerId: string;
   }) => Promise<TrackCandidate | null>;
+};
+
+export type MusicWritePort = {
   /** Deterministic import — never exposed as an LLM tool. */
   importSpotifyTrack: (input: {
     providerId: string;
@@ -74,3 +77,6 @@ export type SubmissionAgentServices = {
     notes?: string | null;
   }) => Promise<{ id: string | null; proposalKey: string; created: boolean }>;
 };
+
+/** Everything the pipeline needs. Kept so existing call sites compile unchanged. */
+export type SubmissionAgentServices = CandidateSearchPort & MusicWritePort;
