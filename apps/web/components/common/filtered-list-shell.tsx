@@ -63,6 +63,7 @@ export function FilteredListShell<T>({
   leading,
   leadingBleed = false,
   hideMainList = false,
+  columnHeader,
   listHeading,
   pagination,
   errorBanner = true,
@@ -94,6 +95,8 @@ export function FilteredListShell<T>({
   /** Let `leading` own its own padding so it can render full-bleed rows. */
   leadingBleed?: boolean;
   hideMainList?: boolean;
+  /** Shared column labels, rendered above both the leading band and the main list. */
+  columnHeader?: ReactNode;
   listHeading?: ReactNode;
   pagination?: {
     hasMore: boolean;
@@ -137,6 +140,7 @@ export function FilteredListShell<T>({
           <ListSkeleton aria-label={loadingAriaLabel} className="rounded-none border-0" />
         ) : (
           <>
+            {columnHeader}
             {leading ? (
               <div className={cn("border-border border-b", !leadingBleed && "px-3.5 py-4")}>
                 {leading}
@@ -145,18 +149,20 @@ export function FilteredListShell<T>({
             {hideMainList ? null : (
               <>
                 {listHeading}
-                <DataList className="rounded-none border-0">
-                  {items.map((item) => (
-                    <Fragment key={getItemKey(item)}>{renderRow(item)}</Fragment>
-                  ))}
-                  {hasFetched && items.length === 0 ? (
-                    <DataListRow interactive={false}>
-                      <EmptyState title={emptyCopy.title} description={emptyCopy.description}>
-                        {emptyCopy.showAction ? empty.action : null}
-                      </EmptyState>
-                    </DataListRow>
-                  ) : null}
-                </DataList>
+                {items.length > 0 || (hasFetched && !leading) ? (
+                  <DataList className="rounded-none border-0">
+                    {items.map((item) => (
+                      <Fragment key={getItemKey(item)}>{renderRow(item)}</Fragment>
+                    ))}
+                    {hasFetched && items.length === 0 && !leading ? (
+                      <DataListRow interactive={false}>
+                        <EmptyState title={emptyCopy.title} description={emptyCopy.description}>
+                          {emptyCopy.showAction ? empty.action : null}
+                        </EmptyState>
+                      </DataListRow>
+                    ) : null}
+                  </DataList>
+                ) : null}
                 {pagination?.hasMore ? (
                   <div className="px-3.5 py-3">
                     <Button

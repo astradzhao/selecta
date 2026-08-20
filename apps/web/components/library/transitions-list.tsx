@@ -15,6 +15,7 @@ import {
   FilterField,
   FilteredListShell,
 } from "@/components/common/filtered-list-shell";
+import { LibraryGroupHeader } from "@/components/library/library-group-header";
 import {
   LibraryTransitionColumnHeader,
   LibraryTransitionRow,
@@ -170,12 +171,7 @@ export function TransitionsList() {
       leading={
         reviewQueue.length > 0 ? (
           <>
-            <div className="bg-surface-1 flex h-8 items-center gap-2 border-b px-3.5">
-              <span className="text-eyebrow">Needs review</span>
-              <span className="bg-warning-subtle text-warning text-numeric rounded-full px-1.5 text-xs font-medium">
-                {reviewQueue.length}
-              </span>
-            </div>
+            <LibraryGroupHeader label="Needs review" count={reviewQueue.length} />
             <DataList className="rounded-none border-0">
               {reviewQueue.map((proposal) => (
                 <TransitionReviewRow key={proposal.id} proposal={proposal} />
