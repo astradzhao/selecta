@@ -7,13 +7,14 @@ import { useEffect, useId, useMemo, useState, useTransition } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
 import { Checkbox } from "@selecta/ui/components/checkbox";
-import { Label } from "@selecta/ui/components/label";
+import { Field, FieldLabel } from "@selecta/ui/components/field";
 import { PageHeader } from "@selecta/ui/components/page-header";
 import { SectionHeading } from "@selecta/ui/components/section-heading";
 import { Separator } from "@selecta/ui/components/separator";
 import { StatePanel } from "@selecta/ui/components/state-panel";
 
 import { BackLink } from "@/components/common/back-link";
+import { omitFieldError } from "@/components/common/form-field";
 
 import { ProposalEndpointPicker } from "@/components/library/proposal-endpoint-picker";
 import { ProposalSiblings } from "@/components/library/proposal-siblings";
@@ -23,6 +24,7 @@ import {
   TransitionFields,
   emptyTransitionFields,
   parseTransitionFieldPatch,
+  type TransitionFieldErrors,
   type TransitionFieldValues,
 } from "@/components/tracks/transition-fields";
 import { ApiClientError } from "@/lib/api/client";
@@ -227,6 +229,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
   const [fromEndpoint, setFromEndpoint] = useState<ReviewerEndpointBody | null>(null);
   const [toEndpoint, setToEndpoint] = useState<ReviewerEndpointBody | null>(null);
   const [fields, setFields] = useState<TransitionFieldValues>(emptyTransitionFields());
+  const [fieldErrors, setFieldErrors] = useState<TransitionFieldErrors>({});
   const [bidirectional, setBidirectional] = useState(false);
   const [pendingAction, setPendingAction] = useState<ReviewAction | null>(null);
   const [loading, startLoad] = useTransition();
@@ -247,6 +250,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
     );
     const transition = transitionFieldsFromProposal(next.proposal);
     setFields(transition.fields);
+    setFieldErrors({});
     setBidirectional(transition.bidirectional);
   }
 
@@ -320,6 +324,7 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
 
   function onFieldChange(field: keyof TransitionFieldValues, value: string) {
     setFields((current) => ({ ...current, [field]: value }));
+    setFieldErrors((current) => omitFieldError(current, field));
     setActionError(null);
   }
 
@@ -345,7 +350,8 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
     if (!proposal || !fromEndpoint || !toEndpoint) return;
     const parsed = parseTransitionFieldPatch(fields);
     if (!parsed.ok) {
-      setActionError(parsed.error);
+      setFieldErrors(parsed.fields);
+      setActionError(null);
       return;
     }
 
@@ -577,20 +583,21 @@ export function ProposalReview({ noteId, proposalId }: { noteId: string; proposa
         <TransitionFields
           idPrefix={fieldId}
           values={fields}
+          errors={fieldErrors}
           onChange={onFieldChange}
           disabled={readOnly || acting}
         />
-        <div className="flex items-center gap-2">
+        <Field orientation="horizontal">
           <Checkbox
             id={`${fieldId}-bidirectional`}
             checked={bidirectional}
             disabled={readOnly || acting}
             onChange={(event) => setBidirectional(event.target.checked)}
           />
-          <Label htmlFor={`${fieldId}-bidirectional`} className="font-normal">
+          <FieldLabel htmlFor={`${fieldId}-bidirectional`} className="font-normal">
             Works in both directions
-          </Label>
-        </div>
+          </FieldLabel>
+        </Field>
       </section>
 
       {siblings.length > 1 ? (

@@ -11,11 +11,13 @@ import { EmptyState } from "@selecta/ui/components/empty-state";
 import { StatePanel } from "@selecta/ui/components/state-panel";
 import { cn } from "@selecta/ui/lib/utils";
 
+import { omitFieldError } from "@/components/common/form-field";
 import {
   emptyTransitionFields,
   parseTransitionFieldPatch,
   TransitionFields,
   transitionFieldsFromEdge,
+  type TransitionFieldErrors,
   type TransitionFieldValues,
 } from "@/components/tracks/transition-fields";
 import { TrackPicker } from "@/components/tracks/track-picker";
@@ -295,6 +297,7 @@ function NeighborCard({
 
   const [panelMode, setPanelMode] = useState<"view" | "edit" | null>("view");
   const [form, setForm] = useState<TransitionFieldValues>(emptyTransitionFields());
+  const [fieldErrors, setFieldErrors] = useState<TransitionFieldErrors>({});
   const [actionError, setActionError] = useState<string | null>(null);
   const [saving, startSave] = useTransition();
   const [deleting, startDelete] = useTransition();
@@ -307,6 +310,7 @@ function NeighborCard({
   function openEdit() {
     if (!t) return;
     setForm(transitionFieldsFromEdge(t));
+    setFieldErrors({});
     setActionError(null);
     setPanelMode("edit");
   }
@@ -318,13 +322,15 @@ function NeighborCard({
     }
     const parsed = parseTransitionFieldPatch(form);
     if (!parsed.ok) {
-      setActionError(parsed.error);
+      setFieldErrors(parsed.fields);
+      setActionError(null);
       return;
     }
     startSave(async () => {
       try {
         await updateTransition(t.id!, parsed.patch);
         setActionError(null);
+        setFieldErrors({});
         setPanelMode("view");
         await onNeighborhoodChange();
       } catch (err) {
@@ -563,10 +569,12 @@ function NeighborCard({
                 <TransitionFields
                   idPrefix={`graph-edit-${edgeKey(t, neighbor.id)}`}
                   values={form}
+                  errors={fieldErrors}
                   compact
                   disabled={saving}
                   onChange={(field, value) => {
                     setForm((current) => ({ ...current, [field]: value }));
+                    setFieldErrors((current) => omitFieldError(current, field));
                     setActionError(null);
                   }}
                 />
@@ -582,6 +590,7 @@ function NeighborCard({
                     onClick={() => {
                       setPanelMode("view");
                       setActionError(null);
+                      setFieldErrors({});
                     }}
                   >
                     Cancel
@@ -614,6 +623,7 @@ function AddTransitionPanel({
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<ApiTrack | null>(null);
   const [form, setForm] = useState<TransitionFieldValues>(emptyTransitionFields());
+  const [fieldErrors, setFieldErrors] = useState<TransitionFieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, startSave] = useTransition();
 
@@ -624,7 +634,8 @@ function AddTransitionPanel({
     }
     const parsed = parseTransitionFieldPatch(form);
     if (!parsed.ok) {
-      setError(parsed.error);
+      setFieldErrors(parsed.fields);
+      setError(null);
       return;
     }
     startSave(async () => {
@@ -698,10 +709,12 @@ function AddTransitionPanel({
       <TransitionFields
         idPrefix="graph-add"
         values={form}
+        errors={fieldErrors}
         compact
         disabled={saving}
         onChange={(field, value) => {
           setForm((current) => ({ ...current, [field]: value }));
+          setFieldErrors((current) => omitFieldError(current, field));
           setError(null);
         }}
       />

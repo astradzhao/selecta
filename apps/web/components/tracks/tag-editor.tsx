@@ -5,8 +5,8 @@ import { XIcon } from "lucide-react";
 
 import { FOLDER_KINDS, type FolderKind } from "@selecta/db/constants";
 import { Badge } from "@selecta/ui/components/badge";
+import { Field, FieldDescription, FieldLabel } from "@selecta/ui/components/field";
 import { Input } from "@selecta/ui/components/input";
-import { Label } from "@selecta/ui/components/label";
 import { Select } from "@selecta/ui/components/select";
 
 import { canAddTag, filterTagSuggestions } from "@/lib/tags/suggestions";
@@ -111,11 +111,9 @@ export function TagEditor(props: NamedEditorProps | FolderEditorProps) {
   );
 
   return (
-    <div className="space-y-2">
-      <div className="space-y-1">
-        <Label htmlFor={id}>{props.label}</Label>
-        {props.hint ? <p className="text-caption">{props.hint}</p> : null}
-      </div>
+    <Field>
+      <FieldLabel htmlFor={id}>{props.label}</FieldLabel>
+      {props.hint ? <FieldDescription>{props.hint}</FieldDescription> : null}
       <div className={withKind ? "flex flex-col gap-2 sm:flex-row" : undefined}>
         <Input
           id={id}
@@ -195,6 +193,6 @@ export function TagEditor(props: NamedEditorProps | FolderEditorProps) {
           ))}
         </div>
       ) : null}
-    </div>
+    </Field>
   );
 }

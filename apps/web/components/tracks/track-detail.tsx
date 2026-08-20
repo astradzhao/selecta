@@ -8,15 +8,15 @@ import { useEffect, useState, useTransition } from "react";
 import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
 import { Input } from "@selecta/ui/components/input";
-import { Label } from "@selecta/ui/components/label";
 import { PageBreadcrumb, PageHeader } from "@selecta/ui/components/page-header";
 import { Separator } from "@selecta/ui/components/separator";
 import { StatePanel } from "@selecta/ui/components/state-panel";
 
 import { BackLink } from "@/components/common/back-link";
+import { FormField, omitFieldError } from "@/components/common/form-field";
 
 import { describeApiError } from "@/lib/api/errors";
-import { formatDuration, optionalNumber } from "@/lib/format";
+import { formatDuration, optionalNumber, optionalNumberError } from "@/lib/format";
 import { invalidateLibraryCache } from "@/lib/library-cache";
 import { clearGraphSession, getGraphSessionSnapshot } from "@/lib/tracks/graph-session-store";
 import { deleteTrack, getTrack, updateTrack, type ApiTrack } from "@/lib/tracks/api";
@@ -35,6 +35,10 @@ type FormState = {
   releaseDate: string;
   artworkUrl: string;
 };
+
+type FieldErrors = Partial<
+  Record<"title" | "artistsText" | "bpm" | "energy" | "durationSec", string>
+>;
 
 function formFromTrack(track: ApiTrack): FormState {
   return {
@@ -71,6 +75,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
   const [editing, setEditing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [actionError, setActionError] = useState<string | null>(null);
   const [loading, startLoad] = useTransition();
   const [saving, startSave] = useTransition();
@@ -114,6 +119,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
 
   function onFieldChange(field: keyof FormState, value: string) {
     setForm((current) => (current ? { ...current, [field]: value } : current));
+    setFieldErrors((current) => omitFieldError(current, field as keyof FieldErrors));
     setSaveError(null);
   }
 
@@ -121,6 +127,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
     if (!track) return;
     setForm(formFromTrack(track));
     setSaveError(null);
+    setFieldErrors({});
     setActionError(null);
     setEditing(true);
   }
@@ -129,6 +136,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
     if (!track) return;
     setForm(formFromTrack(track));
     setSaveError(null);
+    setFieldErrors({});
     setActionError(null);
     setEditing(false);
   }
@@ -141,18 +149,24 @@ export function TrackDetail({ trackId }: { trackId: string }) {
       .split(",")
       .map((name) => name.trim())
       .filter(Boolean);
-    if (!form.title.trim() || artists.length === 0) {
-      setSaveError("Title and at least one artist are required.");
+    const nextErrors: FieldErrors = {};
+    if (!form.title.trim()) nextErrors.title = "Title is required.";
+    if (artists.length === 0) nextErrors.artistsText = "At least one artist is required.";
+    const bpmError = optionalNumberError(form.bpm);
+    const energyError = optionalNumberError(form.energy);
+    const durationError = optionalNumberError(form.durationSec);
+    if (bpmError) nextErrors.bpm = bpmError;
+    if (energyError) nextErrors.energy = energyError;
+    if (durationError) nextErrors.durationSec = durationError;
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
+      setSaveError(null);
       return;
     }
 
     const bpm = optionalNumber(form.bpm);
     const energy = optionalNumber(form.energy);
     const durationSec = optionalNumber(form.durationSec);
-    if ([bpm, energy, durationSec].some((value) => Number.isNaN(value))) {
-      setSaveError("BPM, energy, and duration must be numbers when set.");
-      return;
-    }
 
     startSave(async () => {
       try {
@@ -175,6 +189,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
         setForm(formFromTrack(response.track));
         invalidateLibraryCache();
         setSaveError(null);
+        setFieldErrors({});
         setEditing(false);
       } catch (err) {
         setSaveError(describeApiError(err, { fallback: "Failed to save track." }));
@@ -241,25 +256,21 @@ export function TrackDetail({ trackId }: { trackId: string }) {
 
         <form onSubmit={onSubmit} className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="track-title">Title</Label>
+            <FormField id="track-title" label="Title" error={fieldErrors.title}>
               <Input
-                id="track-title"
                 value={form.title}
                 onChange={(event) => onFieldChange("title", event.target.value)}
                 disabled={saving}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="track-artists">Artists</Label>
+            </FormField>
+            <FormField id="track-artists" label="Artists" error={fieldErrors.artistsText}>
               <Input
-                id="track-artists"
                 value={form.artistsText}
                 onChange={(event) => onFieldChange("artistsText", event.target.value)}
                 placeholder="Comma-separated"
                 disabled={saving}
               />
-            </div>
+            </FormField>
           </div>
 
           <TagEditor
@@ -288,69 +299,57 @@ export function TrackDetail({ trackId }: { trackId: string }) {
           />
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="track-bpm">BPM</Label>
+            <FormField id="track-bpm" label="BPM" error={fieldErrors.bpm}>
               <Input
-                id="track-bpm"
                 inputMode="decimal"
                 className="text-numeric"
                 value={form.bpm}
                 onChange={(event) => onFieldChange("bpm", event.target.value)}
                 disabled={saving}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="track-key">Key</Label>
+            </FormField>
+            <FormField id="track-key" label="Key">
               <Input
-                id="track-key"
                 value={form.musicalKey}
                 onChange={(event) => onFieldChange("musicalKey", event.target.value)}
                 disabled={saving}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="track-energy">Energy</Label>
+            </FormField>
+            <FormField id="track-energy" label="Energy" error={fieldErrors.energy}>
               <Input
-                id="track-energy"
                 inputMode="decimal"
                 className="text-numeric"
                 value={form.energy}
                 onChange={(event) => onFieldChange("energy", event.target.value)}
                 disabled={saving}
               />
-            </div>
+            </FormField>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="track-duration">Duration (sec)</Label>
+            <FormField id="track-duration" label="Duration (sec)" error={fieldErrors.durationSec}>
               <Input
-                id="track-duration"
                 inputMode="decimal"
                 className="text-numeric"
                 value={form.durationSec}
                 onChange={(event) => onFieldChange("durationSec", event.target.value)}
                 disabled={saving}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="track-release">Release date</Label>
+            </FormField>
+            <FormField id="track-release" label="Release date">
               <Input
-                id="track-release"
                 value={form.releaseDate}
                 onChange={(event) => onFieldChange("releaseDate", event.target.value)}
                 disabled={saving}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="track-artwork">Artwork URL</Label>
+            </FormField>
+            <FormField id="track-artwork" label="Artwork URL">
               <Input
-                id="track-artwork"
                 value={form.artworkUrl}
                 onChange={(event) => onFieldChange("artworkUrl", event.target.value)}
                 disabled={saving}
               />
-            </div>
+            </FormField>
           </div>
 
           {saveError ? <Alert variant="destructive">{saveError}</Alert> : null}

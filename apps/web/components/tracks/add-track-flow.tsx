@@ -7,9 +7,10 @@ import { useState, useTransition } from "react";
 import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
 import { Input } from "@selecta/ui/components/input";
-import { Label } from "@selecta/ui/components/label";
 import { SectionHeading } from "@selecta/ui/components/section-heading";
 import { Separator } from "@selecta/ui/components/separator";
+
+import { FormField, omitFieldError } from "@/components/common/form-field";
 
 import { TagEditor, type FolderTag, type TagItem } from "@/components/tracks/tag-editor";
 import { TrackPicker } from "@/components/tracks/track-picker";
@@ -20,6 +21,7 @@ import { invalidateLibraryCache } from "@/lib/library-cache";
 import { createTrack } from "@/lib/tracks/api";
 
 type Mode = "search" | "review";
+type ReviewFieldErrors = Partial<Record<"title" | "artistsText", string>>;
 
 export function AddTrackFlow() {
   const router = useRouter();
@@ -27,6 +29,7 @@ export function AddTrackFlow() {
   const [query, setQuery] = useState("");
   const [savePending, startSave] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<ReviewFieldErrors>({});
 
   const [catalog, setCatalog] = useState<CatalogTrack | null>(null);
   const [title, setTitle] = useState("");
@@ -43,6 +46,7 @@ export function AddTrackFlow() {
     setSubgenres([]);
     setFolders([]);
     setSaveError(null);
+    setFieldErrors({});
     setMode("review");
   }
 
@@ -51,8 +55,12 @@ export function AddTrackFlow() {
       .split(",")
       .map((part) => part.trim())
       .filter(Boolean);
-    if (!title.trim() || artists.length === 0) {
-      setSaveError("Title and at least one artist are required.");
+    const nextErrors: ReviewFieldErrors = {};
+    if (!title.trim()) nextErrors.title = "Title is required.";
+    if (artists.length === 0) nextErrors.artistsText = "At least one artist is required.";
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
+      setSaveError(null);
       return;
     }
 
@@ -139,19 +147,32 @@ export function AddTrackFlow() {
           ) : null}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="title">Title</Label>
-              <Input id="title" value={title} onChange={(event) => setTitle(event.target.value)} />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="artists">Artists</Label>
+            <FormField id="title" label="Title" error={fieldErrors.title} className="sm:col-span-2">
               <Input
-                id="artists"
-                value={artistsText}
-                onChange={(event) => setArtistsText(event.target.value)}
-                placeholder="Comma-separated"
+                value={title}
+                onChange={(event) => {
+                  setTitle(event.target.value);
+                  setFieldErrors((current) => omitFieldError(current, "title"));
+                }}
+                disabled={savePending}
               />
-            </div>
+            </FormField>
+            <FormField
+              id="artists"
+              label="Artists"
+              error={fieldErrors.artistsText}
+              className="sm:col-span-2"
+            >
+              <Input
+                value={artistsText}
+                onChange={(event) => {
+                  setArtistsText(event.target.value);
+                  setFieldErrors((current) => omitFieldError(current, "artistsText"));
+                }}
+                placeholder="Comma-separated"
+                disabled={savePending}
+              />
+            </FormField>
           </div>
 
           <Separator />
