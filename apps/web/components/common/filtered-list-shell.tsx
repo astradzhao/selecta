@@ -34,8 +34,7 @@ export function FilterField({
 }) {
   return (
     <Field>
-      {/* text-xs is repeated so tailwind-merge drops Label's text-sm; text-eyebrow is opaque to it. */}
-      <FieldLabel htmlFor={htmlFor} className="text-eyebrow text-xs">
+      <FieldLabel htmlFor={htmlFor} className="sr-only">
         {label}
       </FieldLabel>
       {children}
@@ -111,12 +110,12 @@ export function FilteredListShell<T>({
   const emptyCopy = emptyStateCopy(hasFilters, empty);
 
   return (
-    <div className="space-y-6">
+    <div className="border-border overflow-hidden rounded-xl border">
       <section
         aria-label={filtersAriaLabel}
-        className="border-border bg-surface-1 space-y-3 rounded-xl border px-4 py-4"
+        className="bg-surface-1 space-y-2 border-b px-2.5 py-2.5"
       >
-        <div className={cn("grid items-end gap-3", filterGridClassName)}>{filterControls}</div>
+        <div className={cn("grid items-center gap-2", filterGridClassName)}>{filterControls}</div>
         {filterBar}
         {countRowVisible ? (
           <div className="flex min-h-7 items-center justify-between gap-4">
@@ -132,14 +131,14 @@ export function FilteredListShell<T>({
         {phase === "error" ? (
           <StatePanel variant="error" title={unavailableTitle} description={error} />
         ) : phase === "loading" ? (
-          <ListSkeleton aria-label={loadingAriaLabel} />
+          <ListSkeleton aria-label={loadingAriaLabel} className="rounded-none border-0" />
         ) : (
-          <div className={cn(leading ? "space-y-6" : "space-y-3")}>
-            {leading}
+          <>
+            {leading ? <div className="border-border border-b px-3.5 py-4">{leading}</div> : null}
             {hideMainList ? null : (
-              <div className="space-y-3">
+              <>
                 {listHeading}
-                <DataList>
+                <DataList className="rounded-none border-0">
                   {items.map((item) => (
                     <Fragment key={getItemKey(item)}>{renderRow(item)}</Fragment>
                   ))}
@@ -152,20 +151,26 @@ export function FilteredListShell<T>({
                   ) : null}
                 </DataList>
                 {pagination?.hasMore ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={pagination.loadingMore}
-                    onClick={() => pagination.onLoadMore()}
-                  >
-                    {pagination.loadingMore ? "Loading…" : "Load more"}
-                  </Button>
+                  <div className="px-3.5 py-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={pagination.loadingMore}
+                      onClick={() => pagination.onLoadMore()}
+                    >
+                      {pagination.loadingMore ? "Loading…" : "Load more"}
+                    </Button>
+                  </div>
                 ) : null}
-              </div>
+              </>
             )}
-            {errorBanner && error ? <Alert variant="destructive">{error}</Alert> : null}
-          </div>
+            {errorBanner && error ? (
+              <div className="px-3.5 py-3">
+                <Alert variant="destructive">{error}</Alert>
+              </div>
+            ) : null}
+          </>
         )}
       </section>
     </div>

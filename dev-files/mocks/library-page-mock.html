@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Selecta — Library page mock</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ------------------------------------------------------------------
+         Tokens copied from packages/ui/src/styles/globals.css so this mock
+         is implementable as-is. No new colors are introduced.
+         ------------------------------------------------------------------ */
+      [data-theme="light"] {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --border: oklch(0.922 0 0);
+        --input: oklch(0.922 0 0);
+        --surface-1: oklch(0.985 0 0);
+        --surface-2: oklch(0.97 0 0);
+        --surface-3: oklch(0.94 0 0);
+        --primary: oklch(0.205 0 0);
+        --primary-foreground: oklch(0.985 0 0);
+        --secondary: oklch(0.97 0 0);
+        --secondary-foreground: oklch(0.205 0 0);
+        --brand: oklch(0.48 0.19 264);
+        --selected: oklch(0.145 0 0);
+        --selected-foreground: oklch(0.985 0 0);
+        --ring: oklch(0.708 0 0);
+        --stage: oklch(0.955 0 0);
+      }
+      [data-theme="dark"] {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --border: oklch(1 0 0 / 10%);
+        --input: oklch(1 0 0 / 15%);
+        --surface-1: oklch(0.18 0 0);
+        --surface-2: oklch(0.205 0 0);
+        --surface-3: oklch(0.269 0 0);
+        --primary: oklch(0.922 0 0);
+        --primary-foreground: oklch(0.205 0 0);
+        --secondary: oklch(0.269 0 0);
+        --secondary-foreground: oklch(0.985 0 0);
+        --brand: oklch(0.72 0.16 264);
+        --selected: oklch(0.985 0 0);
+        --selected-foreground: oklch(0.145 0 0);
+        --ring: oklch(0.556 0 0);
+        --stage: oklch(0.11 0 0);
+      }
+
+      :root {
+        --radius: 0.625rem;
+        --radius-lg: var(--radius);
+        --radius-xl: calc(var(--radius) * 1.4);
+        --motion-fast: 200ms;
+        --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+        --content: 64rem; /* matches AppShell max-w-5xl */
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 40px 24px 72px;
+        background: var(--stage);
+        color: var(--foreground);
+        font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        transition: background var(--motion-fast) var(--motion-ease);
+      }
+
+      /* ---- mock scaffolding (not part of the design) ---- */
+      .stage {
+        max-width: 1120px;
+        margin: 0 auto;
+      }
+      .stage-bar {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+        color: var(--muted-foreground);
+        font-size: 12px;
+      }
+      .stage-bar strong {
+        color: var(--foreground);
+        font-weight: 600;
+      }
+      .theme-toggle {
+        font: inherit;
+        color: var(--foreground);
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 5px 11px;
+        cursor: pointer;
+      }
+      .frame {
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+      }
+
+      /* ---- app chrome ---- */
+      .appbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 52px;
+        padding: 0 24px;
+        border-bottom: 1px solid var(--border);
+      }
+      .wordmark {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      .appnav {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+      }
+      .appnav a {
+        color: var(--muted-foreground);
+        text-decoration: none;
+        padding: 5px 11px;
+        border-radius: var(--radius-lg);
+      }
+      .appnav a[aria-current] {
+        background: var(--selected);
+        color: var(--selected-foreground);
+      }
+
+      .page {
+        max-width: var(--content);
+        margin: 0 auto;
+        padding: 36px 24px 48px;
+      }
+
+      /* ---- 1. masthead: title + scale, primary action opposite ---- */
+      .masthead {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+      }
+      .masthead h1 {
+        margin: 0;
+        font-size: 30px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+      }
+      /* Live facts about the crate, in place of copy that described the filters. */
+      .stats {
+        margin: 7px 0 0;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted-foreground);
+        font-size: 13px;
+      }
+      .stats b {
+        color: var(--foreground);
+        font-weight: 500;
+        font-family: "Geist Mono", ui-monospace, monospace;
+        font-variant-numeric: tabular-nums;
+      }
+      .stats span[aria-hidden] {
+        opacity: 0.45;
+      }
+
+      .btn-primary {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        height: 34px;
+        padding: 0 13px;
+        border-radius: var(--radius-lg);
+        background: var(--primary);
+        color: var(--primary-foreground);
+        font-size: 13px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: opacity var(--motion-fast) var(--motion-ease);
+      }
+      .btn-primary:hover {
+        opacity: 0.88;
+      }
+      .btn-primary svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* ---- 2. tab rail ---- */
+      .tabs {
+        display: flex;
+        gap: 4px;
+        margin-top: 24px;
+      }
+      .tabs a {
+        padding: 6px 12px;
+        border-radius: var(--radius-lg);
+        font-size: 13px;
+        color: var(--muted-foreground);
+        text-decoration: none;
+        transition:
+          background var(--motion-fast) var(--motion-ease),
+          color var(--motion-fast) var(--motion-ease);
+      }
+      .tabs a:hover {
+        background: var(--surface-2);
+        color: var(--foreground);
+      }
+      .tabs a[aria-current] {
+        background: var(--selected);
+        color: var(--selected-foreground);
+      }
+
+      /* ---- 3. workbench: toolbar + table are ONE object ---- */
+      .card {
+        margin-top: 16px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        background: var(--background);
+      }
+
+      .toolbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 150px 150px;
+        gap: 8px;
+        padding: 10px;
+        background: var(--surface-1);
+        border-bottom: 1px solid var(--border);
+      }
+      .field {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      .field svg {
+        position: absolute;
+        left: 10px;
+        width: 15px;
+        height: 15px;
+        color: var(--muted-foreground);
+        pointer-events: none;
+      }
+      .field input {
+        width: 100%;
+        height: 32px;
+        font: inherit;
+        font-size: 13px;
+        color: var(--foreground);
+        background: var(--background);
+        border: 1px solid var(--input);
+        border-radius: var(--radius-lg);
+        padding: 0 10px;
+        outline: none;
+        transition: border-color var(--motion-fast) var(--motion-ease);
+      }
+      .field.search input {
+        padding-left: 32px;
+      }
+      .field input::placeholder {
+        color: var(--muted-foreground);
+      }
+      .field input:focus {
+        border-color: var(--ring);
+        box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent);
+      }
+
+      /* Shared column geometry: header and every row use this grid. */
+      .thead,
+      .row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 92px 104px 52px;
+        align-items: center;
+        gap: 16px;
+        padding: 0 14px;
+      }
+
+      .thead {
+        height: 30px;
+        background: var(--surface-1);
+        border-bottom: 1px solid var(--border);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .rows {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .row {
+        min-height: 56px;
+        border-bottom: 1px solid var(--border);
+        text-decoration: none;
+        color: inherit;
+        transition: background var(--motion-fast) var(--motion-ease);
+      }
+      .rows li:last-child .row {
+        border-bottom: 0;
+      }
+      .row:hover {
+        background: var(--surface-2);
+      }
+      .row:focus-visible {
+        outline: none;
+        background: var(--surface-2);
+        box-shadow: inset 0 0 0 2px var(--ring);
+      }
+
+      .track {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-width: 0;
+      }
+      .art {
+        flex: none;
+        width: 38px;
+        height: 38px;
+        border-radius: 6px;
+        box-shadow: inset 0 0 0 1px var(--border);
+        background: var(--surface-3);
+      }
+      .meta {
+        min-width: 0;
+      }
+      .title {
+        display: block;
+        font-size: 13.5px;
+        font-weight: 500;
+        line-height: 1.35;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .artist {
+        display: block;
+        font-size: 12.5px;
+        line-height: 1.35;
+        color: var(--muted-foreground);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .chip {
+        display: inline-block;
+        margin-left: 7px;
+        padding: 1px 7px;
+        border-radius: 999px;
+        background: var(--secondary);
+        color: var(--secondary-foreground);
+        font-size: 10.5px;
+        font-weight: 500;
+        vertical-align: 1px;
+      }
+
+      .mono {
+        font-family: "Geist Mono", ui-monospace, monospace;
+        font-size: 11.5px;
+        font-variant-numeric: tabular-nums;
+        color: var(--muted-foreground);
+      }
+      .empty {
+        opacity: 0.35;
+      }
+
+      /* SIGNATURE: the only column that could exist only in this product. */
+      .wired {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--brand);
+        font-weight: 500;
+      }
+      .wired svg {
+        width: 13px;
+        height: 13px;
+      }
+      .deadend {
+        color: var(--muted-foreground);
+        opacity: 0.4;
+      }
+
+      /* ---- notes (outside the design) ---- */
+      .notes {
+        max-width: 720px;
+        margin: 36px auto 0;
+        color: var(--muted-foreground);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+      .notes h2 {
+        color: var(--foreground);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        margin: 0 0 10px;
+      }
+      .notes ol {
+        margin: 0;
+        padding-left: 20px;
+      }
+      .notes li {
+        margin-bottom: 9px;
+      }
+      .notes b {
+        color: var(--foreground);
+        font-weight: 500;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="stage">
+      <div class="stage-bar">
+        <span><strong>Selecta / Library</strong> — proposed composition</span>
+        <button class="theme-toggle" type="button" id="theme">Dark</button>
+      </div>
+
+      <div class="frame">
+        <div class="appbar">
+          <span class="wordmark">Selecta</span>
+          <nav class="appnav">
+            <a href="#" aria-current="page">Library</a>
+            <a href="#">Graph</a>
+          </nav>
+        </div>
+
+        <main class="page">
+          <!-- 1. Masthead. The action lives opposite the title, which is where a
+               page-level action belongs; the line under the title carries facts
+               instead of instructions. -->
+          <div class="masthead">
+            <div>
+              <h1>Library</h1>
+              <p class="stats">
+                <b>36</b> tracks <span aria-hidden="true">·</span> <b>25</b> transitions
+                <span aria-hidden="true">·</span> <b>16</b> dead ends
+              </p>
+            </div>
+            <a class="btn-primary" href="#">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Add track
+            </a>
+          </div>
+
+          <nav class="tabs">
+            <a href="#" aria-current="page">Tracks</a>
+            <a href="#">Transitions</a>
+            <a href="#">Submissions</a>
+          </nav>
+
+          <!-- 2. Workbench. Filters, column header, and rows share one border,
+               so the page has two objects instead of five floating bands. -->
+          <section class="card">
+            <div class="toolbar">
+              <div class="field search">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
+                <input type="search" aria-label="Search tracks" placeholder="Title or artist" />
+              </div>
+              <div class="field"><input aria-label="Subgenre" placeholder="Subgenre" /></div>
+              <div class="field"><input aria-label="Folder" placeholder="Folder" /></div>
+            </div>
+
+            <div class="thead" aria-hidden="true">
+              <span>Track</span>
+              <span class="num">BPM · Key</span>
+              <span class="num">Transitions</span>
+              <span class="num">Time</span>
+            </div>
+
+            <ul class="rows">
+              <li>
+                <a class="row" href="#">
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #2b2f4a, #6f5b8e)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">Animals</span>
+                      <span class="artist">Martin Garrix</span>
+                    </span>
+                  </span>
+                  <span class="mono num">128 · 8A</span>
+                  <span class="mono num"
+                    ><span class="wired"
+                      ><svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M5 12h13m-5-6 6 6-6 6" /></svg
+                      >3</span
+                    ></span
+                  >
+                  <span class="mono num">5:04</span>
+                </a>
+              </li>
+              <li>
+                <a class="row" href="#">
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #5a4410, #c69a1e)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title"
+                        >B.T.W. (The Whistle)<span class="chip">bass house</span></span
+                      >
+                      <span class="artist">Crankdat</span>
+                    </span>
+                  </span>
+                  <span class="mono num empty">—</span>
+                  <span class="mono num"
+                    ><span class="wired"
+                      ><svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M5 12h13m-5-6 6 6-6 6" /></svg
+                      >1</span
+                    ></span
+                  >
+                  <span class="mono num">4:00</span>
+                </a>
+              </li>
+              <li>
+                <a class="row" href="#">
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #3d4a63, #93a8c4)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">Back To U</span>
+                      <span class="artist">SLANDER, William Black</span>
+                    </span>
+                  </span>
+                  <span class="mono num empty">—</span>
+                  <span class="mono num deadend">none</span>
+                  <span class="mono num">3:34</span>
+                </a>
+              </li>
+              <li>
+                <a class="row" href="#">
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #241c33, #574273)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">Backspin Bass</span>
+                      <span class="artist">Tape B</span>
+                    </span>
+                  </span>
+                  <span class="mono num">150</span>
+                  <span class="mono num"
+                    ><span class="wired"
+                      ><svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M5 12h13m-5-6 6 6-6 6" /></svg
+                      >2</span
+                    ></span
+                  >
+                  <span class="mono num">2:17</span>
+                </a>
+              </li>
+              <li>
+                <a class="row" href="#">
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #e9e9ec, #b9bcc6)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">Beam (Knock2 Remix)</span>
+                      <span class="artist">ISOxo, Knock2</span>
+                    </span>
+                  </span>
+                  <span class="mono num empty">—</span>
+                  <span class="mono num"
+                    ><span class="wired"
+                      ><svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M5 12h13m-5-6 6 6-6 6" /></svg
+                      >1</span
+                    ></span
+                  >
+                  <span class="mono num">4:53</span>
+                </a>
+              </li>
+              <li>
+                <a class="row" href="#">
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #f2cdd8, #d98aa6)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">Derre<span class="chip">k-pop</span></span>
+                      <span class="artist">BIBI</span>
+                    </span>
+                  </span>
+                  <span class="mono num empty">—</span>
+                  <span class="mono num"
+                    ><span class="wired"
+                      ><svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M5 12h13m-5-6 6 6-6 6" /></svg
+                      >1</span
+                    ></span
+                  >
+                  <span class="mono num">2:36</span>
+                </a>
+              </li>
+              <li>
+                <a class="row" href="#">
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #521418, #b03038)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">DROP EM</span>
+                      <span class="artist">Ray Volpe</span>
+                    </span>
+                  </span>
+                  <span class="mono num empty">—</span>
+                  <span class="mono num deadend">none</span>
+                  <span class="mono num">3:58</span>
+                </a>
+              </li>
+              <li>
+                <a class="row" href="#">
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #2f4a3c, #7fae8e)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">Euphoria Rush</span>
+                      <span class="artist">CHYL, Skybreak</span>
+                    </span>
+                  </span>
+                  <span class="mono num empty">—</span>
+                  <span class="mono num deadend">none</span>
+                  <span class="mono num">3:56</span>
+                </a>
+              </li>
+              <li>
+                <a class="row" href="#">
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #1e2a3a, #4a6b8a)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">First Time (feat. Dylan Matthew)</span>
+                      <span class="artist">Seven Lions, SLANDER, Dabin, Dylan Matthew</span>
+                    </span>
+                  </span>
+                  <span class="mono num empty">—</span>
+                  <span class="mono num"
+                    ><span class="wired"
+                      ><svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M5 12h13m-5-6 6 6-6 6" /></svg
+                      >2</span
+                    ></span
+                  >
+                  <span class="mono num">4:58</span>
+                </a>
+              </li>
+              <li>
+                <a class="row" href="#">
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #d8d2c4, #8f8676)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">Hello</span>
+                      <span class="artist">Adele</span>
+                    </span>
+                  </span>
+                  <span class="mono num empty">—</span>
+                  <span class="mono num"
+                    ><span class="wired"
+                      ><svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M5 12h13m-5-6 6 6-6 6" /></svg
+                      >1</span
+                    ></span
+                  >
+                  <span class="mono num">4:56</span>
+                </a>
+              </li>
+              <li>
+                <a class="row" href="#">
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #3a1f2b, #8c4a63)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">Toxic</span>
+                      <span class="artist">Britney Spears</span>
+                    </span>
+                  </span>
+                  <span class="mono num empty">—</span>
+                  <span class="mono num deadend">none</span>
+                  <span class="mono num">3:19</span>
+                </a>
+              </li>
+            </ul>
+          </section>
+        </main>
+      </div>
+
+      <section class="notes">
+        <h2>Notes</h2>
+        <ol>
+          <li>
+            <b>The add button gets a home.</b> A page-level action belongs opposite the page title,
+            not stacked between the tabs and the filters. It stops competing with the list and stops
+            looking like a third navigation layer.
+          </li>
+          <li>
+            <b>Five bands become two.</b> Filters, column header, and rows share one border, so the
+            page reads as a masthead plus a workbench.
+          </li>
+          <li>
+            <b>The subtitle carries facts, not instructions.</b> "Search your tracks or narrow the
+            list by Subgenre and Folder" described the controls directly beneath it. Counts are more
+            useful, and <em>dead ends</em> is the number worth acting on.
+          </li>
+          <li>
+            <b>Transitions is the signature column.</b> It is the one thing here that no other music
+            library could show. Needs the list endpoint to return an outbound count — everything
+            else on this page ships with no API change.
+          </li>
+          <li>
+            <b>BPM and key stay as columns even though they are mostly empty.</b> Neither is
+            populated from the catalog, so the header does the work of showing what could be filled
+            in. If that reads as too aspirational, the column can collapse until one track has a
+            value.
+          </li>
+          <li>
+            <b>Rows go 72px to 56px.</b> Denser is more faithful to DJ software and puts more of the
+            crate on screen; column labels make the numeric rail readable.
+          </li>
+        </ol>
+      </section>
+    </div>
+
+    <script>
+      const root = document.documentElement;
+      const button = document.getElementById("theme");
+      button.addEventListener("click", () => {
+        const next = root.dataset.theme === "light" ? "dark" : "light";
+        root.dataset.theme = next;
+        button.textContent = next === "light" ? "Dark" : "Light";
+      });
+    </script>
+  </body>
+</html>

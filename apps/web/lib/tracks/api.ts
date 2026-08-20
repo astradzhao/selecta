@@ -45,6 +45,9 @@ export async function getLibraryStats(): Promise<{
   ok: true;
   count: number;
   latestUpdatedAt: string | null;
+  transitionCount: number;
+  latestTransitionUpdatedAt: string | null;
+  deadEndCount: number;
 }> {
   return apiFetch("/tracks/stats");
 }

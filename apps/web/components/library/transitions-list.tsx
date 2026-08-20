@@ -92,7 +92,7 @@ export function TransitionsList() {
           <FilterField htmlFor="filter-technique" label="Technique">
             <Input
               id="filter-technique"
-              placeholder="e.g. cut"
+              placeholder="Technique"
               value={technique}
               onChange={(event) => setTechnique(event.target.value)}
               disabled={needsReviewOnly}
@@ -101,7 +101,7 @@ export function TransitionsList() {
           <FilterField htmlFor="filter-intent" label="Intent">
             <Input
               id="filter-intent"
-              placeholder="e.g. energy up"
+              placeholder="Intent"
               value={intent}
               onChange={(event) => setIntent(event.target.value)}
               disabled={needsReviewOnly}

@@ -26,8 +26,8 @@ function PageHeader({
       {...props}
     >
       {lead}
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-start justify-between gap-6">
+        <div className="min-w-0 space-y-2">
           <h1
             className={cn(
               size === "page" ? "text-page-title" : "text-section-title",
@@ -36,11 +36,11 @@ function PageHeader({
           >
             {title}
           </h1>
-          {actions}
+          {description ? (
+            <div className="text-body text-muted-foreground">{description}</div>
+          ) : null}
         </div>
-        {description ? (
-          <div className="text-body text-muted-foreground max-w-xl">{description}</div>
-        ) : null}
+        {actions ? <div className="shrink-0">{actions}</div> : null}
       </div>
       {children}
     </header>

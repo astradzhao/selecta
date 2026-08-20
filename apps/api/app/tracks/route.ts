@@ -6,6 +6,7 @@ import {
   type CreateTrackInput,
   type CreateTrackResult,
   type FolderRef,
+  type ListedTrack,
   type NamedRef,
   type TrackSummary,
 } from "@selecta/library";
@@ -232,7 +233,7 @@ function toCreateInput(body: CreateTrackRequestBody): CreateTrackInput {
   };
 }
 
-function serializeTrack(result: CreateTrackResult | TrackSummary, created?: boolean) {
+function serializeTrack(result: CreateTrackResult | TrackSummary | ListedTrack, created?: boolean) {
   return {
     id: result.track.id,
     title: result.track.title,
@@ -250,6 +251,9 @@ function serializeTrack(result: CreateTrackResult | TrackSummary, created?: bool
     libraryId: result.track.libraryId,
     createdAt: result.track.createdAt,
     updatedAt: result.track.updatedAt,
+    ...("outboundTransitionCount" in result
+      ? { outboundTransitionCount: result.outboundTransitionCount }
+      : {}),
     ...(created !== undefined ? { created } : {}),
   };
 }

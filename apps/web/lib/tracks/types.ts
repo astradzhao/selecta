@@ -30,6 +30,7 @@ export type ApiTrack = {
   created?: boolean;
   hasOutboundTransitions?: boolean;
   hasInboundTransitions?: boolean;
+  outboundTransitionCount?: number;
 };
 
 export type NamedRefInput = {

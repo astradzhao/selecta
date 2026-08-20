@@ -64,6 +64,30 @@ describe("fetchLibraryListIfStale", () => {
     assert.equal(result.items, cached);
   });
 
+  it("refetches when a transition lands even if track stats are unchanged", async () => {
+    const cached = [track("a", "1")];
+    const stale = {
+      count: 1,
+      latestUpdatedAt: "2026-01-01T00:00:00.000Z",
+      transitionCount: 0,
+      latestTransitionUpdatedAt: null,
+    };
+    writeLibraryCache("||", cached, libraryFingerprint(stale));
+
+    const listTracks = mock.fn(async () => ({ tracks: cached }));
+    const result = await fetchLibraryListIfStale(FILTERS, {
+      getLibraryStats: async () => ({
+        ...stale,
+        transitionCount: 1,
+        latestTransitionUpdatedAt: "2026-01-02T00:00:00.000Z",
+      }),
+      listTracks,
+    });
+
+    assert.equal(listTracks.mock.callCount(), 1);
+    assert.equal(result.skipReplace, false);
+  });
+
   it("refetches and replaces when the fingerprint is stale", async () => {
     const cached = [track("a", "1")];
     writeLibraryCache("||", cached, libraryFingerprint({ count: 1, latestUpdatedAt: "old" }));
