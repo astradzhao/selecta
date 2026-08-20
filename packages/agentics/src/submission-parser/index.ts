@@ -1,11 +1,6 @@
 /** Submission NL parse / preview / commit orchestration + schemas. */
 
-export {
-  SUBMISSION_CONTENT_TYPES,
-  TRANSITION_QUALITIES,
-  type SubmissionContentType,
-  type TransitionQuality,
-} from "./content-types";
+export { SUBMISSION_CONTENT_TYPES, type SubmissionContentType } from "./content-types";
 
 export {
   CONFIDENCE_LEVELS,

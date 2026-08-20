@@ -136,6 +136,9 @@ importers:
 
   packages/agentics:
     dependencies:
+      '@selecta/library':
+        specifier: workspace:*
+        version: link:../library
       ai:
         specifier: ^7.0.48
         version: 7.0.48(zod@4.4.3)

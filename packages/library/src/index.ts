@@ -6,13 +6,16 @@ export {
   SEQUENCE_MAX_NESTING_DEPTH,
   TRANSITION_INTENTS,
   TRANSITION_TECHNIQUES,
+  TRANSITION_QUALITIES,
   isFolderKind,
   isBlockKind,
   isGapState,
   isTransitionIntent,
   isTransitionTechnique,
+  isTransitionQuality,
   type TransitionIntent,
   type TransitionTechnique,
+  type TransitionQuality,
   type GapState,
 } from "./constants";
 export { MusicWriteError, isMusicWriteError, sequenceMusicWriteStatus } from "./errors";

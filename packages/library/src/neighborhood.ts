@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { getDb } from "@selecta/db";
 import { transitions, type TransitionRow } from "@selecta/db/schema";
+import { TRANSITION_QUALITIES } from "./constants";
 import type { FolderNode, NamedNode, TrackNode, TrackSummary } from "./types";
 import { getTrackById, getTrackSummariesByIds } from "./tracks";
 
@@ -129,16 +130,9 @@ export function transitionRowToEdge(row: TransitionRow): TransitionEdgeSummary {
 
 /** Lower is better. Matches ARCHITECTURE §6.4 / §11 quality preference. */
 export function transitionQualityRank(quality: string | null | undefined): number {
-  switch (quality) {
-    case "great":
-      return 0;
-    case "ok":
-      return 1;
-    case "risky":
-      return 2;
-    default:
-      return 3;
-  }
+  if (quality == null) return TRANSITION_QUALITIES.length;
+  const index = (TRANSITION_QUALITIES as readonly string[]).indexOf(quality);
+  return index === -1 ? TRANSITION_QUALITIES.length : index;
 }
 
 /**
