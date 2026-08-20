@@ -20,8 +20,7 @@ import { formatDuration, optionalNumber } from "@/lib/format";
 import { invalidateLibraryCache } from "@/lib/library-cache";
 import { clearGraphSession, getGraphSessionSnapshot } from "@/lib/tracks/graph-session-store";
 import { deleteTrack, getTrack, updateTrack, type ApiTrack } from "@/lib/tracks/api";
-import { FolderTagEditor, type FolderTag } from "@/components/tracks/folder-tag-editor";
-import { TagEditor, type TagItem } from "@/components/tracks/tag-editor";
+import { TagEditor, type FolderTag, type TagItem } from "@/components/tracks/tag-editor";
 import { TrackChips } from "@/components/tracks/track-chips";
 
 type FormState = {
@@ -276,7 +275,11 @@ export function TrackDetail({ trackId }: { trackId: string }) {
             vocab="subgenres"
           />
 
-          <FolderTagEditor
+          <TagEditor
+            kind
+            label="Folders / playlists"
+            hint="Organizational buckets for sets and crates — separate from musical Subgenres."
+            placeholder="Add playlist or folder, then Enter — or pick one below"
             values={form.folders}
             onChange={(folders) => {
               setForm((current) => (current ? { ...current, folders } : current));

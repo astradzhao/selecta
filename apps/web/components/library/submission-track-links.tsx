@@ -1,21 +1,21 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
-import { PlusIcon, XIcon } from "lucide-react";
+import { useState, useTransition } from "react";
+import { XIcon } from "lucide-react";
 
 import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
+import { DataList, DataListRow } from "@selecta/ui/components/data-list";
 import { EmptyState } from "@selecta/ui/components/empty-state";
 import { Label } from "@selecta/ui/components/label";
-import { SearchField } from "@selecta/ui/components/search-field";
 import { SectionHeading } from "@selecta/ui/components/section-heading";
 
-import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { TrackPicker } from "@/components/tracks/track-picker";
+import { TrackRow } from "@/components/tracks/track-row";
 import { describeApiError } from "@/lib/api/errors";
 import { addNoteTrackLink, removeNoteTrackLink, type ApiNoteTrackLink } from "@/lib/notes/api";
-import { listTracks, type ApiTrack } from "@/lib/tracks/api";
+import type { ApiTrack } from "@/lib/tracks/api";
+import { rowFromApiTrack } from "@/lib/tracks/track-row-item";
 
 export function SubmissionTrackLinks({
   noteId,
@@ -27,36 +27,9 @@ export function SubmissionTrackLinks({
   onLinksChange?: (links: ApiNoteTrackLink[]) => void;
 }) {
   const [query, setQuery] = useState("");
-  const [hits, setHits] = useState<ApiTrack[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [searching, startSearch] = useTransition();
   const [mutating, startMutate] = useTransition();
-  const q = query.trim();
-  const debouncedQuery = useDebouncedValue(q);
-  const results = q ? hits : [];
-
-  useEffect(() => {
-    if (!debouncedQuery) return;
-
-    let cancelled = false;
-    startSearch(async () => {
-      try {
-        const response = await listTracks({ query: debouncedQuery, limit: 8 });
-        if (cancelled) return;
-        const linkedIds = new Set(initialLinks.map((link) => link.trackId));
-        setHits(response.tracks.filter((track) => !linkedIds.has(track.id)));
-        setError(null);
-      } catch (err) {
-        if (cancelled) return;
-        setHits([]);
-        setError(describeApiError(err, { fallback: "Failed to search library tracks." }));
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [debouncedQuery, initialLinks]);
+  const linkedIds = initialLinks.map((link) => link.trackId);
 
   function updateLinks(next: ApiNoteTrackLink[]) {
     onLinksChange?.(next);
@@ -68,7 +41,6 @@ export function SubmissionTrackLinks({
         const response = await addNoteTrackLink(noteId, { trackId: track.id });
         updateLinks(response.trackLinks);
         setQuery("");
-        setHits([]);
         setError(null);
       } catch (err) {
         setError(describeApiError(err, { fallback: "Failed to link track. Is the API running?" }));
@@ -97,119 +69,62 @@ export function SubmissionTrackLinks({
         hint="Optionally attach existing library tracks. Links are manual — parsing never adds them silently."
       />
 
-      <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
+      <DataList>
         {initialLinks.map((link) => (
-          <li key={link.id} className="flex items-center gap-3 px-4 py-3">
-            <div className="bg-muted relative size-10 shrink-0 overflow-hidden rounded-md">
-              {link.track?.artworkUrl ? (
-                <Image
-                  src={link.track.artworkUrl}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="40px"
-                />
-              ) : null}
-            </div>
-            <div className="min-w-0 flex-1">
-              {link.track ? (
-                <>
-                  <Link
-                    href={`/tracks/${link.track.id}`}
-                    className="text-card-title truncate hover:underline"
-                  >
-                    {link.track.title}
-                  </Link>
-                  <p className="text-muted-foreground truncate text-sm">
-                    {link.track.artists.map((artist) => artist.name).join(", ") || "Unknown artist"}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-card-title truncate">Track unavailable</p>
-                  <p className="text-muted-foreground truncate text-sm">{link.trackId}</p>
-                </>
-              )}
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={mutating}
-              onClick={() => unlinkTrack(link.trackId)}
-              aria-label={`Unlink ${link.track?.title ?? link.trackId}`}
-            >
-              <XIcon />
-              Remove
-            </Button>
-          </li>
+          <TrackRow
+            key={link.id}
+            item={
+              link.track
+                ? rowFromApiTrack(link.track)
+                : { key: link.trackId, title: "Track unavailable", artists: [link.trackId] }
+            }
+            size="sm"
+            interaction="static"
+            titleHref={link.track ? `/tracks/${link.track.id}` : undefined}
+            trailing={
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={mutating}
+                onClick={() => unlinkTrack(link.trackId)}
+                aria-label={`Unlink ${link.track?.title ?? link.trackId}`}
+              >
+                <XIcon />
+                Remove
+              </Button>
+            }
+          />
         ))}
         {initialLinks.length === 0 ? (
-          <li>
+          <DataListRow interactive={false}>
             <EmptyState compact className="rounded-none border-0">
               No tracks linked yet.
             </EmptyState>
-          </li>
+          </DataListRow>
         ) : null}
-      </ul>
+      </DataList>
 
       <div className="space-y-2">
         <Label htmlFor="submission-link-track-search">Add track from library</Label>
-        <SearchField
+        <TrackPicker
           id="submission-link-track-search"
-          placeholder="Search title or artist"
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
+          source="library"
+          query={query}
+          onQueryChange={(next) => {
+            setQuery(next);
             setError(null);
           }}
+          excludeIds={linkedIds}
+          limit={8}
+          minQueryLength={1}
+          size="sm"
+          interaction="add"
           disabled={mutating}
+          busy="hide"
+          emptyFiltered="No matching tracks."
+          onSelect={linkTrack}
         />
-        {searching ? (
-          <p className="text-caption" aria-live="polite">
-            Searching library…
-          </p>
-        ) : null}
-        {query.trim() && !searching ? (
-          <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
-            {results.map((track) => (
-              <li key={track.id}>
-                <button
-                  type="button"
-                  className="hover:bg-surface-2 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
-                  disabled={mutating}
-                  onClick={() => linkTrack(track)}
-                >
-                  <div className="bg-muted relative size-10 shrink-0 overflow-hidden rounded-md">
-                    {track.artworkUrl ? (
-                      <Image
-                        src={track.artworkUrl}
-                        alt=""
-                        fill
-                        className="object-cover"
-                        sizes="40px"
-                      />
-                    ) : null}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-card-title truncate">{track.title}</p>
-                    <p className="text-muted-foreground truncate text-sm">
-                      {track.artists.map((artist) => artist.name).join(", ") || "Unknown artist"}
-                    </p>
-                  </div>
-                  <PlusIcon className="text-muted-foreground size-4 shrink-0" />
-                </button>
-              </li>
-            ))}
-            {results.length === 0 ? (
-              <li>
-                <EmptyState compact className="rounded-none border-0">
-                  No matching tracks.
-                </EmptyState>
-              </li>
-            ) : null}
-          </ul>
-        ) : null}
       </div>
 
       {error ? <Alert variant="destructive">{error}</Alert> : null}
