@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { PlusIcon } from "lucide-react";
-
 import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
 import { Checkbox } from "@selecta/ui/components/checkbox";
@@ -13,6 +11,7 @@ import { Label } from "@selecta/ui/components/label";
 import { SearchField } from "@selecta/ui/components/search-field";
 import { Select } from "@selecta/ui/components/select";
 
+import { AddNewButton } from "@/components/common/add-new-button";
 import {
   ClearFiltersButton,
   FilterField,
@@ -21,6 +20,7 @@ import {
 import { ExtractionStatusBadge } from "@/components/common/status-badge";
 import { useFilteredList } from "@/hooks/use-filtered-list";
 import { formatTimestamp, previewText } from "@/lib/format";
+import { libraryAddHref } from "@/lib/library/add-routes";
 import { submissionListQuery, type SubmissionListFilters } from "@/lib/library/list-params";
 import { formatListCount } from "@/lib/library/list-view-state";
 import { listSubmissions, type SubmissionExtractionStatus } from "@/lib/submissions/api";
@@ -116,14 +116,7 @@ export function SubmissionsList() {
                 hasMore: list.hasMore,
               })
       }
-      toolbar={
-        <Button asChild size="sm" variant="outline">
-          <Link href="/add?mode=transition">
-            <PlusIcon />
-            New submission
-          </Link>
-        </Button>
-      }
+      toolbar={<AddNewButton href={libraryAddHref("submissions")} label="New submission" />}
       unavailableTitle="Submissions unavailable"
       loadingAriaLabel="Loading submissions"
       error={list.error}
