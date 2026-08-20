@@ -252,7 +252,10 @@ function serializeTrack(result: CreateTrackResult | TrackSummary | ListedTrack, 
     createdAt: result.track.createdAt,
     updatedAt: result.track.updatedAt,
     ...("outboundTransitionCount" in result
-      ? { outboundTransitionCount: result.outboundTransitionCount }
+      ? {
+          inboundTransitionCount: result.inboundTransitionCount,
+          outboundTransitionCount: result.outboundTransitionCount,
+        }
       : {}),
     ...(created !== undefined ? { created } : {}),
   };

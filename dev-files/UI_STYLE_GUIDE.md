@@ -87,6 +87,7 @@ Map by **visual role**, not by heading tag. Recipes are `@utility` classes in
 | `text-caption`       | `text-xs text-muted-foreground`                            | Meta, counts                             |
 | `text-eyebrow`       | `text-xs font-medium uppercase` + `letter-spacing: 0.16em` | Labels, `dt`                             |
 | `text-numeric`       | `font-mono tabular-nums`                                   | BPM, bars, timestamps, IDs               |
+| `text-crate-meta`    | Geist Mono 11.5px (`0.71875rem`) + muted + tabular         | Library crate BPM/key, in/out, time      |
 
 Documented one-offs: Home hero display size; App-shell wordmark
 (`text-eyebrow` + `text-sm font-semibold text-foreground`); graph now-playing
@@ -171,10 +172,11 @@ bottom border, `text-section-title` instead of `text-page-title`),
   `Alert variant="destructive"`.
 - **Library crate:** `PageHeader` holds crate facts (`N` tracks · transitions ·
   dead ends) under the title and the add button in `actions`. Tracks render
-  through `LibraryTrackRow`: Track · BPM/Key · outbound count · time. Empty
-  BPM/key cells show `—`; a dead end shows `none`. The outbound count is the
-  one column no generic music library could have — it comes from
-  `GET /tracks` `outboundTransitionCount`.
+  through `LibraryTrackRow`: Track · BPM/Key · inbound · outbound · time.
+  Empty BPM/key is a centered `—`. In and Out are separate columns (`← n` /
+  `→ n`) so a one-sided track still lines up; a zero side is a centered `—`.
+  Counts come from `GET /tracks` `inboundTransitionCount` /
+  `outboundTransitionCount`. Crate figures use `text-crate-meta`.
 - **Detail page:** `PageHeader` + `PageBreadcrumb` / `BackLink`. Destructive
   actions go through `ConfirmDialog`.
 - **Nested task page** (add sub-pages under `/library/add/*`): `PageHeader`

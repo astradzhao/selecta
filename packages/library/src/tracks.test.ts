@@ -252,7 +252,7 @@ describe("music vocab + tracks", { skip: !pgIntegration }, () => {
     assert.equal(commit.toTrackId, to.track.id);
   });
 
-  it("listTracks returns outboundTransitionCount per track", async () => {
+  it("listTracks returns inbound and outbound transition counts per track", async () => {
     const suffix = randomUUID().slice(0, 8);
     const from = await createTrack({
       title: `Count From ${suffix}`,
@@ -272,11 +272,13 @@ describe("music vocab + tracks", { skip: !pgIntegration }, () => {
     const fromRow = fromListed.tracks.find((item) => item.track.id === from.track.id);
     assert.ok(fromRow);
     assert.equal(fromRow.outboundTransitionCount, 1);
+    assert.equal(fromRow.inboundTransitionCount, 0);
 
     const toListed = await listTracks({ query: `Count To ${suffix}`, limit: 20 });
     const toRow = toListed.tracks.find((item) => item.track.id === to.track.id);
     assert.ok(toRow);
     assert.equal(toRow.outboundTransitionCount, 0);
+    assert.equal(toRow.inboundTransitionCount, 1);
 
     const stats = await getLibraryStats();
     const listed = await listTracks({ limit: 100 });

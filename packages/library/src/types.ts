@@ -116,8 +116,9 @@ export type LibraryStats = {
   deadEndCount: number;
 };
 
-/** Track list row: summary plus how many committed ways out of this track. */
+/** Track list row: summary plus committed inbound/outbound edge counts. */
 export type ListedTrack = TrackSummary & {
+  inboundTransitionCount: number;
   outboundTransitionCount: number;
 };
 

@@ -86,24 +86,45 @@ async function loadExternalIdMaps(
   return map;
 }
 
-async function loadOutboundCounts(
+async function loadTransitionCounts(
   executor: DbLike,
   trackIds: string[],
-): Promise<Map<string, number>> {
-  const map = new Map<string, number>();
+): Promise<Map<string, { inbound: number; outbound: number }>> {
+  const map = new Map<string, { inbound: number; outbound: number }>();
   if (trackIds.length === 0) {
     return map;
   }
-  const rows = await executor
-    .select({
-      fromTrackId: transitions.fromTrackId,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(transitions)
-    .where(inArray(transitions.fromTrackId, trackIds))
-    .groupBy(transitions.fromTrackId);
-  for (const row of rows) {
-    map.set(row.fromTrackId, Number(row.count));
+
+  const bump = (id: string) => {
+    const entry = map.get(id) ?? { inbound: 0, outbound: 0 };
+    map.set(id, entry);
+    return entry;
+  };
+
+  const [outRows, inRows] = await Promise.all([
+    executor
+      .select({
+        id: transitions.fromTrackId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(transitions)
+      .where(inArray(transitions.fromTrackId, trackIds))
+      .groupBy(transitions.fromTrackId),
+    executor
+      .select({
+        id: transitions.toTrackId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(transitions)
+      .where(inArray(transitions.toTrackId, trackIds))
+      .groupBy(transitions.toTrackId),
+  ]);
+
+  for (const row of outRows) {
+    bump(row.id).outbound = Number(row.count);
+  }
+  for (const row of inRows) {
+    bump(row.id).inbound = Number(row.count);
   }
   return map;
 }
@@ -555,16 +576,20 @@ export async function listTracks(input: ListTracksInput = {}): Promise<ListTrack
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
   const summaries = await loadSummariesForTracks(executor, page);
-  const outboundCounts = await loadOutboundCounts(
+  const transitionCounts = await loadTransitionCounts(
     executor,
     summaries.map((summary) => summary.track.id),
   );
 
   return {
-    tracks: summaries.map((summary) => ({
-      ...summary,
-      outboundTransitionCount: outboundCounts.get(summary.track.id) ?? 0,
-    })),
+    tracks: summaries.map((summary) => {
+      const counts = transitionCounts.get(summary.track.id);
+      return {
+        ...summary,
+        inboundTransitionCount: counts?.inbound ?? 0,
+        outboundTransitionCount: counts?.outbound ?? 0,
+      };
+    }),
     limit,
     offset,
     hasMore,
