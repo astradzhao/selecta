@@ -1,16 +1,14 @@
 import {
-  parseCandidateHandle,
-  type SubmissionProcessingPlan,
-  type SubmissionTransitionPlan,
-} from "./schema";
-import { SUBMISSION_LIMITS } from "./limits";
-import {
   AUTO_COMMIT_CONFIDENCE_FLOOR,
   confidenceOrdinal,
+  parseCandidateHandle,
+  SUBMISSION_LIMITS,
   type ConfidenceLevel,
-} from "./confidence";
+  type SubmissionProcessingPlan,
+  type SubmissionTransitionPlan,
+} from "@selecta/agentics/submission-parser";
 import type { PolicyCommitAction, PolicyGateCode, PolicyImportAction } from "./policy";
-import type { TrackCandidate } from "./services";
+import type { TrackCandidate } from "./ports";
 
 export type ProposalPolicyDecision = "auto_commit" | "needs_review" | "no_proposal" | "reject";
 

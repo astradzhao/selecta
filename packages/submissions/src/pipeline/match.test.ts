@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { mentionSearchQuery, stripCueSuffixesFromSearchQuery, topSearchHit } from "./match";
-import type { SubmissionMentionPlan } from "./schema";
-import type { TrackCandidate } from "./services";
+import type { SubmissionMentionPlan } from "@selecta/agentics/submission-parser";
+import type { TrackCandidate } from "./ports";
 
 function mention(
   partial: Partial<SubmissionMentionPlan> & Pick<SubmissionMentionPlan, "mention">,

@@ -3,8 +3,8 @@ import { describe, it } from "node:test";
 
 import { applyProposalPolicy } from "./apply-proposal-policy";
 import type { ProposalPolicyResult } from "./proposal-policy";
-import type { SubmissionProcessingPlan } from "./schema";
-import type { MusicWritePort } from "./services";
+import type { SubmissionProcessingPlan } from "@selecta/agentics/submission-parser";
+import type { MusicWritePort } from "./ports";
 
 const plan: SubmissionProcessingPlan = {
   noteType: "transition",

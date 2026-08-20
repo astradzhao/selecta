@@ -1,5 +1,5 @@
-import type { TrackCandidate } from "./services";
-import type { SearchCandidatesOutput } from "./services";
+import type { TrackCandidate } from "./ports";
+import type { SearchCandidatesOutput } from "./ports";
 
 /**
  * Collects tool-returned candidates so policy can reject invented handles.

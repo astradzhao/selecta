@@ -256,6 +256,9 @@ importers:
 
   packages/submissions:
     dependencies:
+      '@selecta/agentics':
+        specifier: workspace:*
+        version: link:../agentics
       '@selecta/db':
         specifier: workspace:*
         version: link:../db
@@ -265,6 +268,9 @@ importers:
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@types/pg@8.20.3)(pg@8.22.0)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@selecta/eslint-config':
         specifier: workspace:*

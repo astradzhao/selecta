@@ -48,52 +48,9 @@ export {
 } from "./agent/orchestrator-prompt";
 
 export {
-  TrackCandidateSchema,
-  SearchQueriesInputSchema,
-  SearchCandidatesOutputSchema,
-  type TrackCandidate,
-  type SearchQueriesInput,
-  type SearchCandidatesOutput,
-  type CandidateSearchPort,
-  type MusicWritePort,
-  type SubmissionAgentServices,
-} from "./agent/services";
-
-export { CandidateRegistry } from "./agent/candidate-registry";
-export {
-  type PolicyGateCode,
-  type PolicyImportAction,
-  type PolicyCommitAction,
-} from "./agent/policy";
-export {
-  evaluateProposalPolicy,
-  type ProposalPolicyDecision,
-  type ProposalPolicyResult,
-  type EvaluateProposalPolicyInput,
-} from "./agent/proposal-policy";
-export {
-  applyProposalPolicy,
-  type ApplyProposalPolicyInput,
-  type ApplyProposalPolicyResult,
-} from "./agent/apply-proposal-policy";
-export {
-  buildReviewerPolicyResult,
-  assertReviewerEndpoint,
-  type ReviewerEndpoint,
-  type BuildReviewerPolicyResultInput,
-} from "./agent/reviewer-policy";
-export {
-  resolveProposalsBatch,
-  type ProposalResolveItem,
-  type ResolveProposalsBatchInput,
-  type ResolveProposalsBatchResult,
-  type ResolvedProposalItem,
-} from "./agent/resolve-proposals-batch";
-export {
   parseSingleTransitionDraft,
   type ParseSingleTransitionDraftInput,
   type ParseSingleTransitionDraftResult,
 } from "./agent/parse-single-transition";
-export { sourceFingerprint, spanProposalKey } from "./agent/proposal-key";
 export { SUBMISSION_LIMITS, type SubmissionLimits } from "./agent/limits";
 export { providerFromModel } from "./agent/provider";

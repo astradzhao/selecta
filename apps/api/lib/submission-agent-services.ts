@@ -1,12 +1,11 @@
 import { isCatalogConfigured, searchCatalog } from "@selecta/catalog";
 import { commitTransitionProposal, createTrack, getTrackByExternalId } from "@selecta/library";
+import { graphCandidateHandle, spotifyCandidateHandle } from "@selecta/agentics/submission-parser";
 import {
-  graphCandidateHandle,
-  spotifyCandidateHandle,
-  type SubmissionAgentServices,
   type SearchCandidatesOutput,
   type SearchQueriesInput,
-} from "@selecta/agentics/submission-parser";
+  type SubmissionAgentServices,
+} from "@selecta/submissions";
 
 function emptyResults(input: SearchQueriesInput): SearchCandidatesOutput {
   return {

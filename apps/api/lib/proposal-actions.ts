@@ -1,20 +1,20 @@
 import { runInDbTransaction, type SubmissionProposal } from "@selecta/db";
 import { getTransitionById } from "@selecta/library";
 import {
+  applyProposalPolicy,
+  evaluateProposalPolicy,
   getProposalById,
   insertProposalReviewEvent,
   refreshSubmissionExtractionStatus,
+  resolveProposalsBatch,
+  type ProposalPolicyResult,
+  type SubmissionAgentServices,
   updateProposal,
   upsertTransitionCommit,
 } from "@selecta/submissions";
 import {
-  applyProposalPolicy,
   draftToSingleUnresolvedPlan,
-  evaluateProposalPolicy,
-  resolveProposalsBatch,
-  type SubmissionAgentServices,
   type SubmissionProcessingPlan,
-  type ProposalPolicyResult,
   type SingleTransitionDraft,
 } from "@selecta/agentics/submission-parser";
 
