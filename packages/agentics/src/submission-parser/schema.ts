@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { TRANSITION_QUALITIES } from "@selecta/library/constants";
 
-import { SUBMISSION_CONTENT_TYPES } from "../content-types";
+import { SUBMISSION_CONTENT_TYPES } from "./content-types";
 import { CONFIDENCE_LEVELS } from "./confidence";
 
 export const MENTION_RESOLUTION_STATUSES = [

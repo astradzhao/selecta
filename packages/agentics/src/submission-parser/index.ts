@@ -8,7 +8,7 @@ export {
   confidenceOrdinal,
   confidenceToUnitInterval,
   type ConfidenceLevel,
-} from "./agent/confidence";
+} from "./confidence";
 
 export {
   CandidateHandleSchema,
@@ -23,7 +23,7 @@ export {
   type SubmissionMentionPlan,
   type SubmissionTransitionPlan,
   type SubmissionProcessingPlan,
-} from "./agent/schema";
+} from "./schema";
 
 export {
   SingleTransitionDraftSchema,
@@ -33,7 +33,7 @@ export {
   type SingleTransitionDraft,
   type ParseSingleTransitionReceipt,
   type ParseSingleTransitionInput,
-} from "./agent/single-transition-schema";
+} from "./single-transition-schema";
 
 export {
   ORCHESTRATOR_AGENT_NAME,
@@ -45,12 +45,11 @@ export {
   buildOrchestratorUserPrompt,
   buildSingleTransitionPrompt,
   buildSingleTransitionUserPrompt,
-} from "./agent/orchestrator-prompt";
+} from "./orchestrator-prompt";
 
 export {
   parseSingleTransitionDraft,
   type ParseSingleTransitionDraftInput,
   type ParseSingleTransitionDraftResult,
-} from "./agent/parse-single-transition";
-export { SUBMISSION_LIMITS, type SubmissionLimits } from "./agent/limits";
-export { providerFromModel } from "./agent/provider";
+} from "./parse-single-transition";
+export { SUBMISSION_LIMITS, type SubmissionLimits } from "./limits";

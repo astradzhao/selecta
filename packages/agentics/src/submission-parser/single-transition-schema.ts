@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { SUBMISSION_CONTENT_TYPES } from "../content-types";
+import { SUBMISSION_CONTENT_TYPES } from "./content-types";
 import { CONFIDENCE_LEVELS } from "./confidence";
 import { MENTION_RESOLUTION_STATUSES, SubmissionTransitionPlanSchema } from "./schema";
 

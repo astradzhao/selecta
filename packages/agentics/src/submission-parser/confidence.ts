@@ -22,7 +22,7 @@ export function confidenceOrdinal(level: ConfidenceLevel): number {
   return ORDINAL[level];
 }
 
-/** Map enum → 0..1 for Neo4j / notes.extractionConfidence storage that still expects a float. */
+/** Map enum → 0..1 for submissions.extractionConfidence storage that still expects a float. */
 export function confidenceToUnitInterval(level: ConfidenceLevel): number {
   return confidenceOrdinal(level) / (CONFIDENCE_LEVELS.length - 1);
 }
