@@ -10,8 +10,8 @@ import { Textarea } from "@selecta/ui/components/textarea";
 
 import { FormField } from "@/components/common/form-field";
 import { describeApiError } from "@/lib/api/errors";
-import { createNote } from "@/lib/notes/api";
-import { MAX_SUBMISSION_RAW_BYTES } from "@/lib/notes/limits";
+import { createSubmission } from "@/lib/submissions/api";
+import { MAX_SUBMISSION_RAW_BYTES } from "@/lib/submissions/limits";
 
 function utf8ByteLength(value: string): number {
   return new TextEncoder().encode(value).byteLength;
@@ -24,7 +24,7 @@ function formatBytes(bytes: number): string {
   return `${(kib / 1024).toFixed(1)} MiB`;
 }
 
-export function NewNoteForm() {
+export function NewSubmissionForm() {
   const router = useRouter();
   const [rawText, setRawText] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -54,10 +54,10 @@ export function NewNoteForm() {
 
     startSave(async () => {
       try {
-        const response = await createNote({ rawText });
+        const response = await createSubmission({ rawText });
         setFieldError(null);
         setSubmitError(null);
-        router.push(`/library/submissions/${response.note.id}`);
+        router.push(`/library/submissions/${response.submission.id}`);
       } catch (err) {
         setSubmitError(
           describeApiError(err, { fallback: "Failed to save submission. Is the API running?" }),
@@ -69,7 +69,7 @@ export function NewNoteForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       <FormField
-        id="note-raw-text"
+        id="submission-raw-text"
         label="Transition notes"
         error={textError}
         description={`${formatBytes(byteLength)} / ${formatBytes(MAX_SUBMISSION_RAW_BYTES)}`}

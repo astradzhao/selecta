@@ -1,5 +1,9 @@
 import type { TrackCandidate } from "./services";
-import type { NoteAgentServices, SearchCandidatesOutput, SearchQueriesInput } from "./services";
+import type {
+  SubmissionAgentServices,
+  SearchCandidatesOutput,
+  SearchQueriesInput,
+} from "./services";
 
 /**
  * Collects tool-returned candidates so policy can reject invented handles.
@@ -24,9 +28,9 @@ export class CandidateRegistry {
 
 /** Wrap services so every search result is recorded for provenance checks. */
 export function withCandidateRegistry(
-  services: NoteAgentServices,
+  services: SubmissionAgentServices,
   registry: CandidateRegistry,
-): NoteAgentServices {
+): SubmissionAgentServices {
   return {
     ...services,
     searchLibraryTracks: async (input: SearchQueriesInput) => {

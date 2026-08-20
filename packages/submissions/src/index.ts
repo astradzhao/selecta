@@ -1,33 +1,33 @@
-/** Submissions domain: notes, extraction bookkeeping, proposals, and note↔track links. */
+/** Submissions domain: extraction bookkeeping, proposals, and submission↔track links. */
 
-export { NotesError, isNotesError } from "./errors";
+export { SubmissionsError, isSubmissionsError } from "./errors";
 export {
-  createNote,
-  getNoteById,
-  listNotes,
-  updateNote,
+  createSubmission,
+  getSubmissionById,
+  listSubmissions,
+  updateSubmission,
   requeueExtraction,
   completeExtraction,
   failExtraction,
   startAgentRun,
   attachWorkflowRunId,
   finishAgentRun,
-  listAgentRunsForNote,
+  listAgentRunsForSubmission,
   upsertTransitionCommit,
   getTransitionCommitByKey,
   MAX_SUBMISSION_RAW_BYTES,
-  type CreateNoteInput,
-  type ListNotesInput,
-  type ListNotesResult,
-  type NoteListItem,
-  type NoteProposalLink,
-  type UpdateNoteInput,
-  type UpdateNoteResult,
+  type CreateSubmissionInput,
+  type ListSubmissionsInput,
+  type ListSubmissionsResult,
+  type SubmissionListItem,
+  type SubmissionProposalLink,
+  type UpdateSubmissionInput,
+  type UpdateSubmissionResult,
   type CompleteExtractionInput,
   type StartAgentRunInput,
   type FinishAgentRunInput,
   type UpsertTransitionCommitInput,
-} from "./notes";
+} from "./submissions";
 export {
   claimProposal,
   getProposalByKey,
@@ -40,7 +40,7 @@ export {
   updateProposalGuarded,
   insertProposalReviewEvent,
   refreshSubmissionExtractionStatus,
-  supersedeProposalsForNote,
+  supersedeProposalsForSubmission,
   countProposalsForVersion,
   deriveSubmissionExtractionStatus,
   type ClaimProposalInput,
@@ -48,17 +48,17 @@ export {
   type ListProposalsInput,
   type ListProposalsResult,
   type ProposalDetail,
-  type ProposalDetailNote,
+  type ProposalDetailSubmission,
   type UpdateProposalInput,
   type UpdateProposalGuardedInput,
   type InsertProposalReviewEventInput,
   type ProposalStatusCounts,
 } from "./proposals";
 export {
-  addNoteTrackLink,
-  listNoteTrackLinks,
-  listNoteTrackLinksWithTracks,
-  removeNoteTrackLink,
-  type AddNoteTrackLinkInput,
-  type NoteTrackLinkWithTrack,
-} from "./note-track-links";
+  addSubmissionTrackLink,
+  listSubmissionTrackLinks,
+  listSubmissionTrackLinksWithTracks,
+  removeSubmissionTrackLink,
+  type AddSubmissionTrackLinkInput,
+  type SubmissionTrackLinkWithTrack,
+} from "./submission-track-links";

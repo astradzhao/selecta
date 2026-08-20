@@ -23,13 +23,13 @@ import { useFilteredList } from "@/hooks/use-filtered-list";
 import { formatTimestamp, previewText } from "@/lib/format";
 import { submissionListQuery, type SubmissionListFilters } from "@/lib/library/list-params";
 import { formatListCount } from "@/lib/library/list-view-state";
-import { listSubmissions, type NoteExtractionStatus } from "@/lib/notes/api";
-import { SUBMISSION_STATUS_FILTER_OPTIONS } from "@/lib/notes/extraction-status";
+import { listSubmissions, type SubmissionExtractionStatus } from "@/lib/submissions/api";
+import { SUBMISSION_STATUS_FILTER_OPTIONS } from "@/lib/submissions/extraction-status";
 
 export function SubmissionsList() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<"" | NoteExtractionStatus>("");
+  const [status, setStatus] = useState<"" | SubmissionExtractionStatus>("");
   const [needsReviewOnly, setNeedsReviewOnly] = useState(searchParams.get("needsReview") === "1");
   const filters = useMemo(
     () => ({ query, status, needsReviewOnly }),
@@ -40,7 +40,7 @@ export function SubmissionsList() {
   const fetchPage = useCallback(
     async (next: SubmissionListFilters, page: { offset: number; limit: number }) => {
       const response = await listSubmissions(submissionListQuery(next, page));
-      return { items: response.submissions ?? response.notes, hasMore: response.hasMore };
+      return { items: response.submissions, hasMore: response.hasMore };
     },
     [],
   );
@@ -71,7 +71,7 @@ export function SubmissionsList() {
             <Select
               id="filter-status"
               value={status}
-              onChange={(event) => setStatus(event.target.value as "" | NoteExtractionStatus)}
+              onChange={(event) => setStatus(event.target.value as "" | SubmissionExtractionStatus)}
             >
               {SUBMISSION_STATUS_FILTER_OPTIONS.map((option) => (
                 <option key={option.value || "any"} value={option.value}>
@@ -166,7 +166,7 @@ export function SubmissionsList() {
       }}
       empty={{
         noneTitle: "No submissions yet",
-        noneDescription: "Submit a transition note to capture mix knowledge.",
+        noneDescription: "Submit a transition to capture mix knowledge.",
         filteredTitle: "No matching submissions",
         action: (
           <Button asChild size="sm">

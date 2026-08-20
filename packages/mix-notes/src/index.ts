@@ -3,11 +3,11 @@
 import { ORCHESTRATOR_PROMPT_VERSION } from "./agent/orchestrator-prompt";
 
 export {
-  NOTE_TYPES,
+  SUBMISSION_CONTENT_TYPES,
   TRANSITION_QUALITIES,
-  type NoteType,
+  type SubmissionContentType,
   type TransitionQuality,
-} from "./note-types";
+} from "./content-types";
 
 export {
   CONFIDENCE_LEVELS,
@@ -20,17 +20,17 @@ export {
 
 export {
   CandidateHandleSchema,
-  NoteMentionPlanSchema,
-  NoteTransitionPlanSchema,
-  NoteProcessingPlanSchema,
+  SubmissionMentionPlanSchema,
+  SubmissionTransitionPlanSchema,
+  SubmissionProcessingPlanSchema,
   parseCandidateHandle,
   graphCandidateHandle,
   spotifyCandidateHandle,
   MENTION_RESOLUTION_STATUSES,
   type MentionResolutionStatus,
-  type NoteMentionPlan,
-  type NoteTransitionPlan,
-  type NoteProcessingPlan,
+  type SubmissionMentionPlan,
+  type SubmissionTransitionPlan,
+  type SubmissionProcessingPlan,
 } from "./agent/schema";
 
 export {
@@ -64,7 +64,7 @@ export {
   type TrackCandidate,
   type SearchQueriesInput,
   type SearchCandidatesOutput,
-  type NoteAgentServices,
+  type SubmissionAgentServices,
 } from "./agent/services";
 
 export { CandidateRegistry, withCandidateRegistry } from "./agent/candidate-registry";
@@ -91,7 +91,7 @@ export {
   type BuildReviewerPolicyResultInput,
 } from "./agent/reviewer-policy";
 export {
-  resolveNoteMentions,
+  resolveSubmissionMentions,
   type ResolveMentionsInput,
   type ResolveMentionsResult,
 } from "./agent/resolve-mentions";

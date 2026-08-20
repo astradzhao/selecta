@@ -1,16 +1,20 @@
 import { NextResponse } from "next/server";
 import { isPostgresConfigured } from "@selecta/db";
-import { getNoteById, isNotesError, removeNoteTrackLink } from "@selecta/submissions";
+import {
+  getSubmissionById,
+  isSubmissionsError,
+  removeSubmissionTrackLink,
+} from "@selecta/submissions";
 
-import { loadSerializedTrackLinks, serializeNote } from "@/lib/notes";
+import { loadSerializedTrackLinks, serializeSubmission } from "@/lib/submissions";
 
 type RouteContext = {
   params: Promise<{ id: string; trackId: string }>;
 };
 
 /**
- * Remove a manual note → track link.
- * DELETE /notes/:id/tracks/:trackId
+ * Remove a manual submission → track link.
+ * DELETE /submissions/:id/tracks/:trackId
  */
 export async function DELETE(_request: Request, context: RouteContext) {
   if (!isPostgresConfigured()) {
@@ -27,7 +31,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
   const { id, trackId } = await context.params;
   if (!id?.trim()) {
     return NextResponse.json(
-      { ok: false, error: "invalid_id", message: "Note id is required." },
+      { ok: false, error: "invalid_id", message: "Submission id is required." },
       { status: 400 },
     );
   }
@@ -39,24 +43,24 @@ export async function DELETE(_request: Request, context: RouteContext) {
   }
 
   try {
-    await removeNoteTrackLink(id, decodeURIComponent(trackId));
-    const note = await getNoteById(id);
-    const trackLinks = note ? await loadSerializedTrackLinks(note.id) : [];
+    await removeSubmissionTrackLink(id, decodeURIComponent(trackId));
+    const submission = await getSubmissionById(id);
+    const trackLinks = submission ? await loadSerializedTrackLinks(submission.id) : [];
     return NextResponse.json({
       ok: true,
       trackLinks,
-      ...(note ? { note: serializeNote(note, trackLinks) } : {}),
+      ...(submission ? { submission: serializeSubmission(submission, trackLinks) } : {}),
     });
   } catch (error) {
-    if (isNotesError(error)) {
+    if (isSubmissionsError(error)) {
       return NextResponse.json(
         { ok: false, error: error.code, message: error.message },
         { status: error.code === "not_found" ? 404 : 400 },
       );
     }
-    console.error("remove note track link failed", error);
+    console.error("remove submission track link failed", error);
     return NextResponse.json(
-      { ok: false, error: "internal_error", message: "Failed to unlink track from note." },
+      { ok: false, error: "internal_error", message: "Failed to unlink track from submission." },
       { status: 500 },
     );
   }

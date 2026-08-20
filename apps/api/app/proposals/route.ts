@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { isPostgresConfigured, noteProposalStatusEnum, type NoteProposalStatus } from "@selecta/db";
+import {
+  isPostgresConfigured,
+  submissionProposalStatusEnum,
+  type SubmissionProposalStatus,
+} from "@selecta/db";
 import { listProposals } from "@selecta/submissions";
 
 import { serializeProposals } from "@/lib/proposals";
@@ -16,19 +20,21 @@ function parseListOffset(raw: string | null): number | undefined {
   return Number.isFinite(value) ? value : undefined;
 }
 
-function parseStatuses(raw: string | null): NoteProposalStatus[] | undefined {
+function parseStatuses(raw: string | null): SubmissionProposalStatus[] | undefined {
   if (!raw?.trim()) return undefined;
-  const allowed = new Set(noteProposalStatusEnum.enumValues);
+  const allowed = new Set(submissionProposalStatusEnum.enumValues);
   const statuses = raw
     .split(",")
     .map((part) => part.trim())
-    .filter((part): part is NoteProposalStatus => allowed.has(part as NoteProposalStatus));
+    .filter((part): part is SubmissionProposalStatus =>
+      allowed.has(part as SubmissionProposalStatus),
+    );
   return statuses.length > 0 ? statuses : undefined;
 }
 
 /**
  * Review queue and cross-submission proposal list.
- * GET /proposals?status=&noteId=&q=&limit=&offset=
+ * GET /proposals?status=&submissionId=&q=&limit=&offset=
  */
 export async function GET(request: Request) {
   if (!isPostgresConfigured()) {
@@ -53,7 +59,7 @@ export async function GET(request: Request) {
 
   try {
     const result = await listProposals({
-      noteId: searchParams.get("noteId") ?? undefined,
+      submissionId: searchParams.get("submissionId") ?? undefined,
       query: searchParams.get("q") ?? undefined,
       statuses,
       limit: parseListLimit(searchParams.get("limit")),

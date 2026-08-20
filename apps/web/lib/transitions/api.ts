@@ -34,7 +34,7 @@ export async function listTransitions(
     technique?: string;
     intent?: string;
     quality?: string;
-    sourceNoteId?: string;
+    sourceSubmissionId?: string;
     source?: "manual" | "ai";
     sort?: "createdAt" | "updatedAt";
     order?: "asc" | "desc";
@@ -56,7 +56,8 @@ export async function listTransitions(
   if (input.technique?.trim()) params.set("technique", input.technique.trim());
   if (input.intent?.trim()) params.set("intent", input.intent.trim());
   if (input.quality?.trim()) params.set("quality", input.quality.trim());
-  if (input.sourceNoteId?.trim()) params.set("sourceNoteId", input.sourceNoteId.trim());
+  if (input.sourceSubmissionId?.trim())
+    params.set("sourceSubmissionId", input.sourceSubmissionId.trim());
   if (input.source) params.set("source", input.source);
   if (input.sort) params.set("sort", input.sort);
   if (input.order) params.set("order", input.order);

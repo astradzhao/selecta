@@ -9,7 +9,7 @@ export default async function LibraryProposalReviewPage({ params }: PageProps) {
   const { id, proposalId } = await params;
   return (
     <AppShell currentPath="/library">
-      <ProposalReview noteId={id} proposalId={proposalId} />
+      <ProposalReview submissionId={id} proposalId={proposalId} />
     </AppShell>
   );
 }

@@ -13,32 +13,36 @@ import { SectionHeading } from "@selecta/ui/components/section-heading";
 import { TrackPicker } from "@/components/tracks/track-picker";
 import { TrackRow } from "@/components/tracks/track-row";
 import { describeApiError } from "@/lib/api/errors";
-import { addNoteTrackLink, removeNoteTrackLink, type ApiNoteTrackLink } from "@/lib/notes/api";
+import {
+  addSubmissionTrackLink,
+  removeSubmissionTrackLink,
+  type ApiSubmissionTrackLink,
+} from "@/lib/submissions/api";
 import type { ApiTrack } from "@/lib/tracks/api";
 import { rowFromApiTrack } from "@/lib/tracks/track-row-item";
 
 export function SubmissionTrackLinks({
-  noteId,
+  submissionId,
   initialLinks,
   onLinksChange,
 }: {
-  noteId: string;
-  initialLinks: ApiNoteTrackLink[];
-  onLinksChange?: (links: ApiNoteTrackLink[]) => void;
+  submissionId: string;
+  initialLinks: ApiSubmissionTrackLink[];
+  onLinksChange?: (links: ApiSubmissionTrackLink[]) => void;
 }) {
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [mutating, startMutate] = useTransition();
   const linkedIds = initialLinks.map((link) => link.trackId);
 
-  function updateLinks(next: ApiNoteTrackLink[]) {
+  function updateLinks(next: ApiSubmissionTrackLink[]) {
     onLinksChange?.(next);
   }
 
   function linkTrack(track: ApiTrack) {
     startMutate(async () => {
       try {
-        const response = await addNoteTrackLink(noteId, { trackId: track.id });
+        const response = await addSubmissionTrackLink(submissionId, { trackId: track.id });
         updateLinks(response.trackLinks);
         setQuery("");
         setError(null);
@@ -51,7 +55,7 @@ export function SubmissionTrackLinks({
   function unlinkTrack(trackId: string) {
     startMutate(async () => {
       try {
-        const response = await removeNoteTrackLink(noteId, trackId);
+        const response = await removeSubmissionTrackLink(submissionId, trackId);
         updateLinks(response.trackLinks);
         setError(null);
       } catch (err) {

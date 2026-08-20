@@ -1,4 +1,4 @@
-import type { NoteMentionPlan } from "./schema";
+import type { SubmissionMentionPlan } from "./schema";
 import type { TrackCandidate } from "./services";
 
 /**
@@ -17,7 +17,7 @@ export function stripCueSuffixesFromSearchQuery(query: string): string {
  * Prefer the parser's `mention` (a ready-made query). Fall back to legacy
  * title/artist hints for older drafts.
  */
-export function mentionSearchQuery(mention: NoteMentionPlan): string {
+export function mentionSearchQuery(mention: SubmissionMentionPlan): string {
   const fromMention = mention.mention.trim();
   if (fromMention) return stripCueSuffixesFromSearchQuery(fromMention);
   const title = mention.titleHint?.trim() ?? "";
@@ -26,7 +26,7 @@ export function mentionSearchQuery(mention: NoteMentionPlan): string {
 }
 
 /** Spotify uses the same plain query as the library. */
-export function mentionSpotifySearchQuery(mention: NoteMentionPlan): string {
+export function mentionSpotifySearchQuery(mention: SubmissionMentionPlan): string {
   return mentionSearchQuery(mention);
 }
 

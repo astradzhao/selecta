@@ -4,8 +4,8 @@ import type { ApiTrack } from "@/lib/tracks/types";
 export type ApiTransitionEdge = {
   id: string | null;
   proposalKey: string | null;
-  sourceNoteId: string | null;
-  sourceNoteVersion: number | null;
+  sourceSubmissionId: string | null;
+  sourceSubmissionVersion: number | null;
   sourceProposalId: string | null;
   confidence: number | null;
   fromBar: number | null;

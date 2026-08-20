@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
 import { isPostgresConfigured } from "@selecta/db";
 import { getTrackById } from "@selecta/library";
-import { addNoteTrackLink, getNoteById, isNotesError } from "@selecta/submissions";
+import {
+  addSubmissionTrackLink,
+  getSubmissionById,
+  isSubmissionsError,
+} from "@selecta/submissions";
 
-import { loadSerializedTrackLinks, serializeNote, serializeNoteTrackLink } from "@/lib/notes";
+import {
+  loadSerializedTrackLinks,
+  serializeSubmission,
+  serializeSubmissionTrackLink,
+} from "@/lib/submissions";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -30,8 +38,8 @@ function parseBody(value: unknown): { trackId: string; role?: string | null } {
 }
 
 /**
- * List manual track links for a note.
- * GET /notes/:id/tracks
+ * List manual track links for a submission.
+ * GET /submissions/:id/tracks
  */
 export async function GET(_request: Request, context: RouteContext) {
   if (!isPostgresConfigured()) {
@@ -48,39 +56,39 @@ export async function GET(_request: Request, context: RouteContext) {
   const { id } = await context.params;
   if (!id?.trim()) {
     return NextResponse.json(
-      { ok: false, error: "invalid_id", message: "Note id is required." },
+      { ok: false, error: "invalid_id", message: "Submission id is required." },
       { status: 400 },
     );
   }
 
   try {
-    const note = await getNoteById(id);
-    if (!note) {
+    const submission = await getSubmissionById(id);
+    if (!submission) {
       return NextResponse.json(
-        { ok: false, error: "not_found", message: `Note "${id}" was not found.` },
+        { ok: false, error: "not_found", message: `Submission "${id}" was not found.` },
         { status: 404 },
       );
     }
-    const trackLinks = await loadSerializedTrackLinks(note.id);
+    const trackLinks = await loadSerializedTrackLinks(submission.id);
     return NextResponse.json({ ok: true, trackLinks });
   } catch (error) {
-    if (isNotesError(error)) {
+    if (isSubmissionsError(error)) {
       return NextResponse.json(
         { ok: false, error: error.code, message: error.message },
         { status: error.code === "not_found" ? 404 : 400 },
       );
     }
-    console.error("list note track links failed", error);
+    console.error("list submission track links failed", error);
     return NextResponse.json(
-      { ok: false, error: "internal_error", message: "Failed to list note track links." },
+      { ok: false, error: "internal_error", message: "Failed to list submission track links." },
       { status: 500 },
     );
   }
 }
 
 /**
- * Manually link an existing library track to a note (explicit user action only).
- * POST /notes/:id/tracks
+ * Manually link an existing library track to a submission (explicit user action only).
+ * POST /submissions/:id/tracks
  */
 export async function POST(request: Request, context: RouteContext) {
   if (!isPostgresConfigured()) {
@@ -97,7 +105,7 @@ export async function POST(request: Request, context: RouteContext) {
   const { id } = await context.params;
   if (!id?.trim()) {
     return NextResponse.json(
-      { ok: false, error: "invalid_id", message: "Note id is required." },
+      { ok: false, error: "invalid_id", message: "Submission id is required." },
       { status: 400 },
     );
   }
@@ -139,34 +147,34 @@ export async function POST(request: Request, context: RouteContext) {
       );
     }
 
-    const { link, created } = await addNoteTrackLink(id, body);
-    const trackLinks = await loadSerializedTrackLinks(link.noteId);
-    const note = await getNoteById(link.noteId);
+    const { link, created } = await addSubmissionTrackLink(id, body);
+    const trackLinks = await loadSerializedTrackLinks(link.submissionId);
+    const submission = await getSubmissionById(link.submissionId);
 
     return NextResponse.json(
       {
         ok: true,
-        trackLink: serializeNoteTrackLink(link, {
+        trackLink: serializeSubmissionTrackLink(link, {
           id: track.track.id,
           title: track.track.title,
           artists: track.artists,
           artworkUrl: track.track.artworkUrl,
         }),
         trackLinks,
-        ...(note ? { note: serializeNote(note, trackLinks) } : {}),
+        ...(submission ? { submission: serializeSubmission(submission, trackLinks) } : {}),
       },
       { status: created ? 201 : 200 },
     );
   } catch (error) {
-    if (isNotesError(error)) {
+    if (isSubmissionsError(error)) {
       return NextResponse.json(
         { ok: false, error: error.code, message: error.message },
         { status: error.code === "not_found" ? 404 : 400 },
       );
     }
-    console.error("add note track link failed", error);
+    console.error("add submission track link failed", error);
     return NextResponse.json(
-      { ok: false, error: "internal_error", message: "Failed to link track to note." },
+      { ok: false, error: "internal_error", message: "Failed to link track to submission." },
       { status: 500 },
     );
   }

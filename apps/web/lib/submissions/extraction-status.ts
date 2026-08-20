@@ -1,4 +1,4 @@
-import type { NoteExtractionStatus } from "@selecta/db";
+import type { SubmissionExtractionStatus } from "@selecta/db";
 
 import type { StatusDisplay } from "@/lib/status";
 
@@ -13,7 +13,7 @@ export const EXTRACTION_STATUS = {
   commit_failed: { label: "Commit failed", tone: "destructive" },
   failed: { label: "Failed", tone: "destructive" },
   dismissed: { label: "Dismissed", tone: "neutral" },
-} as const satisfies Record<NoteExtractionStatus, StatusDisplay>;
+} as const satisfies Record<SubmissionExtractionStatus, StatusDisplay>;
 
 const SUBMISSION_STATUS_FILTER_VALUES = [
   "needs_review",
@@ -23,10 +23,10 @@ const SUBMISSION_STATUS_FILTER_VALUES = [
   "failed",
   "dismissed",
   "commit_failed",
-] as const satisfies readonly NoteExtractionStatus[];
+] as const satisfies readonly SubmissionExtractionStatus[];
 
 export const SUBMISSION_STATUS_FILTER_OPTIONS: Array<{
-  value: "" | NoteExtractionStatus;
+  value: "" | SubmissionExtractionStatus;
   label: string;
 }> = [
   { value: "", label: "Any status" },
@@ -36,10 +36,10 @@ export const SUBMISSION_STATUS_FILTER_OPTIONS: Array<{
   })),
 ];
 
-export function extractionStatus(status: NoteExtractionStatus): StatusDisplay {
+export function extractionStatus(status: SubmissionExtractionStatus): StatusDisplay {
   return EXTRACTION_STATUS[status];
 }
 
-export function extractionStatusLabel(status: NoteExtractionStatus): string {
+export function extractionStatusLabel(status: SubmissionExtractionStatus): string {
   return EXTRACTION_STATUS[status].label;
 }

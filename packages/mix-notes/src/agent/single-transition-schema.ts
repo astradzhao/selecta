@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-import { NOTE_TYPES } from "../note-types";
+import { SUBMISSION_CONTENT_TYPES } from "../content-types";
 import { CONFIDENCE_LEVELS } from "./confidence";
-import { MENTION_RESOLUTION_STATUSES, NoteTransitionPlanSchema } from "./schema";
+import { MENTION_RESOLUTION_STATUSES, SubmissionTransitionPlanSchema } from "./schema";
 
 /**
  * OpenAI structured outputs require every `properties` key to appear in `required`.
@@ -16,7 +16,7 @@ const nullableConfidence = z.number().min(0).max(1).nullable();
  * Cheap one-transition child draft. Exactly one transition; resolver fills candidates later.
  */
 export const SingleTransitionDraftSchema = z.object({
-  noteType: z.enum(NOTE_TYPES),
+  noteType: z.enum(SUBMISSION_CONTENT_TYPES),
   mentions: z
     .array(
       z.object({
@@ -30,7 +30,7 @@ export const SingleTransitionDraftSchema = z.object({
     )
     .min(2)
     .max(2),
-  transition: NoteTransitionPlanSchema,
+  transition: SubmissionTransitionPlanSchema,
   /**
    * True when the span is an unordered pair (e.g. "A, B" / "A & B") and both
    * directions should be committed as separate edges.

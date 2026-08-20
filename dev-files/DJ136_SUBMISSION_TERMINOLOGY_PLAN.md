@@ -3,7 +3,7 @@
 > Ticket: [DJ-136 — Consolidate submission/note/proposal terminology across the stack](https://linear.app/dj-project-astradzhao/issue/DJ-136)
 > Related: [DJ-71](https://linear.app/dj-project-astradzhao/issue/DJ-71) (renamed the product surface), [DJ-99](https://linear.app/dj-project-astradzhao/issue/DJ-99) (deleted the legacy `/notes` UI)
 > Architecture source: [`NEXT_PRODUCT_ARCHITECTURE.md`](./NEXT_PRODUCT_ARCHITECTURE.md) §"Submission" and lines 38, 190–201
-> Status: **not started.**
+> Status: **implemented.**
 
 One feature has two names. The UI, URLs, and product docs say **submission**; storage, the HTTP API, and most TypeScript types say **note**. This was a deliberate deferral, recorded in `NEXT_PRODUCT_ARCHITECTURE.md:38`:
 
@@ -21,25 +21,25 @@ After this ticket, exactly one word names each concept, at every layer from the 
 
 ## 2. Vocabulary decision (read this before touching anything)
 
-| Concept                                            | Canonical term | Never call it       |
-| -------------------------------------------------- | -------------- | ------------------- |
-| The immutable raw text the user pasted             | **submission** | note, note record   |
-| One parsed transition extracted from a submission  | **proposal**   | note proposal       |
-| Free-text annotation a human wrote about something | **note**       | (this one is fine)  |
+| Concept                                            | Canonical term | Never call it      |
+| -------------------------------------------------- | -------------- | ------------------ |
+| The immutable raw text the user pasted             | **submission** | note, note record  |
+| One parsed transition extracted from a submission  | **proposal**   | note proposal      |
+| Free-text annotation a human wrote about something | **note**       | (this one is fine) |
 
 ### 2.1 DO NOT RENAME — "note" has a second, legitimate meaning
 
 These are annotations, not submissions. Renaming them **will** break the product and corrupt the vocabulary you are trying to fix. Re-read this list before every commit.
 
-| Identifier                                  | What it actually is                                   |
-| ------------------------------------------- | ------------------------------------------------------ |
-| `transitions.notes` (SQL column)            | Free-text the DJ wrote about a transition edge         |
-| `ApiTransition.notes`, `CreateTransitionBody.notes`, `UpdateTransitionBody.notes` | Same field over the wire |
-| `"Notes"` label at `apps/web/components/tracks/transition-fields.tsx:163` | Form label for the above |
-| `note_proposals.review_note` / `reviewNote` | Reviewer's comment when approving/rejecting a proposal |
-| `block_steps.note` (SQL column)             | Annotation on a sequence step                          |
-| `NoteTransitionPlan.notes` (mix-notes)      | Extracted annotation text, feeds `transitions.notes`   |
-| `@selecta/mix-notes` package name           | "Mix notes" = DJ shorthand for the craft, not the entity |
+| Identifier                                                                        | What it actually is                                      |
+| --------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `transitions.notes` (SQL column)                                                  | Free-text the DJ wrote about a transition edge           |
+| `ApiTransition.notes`, `CreateTransitionBody.notes`, `UpdateTransitionBody.notes` | Same field over the wire                                 |
+| `"Notes"` label at `apps/web/components/tracks/transition-fields.tsx:163`         | Form label for the above                                 |
+| `note_proposals.review_note` / `reviewNote`                                       | Reviewer's comment when approving/rejecting a proposal   |
+| `block_steps.note` (SQL column)                                                   | Annotation on a sequence step                            |
+| `NoteTransitionPlan.notes` (mix-notes)                                            | Extracted annotation text, feeds `transitions.notes`     |
+| `@selecta/mix-notes` package name                                                 | "Mix notes" = DJ shorthand for the craft, not the entity |
 
 ### 2.2 Mechanical guard
 
@@ -73,15 +73,15 @@ rg -ni 'note' apps/web apps/api | rg -v 'transition-fields|reviewNote|review_not
 
 ## 4. Decisions
 
-| ID  | Question                                    | Decision                                                                                                                                                                                   |
-| --- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | One PR or four?                             | **Four commits on one `dj-136` branch, one PR**, tiers in order. Tier 4 is the only risky one; if review wants it isolated, split Tier 4 into its own follow-up issue rather than reordering. |
-| D2  | Which word wins?                            | **`submission`.** It is already the user-facing word, and it frees "note" for the annotation meaning that genuinely cannot be renamed (§2.1).                                              |
-| D3  | Keep a `/notes` compat alias after Tier 2?  | **No.** Single-user, pre-production, both apps deploy together, no external consumer. Aliasing is what caused this ticket.                                                                  |
-| D4  | Rename the `@selecta/mix-notes` package?    | **No.** Churns every import for no clarity gain. Its `NOTE_TYPES` / `NoteType` (`transition \| song_note \| unknown \| mixed`) classify *content*, not the entity — rename to `SubmissionContentType` in Tier 3 but leave the package alone. |
-| D5  | User-visible copy that says "note"          | The **noun for the stored object** is always "submission". Prose describing the *act of writing* may keep "notes". Exact list in §5.4 — do not improvise beyond it.                        |
-| D6  | `?mode=note` / `?mode=notes` URL alias      | **Drop** it (`apps/web/lib/add/mode.ts:4`). `/notes*` already 404s per DJ-99, so nothing links it.                                                                                          |
-| D7  | Tier 4 in-place migration or fresh DB?      | **In-place `ALTER ... RENAME`.** Never DROP+CREATE. §8.3 explains how to force drizzle-kit to emit renames.                                                                                 |
+| ID  | Question                                   | Decision                                                                                                                                                                                                                                     |
+| --- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | One PR or four?                            | **Four commits on one `dj-136` branch, one PR**, tiers in order. Tier 4 is the only risky one; if review wants it isolated, split Tier 4 into its own follow-up issue rather than reordering.                                                |
+| D2  | Which word wins?                           | **`submission`.** It is already the user-facing word, and it frees "note" for the annotation meaning that genuinely cannot be renamed (§2.1).                                                                                                |
+| D3  | Keep a `/notes` compat alias after Tier 2? | **No.** Single-user, pre-production, both apps deploy together, no external consumer. Aliasing is what caused this ticket.                                                                                                                   |
+| D4  | Rename the `@selecta/mix-notes` package?   | **No.** Churns every import for no clarity gain. Its `NOTE_TYPES` / `NoteType` (`transition \| song_note \| unknown \| mixed`) classify _content_, not the entity — rename to `SubmissionContentType` in Tier 3 but leave the package alone. |
+| D5  | User-visible copy that says "note"         | The **noun for the stored object** is always "submission". Prose describing the _act of writing_ may keep "notes". Exact list in §5.4 — do not improvise beyond it.                                                                          |
+| D6  | `?mode=note` / `?mode=notes` URL alias     | **Drop** it (`apps/web/lib/add/mode.ts:4`). `/notes*` already 404s per DJ-99, so nothing links it.                                                                                                                                           |
+| D7  | Tier 4 in-place migration or fresh DB?     | **In-place `ALTER ... RENAME`.** Never DROP+CREATE. §8.3 explains how to force drizzle-kit to emit renames.                                                                                                                                  |
 
 ---
 
@@ -93,8 +93,8 @@ rg -ni 'note' apps/web apps/api | rg -v 'transition-fields|reviewNote|review_not
 
 A JSON key that crosses the HTTP boundary is part of the API contract and **cannot** change until Tier 2 renames both sides together.
 
-In Tier 1 you **may** rename: files, directories, type *names*, component names, props, local variables, function names.
-In Tier 1 you **may not** rename: property *keys* inside types that model a request body, query param, or response payload.
+In Tier 1 you **may** rename: files, directories, type _names_, component names, props, local variables, function names.
+In Tier 1 you **may not** rename: property _keys_ inside types that model a request body, query param, or response payload.
 
 Frozen until Tier 2 — leave these keys spelled exactly as they are:
 
@@ -107,14 +107,14 @@ This means Tier 1 legitimately produces code like `getSubmission(): Promise<{ ok
 
 ### 5.2 Directory and file moves
 
-| From                                          | To                                                  |
-| --------------------------------------------- | ---------------------------------------------------- |
-| `apps/web/lib/notes/api.ts`                   | `apps/web/lib/submissions/api.ts`                   |
-| `apps/web/lib/notes/types.ts`                 | `apps/web/lib/submissions/types.ts`                 |
-| `apps/web/lib/notes/extraction-status.ts`     | `apps/web/lib/submissions/extraction-status.ts`     |
-| `apps/web/lib/notes/extraction-status.test.ts`| `apps/web/lib/submissions/extraction-status.test.ts`|
-| `apps/web/lib/notes/limits.ts`                | `apps/web/lib/submissions/limits.ts`                |
-| `apps/web/components/add/new-note-form.tsx`   | `apps/web/components/add/new-submission-form.tsx`   |
+| From                                           | To                                                   |
+| ---------------------------------------------- | ---------------------------------------------------- |
+| `apps/web/lib/notes/api.ts`                    | `apps/web/lib/submissions/api.ts`                    |
+| `apps/web/lib/notes/types.ts`                  | `apps/web/lib/submissions/types.ts`                  |
+| `apps/web/lib/notes/extraction-status.ts`      | `apps/web/lib/submissions/extraction-status.ts`      |
+| `apps/web/lib/notes/extraction-status.test.ts` | `apps/web/lib/submissions/extraction-status.test.ts` |
+| `apps/web/lib/notes/limits.ts`                 | `apps/web/lib/submissions/limits.ts`                 |
+| `apps/web/components/add/new-note-form.tsx`    | `apps/web/components/add/new-submission-form.tsx`    |
 
 `apps/web/lib/notes/` must not exist afterwards. Update the `@/lib/notes/...` import specifier at every call site (`apps/web/lib/library/list-params.ts` imports `NoteExtractionStatus` from `@/lib/notes/api` — easy to miss).
 
@@ -122,12 +122,12 @@ This means Tier 1 legitimately produces code like `getSubmission(): Promise<{ ok
 
 `apps/web/lib/submissions/types.ts`:
 
-| Old                      | New                             |
-| ------------------------- | --------------------------------- |
-| `ApiNote`                | `ApiSubmission`                 |
-| `ApiNoteTrackLink`       | `ApiSubmissionTrackLink`        |
-| `ApiNoteProposalLink`    | `ApiSubmissionProposalLink`     |
-| `ApiNoteProposalCounts`  | `ApiSubmissionProposalCounts`   |
+| Old                     | New                           |
+| ----------------------- | ----------------------------- |
+| `ApiNote`               | `ApiSubmission`               |
+| `ApiNoteTrackLink`      | `ApiSubmissionTrackLink`      |
+| `ApiNoteProposalLink`   | `ApiSubmissionProposalLink`   |
+| `ApiNoteProposalCounts` | `ApiSubmissionProposalCounts` |
 
 `NoteExtractionStatus` comes from `@selecta/db` and is renamed in Tier 3. Bridge it here with an alias so the rest of `apps/web` never sees the old name:
 
@@ -140,16 +140,16 @@ Tier 3 deletes the `as` clause. Same treatment for `NoteProposalStatus` in `apps
 
 `apps/web/lib/submissions/api.ts`:
 
-| Old                        | New                              |
-| --------------------------- | ---------------------------------- |
-| `listNotes`                | `listSubmissions`                |
-| `listSubmissions` (alias)  | **delete** — was a wrapper only   |
-| `getNote`                  | `getSubmission`                  |
-| `createNote`               | `createSubmission`               |
-| `extractNote`              | `extractSubmission`              |
-| `addNoteTrackLink`         | `addSubmissionTrackLink`         |
-| `removeNoteTrackLink`      | `removeSubmissionTrackLink`      |
-| param `noteId`             | `submissionId`                   |
+| Old                       | New                             |
+| ------------------------- | ------------------------------- |
+| `listNotes`               | `listSubmissions`               |
+| `listSubmissions` (alias) | **delete** — was a wrapper only |
+| `getNote`                 | `getSubmission`                 |
+| `createNote`              | `createSubmission`              |
+| `extractNote`             | `extractSubmission`             |
+| `addNoteTrackLink`        | `addSubmissionTrackLink`        |
+| `removeNoteTrackLink`     | `removeSubmissionTrackLink`     |
+| param `noteId`            | `submissionId`                  |
 
 Callers of the old `listSubmissions` now hit the real function; `submissions-list.tsx:43` keeps reading `response.submissions ?? response.notes` until Tier 2.
 
@@ -175,12 +175,12 @@ Component rename: `NewNoteForm` → `NewSubmissionForm` (imported by `apps/web/c
 
 **Change** — these name the stored object:
 
-| Location                                              | From                              | To                                  |
-| ------------------------------------------------------ | ----------------------------------- | ------------------------------------- |
-| `components/graph/neighbor-detail.tsx:146`            | badge `note`                      | `submission`                        |
-| `components/graph/neighbor-detail.tsx:160`            | "From note"                       | "From submission"                   |
-| `components/library/submissions-list.tsx:169`         | "Submit a transition note…"       | "Submit a transition…"              |
-| `components/library/transitions-list.tsx:237`         | "Add a transition note to start…" | "Add a transition to start…"        |
+| Location                                      | From                              | To                           |
+| --------------------------------------------- | --------------------------------- | ---------------------------- |
+| `components/graph/neighbor-detail.tsx:146`    | badge `note`                      | `submission`                 |
+| `components/graph/neighbor-detail.tsx:160`    | "From note"                       | "From submission"            |
+| `components/library/submissions-list.tsx:169` | "Submit a transition note…"       | "Submit a transition…"       |
+| `components/library/transitions-list.tsx:237` | "Add a transition note to start…" | "Add a transition to start…" |
 
 **Keep** — these describe the act of writing prose, not the object:
 
@@ -212,52 +212,52 @@ Both apps change in the **same commit**. There is no deprecation window (D3).
 
 ### 6.1 Route moves (`apps/api/app/`)
 
-| From                                    | To                                            |
-| ---------------------------------------- | ----------------------------------------------- |
-| `notes/route.ts`                        | `submissions/route.ts`                        |
-| `notes/[id]/route.ts`                   | `submissions/[id]/route.ts`                   |
-| `notes/[id]/extract/route.ts`           | `submissions/[id]/extract/route.ts`           |
-| `notes/[id]/proposals/route.ts`         | `submissions/[id]/proposals/route.ts`         |
-| `notes/[id]/tracks/route.ts`            | `submissions/[id]/tracks/route.ts`            |
-| `notes/[id]/tracks/[trackId]/route.ts`  | `submissions/[id]/tracks/[trackId]/route.ts`  |
+| From                                   | To                                           |
+| -------------------------------------- | -------------------------------------------- |
+| `notes/route.ts`                       | `submissions/route.ts`                       |
+| `notes/[id]/route.ts`                  | `submissions/[id]/route.ts`                  |
+| `notes/[id]/extract/route.ts`          | `submissions/[id]/extract/route.ts`          |
+| `notes/[id]/proposals/route.ts`        | `submissions/[id]/proposals/route.ts`        |
+| `notes/[id]/tracks/route.ts`           | `submissions/[id]/tracks/route.ts`           |
+| `notes/[id]/tracks/[trackId]/route.ts` | `submissions/[id]/tracks/[trackId]/route.ts` |
 
 `apps/api/app/notes/` must not exist afterwards.
 
 ### 6.2 Payload key renames
 
-| Location                            | Old key                              | New key                                          |
-| ------------------------------------ | ------------------------------------- | -------------------------------------------------- |
-| `GET /submissions` response         | `notes` **and** `submissions`        | `submissions` only — **delete the duplicate**    |
-| `GET/POST/PATCH` single response    | `note`                               | `submission`                                     |
-| `GET /proposals` query              | `noteId`                             | `submissionId`                                   |
-| Serialized proposal                 | `noteId`                             | `submissionId`                                   |
-| `GET /proposals/:id` detail         | `note`                               | `submission`                                     |
-| `GET /transitions` query            | `sourceNoteId`                       | `sourceSubmissionId`                             |
-| Serialized transition               | `sourceNoteId`, `sourceNoteVersion`  | `sourceSubmissionId`, `sourceSubmissionVersion`  |
+| Location                         | Old key                             | New key                                         |
+| -------------------------------- | ----------------------------------- | ----------------------------------------------- |
+| `GET /submissions` response      | `notes` **and** `submissions`       | `submissions` only — **delete the duplicate**   |
+| `GET/POST/PATCH` single response | `note`                              | `submission`                                    |
+| `GET /proposals` query           | `noteId`                            | `submissionId`                                  |
+| Serialized proposal              | `noteId`                            | `submissionId`                                  |
+| `GET /proposals/:id` detail      | `note`                              | `submission`                                    |
+| `GET /transitions` query         | `sourceNoteId`                      | `sourceSubmissionId`                            |
+| Serialized transition            | `sourceNoteId`, `sourceNoteVersion` | `sourceSubmissionId`, `sourceSubmissionVersion` |
 
 Deleting the duplicate `submissions` key at `apps/api/app/notes/route.ts:120-138` is the headline change of this tier — the response should build the array once.
 
 ### 6.3 `apps/api/lib/` renames
 
-| From                              | To                                       |
-| ---------------------------------- | ------------------------------------------ |
-| `notes.ts`                        | `submissions.ts`                         |
-| `note-agent-services.ts`          | `submission-agent-services.ts`           |
-| `serializeNote`                   | `serializeSubmission`                    |
-| `SerializedNote`                  | `SerializedSubmission`                   |
-| `SerializedNoteTrackLink`         | `SerializedSubmissionTrackLink`          |
-| `createNoteAgentServices`         | `createSubmissionAgentServices`          |
-| `NoteAgentServices`               | `SubmissionAgentServices`                |
+| From                      | To                              |
+| ------------------------- | ------------------------------- |
+| `notes.ts`                | `submissions.ts`                |
+| `note-agent-services.ts`  | `submission-agent-services.ts`  |
+| `serializeNote`           | `serializeSubmission`           |
+| `SerializedNote`          | `SerializedSubmission`          |
+| `SerializedNoteTrackLink` | `SerializedSubmissionTrackLink` |
+| `createNoteAgentServices` | `createSubmissionAgentServices` |
+| `NoteAgentServices`       | `SubmissionAgentServices`       |
 
 `apps/api/lib/start-submission-workflow.ts` keeps its name; change its `noteId` param to `submissionId`.
 
 ### 6.4 Environment variables
 
-| Old                        | New                              |
-| --------------------------- | ---------------------------------- |
-| `NOTE_AGENT_MODEL`         | `SUBMISSION_AGENT_MODEL`         |
-| `NOTE_AGENT_FALLBACK_MODEL`| `SUBMISSION_AGENT_FALLBACK_MODEL`|
-| `NOTE_ORCHESTRATOR_MODEL`  | `SUBMISSION_ORCHESTRATOR_MODEL`  |
+| Old                         | New                               |
+| --------------------------- | --------------------------------- |
+| `NOTE_AGENT_MODEL`          | `SUBMISSION_AGENT_MODEL`          |
+| `NOTE_AGENT_FALLBACK_MODEL` | `SUBMISSION_AGENT_FALLBACK_MODEL` |
+| `NOTE_ORCHESTRATOR_MODEL`   | `SUBMISSION_ORCHESTRATOR_MODEL`   |
 
 Read at `apps/api/workflows/process-submission.steps.ts:143-144` and `packages/mix-notes/src/agent/parse-single-transition.ts:73`. Update `.env.example:22-24` **and** tell the human to update their local `.env.local` — these are optional with defaults, so a missed rename fails silently by falling back to the default model rather than erroring.
 
@@ -282,7 +282,7 @@ Drizzle separates the JS binding from the SQL name, so the entire TypeScript lay
 
 ```ts
 // SQL string stays "notes" — only the exported symbol changes.
-export const submissions = pgTable("notes", { /* … */ });
+export const submissions = pgTable("notes", {/* … */});
 ```
 
 Tier 4 changes those strings. Keeping the tiers apart means that if Tier 4 is deferred or reverted, everything above it still reads correctly.
@@ -291,22 +291,22 @@ Tier 4 changes those strings. Keeping the tiers apart means that if Tier 4 is de
 
 Table bindings (**keep the string argument unchanged**):
 
-| Symbol                        | New symbol                          | SQL string (unchanged)    |
-| ------------------------------ | ------------------------------------- | --------------------------- |
-| `notes`                       | `submissions`                       | `"notes"`                 |
-| `noteTrackLinks`              | `submissionTrackLinks`              | `"note_track_links"`      |
-| `noteAgentRuns`               | `submissionAgentRuns`               | `"note_agent_runs"`       |
-| `noteProposals`               | `submissionProposals`               | `"note_proposals"`        |
-| `noteTransitionCommits`       | `submissionTransitionCommits`       | `"note_transition_commits"` |
+| Symbol                  | New symbol                    | SQL string (unchanged)      |
+| ----------------------- | ----------------------------- | --------------------------- |
+| `notes`                 | `submissions`                 | `"notes"`                   |
+| `noteTrackLinks`        | `submissionTrackLinks`        | `"note_track_links"`        |
+| `noteAgentRuns`         | `submissionAgentRuns`         | `"note_agent_runs"`         |
+| `noteProposals`         | `submissionProposals`         | `"note_proposals"`          |
+| `noteTransitionCommits` | `submissionTransitionCommits` | `"note_transition_commits"` |
 
 Enum bindings (same rule):
 
-| Symbol                            | New symbol                              | SQL string (unchanged)          |
-| ---------------------------------- | ----------------------------------------- | --------------------------------- |
-| `noteExtractionStatusEnum`        | `submissionExtractionStatusEnum`        | `"note_extraction_status"`      |
-| `noteAgentRunStatusEnum`          | `submissionAgentRunStatusEnum`          | `"note_agent_run_status"`       |
-| `noteTransitionCommitStatusEnum`  | `submissionTransitionCommitStatusEnum`  | `"note_transition_commit_status"` |
-| `noteProposalStatusEnum`          | `submissionProposalStatusEnum`          | `"note_proposal_status"`        |
+| Symbol                           | New symbol                             | SQL string (unchanged)            |
+| -------------------------------- | -------------------------------------- | --------------------------------- |
+| `noteExtractionStatusEnum`       | `submissionExtractionStatusEnum`       | `"note_extraction_status"`        |
+| `noteAgentRunStatusEnum`         | `submissionAgentRunStatusEnum`         | `"note_agent_run_status"`         |
+| `noteTransitionCommitStatusEnum` | `submissionTransitionCommitStatusEnum` | `"note_transition_commit_status"` |
+| `noteProposalStatusEnum`         | `submissionProposalStatusEnum`         | `"note_proposal_status"`          |
 
 Column properties — rename the TS property, keep the SQL name: `noteId: text("note_id")` → `submissionId: text("note_id")`. Applies to `note_track_links`, `note_agent_runs`, `note_proposals`, `note_transition_commits`. On `transitions`: `sourceNoteId: text("source_note_id")` → `sourceSubmissionId: text("source_note_id")`, and likewise `sourceNoteVersion`.
 
@@ -316,19 +316,19 @@ Inferred types: `Note`/`NewNote` → `Submission`/`NewSubmission`, `NoteExtracti
 
 ### 7.2 `packages/db/src/` file and function renames
 
-| From                                       | To                                            |
-| ------------------------------------------- | ----------------------------------------------- |
-| `notes.ts`                                 | `submissions.ts`                              |
-| `note-track-links.ts`                      | `submission-track-links.ts`                   |
-| `createNote` / `getNoteById` / `listNotes` / `updateNote` | `createSubmission` / `getSubmissionById` / `listSubmissions` / `updateSubmission` |
-| `listAgentRunsForNote`                     | `listAgentRunsForSubmission`                  |
-| `supersedeProposalsForNote`                | `supersedeProposalsForSubmission`             |
-| `addNoteTrackLink` / `listNoteTrackLinks` / `listNoteTrackLinksWithTracks` / `removeNoteTrackLink` | `*SubmissionTrackLink(s)` |
-| `NotesError` / `isNotesError`              | `SubmissionsError` / `isSubmissionsError`     |
-| `CreateNoteInput` / `ListNotesInput` / `ListNotesResult` / `NoteListItem` / `NoteProposalLink` / `UpdateNoteInput` / `UpdateNoteResult` | `*Submission*` equivalents |
-| `AddNoteTrackLinkInput` / `NoteTrackLinkWithTrack` | `AddSubmissionTrackLinkInput` / `SubmissionTrackLinkWithTrack` |
-| `ProposalDetailNote`                       | `ProposalDetailSubmission`                    |
-| `noteId` params throughout                 | `submissionId`                                |
+| From                                                                                                                                    | To                                                                                |
+| --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `notes.ts`                                                                                                                              | `submissions.ts`                                                                  |
+| `note-track-links.ts`                                                                                                                   | `submission-track-links.ts`                                                       |
+| `createNote` / `getNoteById` / `listNotes` / `updateNote`                                                                               | `createSubmission` / `getSubmissionById` / `listSubmissions` / `updateSubmission` |
+| `listAgentRunsForNote`                                                                                                                  | `listAgentRunsForSubmission`                                                      |
+| `supersedeProposalsForNote`                                                                                                             | `supersedeProposalsForSubmission`                                                 |
+| `addNoteTrackLink` / `listNoteTrackLinks` / `listNoteTrackLinksWithTracks` / `removeNoteTrackLink`                                      | `*SubmissionTrackLink(s)`                                                         |
+| `NotesError` / `isNotesError`                                                                                                           | `SubmissionsError` / `isSubmissionsError`                                         |
+| `CreateNoteInput` / `ListNotesInput` / `ListNotesResult` / `NoteListItem` / `NoteProposalLink` / `UpdateNoteInput` / `UpdateNoteResult` | `*Submission*` equivalents                                                        |
+| `AddNoteTrackLinkInput` / `NoteTrackLinkWithTrack`                                                                                      | `AddSubmissionTrackLinkInput` / `SubmissionTrackLinkWithTrack`                    |
+| `ProposalDetailNote`                                                                                                                    | `ProposalDetailSubmission`                                                        |
+| `noteId` params throughout                                                                                                              | `submissionId`                                                                    |
 
 Update the barrel at `packages/db/src/index.ts` (lines 5–66) and its header comment on line 1. `deriveSubmissionExtractionStatus`, `refreshSubmissionExtractionStatus`, and `MAX_SUBMISSION_RAW_BYTES` are already correct — leave them.
 
@@ -367,35 +367,35 @@ The risky one. Read all of §8 before running anything.
 
 Tables:
 
-| From                       | To                              |
-| --------------------------- | --------------------------------- |
-| `notes`                    | `submissions`                   |
-| `note_track_links`         | `submission_track_links`        |
-| `note_agent_runs`          | `submission_agent_runs`         |
-| `note_proposals`           | `submission_proposals`          |
-| `note_transition_commits`  | `submission_transition_commits` |
-| `proposal_review_events`   | unchanged                       |
+| From                      | To                              |
+| ------------------------- | ------------------------------- |
+| `notes`                   | `submissions`                   |
+| `note_track_links`        | `submission_track_links`        |
+| `note_agent_runs`         | `submission_agent_runs`         |
+| `note_proposals`          | `submission_proposals`          |
+| `note_transition_commits` | `submission_transition_commits` |
+| `proposal_review_events`  | unchanged                       |
 
 Columns:
 
-| Table                            | From                   | To                          |
-| --------------------------------- | ------------------------ | ----------------------------- |
-| `submission_track_links`         | `note_id`              | `submission_id`             |
-| `submission_agent_runs`          | `note_id`              | `submission_id`             |
-| `submission_proposals`           | `note_id`              | `submission_id`             |
-| `submission_transition_commits`  | `note_id`              | `submission_id`             |
-| `transitions`                    | `source_note_id`       | `source_submission_id`      |
-| `transitions`                    | `source_note_version`  | `source_submission_version` |
+| Table                           | From                  | To                          |
+| ------------------------------- | --------------------- | --------------------------- |
+| `submission_track_links`        | `note_id`             | `submission_id`             |
+| `submission_agent_runs`         | `note_id`             | `submission_id`             |
+| `submission_proposals`          | `note_id`             | `submission_id`             |
+| `submission_transition_commits` | `note_id`             | `submission_id`             |
+| `transitions`                   | `source_note_id`      | `source_submission_id`      |
+| `transitions`                   | `source_note_version` | `source_submission_version` |
 
 Enum types:
 
-| From                             | To                                     |
-| --------------------------------- | ---------------------------------------- |
-| `note_extraction_status`         | `submission_extraction_status`         |
-| `note_agent_run_status`          | `submission_agent_run_status`          |
-| `note_transition_commit_status`  | `submission_transition_commit_status`  |
-| `note_proposal_status`           | `submission_proposal_status`           |
-| `proposal_review_action`         | unchanged                              |
+| From                            | To                                    |
+| ------------------------------- | ------------------------------------- |
+| `note_extraction_status`        | `submission_extraction_status`        |
+| `note_agent_run_status`         | `submission_agent_run_status`         |
+| `note_transition_commit_status` | `submission_transition_commit_status` |
+| `note_proposal_status`          | `submission_proposal_status`          |
+| `proposal_review_action`        | unchanged                             |
 
 Indexes and constraints: **do not hand-copy a guessed list.** Query the live DB for the real names and generate the `ALTER` statements from the output:
 
@@ -407,7 +407,7 @@ SELECT conname, conrelid::regclass AS on_table FROM pg_constraint
  WHERE conname LIKE '%note%';
 ```
 
-Rename each to its `submission_*` equivalent with `ALTER INDEX <old> RENAME TO <new>;` and `ALTER TABLE <t> RENAME CONSTRAINT <old> TO <new>;`. Expect roughly: the seven `note_*` indexes on the five renamed tables, their `*_pkey` constraints, and the FKs whose drizzle-generated names embed `note` (including `transitions_source_note_id_notes_id_fk` and `proposal_review_events_proposal_id_note_proposals_id_fk`). Getting these wrong is cosmetic *until* the next `db:generate`, which will then try to "fix" the drift — §8.4 catches that.
+Rename each to its `submission_*` equivalent with `ALTER INDEX <old> RENAME TO <new>;` and `ALTER TABLE <t> RENAME CONSTRAINT <old> TO <new>;`. Expect roughly: the seven `note_*` indexes on the five renamed tables, their `*_pkey` constraints, and the FKs whose drizzle-generated names embed `note` (including `transitions_source_note_id_notes_id_fk` and `proposal_review_events_proposal_id_note_proposals_id_fk`). Getting these wrong is cosmetic _until_ the next `db:generate`, which will then try to "fix" the drift — §8.4 catches that.
 
 ### 8.3 Generating the migration
 
@@ -417,7 +417,7 @@ Update `packages/db/src/schema.ts` so every `pgTable(...)` / `pgEnum(...)` / `te
 pnpm --filter @selecta/db db:generate --name=submission_rename
 ```
 
-drizzle-kit **prompts interactively** for every rename, offering "create/drop" vs "rename". You must answer *rename* each time. Two consequences:
+drizzle-kit **prompts interactively** for every rename, offering "create/drop" vs "rename". You must answer _rename_ each time. Two consequences:
 
 - Run this in a real interactive terminal. If you have no TTY, **stop and ask the human** — do not pipe input or force a non-interactive run. Guessing here silently produces a DROP+CREATE migration.
 - Afterwards, open `packages/db/drizzle/0011_submission_rename.sql` and read every line. It must contain only `ALTER … RENAME`. Diff it against §8.2.
@@ -456,15 +456,15 @@ Finally, a from-scratch check: drop the local DB, re-run `db:migrate` from `0000
 
 ## 9. Documentation to update (do this in the Tier 4 commit)
 
-| File                                     | What to change                                                                                                           |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| File                                     | What to change                                                                                                                                                                                                       |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `dev-files/NEXT_PRODUCT_ARCHITECTURE.md` | Line 38 — replace the "may remain temporarily" deferral with a statement that the rename is complete. Also lines 173, 190–201 (the Submission/Proposal table maps still say `notes` / `note_proposals`) and 233–235. |
-| `dev-files/PG_MIGRATION_REFACTOR.md`     | Table names in §3 and §4.                                                                                                |
-| `dev-files/ARCHITECTURE.md`              | Historical doc — add a one-line note rather than rewriting history.                                                      |
-| `dev-files/SETS_ARCHITECTURE.md`         | References to submissions/notes.                                                                                         |
-| `README.md`                              | Any `/notes` endpoint or env-var references.                                                                             |
-| `.env.example`                           | Lines 22–28 (`NOTE_AGENT_MODEL`, and the comments saying "note-pipeline" / "note detail page").                          |
-| This file                                | Set Status to implemented.                                                                                               |
+| `dev-files/PG_MIGRATION_REFACTOR.md`     | Table names in §3 and §4.                                                                                                                                                                                            |
+| `dev-files/ARCHITECTURE.md`              | Historical doc — add a one-line note rather than rewriting history.                                                                                                                                                  |
+| `dev-files/SETS_ARCHITECTURE.md`         | References to submissions/notes.                                                                                                                                                                                     |
+| `README.md`                              | Any `/notes` endpoint or env-var references.                                                                                                                                                                         |
+| `.env.example`                           | Lines 22–28 (`NOTE_AGENT_MODEL`, and the comments saying "note-pipeline" / "note detail page").                                                                                                                      |
+| This file                                | Set Status to implemented.                                                                                                                                                                                           |
 
 ---
 

@@ -69,8 +69,8 @@ export async function parseSingleTransitionDraft(
 
   const model =
     input.model?.trim() ||
-    process.env.NOTE_CHILD_MODEL?.trim() ||
-    process.env.NOTE_AGENT_MODEL?.trim() ||
+    process.env.SUBMISSION_CHILD_MODEL?.trim() ||
+    process.env.SUBMISSION_AGENT_MODEL?.trim() ||
     DEFAULT_SINGLE_TRANSITION_MODEL;
   const logger = input.logger ?? createAgentLogger();
   const prompt = buildSingleTransitionPrompt();

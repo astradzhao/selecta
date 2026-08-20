@@ -1,4 +1,4 @@
-import type { NoteProcessingPlan, NoteTransitionPlan } from "./schema";
+import type { SubmissionProcessingPlan, SubmissionTransitionPlan } from "./schema";
 import type { PolicyImportAction } from "./policy";
 import type { ProposalPolicyResult } from "./proposal-policy";
 import type { TrackCandidate } from "./services";
@@ -15,11 +15,11 @@ export type ReviewerEndpoint =
     };
 
 export type BuildReviewerPolicyResultInput = {
-  plan: NoteProcessingPlan;
+  plan: SubmissionProcessingPlan;
   from: ReviewerEndpoint;
   to: ReviewerEndpoint;
   bidirectional?: boolean;
-  transition?: Partial<NoteTransitionPlan>;
+  transition?: Partial<SubmissionTransitionPlan>;
 };
 
 function assertReviewerEndpoint(endpoint: unknown, field: string): ReviewerEndpoint {
@@ -118,7 +118,7 @@ export function buildReviewerPolicyResult(
     }
   }
 
-  const mergedTransition: NoteTransitionPlan = {
+  const mergedTransition: SubmissionTransitionPlan = {
     ...transition,
     ...(input.transition ?? {}),
   };

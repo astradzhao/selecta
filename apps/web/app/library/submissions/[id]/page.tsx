@@ -9,7 +9,7 @@ export default async function LibrarySubmissionDetailPage({ params }: PageProps)
   const { id } = await params;
   return (
     <AppShell currentPath="/library">
-      <SubmissionDetail noteId={id} />
+      <SubmissionDetail submissionId={id} />
     </AppShell>
   );
 }

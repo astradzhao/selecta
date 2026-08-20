@@ -36,8 +36,8 @@ function rankable(
     transition: {
       id: `edge:${id}:${transition.proposalKey ?? "default"}`,
       proposalKey: `key:${id}`,
-      sourceNoteId: null,
-      sourceNoteVersion: null,
+      sourceSubmissionId: null,
+      sourceSubmissionVersion: null,
       sourceProposalId: null,
       confidence: null,
       fromBar: null,

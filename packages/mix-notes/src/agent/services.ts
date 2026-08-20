@@ -36,7 +36,7 @@ export const SearchCandidatesOutputSchema = z.object({
 });
 export type SearchCandidatesOutput = z.infer<typeof SearchCandidatesOutputSchema>;
 
-export type NoteAgentServices = {
+export type SubmissionAgentServices = {
   searchLibraryTracks: (input: SearchQueriesInput) => Promise<SearchCandidatesOutput>;
   searchSpotifyTracks: (input: SearchQueriesInput) => Promise<SearchCandidatesOutput>;
   /**
@@ -62,8 +62,8 @@ export type NoteAgentServices = {
     fromTrackId: string;
     toTrackId: string;
     proposalKey: string;
-    sourceNoteId: string;
-    sourceNoteVersion: number;
+    sourceSubmissionId: string;
+    sourceSubmissionVersion: number;
     sourceProposalId?: string | null;
     confidence?: number | null;
     fromBar?: number | null;

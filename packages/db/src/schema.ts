@@ -20,7 +20,7 @@ import {
  * Derived rollup from per-proposal statuses — not independent business logic.
  * `partially_committed` = some proposals committed while siblings need review/failed.
  */
-export const noteExtractionStatusEnum = pgEnum("note_extraction_status", [
+export const submissionExtractionStatusEnum = pgEnum("submission_extraction_status", [
   "idle",
   "extracting",
   "no_proposal",
@@ -33,14 +33,14 @@ export const noteExtractionStatusEnum = pgEnum("note_extraction_status", [
   "dismissed",
 ]);
 
-export const noteAgentRunStatusEnum = pgEnum("note_agent_run_status", [
+export const submissionAgentRunStatusEnum = pgEnum("submission_agent_run_status", [
   "running",
   "completed",
   "failed",
   "superseded",
 ]);
 
-export const noteTransitionCommitStatusEnum = pgEnum("note_transition_commit_status", [
+export const submissionTransitionCommitStatusEnum = pgEnum("submission_transition_commit_status", [
   "pending",
   "committed",
   "commit_failed",
@@ -51,7 +51,7 @@ export const noteTransitionCommitStatusEnum = pgEnum("note_transition_commit_sta
  * Per-transition proposal lifecycle (DJ-66).
  * Source of truth for partial writes: clear proposals commit independently of siblings.
  */
-export const noteProposalStatusEnum = pgEnum("note_proposal_status", [
+export const submissionProposalStatusEnum = pgEnum("submission_proposal_status", [
   "queued",
   "parsing",
   "resolving",
@@ -88,17 +88,17 @@ export const blockKindEnum = pgEnum("block_kind", ["block", "set"]);
  * Single-user MVP Postgres surface (product language: submission).
  *
  * Music domain (tracks, artists, vocab, transitions) lives in the tables below
- * (Neo4j removal in progress — DJ-80). Notes / proposals / audit stay here too.
+ * Submissions, proposals, and audit stay here too.
  * Users, libraries, membership, and live sessions are deferred until multi-tenant / Live Mode needs them.
  */
-export const notes = pgTable("notes", {
+export const submissions = pgTable("submissions", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   rawText: text("raw_text").notNull(),
   /** Structured NL extraction / agent plan preview (filled by M3). */
   extraction: jsonb("extraction").$type<Record<string, unknown>>(),
-  extractionStatus: noteExtractionStatusEnum("extraction_status").notNull().default("idle"),
+  extractionStatus: submissionExtractionStatusEnum("extraction_status").notNull().default("idle"),
   /** Bumped when text changes; CAS key for idempotent extraction callbacks. */
   extractionVersion: integer("extraction_version").notNull().default(0),
   extractionError: text("extraction_error"),
@@ -118,18 +118,18 @@ export const notes = pgTable("notes", {
 });
 
 /**
- * Manual associations between a note and a library track.
+ * Manual associations between a submission and a library track.
  * `track_id` FK → tracks ON DELETE CASCADE (DJ-84).
  */
-export const noteTrackLinks = pgTable(
-  "note_track_links",
+export const submissionTrackLinks = pgTable(
+  "submission_track_links",
   {
     id: text("id")
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    noteId: text("note_id")
+    submissionId: text("submission_id")
       .notNull()
-      .references(() => notes.id, { onDelete: "cascade" }),
+      .references(() => submissions.id, { onDelete: "cascade" }),
     trackId: text("track_id")
       .notNull()
       .references(() => tracks.id, { onDelete: "cascade" }),
@@ -142,24 +142,27 @@ export const noteTrackLinks = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    uniqueIndex("note_track_links_note_id_track_id_uidx").on(table.noteId, table.trackId),
+    uniqueIndex("submission_track_links_submission_id_track_id_uidx").on(
+      table.submissionId,
+      table.trackId,
+    ),
   ],
 );
 
-/** One agent / workflow attempt for a note extraction version. */
-export const noteAgentRuns = pgTable(
-  "note_agent_runs",
+/** One agent / workflow attempt for a submission extraction version. */
+export const submissionAgentRuns = pgTable(
+  "submission_agent_runs",
   {
     id: text("id")
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    noteId: text("note_id")
+    submissionId: text("submission_id")
       .notNull()
-      .references(() => notes.id, { onDelete: "cascade" }),
+      .references(() => submissions.id, { onDelete: "cascade" }),
     extractionVersion: integer("extraction_version").notNull(),
     attempt: integer("attempt").notNull().default(1),
     agentName: text("agent_name").notNull(),
-    status: noteAgentRunStatusEnum("status").notNull().default("running"),
+    status: submissionAgentRunStatusEnum("status").notNull().default("running"),
     /** Durable Workflow DevKit run id when launched via `start()`. */
     workflowRunId: text("workflow_run_id"),
     model: text("model"),
@@ -182,8 +185,8 @@ export const noteAgentRuns = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    uniqueIndex("note_agent_runs_note_version_attempt_uidx").on(
-      table.noteId,
+    uniqueIndex("submission_agent_runs_submission_version_attempt_uidx").on(
+      table.submissionId,
       table.extractionVersion,
       table.attempt,
     ),
@@ -194,24 +197,26 @@ export const noteAgentRuns = pgTable(
  * First-class per-transition proposal (DJ-66).
  * Idempotency key = submissionId:version:span:sourceFingerprint (`proposal_key`).
  */
-export const noteProposals = pgTable(
-  "note_proposals",
+export const submissionProposals = pgTable(
+  "submission_proposals",
   {
     id: text("id")
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    noteId: text("note_id")
+    submissionId: text("submission_id")
       .notNull()
-      .references(() => notes.id, { onDelete: "cascade" }),
+      .references(() => submissions.id, { onDelete: "cascade" }),
     extractionVersion: integer("extraction_version").notNull(),
-    agentRunId: text("agent_run_id").references(() => noteAgentRuns.id, { onDelete: "set null" }),
+    agentRunId: text("agent_run_id").references(() => submissionAgentRuns.id, {
+      onDelete: "set null",
+    }),
     sourceStart: integer("source_start").notNull(),
     sourceEnd: integer("source_end").notNull(),
     sourceText: text("source_text").notNull(),
     sourceFingerprint: text("source_fingerprint").notNull(),
-    /** Stable idempotency key: `{noteId}:{version}:span:{fingerprint}`. */
+    /** Stable idempotency key: `{submissionId}:{version}:span:{fingerprint}`. */
     proposalKey: text("proposal_key").notNull(),
-    status: noteProposalStatusEnum("status").notNull().default("queued"),
+    status: submissionProposalStatusEnum("status").notNull().default("queued"),
     draft: jsonb("draft").$type<Record<string, unknown>>(),
     resolution: jsonb("resolution").$type<Record<string, unknown>>(),
     /** Policy outcome + nested reviewReasons. */
@@ -234,14 +239,14 @@ export const noteProposals = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    uniqueIndex("note_proposals_proposal_key_uidx").on(table.proposalKey),
-    uniqueIndex("note_proposals_note_version_fingerprint_uidx").on(
-      table.noteId,
+    uniqueIndex("submission_proposals_proposal_key_uidx").on(table.proposalKey),
+    uniqueIndex("submission_proposals_submission_version_fingerprint_uidx").on(
+      table.submissionId,
       table.extractionVersion,
       table.sourceFingerprint,
     ),
-    index("note_proposals_status_updated_idx").on(table.status, table.updatedAt),
-    index("note_proposals_fingerprint_idx").on(table.sourceFingerprint),
+    index("submission_proposals_status_updated_idx").on(table.status, table.updatedAt),
+    index("submission_proposals_fingerprint_idx").on(table.sourceFingerprint),
   ],
 );
 
@@ -252,7 +257,7 @@ export const proposalReviewEvents = pgTable("proposal_review_events", {
     .$defaultFn(() => crypto.randomUUID()),
   proposalId: text("proposal_id")
     .notNull()
-    .references(() => noteProposals.id, { onDelete: "cascade" }),
+    .references(() => submissionProposals.id, { onDelete: "cascade" }),
   action: proposalReviewActionEnum("action").notNull(),
   actor: text("actor"),
   payload: jsonb("payload").$type<Record<string, unknown>>(),
@@ -260,18 +265,18 @@ export const proposalReviewEvents = pgTable("proposal_review_events", {
 });
 
 /** Idempotent audit of transition commits keyed by proposalKey. */
-export const noteTransitionCommits = pgTable(
-  "note_transition_commits",
+export const submissionTransitionCommits = pgTable(
+  "submission_transition_commits",
   {
     id: text("id")
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    noteId: text("note_id")
+    submissionId: text("submission_id")
       .notNull()
-      .references(() => notes.id, { onDelete: "cascade" }),
+      .references(() => submissions.id, { onDelete: "cascade" }),
     extractionVersion: integer("extraction_version").notNull(),
     proposalKey: text("proposal_key").notNull(),
-    status: noteTransitionCommitStatusEnum("status").notNull().default("pending"),
+    status: submissionTransitionCommitStatusEnum("status").notNull().default("pending"),
     fromTrackId: text("from_track_id").references(() => tracks.id, { onDelete: "set null" }),
     toTrackId: text("to_track_id").references(() => tracks.id, { onDelete: "set null" }),
     payload: jsonb("payload").$type<Record<string, unknown>>(),
@@ -283,7 +288,7 @@ export const noteTransitionCommits = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (table) => [uniqueIndex("note_transition_commits_proposal_key_uidx").on(table.proposalKey)],
+  (table) => [uniqueIndex("submission_transition_commits_proposal_key_uidx").on(table.proposalKey)],
 );
 
 /** Library track (music domain; Neo4j Track node equivalent). */
@@ -475,9 +480,11 @@ export const transitions = pgTable(
       .notNull()
       .references(() => tracks.id, { onDelete: "cascade" }),
     proposalKey: text("proposal_key"),
-    sourceNoteId: text("source_note_id").references(() => notes.id, { onDelete: "set null" }),
-    sourceNoteVersion: integer("source_note_version"),
-    sourceProposalId: text("source_proposal_id").references(() => noteProposals.id, {
+    sourceSubmissionId: text("source_submission_id").references(() => submissions.id, {
+      onDelete: "set null",
+    }),
+    sourceSubmissionVersion: integer("source_submission_version"),
+    sourceProposalId: text("source_proposal_id").references(() => submissionProposals.id, {
       onDelete: "set null",
     }),
     confidence: real("confidence"),
@@ -503,61 +510,64 @@ export const transitions = pgTable(
   ],
 );
 
-export const notesRelations = relations(notes, ({ many }) => ({
-  trackLinks: many(noteTrackLinks),
-  agentRuns: many(noteAgentRuns),
-  proposals: many(noteProposals),
-  transitionCommits: many(noteTransitionCommits),
+export const submissionsRelations = relations(submissions, ({ many }) => ({
+  trackLinks: many(submissionTrackLinks),
+  agentRuns: many(submissionAgentRuns),
+  proposals: many(submissionProposals),
+  transitionCommits: many(submissionTransitionCommits),
   sourcedTransitions: many(transitions),
 }));
 
-export const noteTrackLinksRelations = relations(noteTrackLinks, ({ one }) => ({
-  note: one(notes, {
-    fields: [noteTrackLinks.noteId],
-    references: [notes.id],
+export const submissionTrackLinksRelations = relations(submissionTrackLinks, ({ one }) => ({
+  submission: one(submissions, {
+    fields: [submissionTrackLinks.submissionId],
+    references: [submissions.id],
   }),
   track: one(tracks, {
-    fields: [noteTrackLinks.trackId],
+    fields: [submissionTrackLinks.trackId],
     references: [tracks.id],
   }),
 }));
 
-export const noteAgentRunsRelations = relations(noteAgentRuns, ({ one, many }) => ({
-  note: one(notes, {
-    fields: [noteAgentRuns.noteId],
-    references: [notes.id],
+export const submissionAgentRunsRelations = relations(submissionAgentRuns, ({ one, many }) => ({
+  submission: one(submissions, {
+    fields: [submissionAgentRuns.submissionId],
+    references: [submissions.id],
   }),
-  proposals: many(noteProposals),
+  proposals: many(submissionProposals),
 }));
 
-export const noteProposalsRelations = relations(noteProposals, ({ one, many }) => ({
-  note: one(notes, {
-    fields: [noteProposals.noteId],
-    references: [notes.id],
+export const submissionProposalsRelations = relations(submissionProposals, ({ one, many }) => ({
+  submission: one(submissions, {
+    fields: [submissionProposals.submissionId],
+    references: [submissions.id],
   }),
-  agentRun: one(noteAgentRuns, {
-    fields: [noteProposals.agentRunId],
-    references: [noteAgentRuns.id],
+  agentRun: one(submissionAgentRuns, {
+    fields: [submissionProposals.agentRunId],
+    references: [submissionAgentRuns.id],
   }),
   sourcedTransitions: many(transitions),
 }));
 
-export const noteTransitionCommitsRelations = relations(noteTransitionCommits, ({ one }) => ({
-  note: one(notes, {
-    fields: [noteTransitionCommits.noteId],
-    references: [notes.id],
+export const submissionTransitionCommitsRelations = relations(
+  submissionTransitionCommits,
+  ({ one }) => ({
+    submission: one(submissions, {
+      fields: [submissionTransitionCommits.submissionId],
+      references: [submissions.id],
+    }),
+    fromTrack: one(tracks, {
+      fields: [submissionTransitionCommits.fromTrackId],
+      references: [tracks.id],
+      relationName: "transitionCommitFromTrack",
+    }),
+    toTrack: one(tracks, {
+      fields: [submissionTransitionCommits.toTrackId],
+      references: [tracks.id],
+      relationName: "transitionCommitToTrack",
+    }),
   }),
-  fromTrack: one(tracks, {
-    fields: [noteTransitionCommits.fromTrackId],
-    references: [tracks.id],
-    relationName: "transitionCommitFromTrack",
-  }),
-  toTrack: one(tracks, {
-    fields: [noteTransitionCommits.toTrackId],
-    references: [tracks.id],
-    relationName: "transitionCommitToTrack",
-  }),
-}));
+);
 
 export const tracksRelations = relations(tracks, ({ many }) => ({
   externalIds: many(trackExternalIds),
@@ -565,16 +575,16 @@ export const tracksRelations = relations(tracks, ({ many }) => ({
   trackGenres: many(trackGenres),
   trackSubgenres: many(trackSubgenres),
   trackFolders: many(trackFolders),
-  noteTrackLinks: many(noteTrackLinks),
+  submissionTrackLinks: many(submissionTrackLinks),
   outboundTransitions: many(transitions, { relationName: "fromTrack" }),
   inboundTransitions: many(transitions, { relationName: "toTrack" }),
   sequenceStarts: many(blocks, { relationName: "blockStartTrack" }),
   sequenceEnds: many(blocks, { relationName: "blockEndTrack" }),
   sequenceSteps: many(blockSteps),
-  transitionCommitsFrom: many(noteTransitionCommits, {
+  transitionCommitsFrom: many(submissionTransitionCommits, {
     relationName: "transitionCommitFromTrack",
   }),
-  transitionCommitsTo: many(noteTransitionCommits, {
+  transitionCommitsTo: many(submissionTransitionCommits, {
     relationName: "transitionCommitToTrack",
   }),
 }));
@@ -802,13 +812,13 @@ export const transitionsRelations = relations(transitions, ({ one, many }) => ({
     references: [tracks.id],
     relationName: "toTrack",
   }),
-  sourceNote: one(notes, {
-    fields: [transitions.sourceNoteId],
-    references: [notes.id],
+  sourceSubmission: one(submissions, {
+    fields: [transitions.sourceSubmissionId],
+    references: [submissions.id],
   }),
-  sourceProposal: one(noteProposals, {
+  sourceProposal: one(submissionProposals, {
     fields: [transitions.sourceProposalId],
-    references: [noteProposals.id],
+    references: [submissionProposals.id],
   }),
   inboundSequenceSteps: many(blockSteps),
   alternateUses: many(blockAlternates),
@@ -900,20 +910,21 @@ export const blockVersionChoicesRelations = relations(blockVersionChoices, ({ on
   }),
 }));
 
-export type Note = typeof notes.$inferSelect;
-export type NewNote = typeof notes.$inferInsert;
-export type NoteExtractionStatus = (typeof noteExtractionStatusEnum.enumValues)[number];
-export type NoteTrackLink = typeof noteTrackLinks.$inferSelect;
-export type NewNoteTrackLink = typeof noteTrackLinks.$inferInsert;
-export type NoteAgentRun = typeof noteAgentRuns.$inferSelect;
-export type NewNoteAgentRun = typeof noteAgentRuns.$inferInsert;
-export type NoteAgentRunStatus = (typeof noteAgentRunStatusEnum.enumValues)[number];
-export type NoteProposal = typeof noteProposals.$inferSelect;
-export type NewNoteProposal = typeof noteProposals.$inferInsert;
-export type NoteProposalStatus = (typeof noteProposalStatusEnum.enumValues)[number];
-export type NoteTransitionCommit = typeof noteTransitionCommits.$inferSelect;
-export type NewNoteTransitionCommit = typeof noteTransitionCommits.$inferInsert;
-export type NoteTransitionCommitStatus = (typeof noteTransitionCommitStatusEnum.enumValues)[number];
+export type Submission = typeof submissions.$inferSelect;
+export type NewSubmission = typeof submissions.$inferInsert;
+export type SubmissionExtractionStatus = (typeof submissionExtractionStatusEnum.enumValues)[number];
+export type SubmissionTrackLink = typeof submissionTrackLinks.$inferSelect;
+export type NewSubmissionTrackLink = typeof submissionTrackLinks.$inferInsert;
+export type SubmissionAgentRun = typeof submissionAgentRuns.$inferSelect;
+export type NewSubmissionAgentRun = typeof submissionAgentRuns.$inferInsert;
+export type SubmissionAgentRunStatus = (typeof submissionAgentRunStatusEnum.enumValues)[number];
+export type SubmissionProposal = typeof submissionProposals.$inferSelect;
+export type NewSubmissionProposal = typeof submissionProposals.$inferInsert;
+export type SubmissionProposalStatus = (typeof submissionProposalStatusEnum.enumValues)[number];
+export type SubmissionTransitionCommit = typeof submissionTransitionCommits.$inferSelect;
+export type NewSubmissionTransitionCommit = typeof submissionTransitionCommits.$inferInsert;
+export type SubmissionTransitionCommitStatus =
+  (typeof submissionTransitionCommitStatusEnum.enumValues)[number];
 export type ProposalReviewEvent = typeof proposalReviewEvents.$inferSelect;
 export type NewProposalReviewEvent = typeof proposalReviewEvents.$inferInsert;
 export type ProposalReviewAction = (typeof proposalReviewActionEnum.enumValues)[number];

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { asSchema } from "ai";
 import { describe, it } from "node:test";
 
-import { NoteProcessingPlanSchema } from "./schema";
+import { SubmissionProcessingPlanSchema } from "./schema";
 import { SingleTransitionDraftSchema } from "./single-transition-schema";
 
 function requiredKeys(schema: Record<string, unknown>): string[] {
@@ -26,7 +26,10 @@ describe("note schemas OpenAI compatibility", () => {
   });
 
   it("marks every resolved-plan property as required", () => {
-    const jsonSchema = asSchema(NoteProcessingPlanSchema).jsonSchema as Record<string, unknown>;
+    const jsonSchema = asSchema(SubmissionProcessingPlanSchema).jsonSchema as Record<
+      string,
+      unknown
+    >;
     const props = propertiesKeys(jsonSchema);
     const required = requiredKeys(jsonSchema);
     assert.deepEqual([...required].sort(), [...props].sort());

@@ -11,7 +11,7 @@ import { ProposalSourceSpan } from "@/components/library/proposal-source-span";
 import { transitionIdFromProposal } from "@/components/library/proposal-siblings";
 import { describeApiError } from "@/lib/api/errors";
 import { previewText } from "@/lib/format";
-import { listNoteProposals, type ApiProposal } from "@/lib/proposals/api";
+import { listSubmissionProposals, type ApiProposal } from "@/lib/proposals/api";
 import { proposalStatusLabel } from "@/lib/proposals/proposal-status";
 import { isReviewable } from "@/lib/proposals/reviewable";
 
@@ -22,7 +22,13 @@ const GROUP_ORDER: Array<{ key: ApiProposal["status"]; statuses: ApiProposal["st
   { key: "rejected", statuses: ["rejected"] },
 ];
 
-export function SubmissionProposals({ noteId, rawText }: { noteId: string; rawText: string }) {
+export function SubmissionProposals({
+  submissionId,
+  rawText,
+}: {
+  submissionId: string;
+  rawText: string;
+}) {
   const [proposals, setProposals] = useState<ApiProposal[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,7 +37,7 @@ export function SubmissionProposals({ noteId, rawText }: { noteId: string; rawTe
     let cancelled = false;
     void (async () => {
       try {
-        const response = await listNoteProposals(noteId);
+        const response = await listSubmissionProposals(submissionId);
         if (cancelled) return;
         setProposals(response.proposals.filter((proposal) => proposal.status !== "superseded"));
         setError(null);
@@ -48,7 +54,7 @@ export function SubmissionProposals({ noteId, rawText }: { noteId: string; rawTe
     return () => {
       cancelled = true;
     };
-  }, [noteId]);
+  }, [submissionId]);
 
   const grouped = useMemo(() => {
     return GROUP_ORDER.map((group) => ({
@@ -118,7 +124,9 @@ export function SubmissionProposals({ noteId, rawText }: { noteId: string; rawTe
                   <div className="flex shrink-0 flex-wrap gap-2">
                     {isReviewable(proposal.status) ? (
                       <Button asChild size="sm">
-                        <Link href={`/library/submissions/${noteId}/proposals/${proposal.id}`}>
+                        <Link
+                          href={`/library/submissions/${submissionId}/proposals/${proposal.id}`}
+                        >
                           Review
                         </Link>
                       </Button>
