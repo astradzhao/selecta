@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button } from "@selecta/ui/components/button";
 
 import { AppShell } from "@/components/app-shell";
+import { libraryAddHref } from "@/lib/library/add-routes";
 
 export default function Home() {
   return (
@@ -18,13 +19,13 @@ export default function Home() {
         </div>
         <div className="flex flex-wrap gap-3">
           <Button asChild>
-            <Link href="/add?mode=transition">Add a transition</Link>
+            <Link href={libraryAddHref("submissions")}>Add a transition</Link>
           </Button>
           <Button asChild variant="outline">
             <Link href="/library">Open library</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/add">Add a track</Link>
+            <Link href={libraryAddHref("tracks")}>Add a track</Link>
           </Button>
         </div>
       </main>

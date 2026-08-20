@@ -132,7 +132,7 @@ export function LibraryList() {
         filteredTitle: "No matching tracks",
         action: (
           <Button asChild size="sm">
-            <Link href="/add">Add your first track</Link>
+            <Link href={libraryAddHref("tracks")}>Add your first track</Link>
           </Button>
         ),
       }}

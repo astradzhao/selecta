@@ -6,6 +6,7 @@ import { EmptyState } from "@selecta/ui/components/empty-state";
 import { AddTransitionPanel } from "@/components/graph/add-transition-panel";
 import { NeighborCard } from "@/components/graph/neighbor-card";
 import type { ApiNeighborhoodNeighbor } from "@/lib/graph/types";
+import { libraryAddHref } from "@/lib/library/add-routes";
 
 export function NextTransitions({
   currentId,
@@ -83,7 +84,7 @@ export function NextTransitions({
               Choose another track
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link href="/add">Add a track</Link>
+              <Link href={libraryAddHref("tracks")}>Add a track</Link>
             </Button>
           </div>
         </EmptyState>

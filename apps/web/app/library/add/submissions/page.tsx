@@ -19,7 +19,7 @@ export default async function AddSubmissionPage({ searchParams }: PageProps) {
         backHref={backHref}
         backLabel="Back to library"
       >
-        <NewSubmissionForm />
+        <NewSubmissionForm backHref={backHref} />
       </AddPageShell>
     </AppShell>
   );

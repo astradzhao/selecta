@@ -163,7 +163,7 @@ export function SubmissionsList() {
         filteredTitle: "No matching submissions",
         action: (
           <Button asChild size="sm">
-            <Link href="/add?mode=transition">Write your first submission</Link>
+            <Link href={libraryAddHref("submissions")}>Write your first submission</Link>
           </Button>
         ),
       }}

@@ -24,7 +24,7 @@ function formatBytes(bytes: number): string {
   return `${(kib / 1024).toFixed(1)} MiB`;
 }
 
-export function NewSubmissionForm() {
+export function NewSubmissionForm({ backHref }: { backHref: string }) {
   const router = useRouter();
   const [rawText, setRawText] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -94,7 +94,7 @@ export function NewSubmissionForm() {
           {pending ? "Submitting…" : "Submit"}
         </Button>
         <Button asChild type="button" variant="outline">
-          <Link href="/library?view=submissions">Cancel</Link>
+          <Link href={backHref}>Cancel</Link>
         </Button>
       </div>
     </form>

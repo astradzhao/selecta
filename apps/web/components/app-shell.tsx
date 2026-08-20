@@ -5,7 +5,6 @@ import { SegmentedTab, SegmentedTabs } from "@selecta/ui/components/segmented-ta
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const links = [
-  { href: "/add", label: "Add" },
   { href: "/library", label: "Library" },
   { href: "/graph", label: "Graph" },
 ] as const;
