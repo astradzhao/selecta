@@ -2,7 +2,7 @@
 
 > Ticket: [DJ-137 — Put the submission pipeline in the right package](https://linear.app/dj-project-astradzhao/issue/DJ-137)
 > Follows: [DJ-134](https://linear.app/dj-project-astradzhao/issue/DJ-134) (folded `@selecta/mix-notes` into `@selecta/agentics`), [DJ-136](https://linear.app/dj-project-astradzhao/issue/DJ-136) (submission terminology), [DJ-132](https://linear.app/dj-project-astradzhao/issue/DJ-132) (split `packages/db`)
-> Status: **not started.**
+> Status: **implemented.**
 
 DJ-134 moved `@selecta/mix-notes` into `@selecta/agentics` as `src/core` + `src/submission-parser`. It was deliberately a pure file move: nothing was split, renamed, or deleted. So `submission-parser` now holds a pile of code that has nothing to do with talking to a model — it imports Spotify tracks, commits transitions to Postgres, and mints durable proposal keys.
 
