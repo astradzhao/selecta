@@ -7,6 +7,7 @@ import { FOLDER_KINDS, type FolderKind } from "@selecta/db/constants";
 import { Badge } from "@selecta/ui/components/badge";
 import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
+import { Select } from "@selecta/ui/components/select";
 
 import { listVocab, type VocabFolderItem } from "@/lib/vocab/api";
 
@@ -91,9 +92,9 @@ export function FolderTagEditor({
             addFolder(event.currentTarget.value);
           }}
         />
-        <select
+        <Select
           id={kindId}
-          className="border-input bg-background h-9 rounded-md border px-3 text-sm"
+          className="w-full sm:w-40"
           value={kind}
           aria-label="Kind"
           required
@@ -104,7 +105,7 @@ export function FolderTagEditor({
               {option}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
       {visibleSuggestions.length > 0 || values.length > 0 ? (
         <div className="flex flex-row flex-wrap items-center gap-1.5">

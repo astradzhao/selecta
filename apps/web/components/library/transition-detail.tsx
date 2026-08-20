@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
+import { Alert } from "@selecta/ui/components/alert";
 import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
 import { Input } from "@selecta/ui/components/input";
@@ -102,9 +103,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
   if (loadError || !transition || !form) {
     return (
       <div className="space-y-4">
-        <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm">
-          {loadError ?? "Transition not found."}
-        </p>
+        <Alert variant="destructive">{loadError ?? "Transition not found."}</Alert>
         <Button asChild variant="outline">
           <Link href={listHref}>Back to transitions</Link>
         </Button>
@@ -306,19 +305,8 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
           />
         </div>
 
-        {saveError ? (
-          <p
-            className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm"
-            role="alert"
-          >
-            {saveError}
-          </p>
-        ) : null}
-        {saveMessage ? (
-          <p className="text-muted-foreground text-sm" aria-live="polite">
-            {saveMessage}
-          </p>
-        ) : null}
+        {saveError ? <Alert variant="destructive">{saveError}</Alert> : null}
+        {saveMessage ? <Alert variant="success">{saveMessage}</Alert> : null}
 
         <div className="flex flex-wrap gap-3">
           <Button type="submit" disabled={saving}>
@@ -335,11 +323,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
         <p className="text-body text-muted-foreground max-w-xl">
           Removes this committed transition edge from the graph. Source submissions stay intact.
         </p>
-        {deleteError ? (
-          <p className="text-sm" role="alert">
-            {deleteError}
-          </p>
-        ) : null}
+        {deleteError ? <Alert variant="destructive">{deleteError}</Alert> : null}
         <Button
           type="button"
           variant="destructive"

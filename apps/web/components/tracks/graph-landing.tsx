@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState, useTransition } from "react";
 import { SearchIcon } from "lucide-react";
 
+import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
 import {
   Dialog,
@@ -111,11 +112,7 @@ export function TrackPickerDialog({
             />
           </div>
 
-          {error ? (
-            <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm">
-              {error}
-            </p>
-          ) : null}
+          {error ? <Alert variant="destructive">{error}</Alert> : null}
 
           {/* viewport-capped scroller — keep the arbitrary max-height */}
           <div

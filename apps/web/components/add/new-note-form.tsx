@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
+import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
 import { Label } from "@selecta/ui/components/label";
 import { Textarea } from "@selecta/ui/components/textarea";
@@ -88,11 +89,7 @@ export function NewNoteForm() {
         </p>
       </div>
 
-      {error ? (
-        <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm" role="alert">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Alert variant="destructive">{error}</Alert> : null}
 
       <div className="flex flex-wrap gap-3">
         <Button type="submit" disabled={!canSave}>

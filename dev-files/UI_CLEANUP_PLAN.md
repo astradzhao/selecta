@@ -189,7 +189,8 @@ everywhere else — `FieldError` exists and nothing uses it.
 ### Build the shared layer
 
 5. [DJ-100](https://linear.app/dj-project-astradzhao/issue/DJ-100) — **UI-5**
-   Primitive gaps: Select, Checkbox, Alert, Skeleton
+   Primitive gaps: Select, Checkbox, Alert, Skeleton.
+   Implementation plan: [`DJ100_PRIMITIVES_PLAN.md`](./DJ100_PRIMITIVES_PLAN.md)
 6. [DJ-101](https://linear.app/dj-project-astradzhao/issue/DJ-101) — **UI-6**
    PageHeader, StatePanel, EmptyState, SegmentedTabs, SearchField
 7. [DJ-102](https://linear.app/dj-project-astradzhao/issue/DJ-102) — **UI-7**

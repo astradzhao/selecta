@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckIcon, SearchIcon } from "lucide-react";
 
+import { Alert } from "@selecta/ui/components/alert";
 import { Badge } from "@selecta/ui/components/badge";
 import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
@@ -309,11 +310,7 @@ export function ProposalEndpointPicker({
                   />
                 </div>
               </div>
-              {searchError ? (
-                <p className="text-destructive text-sm" role="alert">
-                  {searchError}
-                </p>
-              ) : null}
+              {searchError ? <Alert variant="destructive">{searchError}</Alert> : null}
               {searching ? (
                 <EmptyState>Searching…</EmptyState>
               ) : searchResults.length > 0 ? (

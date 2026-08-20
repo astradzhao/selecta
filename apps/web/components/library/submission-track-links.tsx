@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { PlusIcon, SearchIcon, XIcon } from "lucide-react";
 
+import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
 import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
@@ -215,11 +216,7 @@ export function SubmissionTrackLinks({
         ) : null}
       </div>
 
-      {error ? (
-        <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm" role="alert">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Alert variant="destructive">{error}</Alert> : null}
     </section>
   );
 }

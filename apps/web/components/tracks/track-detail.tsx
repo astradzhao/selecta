@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { ArrowLeftIcon } from "lucide-react";
 
+import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
 import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
@@ -130,9 +131,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
     return (
       <div className="space-y-4">
         <LibraryBackLink />
-        <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm">
-          {loadError ?? "Track not found."}
-        </p>
+        <Alert variant="destructive">{loadError ?? "Track not found."}</Alert>
       </div>
     );
   }
@@ -258,14 +257,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
           </div>
         </div>
 
-        {actionError ? (
-          <p
-            className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm"
-            role="alert"
-          >
-            {actionError}
-          </p>
-        ) : null}
+        {actionError ? <Alert variant="destructive">{actionError}</Alert> : null}
 
         <form onSubmit={onSubmit} className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -377,14 +369,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
             </div>
           </div>
 
-          {saveError ? (
-            <p
-              className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm"
-              role="alert"
-            >
-              {saveError}
-            </p>
-          ) : null}
+          {saveError ? <Alert variant="destructive">{saveError}</Alert> : null}
 
           <div className="flex flex-wrap gap-3">
             <Button type="submit" disabled={saving || deleting}>
@@ -406,11 +391,7 @@ export function TrackDetail({ trackId }: { trackId: string }) {
         <p className="text-eyebrow">Track</p>
       </div>
 
-      {actionError ? (
-        <p className="border-border bg-surface-2 rounded-lg border px-3 py-2 text-sm" role="alert">
-          {actionError}
-        </p>
-      ) : null}
+      {actionError ? <Alert variant="destructive">{actionError}</Alert> : null}
 
       <div className="flex flex-col gap-6 sm:flex-row">
         <div className="bg-muted relative h-48 w-48 shrink-0 overflow-hidden rounded-2xl">
