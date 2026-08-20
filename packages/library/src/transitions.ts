@@ -12,6 +12,7 @@ import {
   or,
   sql,
   type SQL,
+  type SQLWrapper,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { randomUUID } from "node:crypto";
@@ -97,6 +98,10 @@ export type TransitionSourceFilter = "manual" | "ai";
 
 export type ListTransitionsInput = {
   query?: string;
+  /** Free-form match against the from-endpoint's title and artists. */
+  fromQuery?: string;
+  /** Free-form match against the to-endpoint's title and artists. */
+  toQuery?: string;
   fromTrackId?: string;
   toTrackId?: string;
   technique?: string;
@@ -150,6 +155,34 @@ export type CommitTransitionResult = {
 
 const fromTracks = alias(tracks, "from_tracks");
 const toTracks = alias(tracks, "to_tracks");
+
+/** Title-or-artist match against one endpoint of the edge. */
+function endpointTextMatch(
+  titleColumn: SQLWrapper,
+  trackIdColumn: SQLWrapper,
+  pattern: string,
+): SQL {
+  return or(
+    sql`lower(${titleColumn}) like ${pattern}`,
+    exists(
+      getExecutor()
+        .select({ one: sql`1` })
+        .from(trackArtists)
+        .innerJoin(artists, eq(trackArtists.artistId, artists.id))
+        .where(
+          and(
+            sql`${trackArtists.trackId} = ${trackIdColumn}`,
+            sql`lower(${artists.name}) like ${pattern}`,
+          ),
+        ),
+    ),
+  )!;
+}
+
+function likePattern(raw: string | undefined): string | null {
+  const trimmed = raw?.trim();
+  return trimmed ? `%${normalizeName(trimmed)}%` : null;
+}
 
 async function assertTracksExist(fromTrackId: string, toTrackId: string): Promise<void> {
   const rows = await getExecutor()
@@ -370,8 +403,9 @@ function parseBound(value: string | null): Date | null {
 export async function listTransitions(
   input: ListTransitionsInput = {},
 ): Promise<ListTransitionsResult> {
-  const query = input.query?.trim() ?? "";
-  const queryNormalized = query ? normalizeName(query) : "";
+  const queryPattern = likePattern(input.query);
+  const fromQueryPattern = likePattern(input.fromQuery);
+  const toQueryPattern = likePattern(input.toQuery);
   const fromTrackId = input.fromTrackId?.trim() || null;
   const toTrackId = input.toTrackId?.trim() || null;
   const technique = input.technique?.trim() || null;
@@ -426,39 +460,20 @@ export async function listTransitions(
   if (updatedBefore) {
     parts.push(lte(transitions.updatedAt, updatedBefore));
   }
-  if (queryNormalized) {
-    const pattern = `%${queryNormalized}%`;
+  if (queryPattern) {
     parts.push(
       or(
-        sql`lower(${fromTracks.title}) like ${pattern}`,
-        sql`lower(${toTracks.title}) like ${pattern}`,
-        sql`lower(coalesce(${transitions.notes}, '')) like ${pattern}`,
-        exists(
-          getExecutor()
-            .select({ one: sql`1` })
-            .from(trackArtists)
-            .innerJoin(artists, eq(trackArtists.artistId, artists.id))
-            .where(
-              and(
-                eq(trackArtists.trackId, transitions.fromTrackId),
-                sql`lower(${artists.name}) like ${pattern}`,
-              ),
-            ),
-        ),
-        exists(
-          getExecutor()
-            .select({ one: sql`1` })
-            .from(trackArtists)
-            .innerJoin(artists, eq(trackArtists.artistId, artists.id))
-            .where(
-              and(
-                eq(trackArtists.trackId, transitions.toTrackId),
-                sql`lower(${artists.name}) like ${pattern}`,
-              ),
-            ),
-        ),
+        endpointTextMatch(fromTracks.title, transitions.fromTrackId, queryPattern),
+        endpointTextMatch(toTracks.title, transitions.toTrackId, queryPattern),
+        sql`lower(coalesce(${transitions.notes}, '')) like ${queryPattern}`,
       )!,
     );
+  }
+  if (fromQueryPattern) {
+    parts.push(endpointTextMatch(fromTracks.title, transitions.fromTrackId, fromQueryPattern));
+  }
+  if (toQueryPattern) {
+    parts.push(endpointTextMatch(toTracks.title, transitions.toTrackId, toQueryPattern));
   }
 
   const where = parts.length === 0 ? undefined : parts.length === 1 ? parts[0] : and(...parts);

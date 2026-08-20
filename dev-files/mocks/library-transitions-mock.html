@@ -1,0 +1,1208 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Selecta — Library / Transitions mock</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ------------------------------------------------------------------
+         Tokens copied from packages/ui/src/styles/globals.css so this mock
+         is implementable as-is. No new colors are introduced.
+         ------------------------------------------------------------------ */
+      [data-theme="light"] {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --border: oklch(0.922 0 0);
+        --input: oklch(0.922 0 0);
+        --surface-1: oklch(0.985 0 0);
+        --surface-2: oklch(0.97 0 0);
+        --surface-3: oklch(0.94 0 0);
+        --primary: oklch(0.205 0 0);
+        --primary-foreground: oklch(0.985 0 0);
+        --secondary: oklch(0.97 0 0);
+        --secondary-foreground: oklch(0.205 0 0);
+        --brand: oklch(0.48 0.19 264);
+        --brand-subtle: oklch(0.96 0.03 264);
+        --success: oklch(0.45 0.15 145);
+        --success-subtle: oklch(0.96 0.03 145);
+        --warning: oklch(0.5 0.16 75);
+        --warning-subtle: oklch(0.96 0.04 85);
+        --info: oklch(0.48 0.14 250);
+        --info-subtle: oklch(0.96 0.02 250);
+        --destructive: oklch(0.577 0.245 27.325);
+        --destructive-subtle: oklch(0.96 0.03 27);
+        --selected: oklch(0.145 0 0);
+        --selected-foreground: oklch(0.985 0 0);
+        --ring: oklch(0.708 0 0);
+        --stage: oklch(0.955 0 0);
+      }
+      [data-theme="dark"] {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --border: oklch(1 0 0 / 10%);
+        --input: oklch(1 0 0 / 15%);
+        --surface-1: oklch(0.18 0 0);
+        --surface-2: oklch(0.205 0 0);
+        --surface-3: oklch(0.269 0 0);
+        --primary: oklch(0.922 0 0);
+        --primary-foreground: oklch(0.205 0 0);
+        --secondary: oklch(0.269 0 0);
+        --secondary-foreground: oklch(0.985 0 0);
+        --brand: oklch(0.72 0.16 264);
+        --brand-subtle: oklch(0.28 0.06 264);
+        --success: oklch(0.78 0.14 145);
+        --success-subtle: oklch(0.28 0.05 145);
+        --warning: oklch(0.82 0.12 75);
+        --warning-subtle: oklch(0.3 0.05 75);
+        --info: oklch(0.76 0.1 250);
+        --info-subtle: oklch(0.28 0.04 250);
+        --destructive: oklch(0.704 0.191 22.216);
+        --destructive-subtle: oklch(0.3 0.08 22);
+        --selected: oklch(0.985 0 0);
+        --selected-foreground: oklch(0.145 0 0);
+        --ring: oklch(0.556 0 0);
+        --stage: oklch(0.11 0 0);
+      }
+
+      :root {
+        --radius: 0.625rem;
+        --radius-lg: var(--radius);
+        --radius-xl: calc(var(--radius) * 1.4);
+        --motion-fast: 200ms;
+        --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+        --content: 64rem; /* matches AppShell max-w-5xl */
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 40px 24px 72px;
+        background: var(--stage);
+        color: var(--foreground);
+        font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        transition: background var(--motion-fast) var(--motion-ease);
+      }
+
+      /* ---- mock scaffolding (not part of the design) ---- */
+      .stage {
+        max-width: 1120px;
+        margin: 0 auto;
+      }
+      .stage-bar {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+        color: var(--muted-foreground);
+        font-size: 12px;
+      }
+      .stage-bar strong {
+        color: var(--foreground);
+        font-weight: 600;
+      }
+      .theme-toggle {
+        font: inherit;
+        color: var(--foreground);
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 5px 11px;
+        cursor: pointer;
+      }
+      .frame {
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+      }
+
+      /* ---- app chrome ---- */
+      .appbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 52px;
+        padding: 0 24px;
+        border-bottom: 1px solid var(--border);
+      }
+      .wordmark {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      .appnav {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+      }
+      .appnav a {
+        color: var(--muted-foreground);
+        text-decoration: none;
+        padding: 5px 11px;
+        border-radius: var(--radius-lg);
+      }
+      .appnav a[aria-current] {
+        background: var(--selected);
+        color: var(--selected-foreground);
+      }
+
+      .page {
+        max-width: var(--content);
+        margin: 0 auto;
+        padding: 36px 24px 48px;
+      }
+
+      /* ---- masthead: same as the Tracks tab, action opposite the title ---- */
+      .masthead {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+      }
+      .masthead h1 {
+        margin: 0;
+        font-size: 30px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+      }
+      .stats {
+        margin: 7px 0 0;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted-foreground);
+        font-size: 13px;
+      }
+      .stats b {
+        color: var(--foreground);
+        font-weight: 500;
+        font-family: "Geist Mono", ui-monospace, monospace;
+        font-variant-numeric: tabular-nums;
+      }
+      .stats span[aria-hidden] {
+        opacity: 0.45;
+      }
+      .stats a {
+        color: var(--warning);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .stats a:hover {
+        text-decoration: underline;
+      }
+
+      .btn-primary {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        height: 34px;
+        padding: 0 13px;
+        border-radius: var(--radius-lg);
+        background: var(--primary);
+        color: var(--primary-foreground);
+        font-size: 13px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: opacity var(--motion-fast) var(--motion-ease);
+      }
+      .btn-primary:hover {
+        opacity: 0.88;
+      }
+      .btn-primary svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* ---- tab rail ---- */
+      .tabs {
+        display: flex;
+        gap: 4px;
+        margin-top: 24px;
+      }
+      .tabs a {
+        padding: 6px 12px;
+        border-radius: var(--radius-lg);
+        font-size: 13px;
+        color: var(--muted-foreground);
+        text-decoration: none;
+        transition:
+          background var(--motion-fast) var(--motion-ease),
+          color var(--motion-fast) var(--motion-ease);
+      }
+      .tabs a:hover {
+        background: var(--surface-2);
+        color: var(--foreground);
+      }
+      .tabs a[aria-current] {
+        background: var(--selected);
+        color: var(--selected-foreground);
+      }
+
+      /* ---- workbench: toolbar + table are ONE object ---- */
+      .card {
+        margin-top: 16px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        background: var(--background);
+      }
+
+      /* The toolbar mirrors the row: from-field, arrow, to-field, then state. */
+      .toolbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr) 170px;
+        gap: 8px;
+        padding: 10px;
+        background: var(--surface-1);
+        border-bottom: 1px solid var(--border);
+      }
+      .toolbar-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted-foreground);
+        opacity: 0.6;
+      }
+      .toolbar-arrow svg {
+        width: 14px;
+        height: 14px;
+      }
+      .field {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      .field svg {
+        position: absolute;
+        left: 10px;
+        width: 15px;
+        height: 15px;
+        color: var(--muted-foreground);
+        pointer-events: none;
+      }
+      .field input,
+      .field select {
+        width: 100%;
+        height: 32px;
+        font: inherit;
+        font-size: 13px;
+        color: var(--foreground);
+        background: var(--background);
+        border: 1px solid var(--input);
+        border-radius: var(--radius-lg);
+        padding: 0 10px;
+        outline: none;
+        appearance: none;
+        transition: border-color var(--motion-fast) var(--motion-ease);
+      }
+      .field.search input {
+        padding-left: 32px;
+      }
+      .field input::placeholder {
+        color: var(--muted-foreground);
+      }
+      .field input:focus,
+      .field select:focus {
+        border-color: var(--ring);
+        box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent);
+      }
+      /* SIGNATURE GEOMETRY: from-track, arrow, to-track, then the numeric rail.
+         Header and every row share this grid. */
+      .thead,
+      .row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr) 148px 84px 56px;
+        align-items: center;
+        gap: 14px;
+        padding: 0 14px;
+      }
+
+      .thead {
+        height: 30px;
+        background: var(--surface-1);
+        border-bottom: 1px solid var(--border);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .center {
+        text-align: center;
+      }
+
+      .rows {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .row {
+        min-height: 60px;
+        border-bottom: 1px solid var(--border);
+        text-decoration: none;
+        color: inherit;
+        transition: background var(--motion-fast) var(--motion-ease);
+      }
+      .rows li:last-child .row {
+        border-bottom: 0;
+      }
+      .row:hover {
+        background: var(--surface-2);
+      }
+      .row:focus-visible {
+        outline: none;
+        background: var(--surface-2);
+        box-shadow: inset 0 0 0 2px var(--ring);
+      }
+
+      /* ---- the pair: both songs get artwork, title and artist ---- */
+      .track {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+      .art {
+        flex: none;
+        width: 34px;
+        height: 34px;
+        border-radius: 6px;
+        box-shadow: inset 0 0 0 1px var(--border);
+        background: var(--surface-3);
+      }
+      .art.unresolved {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        box-shadow: inset 0 0 0 1px var(--border);
+        border: 1px dashed var(--border);
+        background: transparent;
+        color: var(--muted-foreground);
+        font-size: 13px;
+      }
+      .meta {
+        min-width: 0;
+      }
+      .title {
+        display: block;
+        font-size: 13.5px;
+        font-weight: 500;
+        line-height: 1.35;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .title.unresolved {
+        color: var(--muted-foreground);
+        font-weight: 400;
+        font-style: italic;
+      }
+      .artist {
+        display: block;
+        font-size: 12.5px;
+        line-height: 1.35;
+        color: var(--muted-foreground);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* The arrow is the object, not a character in a sentence. */
+      .arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        margin: 0 auto;
+        border-radius: 999px;
+        background: var(--brand-subtle);
+        color: var(--brand);
+      }
+      .arrow svg {
+        width: 13px;
+        height: 13px;
+      }
+
+      /* ---- mix column: technique + intent ---- */
+      .mix {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 5px;
+        min-width: 0;
+      }
+      .tag {
+        display: inline-block;
+        max-width: 100%;
+        padding: 1px 8px;
+        border-radius: 999px;
+        background: var(--secondary);
+        color: var(--secondary-foreground);
+        font-size: 10.5px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .tag.outline {
+        background: transparent;
+        box-shadow: inset 0 0 0 1px var(--border);
+        color: var(--muted-foreground);
+      }
+      .tag.warning {
+        background: var(--warning-subtle);
+        color: var(--warning);
+      }
+      .tag.success {
+        background: var(--success-subtle);
+        color: var(--success);
+      }
+      .tag.info {
+        background: var(--info-subtle);
+        color: var(--info);
+      }
+      .tag.destructive {
+        background: var(--destructive-subtle);
+        color: var(--destructive);
+      }
+
+      /* ---- match column: the numbers a DJ checks before trusting the edge ---- */
+      .mono {
+        font-family: "Geist Mono", ui-monospace, monospace;
+        font-size: 11.5px;
+        font-variant-numeric: tabular-nums;
+        color: var(--muted-foreground);
+      }
+      .match {
+        display: block;
+        text-align: center;
+      }
+      .match .lead {
+        display: block;
+        color: var(--foreground);
+        font-weight: 500;
+      }
+      .match .sub {
+        display: block;
+        opacity: 0.75;
+      }
+      .empty {
+        opacity: 0.35;
+      }
+
+      /* ---- review band: pending proposals, same pair geometry ---- */
+      .band {
+        background: var(--surface-1);
+        border-bottom: 1px solid var(--border);
+        padding: 12px 14px 14px;
+      }
+      .band-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .eyebrow {
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .band-head .count {
+        padding: 0 7px;
+        border-radius: 999px;
+        background: var(--warning-subtle);
+        color: var(--warning);
+        font-family: "Geist Mono", ui-monospace, monospace;
+        font-size: 11px;
+        font-weight: 500;
+      }
+      .band-head .spacer {
+        flex: 1;
+      }
+      .band-head a {
+        color: var(--muted-foreground);
+        font-size: 12.5px;
+        text-decoration: none;
+      }
+      .band-head a:hover {
+        color: var(--foreground);
+      }
+      .review-rows {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 8px;
+      }
+      .review-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr) 148px 84px 56px;
+        align-items: center;
+        gap: 14px;
+        padding: 9px 12px;
+        border: 1px dashed var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--background);
+        text-decoration: none;
+        color: inherit;
+        transition: background var(--motion-fast) var(--motion-ease);
+      }
+      .review-row:hover {
+        background: var(--surface-2);
+      }
+      .review-row .arrow {
+        background: var(--warning-subtle);
+        color: var(--warning);
+      }
+      .quote {
+        grid-column: 1 / 4;
+        margin: 6px 0 0;
+        padding-left: 9px;
+        border-left: 2px solid var(--border);
+        color: var(--muted-foreground);
+        font-size: 12.5px;
+        line-height: 1.5;
+      }
+
+      /* ---- footer of the card ---- */
+      .cardfoot {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 14px;
+        border-top: 1px solid var(--border);
+      }
+      .btn-quiet {
+        font: inherit;
+        font-size: 12.5px;
+        color: var(--foreground);
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 5px 11px;
+        cursor: pointer;
+      }
+      .cardfoot .mono {
+        margin-left: auto;
+      }
+
+      /* ---- notes (outside the design) ---- */
+      .notes {
+        max-width: 720px;
+        margin: 36px auto 0;
+        color: var(--muted-foreground);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+      .notes h2 {
+        color: var(--foreground);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        margin: 0 0 10px;
+      }
+      .notes ol {
+        margin: 0;
+        padding-left: 20px;
+      }
+      .notes li {
+        margin-bottom: 9px;
+      }
+      .notes b {
+        color: var(--foreground);
+        font-weight: 500;
+      }
+
+      /* Narrow viewports drop the numeric rail, never the pair. */
+      @media (max-width: 1040px) {
+        .thead,
+        .row,
+        .review-row {
+          grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr) 56px;
+        }
+        .thead .mix-col,
+        .thead .match-col,
+        .mix,
+        .match {
+          display: none;
+        }
+        .quote {
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="stage">
+      <div class="stage-bar">
+        <span><strong>Selecta / Library → Transitions</strong> — proposed composition</span>
+        <button class="theme-toggle" type="button" id="theme">Dark</button>
+      </div>
+
+      <div class="frame">
+        <div class="appbar">
+          <span class="wordmark">Selecta</span>
+          <nav class="appnav">
+            <a href="#" aria-current="page">Library</a>
+            <a href="#">Graph</a>
+          </nav>
+        </div>
+
+        <main class="page">
+          <div class="masthead">
+            <div>
+              <h1>Library</h1>
+              <p class="stats">
+                <b>36</b> tracks <span aria-hidden="true">·</span> <b>25</b> transitions
+                <span aria-hidden="true">·</span> <b>16</b> dead ends
+                <span aria-hidden="true">·</span> <a href="#">2 need review</a>
+              </p>
+            </div>
+            <a class="btn-primary" href="#">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Add transition
+            </a>
+          </div>
+
+          <nav class="tabs">
+            <a href="#">Tracks</a>
+            <a href="#" aria-current="page">Transitions</a>
+            <a href="#">Submissions</a>
+          </nav>
+
+          <section class="card">
+            <div class="toolbar">
+              <div class="field search">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
+                <input type="search" aria-label="From track" placeholder="From track" />
+              </div>
+              <div class="toolbar-arrow" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                >
+                  <path d="M5 12h13m-5-6 6 6-6 6" />
+                </svg>
+              </div>
+              <div class="field search">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
+                <input type="search" aria-label="To track" placeholder="To track" />
+              </div>
+              <div class="field">
+                <select aria-label="State">
+                  <option>All transitions</option>
+                  <option>Confirmed</option>
+                  <option>Needs review</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Review queue keeps the SAME pair geometry as committed rows, so the
+                 eye compares like with like. Proposals already return artwork. -->
+            <div class="band">
+              <div class="band-head">
+                <span class="eyebrow">Needs review</span>
+                <span class="count">2</span>
+                <span class="spacer"></span>
+                <a href="#">Review all →</a>
+              </div>
+
+              <ul class="review-rows">
+                <li>
+                  <a class="review-row" href="#">
+                    <span class="track">
+                      <span
+                        class="art"
+                        style="background: linear-gradient(135deg, #2b2f4a, #6f5b8e)"
+                      ></span>
+                      <span class="meta">
+                        <span class="title">Animals</span>
+                        <span class="artist">Martin Garrix</span>
+                      </span>
+                    </span>
+                    <span class="arrow">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M5 12h13m-5-6 6 6-6 6" />
+                      </svg>
+                    </span>
+                    <span class="track">
+                      <span
+                        class="art"
+                        style="background: linear-gradient(135deg, #241c33, #574273)"
+                      ></span>
+                      <span class="meta">
+                        <span class="title">Backspin Bass</span>
+                        <span class="artist">Tape B</span>
+                      </span>
+                    </span>
+                    <span class="mix">
+                      <span class="tag">echo out</span>
+                      <span class="tag warning">Needs review</span>
+                    </span>
+                    <span class="mono match">
+                      <span class="lead">128 → 150</span>
+                      <span class="sub">8A → 5A</span>
+                    </span>
+                    <span class="mono center">5m</span>
+                    <p class="quote">
+                      “animals into backspin bass, echo out on the 32 and it slammed”
+                    </p>
+                  </a>
+                </li>
+                <li>
+                  <a class="review-row" href="#">
+                    <span class="track">
+                      <span
+                        class="art"
+                        style="background: linear-gradient(135deg, #3a1f2b, #8c4a63)"
+                      ></span>
+                      <span class="meta">
+                        <span class="title">Toxic</span>
+                        <span class="artist">Britney Spears</span>
+                      </span>
+                    </span>
+                    <span class="arrow">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M5 12h13m-5-6 6 6-6 6" />
+                      </svg>
+                    </span>
+                    <span class="track">
+                      <span class="art unresolved" aria-hidden="true">?</span>
+                      <span class="meta">
+                        <span class="title unresolved">“the derre intro”</span>
+                        <span class="artist">2 possible matches</span>
+                      </span>
+                    </span>
+                    <span class="mix">
+                      <span class="tag warning">Needs review</span>
+                    </span>
+                    <span class="mono match empty">— → —</span>
+                    <span class="mono center">2h</span>
+                    <p class="quote">“then i threw toxic over the derre intro, kinda risky”</p>
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div class="thead" aria-hidden="true">
+              <span>From</span>
+              <span></span>
+              <span>To</span>
+              <span class="mix-col">Mix</span>
+              <span class="match-col center">Match</span>
+              <span class="center">Added</span>
+            </div>
+
+            <ul class="rows">
+              <li>
+                <a class="row" href="#">
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #2b2f4a, #6f5b8e)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">Animals</span>
+                      <span class="artist">Martin Garrix</span>
+                    </span>
+                  </span>
+                  <span class="arrow">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M5 12h13m-5-6 6 6-6 6" />
+                    </svg>
+                  </span>
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #5a4410, #c69a1e)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">B.T.W. (The Whistle)</span>
+                      <span class="artist">Crankdat</span>
+                    </span>
+                  </span>
+                  <span class="mix">
+                    <span class="tag">double drop</span>
+                    <span class="tag outline">peak</span>
+                  </span>
+                  <span class="mono match">
+                    <span class="lead">128 → 145</span>
+                    <span class="sub">8A → 8A</span>
+                  </span>
+                  <span class="mono center">2d</span>
+                </a>
+              </li>
+              <li>
+                <a class="row" href="#">
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #e9e9ec, #b9bcc6)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">Beam (Knock2 Remix)</span>
+                      <span class="artist">ISOxo, Knock2</span>
+                    </span>
+                  </span>
+                  <span class="arrow">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M5 12h13m-5-6 6 6-6 6" />
+                    </svg>
+                  </span>
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #521418, #b03038)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">DROP EM</span>
+                      <span class="artist">Ray Volpe</span>
+                    </span>
+                  </span>
+                  <span class="mix">
+                    <span class="tag">filter fade</span>
+                  </span>
+                  <span class="mono match">
+                    <span class="lead">150 → 150</span>
+                    <span class="sub empty">— → —</span>
+                  </span>
+                  <span class="mono center">3d</span>
+                </a>
+              </li>
+              <li>
+                <a class="row" href="#">
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #f2cdd8, #d98aa6)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">Derre</span>
+                      <span class="artist">BIBI</span>
+                    </span>
+                  </span>
+                  <span class="arrow">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M5 12h13m-5-6 6 6-6 6" />
+                    </svg>
+                  </span>
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #3a1f2b, #8c4a63)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">Toxic</span>
+                      <span class="artist">Britney Spears</span>
+                    </span>
+                  </span>
+                  <span class="mix">
+                    <span class="tag">loop roll</span>
+                    <span class="tag outline">vocal bridge</span>
+                  </span>
+                  <span class="mono match empty">— → —</span>
+                  <span class="mono center">4d</span>
+                </a>
+              </li>
+              <li>
+                <a class="row" href="#">
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #1e2a3a, #4a6b8a)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">First Time (feat. Dylan Matthew)</span>
+                      <span class="artist">Seven Lions, SLANDER, Dabin</span>
+                    </span>
+                  </span>
+                  <span class="arrow">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M5 12h13m-5-6 6 6-6 6" />
+                    </svg>
+                  </span>
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #d8d2c4, #8f8676)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">Hello</span>
+                      <span class="artist">Adele</span>
+                    </span>
+                  </span>
+                  <span class="mix">
+                    <span class="tag">acapella over</span>
+                  </span>
+                  <span class="mono match">
+                    <span class="lead">150 → 79</span>
+                    <span class="sub">5A → 4B</span>
+                  </span>
+                  <span class="mono center">6d</span>
+                </a>
+              </li>
+              <li>
+                <a class="row" href="#">
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #2f4a3c, #7fae8e)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">Euphoria Rush</span>
+                      <span class="artist">CHYL, Skybreak</span>
+                    </span>
+                  </span>
+                  <span class="arrow">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M5 12h13m-5-6 6 6-6 6" />
+                    </svg>
+                  </span>
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #241c33, #574273)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">Backspin Bass</span>
+                      <span class="artist">Tape B</span>
+                    </span>
+                  </span>
+                  <span class="mix">
+                    <span class="tag">bass swap</span>
+                    <span class="tag outline">energy lift</span>
+                  </span>
+                  <span class="mono match">
+                    <span class="lead">148 → 150</span>
+                    <span class="sub empty">— → —</span>
+                  </span>
+                  <span class="mono center">6d</span>
+                </a>
+              </li>
+              <li>
+                <a class="row" href="#">
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #3d4a63, #93a8c4)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">Back To U</span>
+                      <span class="artist">SLANDER, William Black</span>
+                    </span>
+                  </span>
+                  <span class="arrow">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M5 12h13m-5-6 6 6-6 6" />
+                    </svg>
+                  </span>
+                  <span class="track">
+                    <span
+                      class="art"
+                      style="background: linear-gradient(135deg, #1e2a3a, #4a6b8a)"
+                    ></span>
+                    <span class="meta">
+                      <span class="title">First Time (feat. Dylan Matthew)</span>
+                      <span class="artist">Seven Lions, SLANDER, Dabin</span>
+                    </span>
+                  </span>
+                  <span class="mix">
+                    <span class="tag">long blend</span>
+                  </span>
+                  <span class="mono match empty">— → —</span>
+                  <span class="mono center">8d</span>
+                </a>
+              </li>
+            </ul>
+
+            <div class="cardfoot">
+              <button class="btn-quiet" type="button">Load more</button>
+              <span class="mono">25 committed</span>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <section class="notes">
+        <h2>Notes — Transitions</h2>
+        <ol>
+          <li>
+            <b>The pair is the row.</b> Today the row is one sentence — “Title A → Title B” with the
+            artists in a second sentence — so neither song is legible at a glance. Two mirrored
+            track cells with artwork make the edge scannable, and the arrow becomes an object in its
+            own column instead of a character inside a paragraph.
+          </li>
+          <li>
+            <b>Match is the signature column.</b> BPM and key on both sides is what a DJ checks
+            before trusting an edge, and no other list in the product can show it. Same
+            <em>value / value</em> discipline as the Tracks tab: the slot stays visible with an em
+            dash when a side is unknown.
+          </li>
+          <li>
+            <b>Needs review sits inside the workbench, not above it.</b> The queue keeps the exact
+            pair geometry of committed rows (dashed border, warning arrow, source quote underneath),
+            so reviewing is a comparison, not a context switch. An unresolved endpoint renders as a
+            dashed tile plus the phrase from the note — the reason review exists. On <b>All</b> it
+            pins to the top of the list, on <b>Needs review</b> it is the whole list, and on
+            <b>Confirmed</b> it disappears.
+          </li>
+          <li>
+            <b>Two fields and one dropdown.</b> The toolbar becomes
+            <em>From track → To track → state</em>, so the filter shape is the row shape. Technique,
+            Intent, and Source are gone: nobody arrives at this page wanting “every transition
+            tagged echo out”, and Source (manual vs. from submission) was a data-provenance question
+            wearing a filter costume. State answers the question people actually have — <b>All</b>,
+            <b>Confirmed</b>, <b>Needs review</b> — and it replaces the “Needs review only”
+            checkbox, which was a second, weaker control saying the same thing.
+          </li>
+          <li>
+            <b>Mix collapses technique and intent into one column.</b> Filled chip = technique,
+            outline chip = intent. Both are already on the list payload, and they stay readable in
+            the row even though they are no longer filterable.
+          </li>
+          <li>
+            <b>Needs an API change.</b> <code>GET /transitions</code> serializes endpoints as
+            <code>{ id, title, artists }</code> only. Artwork, BPM, and key are already loaded on
+            <code>TransitionRecord.from.track</code> / <code>.to.track</code> — this is a serializer
+            widening in <code>apps/api/lib/transitions.ts</code>, not a new query.
+          </li>
+          <li>
+            <b>Everything else is composition.</b> Row height 60px (slightly taller than the 56px
+            crate row, because two artworks and a two-line match cell share it), one bordered card,
+            count moved to the card footer next to Load more.
+          </li>
+        </ol>
+      </section>
+    </div>
+
+    <script>
+      const root = document.documentElement;
+      const button = document.getElementById("theme");
+      button.addEventListener("click", () => {
+        const next = root.dataset.theme === "light" ? "dark" : "light";
+        root.dataset.theme = next;
+        button.textContent = next === "light" ? "Dark" : "Light";
+      });
+    </script>
+  </body>
+</html>

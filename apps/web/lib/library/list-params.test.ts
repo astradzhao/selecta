@@ -49,30 +49,18 @@ describe("submissionListQuery", () => {
 });
 
 describe("transitionListQuery", () => {
-  it("omits an empty source so the API is not filtered to blank", () => {
+  it("forwards both endpoint searches and keeps state out of the request", () => {
     assert.deepEqual(
       transitionListQuery(
-        { query: "cut", technique: "blend", intent: "energy up", source: "" },
-        { offset: 0, limit: 50 },
+        { fromQuery: "animals", toQuery: "backspin", state: "needs_review" },
+        { offset: 50, limit: 50 },
       ),
       {
-        query: "cut",
-        technique: "blend",
-        intent: "energy up",
-        source: undefined,
+        fromQuery: "animals",
+        toQuery: "backspin",
         limit: 50,
-        offset: 0,
+        offset: 50,
       },
-    );
-  });
-
-  it("forwards a selected source", () => {
-    assert.equal(
-      transitionListQuery(
-        { query: "", technique: "", intent: "", source: "ai" },
-        { offset: 0, limit: 50 },
-      ).source,
-      "ai",
     );
   });
 });
