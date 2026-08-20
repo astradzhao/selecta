@@ -51,11 +51,26 @@
   --color-selected-foreground: var(--selected-foreground);
   --color-highlight: var(--highlight);
   --color-highlight-foreground: var(--highlight-foreground);
+  --color-viz-bar-strong: var(--viz-bar-strong);
+  --color-viz-bar-mid: var(--viz-bar-mid);
+  --color-viz-bar-weak: var(--viz-bar-weak);
+  --color-viz-bar-faint: var(--viz-bar-faint);
+  --color-viz-meter-track: var(--viz-meter-track);
+  --color-viz-meter-fill: var(--viz-meter-fill);
+  --color-viz-meter-empty: var(--viz-meter-empty);
+  --color-viz-connector-from: var(--viz-connector-from);
+  --color-viz-connector-via: var(--viz-connector-via);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
+  --duration-fast: var(--motion-fast);
+  --duration-base: var(--motion-base);
+  --duration-slow: var(--motion-slow);
+  --duration-hop: var(--motion-hop);
+  --ease-standard: var(--motion-ease);
+  --ease-out-soft: var(--motion-ease-out);
 }
 
 :root {
@@ -101,6 +116,21 @@
   --selected-foreground: oklch(0.985 0 0);
   --highlight: oklch(0.93 0.06 85);
   --highlight-foreground: oklch(0.25 0.04 85);
+  --viz-bar-strong: var(--foreground);
+  --viz-bar-mid: color-mix(in oklch, var(--foreground) 45%, transparent);
+  --viz-bar-weak: color-mix(in oklch, var(--foreground) 22%, transparent);
+  --viz-bar-faint: color-mix(in oklch, var(--foreground) 12%, transparent);
+  --viz-meter-track: var(--muted);
+  --viz-meter-fill: color-mix(in oklch, var(--foreground) 70%, transparent);
+  --viz-meter-empty: color-mix(in oklch, var(--foreground) 18%, transparent);
+  --viz-connector-from: color-mix(in oklch, var(--foreground) 30%, transparent);
+  --viz-connector-via: color-mix(in oklch, var(--foreground) 10%, transparent);
+  --motion-fast: 200ms;
+  --motion-base: 300ms;
+  --motion-slow: 500ms;
+  --motion-hop: 420ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  --motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dark {
@@ -145,6 +175,16 @@
   --selected-foreground: oklch(0.145 0 0);
   --highlight: oklch(0.32 0.06 85);
   --highlight-foreground: oklch(0.93 0.04 85);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root,
+  .dark {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+    --motion-hop: 0ms;
+  }
 }
 
 @layer base {
