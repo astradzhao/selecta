@@ -69,7 +69,7 @@ export function LibraryWorkspace({ view }: { view: LibraryView }) {
         actions={
           needsReviewCount > 0 ? (
             <Link
-              href="/library?view=submissions&needsReview=1"
+              href={`${libraryViewHref("submissions")}&needsReview=1`}
               className="text-destructive text-sm font-medium underline-offset-4 hover:underline"
             >
               {needsReviewCount} need review
