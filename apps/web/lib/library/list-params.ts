@@ -12,11 +12,13 @@ export type SubmissionListFilters = {
   needsReviewOnly: boolean;
 };
 
+/** Which side of the Library's dual transition sources the DJ wants to see. */
+export type TransitionState = "all" | "confirmed" | "needs_review";
+
 export type TransitionListFilters = {
-  query: string;
-  technique: string;
-  intent: string;
-  source: "" | "manual" | "ai";
+  fromQuery: string;
+  toQuery: string;
+  state: TransitionState;
 };
 
 export type ListPage = {
@@ -45,10 +47,8 @@ export function submissionListQuery(filters: SubmissionListFilters, page: ListPa
 
 export function transitionListQuery(filters: TransitionListFilters, page: ListPage) {
   return {
-    query: filters.query,
-    technique: filters.technique,
-    intent: filters.intent,
-    source: filters.source || undefined,
+    fromQuery: filters.fromQuery,
+    toQuery: filters.toQuery,
     limit: page.limit,
     offset: page.offset,
   };

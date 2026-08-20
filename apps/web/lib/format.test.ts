@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { formatTimestamp, optionalNumber, optionalNumberError, previewText } from "./format";
+import {
+  formatCompactAge,
+  formatTimestamp,
+  optionalNumber,
+  optionalNumberError,
+  previewText,
+} from "./format";
 
 describe("previewText", () => {
   it("returns the fallback when input is empty or whitespace", () => {
@@ -43,6 +49,27 @@ describe("formatTimestamp", () => {
     const formatted = formatTimestamp("2026-01-15T12:00:00.000Z");
     assert.notEqual(formatted, "2026-01-15T12:00:00.000Z");
     assert.notEqual(formatted, "Invalid Date");
+  });
+});
+
+describe("formatCompactAge", () => {
+  const now = new Date("2026-03-04T12:00:00.000Z");
+
+  it("steps through minutes, hours, and days without rounding up a unit", () => {
+    assert.equal(formatCompactAge("2026-03-04T11:59:30.000Z", now), "now");
+    assert.equal(formatCompactAge("2026-03-04T11:55:00.000Z", now), "5m");
+    assert.equal(formatCompactAge("2026-03-04T11:00:00.000Z", now), "1h");
+    assert.equal(formatCompactAge("2026-03-03T11:00:00.000Z", now), "1d");
+    assert.equal(formatCompactAge("2026-03-01T12:00:00.000Z", now), "3d");
+  });
+
+  it("falls back to a short date past a month and echoes invalid input", () => {
+    assert.notEqual(formatCompactAge("2025-11-01T12:00:00.000Z", now).at(-1), "d");
+    assert.equal(formatCompactAge("not-a-date", now), "not-a-date");
+  });
+
+  it("clamps a future timestamp instead of printing a negative age", () => {
+    assert.equal(formatCompactAge("2026-03-04T12:05:00.000Z", now), "now");
   });
 });
 

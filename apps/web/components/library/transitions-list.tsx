@@ -2,15 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
+import { ArrowRightIcon } from "lucide-react";
 
-import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
-import { Checkbox } from "@selecta/ui/components/checkbox";
-import { DataList, DataListRow, DataListSection } from "@selecta/ui/components/data-list";
-import { Input } from "@selecta/ui/components/input";
-import { Label } from "@selecta/ui/components/label";
+import { DataList } from "@selecta/ui/components/data-list";
 import { SearchField } from "@selecta/ui/components/search-field";
-import { SectionHeading } from "@selecta/ui/components/section-heading";
 import { Select } from "@selecta/ui/components/select";
 import { StatePanel } from "@selecta/ui/components/state-panel";
 
@@ -19,46 +15,75 @@ import {
   FilterField,
   FilteredListShell,
 } from "@/components/common/filtered-list-shell";
-import { ProposalStatusBadge } from "@/components/common/status-badge";
+import {
+  LibraryTransitionColumnHeader,
+  LibraryTransitionRow,
+  TransitionReviewRow,
+} from "@/components/library/transition-row";
 import { useFilteredList } from "@/hooks/use-filtered-list";
 import { DEFAULT_PAGE_SIZE } from "@/hooks/use-paginated-list";
-import { artistLine, formatTimestamp, previewText } from "@/lib/format";
+import { artistLine } from "@/lib/format";
 import { libraryAddHref } from "@/lib/library/add-routes";
-import { transitionListQuery, type TransitionListFilters } from "@/lib/library/list-params";
-import { listProposals, type ApiProposal } from "@/lib/proposals/api";
-import { proposalStatusLabel } from "@/lib/proposals/proposal-status";
+import {
+  transitionListQuery,
+  type TransitionListFilters,
+  type TransitionState,
+} from "@/lib/library/list-params";
+import { listProposals, type ApiProposal, type ApiProposalTrackSummary } from "@/lib/proposals/api";
 import { listTransitions } from "@/lib/transitions/api";
 
-export function TransitionsList() {
-  const [query, setQuery] = useState("");
-  const [technique, setTechnique] = useState("");
-  const [intent, setIntent] = useState("");
-  const [source, setSource] = useState<"" | "manual" | "ai">("");
-  const [needsReviewOnly, setNeedsReviewOnly] = useState(false);
-  const [pendingProposals, setPendingProposals] = useState<ApiProposal[]>([]);
-  const filters = useMemo(
-    () => ({ query, technique, intent, source }),
-    [query, technique, intent, source],
+const STATE_OPTIONS: Array<{ value: TransitionState; label: string }> = [
+  { value: "all", label: "All transitions" },
+  { value: "confirmed", label: "Confirmed" },
+  { value: "needs_review", label: "Needs review" },
+];
+
+/**
+ * The review queue has no server-side endpoint search, so the same two fields are
+ * applied to it here — otherwise typing a title would silently skip the queue.
+ */
+function endpointMatches(track: ApiProposalTrackSummary | null, query: string): boolean {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  if (!track) return false;
+  return (
+    track.title.toLowerCase().includes(needle) ||
+    artistLine(track.artists).toLowerCase().includes(needle)
   );
-  const hasFilters = Boolean(query || technique || intent || source);
+}
+
+export function TransitionsList() {
+  const [fromQuery, setFromQuery] = useState("");
+  const [toQuery, setToQuery] = useState("");
+  const [state, setState] = useState<TransitionState>("all");
+  const [pendingProposals, setPendingProposals] = useState<ApiProposal[]>([]);
+  const filters = useMemo(() => ({ fromQuery, toQuery, state }), [fromQuery, toQuery, state]);
+  const hasFilters = Boolean(fromQuery || toQuery || state !== "all");
 
   const fetchPage = useCallback(
     async (next: TransitionListFilters, page: { offset: number; limit: number }) => {
-      if (page.offset === 0) {
-        try {
-          const [transitionResponse, proposalResponse] = await Promise.all([
-            listTransitions(transitionListQuery(next, page)),
-            listProposals({ status: "needs_review,failed", limit: page.limit }),
-          ]);
-          setPendingProposals(proposalResponse.proposals);
-          return { items: transitionResponse.transitions, hasMore: transitionResponse.hasMore };
-        } catch (error) {
-          setPendingProposals([]);
-          throw error;
-        }
+      const wantsReview = next.state !== "confirmed";
+      const wantsCommitted = next.state !== "needs_review";
+
+      if (page.offset > 0) {
+        const response = await listTransitions(transitionListQuery(next, page));
+        return { items: response.transitions, hasMore: response.hasMore };
       }
-      const response = await listTransitions(transitionListQuery(next, page));
-      return { items: response.transitions, hasMore: response.hasMore };
+
+      try {
+        const [transitionResponse, proposalResponse] = await Promise.all([
+          wantsCommitted ? listTransitions(transitionListQuery(next, page)) : null,
+          wantsReview ? listProposals({ status: "needs_review,failed", limit: page.limit }) : null,
+        ]);
+        setPendingProposals(proposalResponse?.proposals ?? []);
+        return {
+          items: transitionResponse?.transitions ?? [],
+          hasMore: transitionResponse?.hasMore ?? false,
+        };
+      } catch (error) {
+        setPendingProposals([]);
+        throw error;
+      }
     },
     [],
   );
@@ -71,90 +96,67 @@ export function TransitionsList() {
     pageSize: DEFAULT_PAGE_SIZE,
   });
 
-  const showCommitted = !needsReviewOnly;
+  const showCommitted = state !== "needs_review";
+  const reviewQueue = useMemo(
+    () =>
+      pendingProposals.filter(
+        (proposal) =>
+          endpointMatches(proposal.fromTrack, fromQuery) &&
+          endpointMatches(proposal.toTrack, toQuery),
+      ),
+    [pendingProposals, fromQuery, toQuery],
+  );
+
+  function clearFilters() {
+    setFromQuery("");
+    setToQuery("");
+    setState("all");
+  }
 
   return (
     <FilteredListShell
       filtersAriaLabel="Transition filters"
       listAriaLabel="Transitions"
-      filterGridClassName="md:grid-cols-[minmax(0,2fr)_minmax(8rem,1fr)_minmax(8rem,1fr)_minmax(8rem,1fr)]"
+      filterGridClassName="md:grid-cols-[minmax(0,1fr)_1.875rem_minmax(0,1fr)_10.625rem]"
       filterControls={
         <>
-          <FilterField htmlFor="transitions-q" label="Search">
+          <FilterField htmlFor="transitions-from" label="From track">
             <SearchField
-              id="transitions-q"
-              placeholder="Track title or artist"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              disabled={needsReviewOnly}
+              id="transitions-from"
+              placeholder="From track"
+              value={fromQuery}
+              onChange={(event) => setFromQuery(event.target.value)}
             />
           </FilterField>
-          <FilterField htmlFor="filter-technique" label="Technique">
-            <Input
-              id="filter-technique"
-              placeholder="Technique"
-              value={technique}
-              onChange={(event) => setTechnique(event.target.value)}
-              disabled={needsReviewOnly}
+          <span className="text-muted-foreground hidden justify-center opacity-60 md:flex">
+            <ArrowRightIcon className="size-3.5" aria-hidden />
+          </span>
+          <FilterField htmlFor="transitions-to" label="To track">
+            <SearchField
+              id="transitions-to"
+              placeholder="To track"
+              value={toQuery}
+              onChange={(event) => setToQuery(event.target.value)}
             />
           </FilterField>
-          <FilterField htmlFor="filter-intent" label="Intent">
-            <Input
-              id="filter-intent"
-              placeholder="Intent"
-              value={intent}
-              onChange={(event) => setIntent(event.target.value)}
-              disabled={needsReviewOnly}
-            />
-          </FilterField>
-          <FilterField htmlFor="filter-source" label="Source">
+          <FilterField htmlFor="transitions-state" label="State">
             <Select
-              id="filter-source"
-              value={source}
-              onChange={(event) => setSource(event.target.value as "" | "manual" | "ai")}
-              disabled={needsReviewOnly}
+              id="transitions-state"
+              value={state}
+              onChange={(event) => setState(event.target.value as TransitionState)}
             >
-              <option value="">Any</option>
-              <option value="manual">Manual</option>
-              <option value="ai">From submission</option>
+              {STATE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </Select>
           </FilterField>
         </>
       }
-      filterBar={
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="filter-needs-review-only"
-              checked={needsReviewOnly}
-              onChange={(event) => setNeedsReviewOnly(event.target.checked)}
-            />
-            <Label htmlFor="filter-needs-review-only" className="font-normal">
-              Needs review only
-            </Label>
-          </div>
-          {hasFilters ? (
-            <ClearFiltersButton
-              onClick={() => {
-                setQuery("");
-                setTechnique("");
-                setIntent("");
-                setSource("");
-                setNeedsReviewOnly(false);
-              }}
-            />
-          ) : null}
-        </div>
-      }
-      count={
-        list.isInitialLoading
-          ? "Loading transitions…"
-          : list.error
-            ? null
-            : needsReviewOnly
-              ? `${pendingProposals.length} need review`
-              : `${pendingProposals.length} need review · ${list.items.length}${list.hasMore ? "+" : ""} committed`
-      }
+      filterBar={hasFilters ? <ClearFiltersButton onClick={clearFilters} /> : null}
+      count={null}
+      showCountRow={false}
       unavailableTitle="Transitions unavailable"
       loadingAriaLabel="Loading transitions"
       error={list.error}
@@ -162,79 +164,34 @@ export function TransitionsList() {
       hasFilters={hasFilters}
       items={list.items}
       getItemKey={(transition) => transition.id}
-      hasContent={list.items.length > 0 || pendingProposals.length > 0}
+      hasContent={list.items.length > 0 || reviewQueue.length > 0}
       hideMainList={!showCommitted}
-      listHeading={
-        pendingProposals.length > 0 && showCommitted ? (
-          <SectionHeading title="Committed transitions" />
-        ) : null
-      }
+      listHeading={<LibraryTransitionColumnHeader />}
       leading={
-        pendingProposals.length > 0 ? (
-          <DataListSection
-            title={<h2 className="text-eyebrow">{proposalStatusLabel("needs_review")}</h2>}
-          >
-            <DataList variant="plain">
-              {pendingProposals.map((proposal) => (
-                <DataListRow key={proposal.id} variant="dashed" className="flex-col gap-2">
-                  <Link
-                    href={`/library/submissions/${proposal.submissionId}/proposals/${proposal.id}`}
-                  >
-                    <p className="line-clamp-2 text-sm text-pretty">
-                      {previewText(proposal.sourceText, {
-                        maxLength: 100,
-                        fallback: "Pending proposal",
-                      })}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <ProposalStatusBadge status={proposal.status} />
-                      <span className="text-caption text-numeric">
-                        {formatTimestamp(proposal.updatedAt)}
-                      </span>
-                    </div>
-                  </Link>
-                </DataListRow>
+        reviewQueue.length > 0 ? (
+          <>
+            <div className="bg-surface-1 flex h-8 items-center gap-2 border-b px-3.5">
+              <span className="text-eyebrow">Needs review</span>
+              <span className="bg-warning-subtle text-warning text-numeric rounded-full px-1.5 text-xs font-medium">
+                {reviewQueue.length}
+              </span>
+            </div>
+            <DataList className="rounded-none border-0">
+              {reviewQueue.map((proposal) => (
+                <TransitionReviewRow key={proposal.id} proposal={proposal} />
               ))}
             </DataList>
-          </DataListSection>
-        ) : needsReviewOnly ? (
+          </>
+        ) : state === "needs_review" ? (
           <StatePanel
             variant="empty"
-            title="No proposals need review"
-            description="Committed transitions are hidden while this filter is on."
+            title="Nothing needs review"
+            description="Every proposal has been committed or rejected."
           />
         ) : null
       }
-      renderRow={(transition) => (
-        <DataListRow className="flex-col gap-2">
-          <Link href={`/library/transitions/${transition.id}`}>
-            <div className="min-w-0">
-              <p className="text-card-title truncate">
-                {transition.fromTrack.title}
-                <span className="text-muted-foreground font-normal"> → </span>
-                {transition.toTrack.title}
-              </p>
-              <p className="text-muted-foreground truncate text-sm">
-                {artistLine(transition.fromTrack.artists)}
-                <span className="text-muted-foreground/70"> → </span>
-                {artistLine(transition.toTrack.artists)}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {transition.technique ? (
-                <Badge variant="secondary">{transition.technique}</Badge>
-              ) : null}
-              {transition.intent ? <Badge variant="outline">{transition.intent}</Badge> : null}
-              {transition.proposal?.status === "needs_review" ? (
-                <ProposalStatusBadge status="needs_review" />
-              ) : null}
-              <span className="text-caption text-numeric">
-                {formatTimestamp(transition.createdAt)}
-              </span>
-            </div>
-          </Link>
-        </DataListRow>
-      )}
+      leadingBleed
+      renderRow={(transition) => <LibraryTransitionRow transition={transition} />}
       empty={{
         noneTitle: "No transitions yet",
         noneDescription: "Add a transition to start capturing mix knowledge.",

@@ -87,7 +87,7 @@ function parseListOffset(raw: string | null): number | undefined {
 
 /**
  * Library search/list for transitions (DJ-72).
- * GET /transitions?q=&fromTrackId=&toTrackId=&technique=&intent=&quality=&sourceSubmissionId=&source=&sort=&order=&limit=&offset=
+ * GET /transitions?q=&fromQuery=&toQuery=&fromTrackId=&toTrackId=&technique=&intent=&quality=&sourceSubmissionId=&source=&sort=&order=&limit=&offset=
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -102,6 +102,8 @@ export async function GET(request: Request) {
   try {
     const result = await listTransitions({
       query: searchParams.get("q") ?? undefined,
+      fromQuery: searchParams.get("fromQuery") ?? undefined,
+      toQuery: searchParams.get("toQuery") ?? undefined,
       fromTrackId: searchParams.get("fromTrackId") ?? undefined,
       toTrackId: searchParams.get("toTrackId") ?? undefined,
       technique: searchParams.get("technique") ?? undefined,

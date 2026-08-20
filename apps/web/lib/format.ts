@@ -9,6 +9,21 @@ export function formatTimestamp(iso: string): string {
   }).format(date);
 }
 
+/** Compact age for dense list columns: "now", "5m", "3h", "2d", then a short date. */
+export function formatCompactAge(iso: string, now: Date = new Date()): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const seconds = Math.max(0, Math.round((now.getTime() - date.getTime()) / 1000));
+  if (seconds < 60) return "now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d`;
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(date);
+}
+
 export function artistLine(artists: ArtistInput): string {
   if (artists.length === 0) return "Unknown artist";
   const names =

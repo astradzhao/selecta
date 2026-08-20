@@ -29,6 +29,8 @@ export type CreateTransitionBody = {
 export async function listTransitions(
   input: {
     query?: string;
+    fromQuery?: string;
+    toQuery?: string;
     fromTrackId?: string;
     toTrackId?: string;
     technique?: string;
@@ -51,6 +53,8 @@ export async function listTransitions(
 }> {
   const params = new URLSearchParams();
   if (input.query?.trim()) params.set("q", input.query.trim());
+  if (input.fromQuery?.trim()) params.set("fromQuery", input.fromQuery.trim());
+  if (input.toQuery?.trim()) params.set("toQuery", input.toQuery.trim());
   if (input.fromTrackId?.trim()) params.set("fromTrackId", input.fromTrackId.trim());
   if (input.toTrackId?.trim()) params.set("toTrackId", input.toTrackId.trim());
   if (input.technique?.trim()) params.set("technique", input.technique.trim());

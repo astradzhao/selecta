@@ -201,6 +201,55 @@ describe("transition CRUD + AI commit", { skip: !pgIntegration }, () => {
     assert.ok(!ais.transitions.some((row) => row.id === manual.id));
   });
 
+  it("listTransitions matches fromQuery and toQuery per endpoint, not either side", async () => {
+    const suffix = randomUUID().slice(0, 8);
+    const opener = await createTrack({
+      title: `DJ-142 Opener ${suffix}`,
+      artists: [`DJ-142 Opener Artist ${suffix}`],
+    });
+    const closer = await createTrack({
+      title: `DJ-142 Closer ${suffix}`,
+      artists: [`DJ-142 Closer Artist ${suffix}`],
+    });
+
+    const forward = await createTransition({
+      fromTrackId: opener.track.id,
+      toTrackId: closer.track.id,
+    });
+    const reverse = await createTransition({
+      fromTrackId: closer.track.id,
+      toTrackId: opener.track.id,
+    });
+
+    const openerFirst = await listTransitions({ fromQuery: `Opener ${suffix}` });
+    assert.deepEqual(
+      openerFirst.transitions.map((row) => row.id),
+      [forward.id],
+    );
+
+    const closerFirst = await listTransitions({ fromQuery: `closer ${suffix}` });
+    assert.deepEqual(
+      closerFirst.transitions.map((row) => row.id),
+      [reverse.id],
+    );
+
+    // Both fields together narrow to one direction; the artist name works too.
+    const pinned = await listTransitions({
+      fromQuery: `DJ-142 Opener Artist ${suffix}`,
+      toQuery: `Closer ${suffix}`,
+    });
+    assert.deepEqual(
+      pinned.transitions.map((row) => row.id),
+      [forward.id],
+    );
+
+    const impossible = await listTransitions({
+      fromQuery: `Opener ${suffix}`,
+      toQuery: `Opener ${suffix}`,
+    });
+    assert.equal(impossible.transitions.length, 0);
+  });
+
   it("rolls back commitTransitionProposal when the surrounding transaction fails", async () => {
     const suffix = randomUUID().slice(0, 8);
     const from = await createTrack({

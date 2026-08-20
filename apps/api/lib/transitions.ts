@@ -10,6 +10,18 @@ export type TransitionProposalSummary = {
   sourceText: string;
 };
 
+/** Endpoint summary: enough for a Library row to render the song, not the full track. */
+function serializeEndpoint(endpoint: TransitionRecord["from"]) {
+  return {
+    id: endpoint.track.id,
+    title: endpoint.track.title,
+    artists: endpoint.artists,
+    artworkUrl: endpoint.track.artworkUrl,
+    bpm: endpoint.track.bpm,
+    musicalKey: endpoint.track.musicalKey,
+  };
+}
+
 /** API shape for a committed TRANSITION with endpoint summaries. */
 export function serializeTransition(
   record: TransitionRecord,
@@ -17,16 +29,8 @@ export function serializeTransition(
 ) {
   return {
     id: record.id,
-    fromTrack: {
-      id: record.from.track.id,
-      title: record.from.track.title,
-      artists: record.from.artists,
-    },
-    toTrack: {
-      id: record.to.track.id,
-      title: record.to.track.title,
-      artists: record.to.artists,
-    },
+    fromTrack: serializeEndpoint(record.from),
+    toTrack: serializeEndpoint(record.to),
     proposalKey: record.edge.proposalKey,
     sourceSubmissionId: record.edge.sourceSubmissionId,
     sourceSubmissionVersion: record.edge.sourceSubmissionVersion,

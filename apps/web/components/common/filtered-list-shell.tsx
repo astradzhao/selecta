@@ -61,6 +61,7 @@ export function FilteredListShell<T>({
   renderRow,
   empty,
   leading,
+  leadingBleed = false,
   hideMainList = false,
   listHeading,
   pagination,
@@ -90,6 +91,8 @@ export function FilteredListShell<T>({
     action?: ReactNode;
   };
   leading?: ReactNode;
+  /** Let `leading` own its own padding so it can render full-bleed rows. */
+  leadingBleed?: boolean;
   hideMainList?: boolean;
   listHeading?: ReactNode;
   pagination?: {
@@ -134,7 +137,11 @@ export function FilteredListShell<T>({
           <ListSkeleton aria-label={loadingAriaLabel} className="rounded-none border-0" />
         ) : (
           <>
-            {leading ? <div className="border-border border-b px-3.5 py-4">{leading}</div> : null}
+            {leading ? (
+              <div className={cn("border-border border-b", !leadingBleed && "px-3.5 py-4")}>
+                {leading}
+              </div>
+            ) : null}
             {hideMainList ? null : (
               <>
                 {listHeading}

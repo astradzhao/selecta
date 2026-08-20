@@ -15,6 +15,9 @@ export type ApiTransitionEndpoint = {
   id: string;
   title: string;
   artists: ApiNamedNode[];
+  artworkUrl: string | null;
+  bpm: number | null;
+  musicalKey: string | null;
 };
 
 export type ApiTransition = {
