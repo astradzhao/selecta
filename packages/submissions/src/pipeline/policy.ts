@@ -1,5 +1,5 @@
-import type { SubmissionTransitionPlan } from "./schema";
-import type { TrackCandidate } from "./services";
+import type { SubmissionTransitionPlan } from "@selecta/agentics/submission-parser";
+import type { TrackCandidate } from "./ports";
 
 export type PolicyGateCode =
   | "ok"

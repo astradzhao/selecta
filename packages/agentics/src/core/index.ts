@@ -1,4 +1,7 @@
-/** Shared bounded agent harness (limits, logging, prompt composition, ToolLoopAgent). */
+/**
+ * Shared bounded agent harness (limits, logging, prompt composition, ToolLoopAgent).
+ * `runBoundedAgent` is intentionally unused today — reserved for future multi-step agents.
+ */
 
 export { AgentError, isAgentError, type AgentErrorCode } from "./errors";
 export { DEFAULT_AGENT_LIMITS, clampAgentLimits, type AgentLimits } from "./limits";
@@ -17,6 +20,7 @@ export {
   type ComposedPrompt,
   type PromptSection,
 } from "./prompt";
+export { providerFromModel } from "./provider";
 export { runBoundedAgent } from "./harness";
 export type {
   AgentRunContext,

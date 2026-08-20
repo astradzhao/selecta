@@ -6,8 +6,8 @@ import type {
   SubmissionMentionPlan,
   SubmissionProcessingPlan,
   SubmissionTransitionPlan,
-} from "./schema";
-import type { TrackCandidate } from "./services";
+} from "@selecta/agentics/submission-parser";
+import type { TrackCandidate } from "./ports";
 
 function mention(
   partial: Pick<SubmissionMentionPlan, "mentionId" | "mention" | "resolutionStatus"> &

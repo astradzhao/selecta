@@ -1,8 +1,11 @@
 import { CandidateRegistry } from "./candidate-registry";
-import { SUBMISSION_LIMITS } from "./limits";
+import { SUBMISSION_LIMITS } from "@selecta/agentics/submission-parser";
 import { mentionSearchQuery, topSearchHit } from "./match";
-import type { SubmissionMentionPlan, SubmissionProcessingPlan } from "./schema";
-import type { SubmissionAgentServices, SearchQueriesInput, TrackCandidate } from "./services";
+import type {
+  SubmissionMentionPlan,
+  SubmissionProcessingPlan,
+} from "@selecta/agentics/submission-parser";
+import type { CandidateSearchPort, SearchQueriesInput, TrackCandidate } from "./ports";
 
 export type ProposalResolveItem = {
   proposalId: string;
@@ -12,10 +15,7 @@ export type ProposalResolveItem = {
 
 export type ResolveProposalsBatchInput = {
   items: ProposalResolveItem[];
-  services: Pick<
-    SubmissionAgentServices,
-    "searchLibraryTracks" | "searchSpotifyTracks" | "findLibraryTrackByExternalId"
-  >;
+  services: CandidateSearchPort;
   batchSize?: number;
 };
 

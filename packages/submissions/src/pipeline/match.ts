@@ -1,5 +1,5 @@
-import type { SubmissionMentionPlan } from "./schema";
-import type { TrackCandidate } from "./services";
+import type { SubmissionMentionPlan } from "@selecta/agentics/submission-parser";
+import type { TrackCandidate } from "./ports";
 
 /**
  * Strip common DJ cue suffixes that models sometimes leave in mention text.

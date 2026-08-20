@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import {
-  assertReviewerEndpoint,
-  buildReviewerPolicyResult,
   draftToSingleUnresolvedPlan,
   type SubmissionProcessingPlan,
   type SubmissionTransitionPlan,
   type SingleTransitionDraft,
 } from "@selecta/agentics/submission-parser";
 import { isPostgresConfigured } from "@selecta/db";
-import { getProposalById, updateProposalGuarded } from "@selecta/submissions";
+import {
+  assertReviewerEndpoint,
+  buildReviewerPolicyResult,
+  getProposalById,
+  updateProposalGuarded,
+} from "@selecta/submissions";
 
 import { commitProposalPolicy, loadCommittedTransition } from "@/lib/proposal-actions";
 import { serializeProposal } from "@/lib/proposals";

@@ -3,8 +3,8 @@ import { describe, it } from "node:test";
 
 import { applyProposalPolicy } from "./apply-proposal-policy";
 import type { ProposalPolicyResult } from "./proposal-policy";
-import type { SubmissionProcessingPlan } from "./schema";
-import type { SubmissionAgentServices } from "./services";
+import type { SubmissionProcessingPlan } from "@selecta/agentics/submission-parser";
+import type { MusicWritePort } from "./ports";
 
 const plan: SubmissionProcessingPlan = {
   noteType: "transition",
@@ -51,10 +51,7 @@ const plan: SubmissionProcessingPlan = {
 describe("applyProposalPolicy", () => {
   it("commits with fingerprint proposal keys independently", async () => {
     const commits: Array<{ proposalKey: string; sourceProposalId?: string | null }> = [];
-    const services: SubmissionAgentServices = {
-      searchLibraryTracks: async () => ({ results: [] }),
-      searchSpotifyTracks: async () => ({ results: [] }),
-      findLibraryTrackByExternalId: async () => null,
+    const services: MusicWritePort = {
       importSpotifyTrack: async () => {
         throw new Error("should not import");
       },
@@ -100,10 +97,7 @@ describe("applyProposalPolicy", () => {
 
   it("commits both directions when bidirectional is true", async () => {
     const commits: string[] = [];
-    const services: SubmissionAgentServices = {
-      searchLibraryTracks: async () => ({ results: [] }),
-      searchSpotifyTracks: async () => ({ results: [] }),
-      findLibraryTrackByExternalId: async () => null,
+    const services: MusicWritePort = {
       importSpotifyTrack: async () => {
         throw new Error("should not import");
       },
@@ -144,10 +138,7 @@ describe("applyProposalPolicy", () => {
 
   it("does not commit when a sibling-style needs_review decision is applied", async () => {
     let commitCalls = 0;
-    const services: SubmissionAgentServices = {
-      searchLibraryTracks: async () => ({ results: [] }),
-      searchSpotifyTracks: async () => ({ results: [] }),
-      findLibraryTrackByExternalId: async () => null,
+    const services: MusicWritePort = {
       importSpotifyTrack: async () => ({ trackId: "x", created: true }),
       commitTransition: async () => {
         commitCalls += 1;

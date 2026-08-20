@@ -233,7 +233,7 @@ After migration, the service-level `commitTransition` runs **one Postgres
 transaction**: insert transition (ON CONFLICT proposal_key) + upsert
 `submission_transition_commits` + set proposal `status='committed'`. Replay is a
 no-op by construction. The `SubmissionAgentServices` interface shape in
-`packages/agentics/src/submission-parser/agent/services.ts` does not change — only the
+`packages/submissions/src/pipeline/ports.ts` does not change — only the
 injected implementation in `apps/api/lib/submission-agent-services.ts` does.
 Reconciliation code for interrupted cross-store completion is deleted.
 

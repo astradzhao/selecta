@@ -1,4 +1,4 @@
-import { composeAgentSystemPrompt, type ComposedPrompt } from "../../core/prompt";
+import { composeAgentSystemPrompt, type ComposedPrompt } from "../core/prompt";
 
 import { SingleTransitionDraftSchema } from "./single-transition-schema";
 

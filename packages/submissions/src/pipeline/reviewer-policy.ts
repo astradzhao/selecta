@@ -1,7 +1,10 @@
-import type { SubmissionProcessingPlan, SubmissionTransitionPlan } from "./schema";
+import type {
+  SubmissionProcessingPlan,
+  SubmissionTransitionPlan,
+} from "@selecta/agentics/submission-parser";
 import type { PolicyImportAction } from "./policy";
 import type { ProposalPolicyResult } from "./proposal-policy";
-import type { TrackCandidate } from "./services";
+import type { TrackCandidate } from "./ports";
 
 export type ReviewerEndpoint =
   | { kind: "track"; trackId: string }

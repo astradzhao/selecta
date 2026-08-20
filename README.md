@@ -14,8 +14,8 @@ packages/
   catalog/      # External music catalog search (@selecta/catalog)
   db/           # Postgres client + Drizzle schema + migrations (@selecta/db)
   library/      # Music domain: tracks, transitions, vocab, sequences (@selecta/library)
-  submissions/  # Notes, proposals, extraction bookkeeping (@selecta/submissions)
-  agentics/     # Bounded agent harness + submission parser (@selecta/agentics)
+  submissions/  # Notes, proposals, extract pipeline (@selecta/submissions)
+  agentics/     # Bounded agent harness + NL parse (@selecta/agentics)
   ui/           # Shared UI / shadcn (@selecta/ui)
   eslint-config # Shared ESLint flat configs (@selecta/eslint-config)
 dev-files/      # Architecture + planning docs

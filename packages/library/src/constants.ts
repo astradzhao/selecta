@@ -29,8 +29,12 @@ export const TRANSITION_TECHNIQUES = [
 
 export type TransitionTechnique = (typeof TRANSITION_TECHNIQUES)[number];
 
+export const TRANSITION_QUALITIES = ["great", "ok", "risky"] as const;
+export type TransitionQuality = (typeof TRANSITION_QUALITIES)[number];
+
 const intentSet: ReadonlySet<string> = new Set(TRANSITION_INTENTS);
 const techniqueSet: ReadonlySet<string> = new Set(TRANSITION_TECHNIQUES);
+const qualitySet: ReadonlySet<string> = new Set(TRANSITION_QUALITIES);
 
 export function isTransitionIntent(value: string): value is TransitionIntent {
   return intentSet.has(value);
@@ -38,6 +42,10 @@ export function isTransitionIntent(value: string): value is TransitionIntent {
 
 export function isTransitionTechnique(value: string): value is TransitionTechnique {
   return techniqueSet.has(value);
+}
+
+export function isTransitionQuality(value: string): value is TransitionQuality {
+  return qualitySet.has(value);
 }
 
 /**

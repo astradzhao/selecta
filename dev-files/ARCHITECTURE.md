@@ -318,6 +318,7 @@ Keep raw text forever; show a **proposed graph diff** before commit.
 ```
 
 The model never searches or mutates music tables directly; deterministic application code is the only writer.
+Parse lives in `@selecta/agentics/submission-parser`. Resolve, decide, and apply live in `@selecta/submissions` (`src/pipeline/`).
 `@selecta/agentics` remains available for future multi-step agents.
 
 ### 7.3 Extraction schema (conceptual)
@@ -608,9 +609,9 @@ selecta/                     # monorepo root (github.com/astradzhao/selecta)
   packages/
     db/                      # Postgres client + schema + migrations — @selecta/db
     library/                 # music domain — @selecta/library
-    submissions/             # notes, proposals — @selecta/submissions
+    submissions/             # notes, proposals, extract pipeline — @selecta/submissions
     catalog/                 # External catalog search — @selecta/catalog
-    agentics/                # bounded AI agent harness + submission parser — @selecta/agentics
+    agentics/                # bounded AI agent harness + NL parse — @selecta/agentics
     ui/                      # shadcn + shared UI — @selecta/ui
     eslint-config/           # shared ESLint — @selecta/eslint-config
   dev-files/                 # architecture, ADRs, prompts
