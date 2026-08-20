@@ -28,7 +28,7 @@ Do not commit directly to `main`. Do not reuse an unrelated branch for a differe
 After pushing a `dj-XXXX` branch, create or update a GitHub PR using [`.github/pull_request_template.md`](./.github/pull_request_template.md).
 
 - **Title:** `[DJ-XXXX] Brief title` (aligned with the Linear issue)
-- **Body sections:** Why → What → Description → Linear link
+- **Body sections:** Why → What → Description → How to Test → Linear link
 
 Example Linear link: `[DJ-13](https://linear.app/dj-project-astradzhao/issue/DJ-13/init-nextjs-app-router-typescript)`
 

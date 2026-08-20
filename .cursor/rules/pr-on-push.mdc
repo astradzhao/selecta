@@ -21,6 +21,9 @@ After pushing a `dj-XXXX` branch to origin, **always** open or update a PR to `m
 ## Description
 [Longer but concise summary]
 
+## How to Test
+[Concrete steps a reviewer can follow]
+
 ## Linear
 [DJ-XXXX](https://linear.app/dj-project-astradzhao/issue/DJ-XXXX)
 ```

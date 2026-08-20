@@ -14,17 +14,18 @@ import { SectionHeading } from "@selecta/ui/components/section-heading";
 import { Select } from "@selecta/ui/components/select";
 import { StatePanel } from "@selecta/ui/components/state-panel";
 
-import { ProposalStatusBadge } from "@/components/library/proposal-status-badge";
 import {
   ClearFiltersButton,
   FilterField,
   FilteredListShell,
 } from "@/components/common/filtered-list-shell";
+import { ProposalStatusBadge } from "@/components/common/status-badge";
 import { useFilteredList } from "@/hooks/use-filtered-list";
 import { DEFAULT_PAGE_SIZE } from "@/hooks/use-paginated-list";
 import { artistLine, formatTimestamp, previewText } from "@/lib/format";
 import { transitionListQuery, type TransitionListFilters } from "@/lib/library/list-params";
 import { listProposals, type ApiProposal } from "@/lib/proposals/api";
+import { proposalStatusLabel } from "@/lib/proposals/proposal-status";
 import { listTransitions } from "@/lib/transitions/api";
 
 export function TransitionsList() {
@@ -169,7 +170,9 @@ export function TransitionsList() {
       }
       leading={
         pendingProposals.length > 0 ? (
-          <DataListSection title={<h2 className="text-eyebrow">Needs review</h2>}>
+          <DataListSection
+            title={<h2 className="text-eyebrow">{proposalStatusLabel("needs_review")}</h2>}
+          >
             <DataList variant="plain">
               {pendingProposals.map((proposal) => (
                 <DataListRow key={proposal.id} variant="dashed" className="flex-col gap-2">
@@ -220,7 +223,7 @@ export function TransitionsList() {
               ) : null}
               {transition.intent ? <Badge variant="outline">{transition.intent}</Badge> : null}
               {transition.proposal?.status === "needs_review" ? (
-                <Badge variant="destructive">Needs review</Badge>
+                <ProposalStatusBadge status="needs_review" />
               ) : null}
               <span className="text-caption text-numeric">
                 {formatTimestamp(transition.createdAt)}
