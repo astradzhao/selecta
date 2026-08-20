@@ -4,27 +4,19 @@
 > Parent epic: [DJ-92 — UI Cleanup](https://linear.app/dj-project-astradzhao/issue/DJ-92)
 > Epic plan: [`UI_CLEANUP_PLAN.md`](./UI_CLEANUP_PLAN.md)
 > Blocked-by: none (DJ-93 / DJ-96 / DJ-95 already on `main`)
-> Status: **implemented on `dj-99`.** Decisions D1–D4 landed as recommended.
+> Status: **implemented on `dj-99`.** Decisions D1–D5 landed as recommended.
 
 `/notes` duplicates Library → Submissions. [DJ-68](https://linear.app/dj-project-astradzhao/issue/DJ-68) was already canceled as superseded by [DJ-71](https://linear.app/dj-project-astradzhao/issue/DJ-71). This ticket deletes that leftover UI **before** UI-6–UI-11 migrate composites, so those tickets do not touch doomed copies.
 
 ## 1. Goal
 
-Stop rendering a Notes list or editable note detail. Keep the Add → Transition submit path and the Library submission detail + proposal review path. Redirect old `/notes*` URLs so bookmarks do not 404.
+Stop rendering a Notes list or editable note detail. Keep the Add → Transition submit path and the Library submission detail + proposal review path. Do not keep `/notes*` redirects — old URLs 404.
 
 ## 2. What I verified (current tree)
 
-### 2.1 Redirects already exist
+### 2.1 Old `/notes` pages and redirects
 
-`apps/web/next.config.ts` already sends:
-
-| Source                   | Destination                 |
-| ------------------------ | --------------------------- |
-| `/notes`                 | `/library?view=submissions` |
-| `/notes/:id` (not `new`) | `/library/submissions/:id`  |
-| `/notes/new`             | `/add?mode=transition`      |
-
-Those page modules (`app/notes/page.tsx`, `app/notes/[id]/page.tsx`, `app/notes/new/page.tsx`) are therefore unreachable. Delete them; **keep the redirects**.
+`app/notes/page.tsx`, `app/notes/[id]/page.tsx`, and `app/notes/new/page.tsx` are deleted. `next.config.ts` originally redirected those URLs to Library/Add; **D5 removes those redirects** so `/notes*` 404s. Keep `/tracks/new` and `/songs/new` → Add Track. API `apps/api/app/notes/**` and `lib/notes/api.ts` stay — those are backend paths, not product URLs.
 
 ### 2.2 Nav and home are already off `/notes`
 
@@ -45,7 +37,8 @@ Those page modules (`app/notes/page.tsx`, `app/notes/[id]/page.tsx`, `app/notes/
 | D1  | Editable note form                                       | **Drop.** DJ-78 can restore PATCH + a form later. Remove unused `updateNote` from the web client; keep the API `PATCH` route. |
 | D2  | Extraction-debug accordion / ProposalCard / raw metadata | **Delete.** Proposal review already lives in `submission-proposals.tsx`. Do not hide debug behind a flag.                     |
 | D3  | Track links                                              | **Keep** on submission detail; move to `library/submission-track-links.tsx`.                                                  |
-| D4  | Add → Transition form (`new-note-form.tsx`)              | **Keep**, move under `components/add/`. Drop the unused `embedded` / standalone-header branch (`/notes/new` is a redirect).   |
+| D4  | Add → Transition form (`new-note-form.tsx`)              | **Keep**, move under `components/add/`. Drop the unused `embedded` / standalone-header branch.                                |
+| D5  | Bookmark redirects for `/notes*`                         | **Remove.** No need to support old URLs. `/notes` 404s.                                                                       |
 
 Out of scope: API `apps/api/app/notes/**`, `apps/web/lib/notes/*` (except dead `updateNote`), unifying status vocabulary (UI-10), FilteredListShell (UI-8).
 
@@ -54,20 +47,20 @@ Out of scope: API `apps/api/app/notes/**`, `apps/web/lib/notes/*` (except dead `
 | Path                                    | Disposition                                                                  |
 | --------------------------------------- | ---------------------------------------------------------------------------- |
 | `app/notes/page.tsx`                    | delete                                                                       |
-| `app/notes/new/page.tsx`                | delete (redirect already in next.config)                                     |
-| `app/notes/[id]/page.tsx`               | delete (redirect already in next.config)                                     |
+| `app/notes/new/page.tsx`                | delete                                                                       |
+| `app/notes/[id]/page.tsx`               | delete                                                                       |
 | `components/notes/notes-list.tsx`       | delete                                                                       |
 | `components/notes/note-detail.tsx`      | replace with `library/submission-detail.tsx` (read-only, no debug accordion) |
 | `components/notes/note-track-links.tsx` | move → `library/submission-track-links.tsx`                                  |
 | `components/notes/new-note-form.tsx`    | move → `add/new-note-form.tsx`                                               |
-| `next.config.ts` redirects              | keep                                                                         |
+| `next.config.ts` `/notes*` redirects    | delete (keep `/tracks/new` and `/songs/new`)                                 |
 | `lib/notes/api.ts` `updateNote`         | delete (unused after D1)                                                     |
 
 After this, `apps/web/components/notes/` is empty and should not exist.
 
 ## 5. Acceptance
 
-- `/notes` and `/notes/:id` redirect; no Notes list UI.
+- `/notes`, `/notes/:id`, and `/notes/new` 404. No Notes list UI and no compatibility redirects.
 - Submission detail + proposal review still work: Add transition → extract → Library submission → review/commit.
 - Retry processing still works on the submission detail.
 - No notes component duplicates a library counterpart.

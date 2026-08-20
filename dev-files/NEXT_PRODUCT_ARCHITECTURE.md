@@ -189,11 +189,11 @@ source-span/content fingerprint (`{noteId}:{version}:span:{fingerprint}`).
 
 Proposals are the durable per-transition units. Submissions (`notes` table for now) are parent containers of immutable raw text. Do not confuse:
 
-| Term       | Meaning                                    | Storage            |
-| ---------- | ------------------------------------------ | ------------------ |
-| Submission | Immutable raw text the user pasted         | `notes`            |
-| Proposal   | One parsed transition from that submission | `note_proposals`   |
-| Transition | Committed music-domain edge                | `transitions`      |
+| Term       | Meaning                                    | Storage          |
+| ---------- | ------------------------------------------ | ---------------- |
+| Submission | Immutable raw text the user pasted         | `notes`          |
+| Proposal   | One parsed transition from that submission | `note_proposals` |
+| Transition | Committed music-domain edge                | `transitions`    |
 
 ### Proposal record (minimal)
 
@@ -323,9 +323,8 @@ Target routes:
 Preserve safe redirects during migration:
 
 - `/tracks/new` and `/songs/new` -> `/add` Track mode
-- `/notes/new` -> `/add` Transition mode
-- `/notes` -> `/library?view=submissions`
-- `/notes/:id` -> the corresponding read-only submission detail
+
+`/notes`, `/notes/new`, and `/notes/:id` are retired (DJ-99). They 404; do not redirect them.
 
 Raw submission update APIs should be removed or rejected after the immutable intake cutover. Review and transition mutation APIs replace note editing.
 
