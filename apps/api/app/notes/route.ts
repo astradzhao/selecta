@@ -9,7 +9,6 @@ import {
 } from "@selecta/db";
 
 import { serializeNote } from "@/lib/notes";
-import { startSubmissionWorkflow } from "@/lib/start-submission-workflow";
 
 /** Durable workflow continues after the create response. */
 export const maxDuration = 300;
@@ -194,6 +193,7 @@ export async function POST(request: Request) {
 
   try {
     const note = await createNote(body);
+    const { startSubmissionWorkflow } = await import("@/lib/start-submission-workflow");
     const { workflowRunId } = await startSubmissionWorkflow(note.id, note.extractionVersion);
     return NextResponse.json(
       { ok: true, note: serializeNote(note, []), workflowRunId },
