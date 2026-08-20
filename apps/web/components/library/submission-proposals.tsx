@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@selecta/ui/components/button";
+import { StatePanel } from "@selecta/ui/components/state-panel";
 
 import { ProposalSourceSpan } from "@/components/library/proposal-source-span";
 import { ProposalStatusBadge } from "@/components/library/proposal-status-badge";
@@ -78,15 +79,15 @@ export function SubmissionProposals({ noteId, rawText }: { noteId: string; rawTe
   );
 
   if (loading) {
-    return <p className="text-muted-foreground text-sm">Loading proposals…</p>;
+    return <StatePanel variant="loading">Loading proposals…</StatePanel>;
   }
 
   if (error) {
-    return <p className="text-sm">{error}</p>;
+    return <StatePanel variant="error" title="Proposals unavailable" description={error} />;
   }
 
   if (proposals.length === 0) {
-    return <p className="text-muted-foreground text-sm">No proposals for this submission yet.</p>;
+    return <StatePanel variant="empty" title="No proposals for this submission yet." />;
   }
 
   return (

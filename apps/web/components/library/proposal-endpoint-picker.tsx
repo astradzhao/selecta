@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CheckIcon, SearchIcon } from "lucide-react";
+import { CheckIcon } from "lucide-react";
 
 import { Alert } from "@selecta/ui/components/alert";
 import { Badge } from "@selecta/ui/components/badge";
-import { Input } from "@selecta/ui/components/input";
+import { EmptyState } from "@selecta/ui/components/empty-state";
 import { Label } from "@selecta/ui/components/label";
+import { SearchField } from "@selecta/ui/components/search-field";
+import { SegmentedTab, SegmentedTabs } from "@selecta/ui/components/segmented-tabs";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { searchCatalog } from "@/lib/catalog/api";
@@ -242,30 +244,24 @@ export function ProposalEndpointPicker({
 
       {readOnly ? null : (
         <>
-          <div className="bg-muted inline-flex rounded-lg p-0.5">
+          <SegmentedTabs variant="boxed" aria-label={`${label} source`}>
             {PICKER_TABS.map(([id, tabLabel]) => (
-              <button
+              <SegmentedTab
                 key={id}
                 type="button"
                 disabled={disabled}
-                aria-pressed={tab === id}
+                active={tab === id}
                 onClick={() => {
                   setTab(id);
                   if (id !== "suggested" && !query.trim()) {
                     setQuery(defaultQuery);
                   }
                 }}
-                className={cn(
-                  "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50",
-                  tab === id
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
               >
                 {tabLabel}
-              </button>
+              </SegmentedTab>
             ))}
-          </div>
+          </SegmentedTabs>
 
           {tab === "suggested" ? (
             candidates.length > 0 ? (
@@ -288,7 +284,7 @@ export function ProposalEndpointPicker({
                 })}
               </ul>
             ) : (
-              <EmptyState>
+              <EmptyState compact>
                 No suggestions for this mention. Search your library or the catalog instead.
               </EmptyState>
             )
@@ -298,21 +294,17 @@ export function ProposalEndpointPicker({
                 <Label htmlFor={`${label}-search`} className="sr-only">
                   Search {tab === "library" ? "your library" : "the catalog"}
                 </Label>
-                <div className="relative">
-                  <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-                  <Input
-                    id={`${label}-search`}
-                    className="pl-10"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder={tab === "library" ? "Search your library" : "Search catalog"}
-                    disabled={disabled}
-                  />
-                </div>
+                <SearchField
+                  id={`${label}-search`}
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={tab === "library" ? "Search your library" : "Search catalog"}
+                  disabled={disabled}
+                />
               </div>
               {searchError ? <Alert variant="destructive">{searchError}</Alert> : null}
               {searching ? (
-                <EmptyState>Searching…</EmptyState>
+                <EmptyState compact>Searching…</EmptyState>
               ) : searchResults.length > 0 ? (
                 <ul className="divide-border border-border divide-y overflow-hidden rounded-lg border">
                   {searchResults.map((track) => {
@@ -345,7 +337,7 @@ export function ProposalEndpointPicker({
                   })}
                 </ul>
               ) : (
-                <EmptyState>
+                <EmptyState compact>
                   {query.trim() || defaultQuery ? "No matches." : "Type to search."}
                 </EmptyState>
               )}
@@ -361,14 +353,6 @@ export function ProposalEndpointPicker({
         </>
       )}
     </section>
-  );
-}
-
-function EmptyState({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="border-border text-muted-foreground rounded-lg border border-dashed px-3 py-4 text-sm">
-      {children}
-    </p>
   );
 }
 

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { isNotesError, isPostgresConfigured, requeueExtraction } from "@selecta/db";
 
 import { loadSerializedTrackLinks, serializeNote } from "@/lib/notes";
-import { startSubmissionWorkflow } from "@/lib/start-submission-workflow";
 
 /** Durable workflow continues after the retry response. */
 export const maxDuration = 300;
@@ -37,6 +36,7 @@ export async function POST(_request: Request, context: RouteContext) {
 
   try {
     const note = await requeueExtraction(id);
+    const { startSubmissionWorkflow } = await import("@/lib/start-submission-workflow");
     const { workflowRunId } = await startSubmissionWorkflow(note.id, note.extractionVersion);
     const trackLinks = await loadSerializedTrackLinks(note.id);
     return NextResponse.json({

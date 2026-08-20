@@ -3,12 +3,14 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { SearchIcon } from "lucide-react";
 
 import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
+import { EmptyState } from "@selecta/ui/components/empty-state";
 import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
+import { SearchField } from "@selecta/ui/components/search-field";
+import { SectionHeading } from "@selecta/ui/components/section-heading";
 import { Separator } from "@selecta/ui/components/separator";
 
 import { ApiClientError } from "@/lib/api/client";
@@ -28,7 +30,7 @@ function formatDuration(ms: number | null): string | null {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) {
+export function AddTrackFlow() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("search");
   const [query, setQuery] = useState("");
@@ -144,30 +146,16 @@ export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) 
   }
 
   return (
-    <div className={embedded ? "space-y-6" : "space-y-10"}>
-      {embedded ? null : (
-        <div className="space-y-2">
-          <p className="text-eyebrow">Library intake</p>
-          <h1 className="text-page-title">Add track</h1>
-          <p className="text-body text-muted-foreground max-w-2xl">
-            Search the catalog, review the hit, then tag with musical subgenres and organizational
-            folders — separately.
-          </p>
-        </div>
-      )}
-
+    <div className="space-y-6">
       {mode === "search" ? (
         <section className="space-y-4">
-          <div className="relative">
-            <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search track or artist"
-              className="h-12 pl-10 text-base"
-              autoFocus
-            />
-          </div>
+          <SearchField
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search track or artist"
+            className="h-12 text-base"
+            autoFocus
+          />
 
           <div className="flex flex-wrap items-center gap-3">
             <Button type="button" variant="outline" onClick={() => openReview(null)}>
@@ -213,8 +201,12 @@ export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) 
               </li>
             ))}
             {!searchPending && showResults && visibleResults.length === 0 && !visibleSearchError ? (
-              <li className="text-muted-foreground px-3 py-6 text-sm">
-                No catalog hits. Try another query or enter the track manually.
+              <li>
+                <EmptyState
+                  compact
+                  className="rounded-none border-0"
+                  title="No catalog hits. Try another query or enter the track manually."
+                />
               </li>
             ) : null}
           </ul>
@@ -222,14 +214,10 @@ export function AddTrackFlow({ embedded = false }: { embedded?: boolean } = {}) 
       ) : (
         <section className="space-y-6">
           <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-section-title">
-                {catalog ? "Review catalog hit" : "Manual entry"}
-              </h2>
-              <p className="text-body text-muted-foreground">
-                Confirm details, then save into your local library.
-              </p>
-            </div>
+            <SectionHeading
+              title={catalog ? "Review catalog hit" : "Manual entry"}
+              hint="Confirm details, then save into your local library."
+            />
             <Button type="button" variant="ghost" onClick={() => setMode("search")}>
               Back to search
             </Button>

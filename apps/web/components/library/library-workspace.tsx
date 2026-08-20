@@ -4,7 +4,9 @@ import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { cn } from "@selecta/ui/lib/utils";
+import { ListSkeleton } from "@selecta/ui/components/list-skeleton";
+import { PageHeader } from "@selecta/ui/components/page-header";
+import { SegmentedTab, SegmentedTabs } from "@selecta/ui/components/segmented-tabs";
 
 import { LibraryList } from "@/components/tracks/library-list";
 import { SubmissionsList } from "@/components/library/submissions-list";
@@ -61,54 +63,45 @@ export function LibraryWorkspace({ view }: { view: LibraryView }) {
 
   return (
     <div className="space-y-10">
-      <header className="border-border space-y-4 border-b pb-6">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-page-title">Library</h1>
-            {needsReviewCount > 0 ? (
-              <Link
-                href="/library?view=submissions&needsReview=1"
-                className="text-destructive text-sm font-medium underline-offset-4 hover:underline"
-              >
-                {needsReviewCount} need review
-              </Link>
-            ) : null}
-          </div>
-          <p className="text-body text-muted-foreground max-w-xl">{active.description}</p>
-        </div>
-        <nav aria-label="Library views" className="flex flex-wrap gap-1">
+      <PageHeader
+        title="Library"
+        description={active.description}
+        actions={
+          needsReviewCount > 0 ? (
+            <Link
+              href="/library?view=submissions&needsReview=1"
+              className="text-destructive text-sm font-medium underline-offset-4 hover:underline"
+            >
+              {needsReviewCount} need review
+            </Link>
+          ) : null
+        }
+      >
+        <SegmentedTabs aria-label="Library views">
           {VIEWS.map((item) => {
             const isActive = item.id === view;
             const href = item.id === "tracks" ? "/library" : `/library?view=${item.id}`;
             return (
-              <Link
+              <SegmentedTab
                 key={item.id}
-                href={href}
+                asChild
+                active={isActive}
                 onClick={(event) => {
                   event.preventDefault();
                   setView(item.id);
                 }}
-                className={cn(
-                  "rounded-lg px-3 py-1.5 text-sm transition-colors",
-                  isActive
-                    ? "bg-selected text-selected-foreground"
-                    : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
-                )}
-                aria-current={isActive ? "page" : undefined}
               >
-                {item.label}
-              </Link>
+                <Link href={href}>{item.label}</Link>
+              </SegmentedTab>
             );
           })}
-        </nav>
-      </header>
+        </SegmentedTabs>
+      </PageHeader>
 
-      {view === "tracks" ? <LibraryList embedded /> : null}
+      {view === "tracks" ? <LibraryList /> : null}
       {view === "transitions" ? <TransitionsList /> : null}
       {view === "submissions" ? (
-        <Suspense
-          fallback={<p className="text-body text-muted-foreground">Loading submissions…</p>}
-        >
+        <Suspense fallback={<ListSkeleton aria-label="Loading submissions" />}>
           <SubmissionsList />
         </Suspense>
       ) : null}

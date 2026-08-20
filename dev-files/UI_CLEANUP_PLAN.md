@@ -192,7 +192,8 @@ everywhere else — `FieldError` exists and nothing uses it.
    Primitive gaps: Select, Checkbox, Alert, Skeleton.
    Implementation plan: [`DJ100_PRIMITIVES_PLAN.md`](./DJ100_PRIMITIVES_PLAN.md)
 6. [DJ-101](https://linear.app/dj-project-astradzhao/issue/DJ-101) — **UI-6**
-   PageHeader, StatePanel, EmptyState, SegmentedTabs, SearchField
+   PageHeader, StatePanel, EmptyState, SegmentedTabs, SearchField.
+   Implementation plan: [`DJ101_LAYOUT_PRIMITIVES_PLAN.md`](./DJ101_LAYOUT_PRIMITIVES_PLAN.md)
 7. [DJ-102](https://linear.app/dj-project-astradzhao/issue/DJ-102) — **UI-7**
    Shared formatters and list-state hooks
 

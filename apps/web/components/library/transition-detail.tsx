@@ -9,6 +9,9 @@ import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
 import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
+import { PageBreadcrumb, PageHeader } from "@selecta/ui/components/page-header";
+import { SectionHeading } from "@selecta/ui/components/section-heading";
+import { StatePanel } from "@selecta/ui/components/state-panel";
 import { Textarea } from "@selecta/ui/components/textarea";
 
 import { ApiClientError } from "@/lib/api/client";
@@ -97,7 +100,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
   const listHref = "/library?view=transitions";
 
   if (loading && !transition) {
-    return <p className="text-muted-foreground text-sm">Loading transition…</p>;
+    return <StatePanel variant="loading">Loading transition…</StatePanel>;
   }
 
   if (loadError || !transition || !form) {
@@ -174,26 +177,31 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
 
   return (
     <div className="space-y-10">
-      <header className="border-border space-y-3 border-b pb-6">
-        <p className="text-eyebrow">
-          <Link href={listHref} className="hover:text-foreground transition-colors">
-            Transitions
-          </Link>
-          {" / "}
-          Detail
-        </p>
-        <div className="space-y-2">
-          <h1 className="text-page-title text-balance">
+      <PageHeader
+        lead={
+          <PageBreadcrumb>
+            <Link href={listHref} className="hover:text-foreground transition-colors">
+              Transitions
+            </Link>
+            {" / "}
+            Detail
+          </PageBreadcrumb>
+        }
+        title={
+          <>
             {transition.fromTrack.title}
             <span className="text-muted-foreground font-normal"> → </span>
             {transition.toTrack.title}
-          </h1>
-          <p className="text-muted-foreground text-sm">
+          </>
+        }
+        description={
+          <>
             {artistLine(transition.fromTrack.artists)}
             <span className="text-muted-foreground/70"> → </span>
             {artistLine(transition.toTrack.artists)}
-          </p>
-        </div>
+          </>
+        }
+      >
         <div className="flex flex-wrap items-center gap-2">
           {transition.technique ? <Badge variant="secondary">{transition.technique}</Badge> : null}
           {transition.intent ? <Badge variant="outline">{transition.intent}</Badge> : null}
@@ -225,7 +233,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
             </Link>
           </Button>
         </div>
-      </header>
+      </PageHeader>
 
       <form onSubmit={onSubmit} className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-3">
@@ -319,10 +327,10 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
       </form>
 
       <section className="border-border space-y-3 border-t pt-8">
-        <h2 className="text-section-title">Delete</h2>
-        <p className="text-body text-muted-foreground max-w-xl">
-          Removes this committed transition edge from the graph. Source submissions stay intact.
-        </p>
+        <SectionHeading
+          title="Delete"
+          hint="Removes this committed transition edge from the graph. Source submissions stay intact."
+        />
         {deleteError ? <Alert variant="destructive">{deleteError}</Alert> : null}
         <Button
           type="button"

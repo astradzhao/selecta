@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useEffect, useState, useTransition } from "react";
-import { SearchIcon } from "lucide-react";
 
 import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
@@ -14,7 +13,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@selecta/ui/components/dialog";
-import { Input } from "@selecta/ui/components/input";
+import { EmptyState } from "@selecta/ui/components/empty-state";
+import { ListSkeleton } from "@selecta/ui/components/list-skeleton";
+import { SearchField } from "@selecta/ui/components/search-field";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { ApiClientError } from "@/lib/api/client";
@@ -101,16 +102,12 @@ export function TrackPickerDialog({
         </DialogHeader>
 
         <div className="space-y-3 px-5 py-4">
-          <div className="relative">
-            <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search title or artist…"
-              className="ps-9"
-              autoFocus
-            />
-          </div>
+          <SearchField
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search title or artist…"
+            autoFocus
+          />
 
           {error ? <Alert variant="destructive">{error}</Alert> : null}
 
@@ -123,13 +120,15 @@ export function TrackPickerDialog({
             )}
           >
             {!hasSearched && pending ? (
-              <p className="text-muted-foreground px-4 py-8 text-center text-sm">
-                Loading library…
-              </p>
+              <ListSkeleton
+                rows={4}
+                aria-label="Loading library"
+                className="rounded-none border-0"
+              />
             ) : tracks.length === 0 ? (
-              <p className="text-muted-foreground px-4 py-8 text-center text-sm">
+              <EmptyState compact className="rounded-none border-0 px-4 py-8 text-center">
                 {query.trim() ? "No tracks match that search." : "Your library is empty."}
-              </p>
+              </EmptyState>
             ) : (
               <ul className="divide-border divide-y">
                 {tracks.map((track, index) => {

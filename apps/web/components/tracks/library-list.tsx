@@ -3,11 +3,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { SearchIcon, XIcon } from "lucide-react";
+import { XIcon } from "lucide-react";
 
 import { Button } from "@selecta/ui/components/button";
+import { EmptyState } from "@selecta/ui/components/empty-state";
 import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
+import { ListSkeleton } from "@selecta/ui/components/list-skeleton";
+import { SearchField } from "@selecta/ui/components/search-field";
+import { StatePanel } from "@selecta/ui/components/state-panel";
 
 import { ApiClientError } from "@/lib/api/client";
 import { getLibraryStats, listTracks, type ApiTrack } from "@/lib/tracks/api";
@@ -36,7 +40,7 @@ function sameTrackList(a: ApiTrack[], b: ApiTrack[]): boolean {
   return true;
 }
 
-export function LibraryList({ embedded = false }: { embedded?: boolean } = {}) {
+export function LibraryList() {
   const [query, setQuery] = useState("");
   const [subgenre, setSubgenre] = useState("");
   const [folder, setFolder] = useState("");
@@ -117,30 +121,17 @@ export function LibraryList({ embedded = false }: { embedded?: boolean } = {}) {
   }, [query, subgenre, folder]);
 
   return (
-    <div className={embedded ? "space-y-6" : "space-y-10"}>
-      {embedded ? null : (
-        <header className="border-border space-y-2 border-b pb-6">
-          <h1 className="text-page-title">Library</h1>
-          <p className="text-body text-muted-foreground max-w-xl">
-            Search your tracks or narrow the list by Subgenre and Folder.
-          </p>
-        </header>
-      )}
-
+    <div className="space-y-6">
       <section aria-label="Library filters" className="space-y-3">
         <div className="grid items-end gap-4 md:grid-cols-[minmax(0,2fr)_minmax(10rem,1fr)_minmax(10rem,1fr)]">
           <div className="space-y-2">
             <Label htmlFor="library-q">Search</Label>
-            <div className="relative">
-              <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-              <Input
-                id="library-q"
-                className="pl-10"
-                placeholder="Title or artist"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-              />
-            </div>
+            <SearchField
+              id="library-q"
+              placeholder="Title or artist"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="filter-subgenre">Subgenre</Label>
@@ -192,17 +183,9 @@ export function LibraryList({ embedded = false }: { embedded?: boolean } = {}) {
 
       <section aria-label="Tracks">
         {error && tracks.length === 0 ? (
-          <div className="border-border bg-surface-1 rounded-xl border px-5 py-6">
-            <h2 className="text-card-title">Library unavailable</h2>
-            <p className="text-body text-muted-foreground mt-1 max-w-xl">{error}</p>
-          </div>
+          <StatePanel variant="error" title="Library unavailable" description={error} />
         ) : isInitialLoading ? (
-          <div
-            className="border-border text-muted-foreground rounded-xl border px-5 py-10 text-sm"
-            aria-busy="true"
-          >
-            Loading library…
-          </div>
+          <ListSkeleton aria-label="Loading library" />
         ) : (
           <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
             {tracks.map((track) => (
@@ -235,22 +218,21 @@ export function LibraryList({ embedded = false }: { embedded?: boolean } = {}) {
               </li>
             ))}
             {hasFetched && tracks.length === 0 ? (
-              <li className="flex flex-col items-start gap-3 px-5 py-10">
-                <div>
-                  <h2 className="text-card-title">
-                    {hasFilters ? "No matching tracks" : "No tracks yet"}
-                  </h2>
-                  <p className="text-body text-muted-foreground mt-1">
-                    {hasFilters
+              <li>
+                <EmptyState
+                  title={hasFilters ? "No matching tracks" : "No tracks yet"}
+                  description={
+                    hasFilters
                       ? "Try clearing a filter or searching for something else."
-                      : "Add a track to start building your library."}
-                  </p>
-                </div>
-                {!hasFilters ? (
-                  <Button asChild size="sm">
-                    <Link href="/add">Add your first track</Link>
-                  </Button>
-                ) : null}
+                      : "Add a track to start building your library."
+                  }
+                >
+                  {!hasFilters ? (
+                    <Button asChild size="sm">
+                      <Link href="/add">Add your first track</Link>
+                    </Button>
+                  ) : null}
+                </EmptyState>
               </li>
             ) : null}
           </ul>

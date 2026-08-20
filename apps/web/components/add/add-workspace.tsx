@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { cn } from "@selecta/ui/lib/utils";
+import { PageHeader } from "@selecta/ui/components/page-header";
+import { SegmentedTab, SegmentedTabs } from "@selecta/ui/components/segmented-tabs";
 
 import { NewNoteForm } from "@/components/add/new-note-form";
 import { AddTrackFlow } from "@/components/tracks/add-track-flow";
@@ -35,39 +36,29 @@ export function AddWorkspace({ mode }: { mode: AddMode }) {
 
   return (
     <div className="space-y-10">
-      <header className="border-border space-y-4 border-b pb-6">
-        <div className="space-y-2">
-          <h1 className="text-page-title">Add</h1>
-          <p className="text-body text-muted-foreground max-w-xl">{active.description}</p>
-        </div>
-        <nav aria-label="Add modes" className="flex flex-wrap gap-1">
+      <PageHeader title="Add" description={active.description}>
+        <SegmentedTabs aria-label="Add modes">
           {MODES.map((item) => {
             const isActive = item.id === mode;
             const href = item.id === "track" ? "/add" : `/add?mode=${item.id}`;
             return (
-              <Link
+              <SegmentedTab
                 key={item.id}
-                href={href}
+                asChild
+                active={isActive}
                 onClick={(event) => {
                   event.preventDefault();
                   setMode(item.id);
                 }}
-                className={cn(
-                  "rounded-lg px-3 py-1.5 text-sm transition-colors",
-                  isActive
-                    ? "bg-selected text-selected-foreground"
-                    : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
-                )}
-                aria-current={isActive ? "page" : undefined}
               >
-                {item.label}
-              </Link>
+                <Link href={href}>{item.label}</Link>
+              </SegmentedTab>
             );
           })}
-        </nav>
-      </header>
+        </SegmentedTabs>
+      </PageHeader>
 
-      {mode === "track" ? <AddTrackFlow embedded /> : null}
+      {mode === "track" ? <AddTrackFlow /> : null}
       {mode === "transition" ? <NewNoteForm /> : null}
     </div>
   );

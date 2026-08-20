@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getNoteById, isNotesError, isPostgresConfigured, updateNote } from "@selecta/db";
 
 import { loadSerializedTrackLinks, serializeNote } from "@/lib/notes";
-import { startSubmissionWorkflow } from "@/lib/start-submission-workflow";
 
 /** Durable workflow continues after the update response. */
 export const maxDuration = 300;
@@ -126,6 +125,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const { note, extractionQueued } = await updateNote(id, body);
     let workflowRunId: string | undefined;
     if (extractionQueued) {
+      const { startSubmissionWorkflow } = await import("@/lib/start-submission-workflow");
       ({ workflowRunId } = await startSubmissionWorkflow(note.id, note.extractionVersion));
     }
     const trackLinks = await loadSerializedTrackLinks(note.id);

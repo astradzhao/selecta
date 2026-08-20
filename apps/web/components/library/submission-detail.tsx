@@ -6,6 +6,8 @@ import { useEffect, useState, useTransition } from "react";
 import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
 import { Label } from "@selecta/ui/components/label";
+import { PageBreadcrumb, PageHeader } from "@selecta/ui/components/page-header";
+import { StatePanel } from "@selecta/ui/components/state-panel";
 import { Textarea } from "@selecta/ui/components/textarea";
 
 import { SubmissionProposals } from "@/components/library/submission-proposals";
@@ -145,7 +147,7 @@ export function SubmissionDetail({ noteId }: { noteId: string }) {
   }
 
   if (loading && !note) {
-    return <p className="text-muted-foreground text-sm">Loading submission…</p>;
+    return <StatePanel variant="loading">Loading submission…</StatePanel>;
   }
 
   if (loadError || !note) {
@@ -163,19 +165,21 @@ export function SubmissionDetail({ noteId }: { noteId: string }) {
 
   return (
     <div className="space-y-10">
-      <header className="border-border space-y-2 border-b pb-6">
-        <p className="text-eyebrow">
-          <Link href={LIST_HREF} className="hover:text-foreground transition-colors">
-            Submissions
-          </Link>
-          {" / "}
-          Detail
-        </p>
-        <h1 className="text-page-title">Submission</h1>
-        <p className="text-body text-muted-foreground text-numeric">
-          Created {formatTimestamp(note.createdAt)}
-        </p>
-      </header>
+      <PageHeader
+        lead={
+          <PageBreadcrumb>
+            <Link href={LIST_HREF} className="hover:text-foreground transition-colors">
+              Submissions
+            </Link>
+            {" / "}
+            Detail
+          </PageBreadcrumb>
+        }
+        title="Submission"
+        description={
+          <span className="text-numeric">Created {formatTimestamp(note.createdAt)}</span>
+        }
+      />
 
       <div className="space-y-2">
         <Label htmlFor="submission-raw-text">Raw text</Label>
