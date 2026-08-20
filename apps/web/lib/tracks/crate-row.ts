@@ -5,9 +5,8 @@ export const CRATE_TRACK_GRID =
 export function formatBpmKey(
   bpm: number | null | undefined,
   musicalKey: string | null | undefined,
-): string | null {
-  const bpmPart = bpm != null && Number.isFinite(bpm) ? String(Math.round(bpm)) : null;
-  const keyPart = musicalKey?.trim() || null;
-  if (bpmPart && keyPart) return `${bpmPart} · ${keyPart}`;
-  return bpmPart ?? keyPart;
+): string {
+  const bpmPart = bpm != null && Number.isFinite(bpm) ? String(Math.round(bpm)) : "-";
+  const keyPart = musicalKey?.trim() || "-";
+  return `${bpmPart} / ${keyPart}`;
 }

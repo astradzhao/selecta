@@ -99,7 +99,7 @@ export function LibraryTrackRow({ track }: { track: ApiTrack }) {
             </span>
           </span>
         </span>
-        <CrateMeta empty={!bpmKey}>{bpmKey ?? "—"}</CrateMeta>
+        <CrateMeta empty={bpmKey === "- / -"}>{bpmKey}</CrateMeta>
         <CrateEdgeCount count={inbound} direction="in" />
         <CrateEdgeCount count={outbound} direction="out" />
         <CrateMeta always empty={!duration}>
@@ -117,7 +117,7 @@ export function LibraryTrackColumnHeader() {
       aria-hidden
     >
       <span>Track</span>
-      <span className="text-center">BPM · Key</span>
+      <span className="text-center">BPM / Key</span>
       <span className="text-center">In</span>
       <span className="text-center">Out</span>
       <span className="text-center">Time</span>
