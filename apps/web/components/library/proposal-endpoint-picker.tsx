@@ -1,23 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { CheckIcon } from "lucide-react";
 
-import { Alert } from "@selecta/ui/components/alert";
-import { Badge } from "@selecta/ui/components/badge";
-import { EmptyState } from "@selecta/ui/components/empty-state";
-import { Label } from "@selecta/ui/components/label";
-import { SearchField } from "@selecta/ui/components/search-field";
 import { SegmentedTab, SegmentedTabs } from "@selecta/ui/components/segmented-tabs";
 import { cn } from "@selecta/ui/lib/utils";
 
-import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { searchCatalog } from "@/lib/catalog/api";
+import { TrackPicker } from "@/components/tracks/track-picker";
 import type { CatalogTrack } from "@/lib/catalog/types";
 import { artistLine } from "@/lib/format";
 import type { ApiProposalCandidate, ReviewerEndpointBody } from "@/lib/proposals/types";
-import { listTracks, type ApiTrack } from "@/lib/tracks/api";
+import type { ApiTrack } from "@/lib/tracks/api";
+import type { TrackRowItem } from "@/lib/tracks/track-row-item";
 
 type ProposalMention = {
   mentionId?: string;
@@ -132,13 +127,9 @@ export function ProposalEndpointPicker({
 }) {
   const [tab, setTab] = useState<PickerTab>("suggested");
   const [query, setQuery] = useState("");
-  const [libraryTracks, setLibraryTracks] = useState<ApiTrack[]>([]);
-  const [catalogTracks, setCatalogTracks] = useState<CatalogTrack[]>([]);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [searching, setSearching] = useState(false);
-  const debouncedQuery = useDebouncedValue(query);
+  const [pickedLibrary, setPickedLibrary] = useState<ApiTrack | null>(null);
 
-  const candidates = mention?.candidates ?? [];
+  const candidates = useMemo(() => mention?.candidates ?? [], [mention?.candidates]);
   const selectedHandle = mention?.selectedCandidateId ?? null;
 
   const defaultQuery = useMemo(
@@ -146,55 +137,27 @@ export function ProposalEndpointPicker({
     [mention],
   );
 
-  useEffect(() => {
-    if (tab === "suggested") return;
-    let cancelled = false;
-    void (async () => {
-      const q = debouncedQuery.trim() || defaultQuery;
-      if (!q) {
-        setLibraryTracks([]);
-        setCatalogTracks([]);
-        setSearchError(null);
-        return;
-      }
-      setSearching(true);
-      try {
-        if (tab === "library") {
-          const response = await listTracks({ query: q, limit: 10 });
-          if (cancelled) return;
-          setLibraryTracks(response.tracks);
-          setSearchError(null);
-        } else {
-          const response = await searchCatalog(q, 10);
-          if (cancelled) return;
-          setCatalogTracks(response.results);
-          setSearchError(null);
-        }
-      } catch (err) {
-        if (cancelled) return;
-        setLibraryTracks([]);
-        setCatalogTracks([]);
-        setSearchError(err instanceof Error ? err.message : "Search failed.");
-      } finally {
-        if (!cancelled) setSearching(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [tab, debouncedQuery, defaultQuery]);
+  const suggestedItems: TrackRowItem[] = candidates.map((candidate) => ({
+    key: candidate.handle,
+    title: candidate.title,
+    artists: candidate.artists,
+    artworkUrl: candidate.artworkUrl ?? candidate.track?.artworkUrl,
+  }));
 
-  const searchResults = tab === "library" ? libraryTracks : catalogTracks;
+  const selectedSuggestedKey =
+    candidates.find((candidate) => endpointsEqual(value, endpointFromCandidate(candidate)))
+      ?.handle ?? null;
 
   const selectedLabel = useMemo(() => {
     if (!value) return null;
     if (value.kind === "spotify") return trackLabel(value.title, value.artists);
     const candidate = candidates.find((item) => (item.trackId ?? item.track?.id) === value.trackId);
     if (candidate) return trackLabel(candidate.title, candidate.artists);
-    const libraryTrack = libraryTracks.find((track) => track.id === value.trackId);
-    if (libraryTrack) return trackLabel(libraryTrack.title, libraryTrack.artists);
+    if (pickedLibrary && pickedLibrary.id === value.trackId) {
+      return trackLabel(pickedLibrary.title, pickedLibrary.artists);
+    }
     return "Track already in your library";
-  }, [value, candidates, libraryTracks]);
+  }, [value, candidates, pickedLibrary]);
 
   return (
     <section className="border-border space-y-4 rounded-xl border p-4">
@@ -255,84 +218,69 @@ export function ProposalEndpointPicker({
           </SegmentedTabs>
 
           {tab === "suggested" ? (
-            candidates.length > 0 ? (
-              <ul className="divide-border border-border divide-y overflow-hidden rounded-lg border">
-                {candidates.map((candidate) => {
-                  const endpoint = endpointFromCandidate(candidate);
-                  const badge = candidateBadge(candidate);
-                  return (
-                    <li key={candidate.handle}>
-                      <ResultRow
-                        title={candidate.title}
-                        artists={artistLine(candidate.artists)}
-                        badges={[badge, selectedHandle === candidate.handle ? "Parser pick" : null]}
-                        selected={endpointsEqual(value, endpoint)}
-                        disabled={disabled || !endpoint}
-                        onSelect={() => endpoint && onChange(endpoint)}
-                      />
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <EmptyState compact>
-                No suggestions for this mention. Search your library or the catalog instead.
-              </EmptyState>
-            )
+            <TrackPicker
+              source="items"
+              showSearch={false}
+              items={suggestedItems}
+              size="sm"
+              selectedIndicator="check"
+              selectedKey={selectedSuggestedKey}
+              disabled={disabled}
+              emptyNone="No suggestions for this mention. Search your library or the catalog instead."
+              emptyFiltered="No suggestions for this mention. Search your library or the catalog instead."
+              badges={(item) => {
+                const candidate = candidates.find((entry) => entry.handle === item.key);
+                if (!candidate) return [];
+                return [
+                  candidateBadge(candidate),
+                  selectedHandle === candidate.handle ? "Parser pick" : null,
+                ];
+              }}
+              onSelect={(item) => {
+                const candidate = candidates.find((entry) => entry.handle === item.key);
+                if (!candidate) return;
+                const endpoint = endpointFromCandidate(candidate);
+                if (endpoint) onChange(endpoint);
+              }}
+            />
+          ) : tab === "library" ? (
+            <TrackPicker
+              id={`${label}-search`}
+              source="library"
+              query={query}
+              onQueryChange={setQuery}
+              limit={10}
+              minQueryLength={1}
+              size="sm"
+              selectedIndicator="check"
+              selectedKey={value?.kind === "track" ? value.trackId : null}
+              disabled={disabled}
+              placeholder="Search your library"
+              emptyFiltered="No matches."
+              emptyNone="Type to search."
+              onSelect={(track) => {
+                setPickedLibrary(track);
+                onChange(endpointFromTrack(track));
+              }}
+            />
           ) : (
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label htmlFor={`${label}-search`} className="sr-only">
-                  Search {tab === "library" ? "your library" : "the catalog"}
-                </Label>
-                <SearchField
-                  id={`${label}-search`}
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder={tab === "library" ? "Search your library" : "Search catalog"}
-                  disabled={disabled}
-                />
-              </div>
-              {searchError ? <Alert variant="destructive">{searchError}</Alert> : null}
-              {searching ? (
-                <EmptyState compact>Searching…</EmptyState>
-              ) : searchResults.length > 0 ? (
-                <ul className="divide-border border-border divide-y overflow-hidden rounded-lg border">
-                  {searchResults.map((track) => {
-                    const endpoint =
-                      tab === "library"
-                        ? endpointFromTrack(track as ApiTrack)
-                        : endpointFromCatalog(track as CatalogTrack);
-                    const artists =
-                      tab === "library"
-                        ? artistLine((track as ApiTrack).artists)
-                        : artistLine((track as CatalogTrack).artists);
-                    return (
-                      <li
-                        key={
-                          tab === "library"
-                            ? (track as ApiTrack).id
-                            : (track as CatalogTrack).providerId
-                        }
-                      >
-                        <ResultRow
-                          title={track.title}
-                          artists={artists}
-                          badges={[tab === "catalog" ? "Will import" : null]}
-                          selected={endpointsEqual(value, endpoint)}
-                          disabled={disabled}
-                          onSelect={() => onChange(endpoint)}
-                        />
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <EmptyState compact>
-                  {query.trim() || defaultQuery ? "No matches." : "Type to search."}
-                </EmptyState>
-              )}
-            </div>
+            <TrackPicker
+              id={`${label}-search`}
+              source="catalog"
+              query={query}
+              onQueryChange={setQuery}
+              limit={10}
+              minQueryLength={1}
+              size="sm"
+              selectedIndicator="check"
+              selectedKey={value?.kind === "spotify" ? `spotify:${value.providerId}` : null}
+              disabled={disabled}
+              placeholder="Search catalog"
+              emptyFiltered="No matches."
+              emptyNone="Type to search."
+              badges={() => ["Will import"]}
+              onSelect={(track) => onChange(endpointFromCatalog(track))}
+            />
           )}
 
           <p className="text-caption">
@@ -344,50 +292,5 @@ export function ProposalEndpointPicker({
         </>
       )}
     </section>
-  );
-}
-
-function ResultRow({
-  title,
-  artists,
-  badges,
-  selected,
-  disabled,
-  onSelect,
-}: {
-  title: string;
-  artists: string;
-  badges: Array<string | null>;
-  selected: boolean;
-  disabled: boolean;
-  onSelect: () => void;
-}) {
-  const visibleBadges = badges.filter((badge): badge is string => Boolean(badge));
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      aria-pressed={selected}
-      onClick={onSelect}
-      className={cn(
-        "hover:bg-surface-2 flex w-full items-start gap-3 px-4 py-3 text-left transition-colors disabled:opacity-50",
-        selected && "bg-surface-3",
-      )}
-    >
-      <span className="min-w-0 flex-1 space-y-1">
-        <span className="text-card-title block truncate">{title}</span>
-        <span className="text-muted-foreground block truncate text-sm">{artists}</span>
-        {visibleBadges.length > 0 ? (
-          <span className="flex flex-wrap gap-1.5 pt-0.5">
-            {visibleBadges.map((badge) => (
-              <Badge key={badge} variant="secondary" className="font-normal">
-                {badge}
-              </Badge>
-            ))}
-          </span>
-        ) : null}
-      </span>
-      {selected ? <CheckIcon className="mt-0.5 size-4 shrink-0" aria-hidden /> : null}
-    </button>
   );
 }

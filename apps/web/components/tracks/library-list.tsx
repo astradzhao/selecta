@@ -1,11 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 
 import { Button } from "@selecta/ui/components/button";
-import { DataListRow } from "@selecta/ui/components/data-list";
 import { Input } from "@selecta/ui/components/input";
 import { SearchField } from "@selecta/ui/components/search-field";
 
@@ -15,8 +13,8 @@ import {
   FilteredListShell,
 } from "@/components/common/filtered-list-shell";
 import { TrackChips } from "@/components/tracks/track-chips";
+import { TrackRow } from "@/components/tracks/track-row";
 import { useFilteredList } from "@/hooks/use-filtered-list";
-import { artistLine } from "@/lib/format";
 import {
   fetchLibraryListIfStale,
   libraryCacheKey,
@@ -26,6 +24,7 @@ import {
 } from "@/lib/library-cache";
 import { formatListCount } from "@/lib/library/list-view-state";
 import type { TrackListFilters } from "@/lib/library/list-params";
+import { rowFromApiTrack } from "@/lib/tracks/track-row-item";
 
 const EMPTY_FILTERS: TrackListFilters = { query: "", subgenre: "", folder: "" };
 
@@ -113,24 +112,14 @@ export function LibraryList() {
       items={list.items}
       getItemKey={(track) => track.id}
       renderRow={(track) => (
-        <DataListRow className="items-center gap-3">
-          <Link href={`/tracks/${track.id}`}>
-            <div className="bg-muted relative size-12 shrink-0 overflow-hidden rounded-md">
-              {track.artworkUrl ? (
-                <Image src={track.artworkUrl} alt="" fill className="object-cover" sizes="48px" />
-              ) : null}
-            </div>
-            <div className="min-w-0 flex-1 space-y-1.5">
-              <div>
-                <p className="text-card-title truncate">{track.title}</p>
-                <p className="text-muted-foreground truncate text-sm">
-                  {artistLine(track.artists)}
-                </p>
-              </div>
-              <TrackChips subgenres={track.subgenres} />
-            </div>
-          </Link>
-        </DataListRow>
+        <TrackRow
+          item={rowFromApiTrack(track)}
+          size="md"
+          interaction="link"
+          href={`/tracks/${track.id}`}
+        >
+          <TrackChips subgenres={track.subgenres} />
+        </TrackRow>
       )}
       empty={{
         noneTitle: "No tracks yet",

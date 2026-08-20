@@ -2,22 +2,19 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
-import { EmptyState } from "@selecta/ui/components/empty-state";
 import { Input } from "@selecta/ui/components/input";
 import { Label } from "@selecta/ui/components/label";
-import { SearchField } from "@selecta/ui/components/search-field";
 import { SectionHeading } from "@selecta/ui/components/section-heading";
 import { Separator } from "@selecta/ui/components/separator";
 
-import { FolderTagEditor, type FolderTag } from "@/components/tracks/folder-tag-editor";
-import { TagEditor, type TagItem } from "@/components/tracks/tag-editor";
-import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { TagEditor, type FolderTag, type TagItem } from "@/components/tracks/tag-editor";
+import { TrackPicker } from "@/components/tracks/track-picker";
 import { describeApiError } from "@/lib/api/errors";
-import { searchCatalog, type CatalogTrack } from "@/lib/catalog/api";
+import type { CatalogTrack } from "@/lib/catalog/types";
 import { formatDuration } from "@/lib/format";
 import { invalidateLibraryCache } from "@/lib/library-cache";
 import { createTrack } from "@/lib/tracks/api";
@@ -28,9 +25,6 @@ export function AddTrackFlow() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("search");
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<CatalogTrack[]>([]);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [searchPending, startSearch] = useTransition();
   const [savePending, startSave] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -40,36 +34,6 @@ export function AddTrackFlow() {
   const [genres, setGenres] = useState<TagItem[]>([]);
   const [subgenres, setSubgenres] = useState<TagItem[]>([]);
   const [folders, setFolders] = useState<FolderTag[]>([]);
-  const debouncedQuery = useDebouncedValue(query);
-
-  useEffect(() => {
-    const trimmed = debouncedQuery.trim();
-    if (trimmed.length < 2) {
-      return;
-    }
-
-    let cancelled = false;
-    startSearch(async () => {
-      try {
-        const response = await searchCatalog(trimmed);
-        if (cancelled) return;
-        setResults(response.results);
-        setSearchError(null);
-      } catch (error) {
-        if (cancelled) return;
-        setResults([]);
-        setSearchError(describeApiError(error, { fallback: "Catalog search failed." }));
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [debouncedQuery]);
-
-  const showResults = query.trim().length >= 2;
-  const visibleResults = showResults ? results : [];
-  const visibleSearchError = showResults ? searchError : null;
 
   function openReview(track: CatalogTrack | null) {
     setCatalog(track);
@@ -131,67 +95,30 @@ export function AddTrackFlow() {
     <div className="space-y-6">
       {mode === "search" ? (
         <section className="space-y-4">
-          <SearchField
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search track or artist"
-            className="h-12 text-base"
+          <TrackPicker
+            source="catalog"
+            query={query}
+            onQueryChange={setQuery}
+            minQueryLength={2}
+            limit={10}
+            size="md"
             autoFocus
+            searchClassName="h-12 text-base"
+            placeholder="Search track or artist"
+            emptyFiltered="No catalog hits. Try another query or enter the track manually."
+            leading={
+              <Button type="button" variant="outline" onClick={() => openReview(null)}>
+                Enter manually
+              </Button>
+            }
+            onSelect={openReview}
+            trailing={(track) => (
+              <div className="text-numeric text-muted-foreground hidden text-right text-xs sm:block">
+                <p>{formatDuration(track.durationMs, "milliseconds") ?? "—"}</p>
+                <p>{track.releaseDate ?? track.provider}</p>
+              </div>
+            )}
           />
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Button type="button" variant="outline" onClick={() => openReview(null)}>
-              Enter manually
-            </Button>
-            {searchPending ? (
-              <span className="text-muted-foreground text-sm">Searching…</span>
-            ) : null}
-          </div>
-
-          {visibleSearchError ? <Alert variant="destructive">{visibleSearchError}</Alert> : null}
-
-          <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
-            {visibleResults.map((track) => (
-              <li key={`${track.provider}:${track.providerId}`}>
-                <button
-                  type="button"
-                  className="hover:bg-surface-2 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
-                  onClick={() => openReview(track)}
-                >
-                  <div className="bg-muted relative size-12 shrink-0 overflow-hidden rounded-md">
-                    {track.artworkUrl ? (
-                      <Image
-                        src={track.artworkUrl}
-                        alt=""
-                        fill
-                        className="object-cover"
-                        sizes="48px"
-                      />
-                    ) : null}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-card-title truncate">{track.title}</p>
-                    <p className="text-muted-foreground truncate text-sm">
-                      {track.artists.join(", ")}
-                    </p>
-                  </div>
-                  <div className="text-numeric text-muted-foreground hidden text-right text-xs sm:block">
-                    <p>{formatDuration(track.durationMs, "milliseconds") ?? "—"}</p>
-                    <p>{track.releaseDate ?? track.provider}</p>
-                  </div>
-                </button>
-              </li>
-            ))}
-            {!searchPending && showResults && visibleResults.length === 0 && !visibleSearchError ? (
-              <li>
-                <EmptyState
-                  compact
-                  className="rounded-none border-0"
-                  title="No catalog hits. Try another query or enter the track manually."
-                />
-              </li>
-            ) : null}
-          </ul>
         </section>
       ) : (
         <section className="space-y-6">
@@ -250,7 +177,14 @@ export function AddTrackFlow() {
             vocab="subgenres"
           />
 
-          <FolderTagEditor values={folders} onChange={setFolders} />
+          <TagEditor
+            kind
+            label="Folders / playlists"
+            hint="Organizational buckets for sets and crates — separate from musical Subgenres."
+            placeholder="Add playlist or folder, then Enter — or pick one below"
+            values={folders}
+            onChange={setFolders}
+          />
 
           {saveError ? <Alert variant="destructive">{saveError}</Alert> : null}
 

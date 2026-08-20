@@ -8,7 +8,6 @@ import { Alert } from "@selecta/ui/components/alert";
 import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
 import { EmptyState } from "@selecta/ui/components/empty-state";
-import { SearchField } from "@selecta/ui/components/search-field";
 import { StatePanel } from "@selecta/ui/components/state-panel";
 import { cn } from "@selecta/ui/lib/utils";
 
@@ -19,7 +18,8 @@ import {
   transitionFieldsFromEdge,
   type TransitionFieldValues,
 } from "@/components/tracks/transition-fields";
-import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { TrackPicker } from "@/components/tracks/track-picker";
+import { TrackRow } from "@/components/tracks/track-row";
 import { describeApiError } from "@/lib/api/errors";
 import { artistLine } from "@/lib/format";
 import {
@@ -34,13 +34,13 @@ import {
 } from "@/lib/motion";
 import {
   getTrackNeighborhood,
-  listTracks,
   type ApiNeighborhoodCurrent,
   type ApiNeighborhoodNeighbor,
   type ApiTrack,
   type ApiTransitionEdge,
 } from "@/lib/tracks/api";
 import { hopGraphSession, popGraphTrail, useGraphSession } from "@/lib/tracks/graph-session-store";
+import { rowFromApiTrack } from "@/lib/tracks/track-row-item";
 import { createTransition, deleteTransition, updateTransition } from "@/lib/transitions/api";
 
 /** Copy/meta opacity during a hop — opacity only, never translate/scale (those snap). */
@@ -612,37 +612,10 @@ function AddTransitionPanel({
   onCancel: () => void;
 }) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<ApiTrack[]>([]);
   const [selected, setSelected] = useState<ApiTrack | null>(null);
   const [form, setForm] = useState<TransitionFieldValues>(emptyTransitionFields());
   const [error, setError] = useState<string | null>(null);
-  const [searching, startSearch] = useTransition();
   const [saving, startSave] = useTransition();
-  const debouncedQuery = useDebouncedValue(query);
-  const visibleResults = query.trim() ? results : [];
-
-  useEffect(() => {
-    const live = query.trim();
-    if (!live || selected) return;
-    const q = debouncedQuery.trim();
-    if (!q) return;
-    let cancelled = false;
-    startSearch(async () => {
-      try {
-        const response = await listTracks({ query: q, limit: 8 });
-        if (cancelled) return;
-        setResults(response.tracks.filter((track) => track.id !== excludeTrackId));
-        setError(null);
-      } catch (err) {
-        if (cancelled) return;
-        setResults([]);
-        setError(describeApiError(err, { fallback: "Failed to search tracks." }));
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [query, debouncedQuery, selected, excludeTrackId]);
 
   function onSubmit() {
     if (!selected) {
@@ -689,10 +662,7 @@ function AddTransitionPanel({
 
       {selected ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2">
-          <div className="min-w-0">
-            <p className="text-card-title truncate">{selected.title}</p>
-            <p className="text-muted-foreground truncate text-xs">{artistLine(selected.artists)}</p>
-          </div>
+          <TrackRow item={rowFromApiTrack(selected)} size="sm" interaction="static" bare />
           <Button
             type="button"
             variant="outline"
@@ -700,45 +670,29 @@ function AddTransitionPanel({
             onClick={() => {
               setSelected(null);
               setQuery("");
-              setResults([]);
             }}
           >
             Change
           </Button>
         </div>
       ) : (
-        <div className="space-y-2">
-          <SearchField
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search library tracks"
-            aria-label="Search library tracks"
-          />
-          {searching ? <p className="text-caption">Searching…</p> : null}
-          {visibleResults.length > 0 ? (
-            <ul className="border-border max-h-40 space-y-1 overflow-y-auto rounded-lg border p-1">
-              {visibleResults.map((track) => (
-                <li key={track.id}>
-                  <button
-                    type="button"
-                    className="hover:bg-surface-2 w-full rounded-md px-2 py-1.5 text-left text-sm"
-                    onClick={() => {
-                      setSelected(track);
-                      setQuery("");
-                      setResults([]);
-                      setError(null);
-                    }}
-                  >
-                    <span className="text-card-title">{track.title}</span>
-                    <span className="text-muted-foreground block text-xs">
-                      {artistLine(track.artists)}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
+        <TrackPicker
+          source="library"
+          query={query}
+          onQueryChange={setQuery}
+          excludeIds={[excludeTrackId]}
+          limit={8}
+          minQueryLength={1}
+          size="sm"
+          placeholder="Search library tracks"
+          aria-label="Search library tracks"
+          listClassName="max-h-40 overflow-y-auto"
+          onSelect={(track) => {
+            setSelected(track);
+            setQuery("");
+            setError(null);
+          }}
+        />
       )}
 
       <TransitionFields
