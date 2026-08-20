@@ -3,7 +3,7 @@
 > Ticket: [DJ-138 — Move Add under Library as sub-pages and retire the top-level `/add` route](https://linear.app/dj-project-astradzhao/issue/DJ-138)
 > Related: [DJ-113](https://linear.app/dj-project-astradzhao/issue/DJ-113) (SET-3, manual transition form — its scope text becomes stale, see §9), [DJ-118](https://linear.app/dj-project-astradzhao/issue/DJ-118) (SET-8, `/add` deep links), [DJ-99](https://linear.app/dj-project-astradzhao/issue/DJ-99) (precedent for deleting a route instead of aliasing it)
 > Design source: [`UI_STYLE_GUIDE.md`](./UI_STYLE_GUIDE.md)
-> Status: **not started.**
+> Status: **implemented.**
 
 Work on branch `dj-138`. Commit per phase (five commits), one PR.
 
@@ -51,8 +51,8 @@ Read this before you start; several things are not where you would guess.
   error state**. See §6.4 — this is expected, not a bug you introduced.
 - `parseLibraryView` (`apps/web/lib/library/view.ts`) coerces anything unrecognized to `"tracks"`.
   That is fine for `?view=` but wrong for the back-link `?from=` param (§5.2).
-- The `next === "tracks" ? "/library" : \`/library?view=${next}\`` ternary is written out three times
-  in `library-workspace.tsx` (lines 60, 83) and once as a constant in `submission-detail.tsx:26`.
+- The Library view href ternary (tracks → `/library`, else `/library?view=…`) is written out in
+  `library-workspace.tsx` (setView + tab hrefs) and as a constant in `submission-detail.tsx`.
   §5.2 replaces it with one helper.
 - `apps/web/app/tracks/new/page.tsx` is **dead code**. `next.config.ts:26-29` already redirects
   `/tracks/new` at the config level, which runs before routing, so the page never renders.
@@ -65,14 +65,14 @@ Read this before you start; several things are not where you would guess.
 
 Copied from the ticket so you do not need to switch tabs. Do not relitigate these.
 
-| ID  | Question                                       | Decision                                                                                                                                                                                                 |
-| --- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | Keep `/add` as a redirect?                     | **No — delete it, let it 404.** Only `/tracks/new` and `/songs/new` keep their existing config redirects, retargeted at `/library/add/tracks`.                                                              |
-| D2  | Does Transitions get its own add page?          | **No.** Its button points at `/library/add/submissions?from=transitions`. `/library/add/transitions` is DJ-113's job. Do not build a transition form in this ticket.                                        |
-| D3  | Where do the add buttons go?                    | The `toolbar` slot of `FilteredListShell`, in all three lists. Not `PageHeader actions` (already occupied by the needs-review link).                                                                        |
-| D4  | Do the add components move folders?             | **No.** `components/add/` stays. Only `add-workspace.tsx` is deleted.                                                                                                                                     |
-| D5  | How does Back know where to return?             | A `?from=<library view>` param, matched against the exact list of views. An unrecognized value falls back to the page's own default view. **Never interpolate the raw param into an href.**                 |
-| D6  | New header component or a variant of `PageHeader`? | **Variant.** Add `size?: "page" \| "section"` to `packages/ui/src/components/page-header.tsx`. A near-duplicate sibling component is a documented anti-pattern in the style guide.                        |
+| ID  | Question                                           | Decision                                                                                                                                                                                    |
+| --- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Keep `/add` as a redirect?                         | **No — delete it, let it 404.** Only `/tracks/new` and `/songs/new` keep their existing config redirects, retargeted at `/library/add/tracks`.                                              |
+| D2  | Does Transitions get its own add page?             | **No.** Its button points at `/library/add/submissions?from=transitions`. `/library/add/transitions` is DJ-113's job. Do not build a transition form in this ticket.                        |
+| D3  | Where do the add buttons go?                       | The `toolbar` slot of `FilteredListShell`, in all three lists. Not `PageHeader actions` (already occupied by the needs-review link).                                                        |
+| D4  | Do the add components move folders?                | **No.** `components/add/` stays. Only `add-workspace.tsx` is deleted.                                                                                                                       |
+| D5  | How does Back know where to return?                | A `?from=<library view>` param, matched against the exact list of views. An unrecognized value falls back to the page's own default view. **Never interpolate the raw param into an href.** |
+| D6  | New header component or a variant of `PageHeader`? | **Variant.** Add `size?: "page" \| "section"` to `packages/ui/src/components/page-header.tsx`. A near-duplicate sibling component is a documented anti-pattern in the style guide.          |
 
 ### Explicitly out of scope
 
@@ -86,33 +86,33 @@ Copied from the ticket so you do not need to switch tabs. Do not relitigate thes
 
 ## 4. File map
 
-| Path                                                       | Disposition                                                   |
-| ---------------------------------------------------------- | ------------------------------------------------------------- |
-| `apps/web/app/add/page.tsx`                                | **delete** (and the now-empty `app/add/` directory)           |
-| `apps/web/app/tracks/new/page.tsx`                         | **delete** (dead code, §2)                                    |
-| `apps/web/components/add/add-workspace.tsx`                | **delete**                                                    |
-| `apps/web/lib/add/mode.ts`                                 | **delete** (and the now-empty `lib/add/` directory)           |
-| `apps/web/app/library/add/tracks/page.tsx`                 | **new**                                                       |
-| `apps/web/app/library/add/submissions/page.tsx`            | **new**                                                       |
-| `apps/web/components/add/add-page-shell.tsx`               | **new** — shared chrome for both add pages                    |
-| `apps/web/components/common/add-new-button.tsx`            | **new** — the toolbar button, used by all three lists         |
-| `apps/web/lib/library/add-routes.ts`                       | **new** — href builders                                       |
-| `apps/web/lib/library/add-routes.test.ts`                  | **new** — the only test in this ticket (§8)                   |
-| `packages/ui/src/components/page-header.tsx`               | edit — add the `size` variant                                 |
-| `apps/web/lib/library/view.ts`                             | edit — export an exact-match helper                           |
-| `apps/web/components/app-shell.tsx`                        | edit — drop the Add nav link                                  |
-| `apps/web/components/library/library-workspace.tsx`        | edit — use `libraryViewHref`                                  |
-| `apps/web/components/tracks/library-list.tsx`              | edit — toolbar button + empty CTA                             |
-| `apps/web/components/library/transitions-list.tsx`         | edit — toolbar button + empty CTA                             |
-| `apps/web/components/library/submissions-list.tsx`         | edit — retarget existing toolbar button + empty CTA           |
-| `apps/web/components/tracks/add-track-flow.tsx`            | edit — sub-page density pass (§7.2)                           |
-| `apps/web/components/add/new-submission-form.tsx`          | edit — dynamic cancel href (§7.3)                             |
-| `apps/web/app/page.tsx`                                    | edit — retarget two home CTAs                                 |
-| `apps/web/components/library/proposal-endpoint-picker.tsx` | edit — retarget one link                                      |
-| `apps/web/components/graph/add-transition-panel.tsx`       | edit — retarget one link                                      |
-| `apps/web/components/graph/next-transitions.tsx`           | edit — retarget one link                                      |
-| `apps/web/next.config.ts`                                  | edit — retarget two redirect destinations                     |
-| `dev-files/UI_STYLE_GUIDE.md`                              | edit — document the `PageHeader` variant (§10)                |
+| Path                                                       | Disposition                                           |
+| ---------------------------------------------------------- | ----------------------------------------------------- |
+| `apps/web/app/add/page.tsx`                                | **delete** (and the now-empty `app/add/` directory)   |
+| `apps/web/app/tracks/new/page.tsx`                         | **delete** (dead code, §2)                            |
+| `apps/web/components/add/add-workspace.tsx`                | **delete**                                            |
+| `apps/web/lib/add/mode.ts`                                 | **delete** (and the now-empty `lib/add/` directory)   |
+| `apps/web/app/library/add/tracks/page.tsx`                 | **new**                                               |
+| `apps/web/app/library/add/submissions/page.tsx`            | **new**                                               |
+| `apps/web/components/add/add-page-shell.tsx`               | **new** — shared chrome for both add pages            |
+| `apps/web/components/common/add-new-button.tsx`            | **new** — the toolbar button, used by all three lists |
+| `apps/web/lib/library/add-routes.ts`                       | **new** — href builders                               |
+| `apps/web/lib/library/add-routes.test.ts`                  | **new** — the only test in this ticket (§8)           |
+| `packages/ui/src/components/page-header.tsx`               | edit — add the `size` variant                         |
+| `apps/web/lib/library/view.ts`                             | edit — export an exact-match helper                   |
+| `apps/web/components/app-shell.tsx`                        | edit — drop the Add nav link                          |
+| `apps/web/components/library/library-workspace.tsx`        | edit — use `libraryViewHref`                          |
+| `apps/web/components/tracks/library-list.tsx`              | edit — toolbar button + empty CTA                     |
+| `apps/web/components/library/transitions-list.tsx`         | edit — toolbar button + empty CTA                     |
+| `apps/web/components/library/submissions-list.tsx`         | edit — retarget existing toolbar button + empty CTA   |
+| `apps/web/components/tracks/add-track-flow.tsx`            | edit — sub-page density pass (§7.2)                   |
+| `apps/web/components/add/new-submission-form.tsx`          | edit — dynamic cancel href (§7.3)                     |
+| `apps/web/app/page.tsx`                                    | edit — retarget two home CTAs                         |
+| `apps/web/components/library/proposal-endpoint-picker.tsx` | edit — retarget one link                              |
+| `apps/web/components/graph/add-transition-panel.tsx`       | edit — retarget one link                              |
+| `apps/web/components/graph/next-transitions.tsx`           | edit — retarget one link                              |
+| `apps/web/next.config.ts`                                  | edit — retarget two redirect destinations             |
+| `dev-files/UI_STYLE_GUIDE.md`                              | edit — document the `PageHeader` variant (§10)        |
 
 ---
 
@@ -146,17 +146,18 @@ function PageHeader({
     <header
       data-slot="page-header"
       data-size={size}
-      className={cn(
-        "space-y-4",
-        size === "page" ? "border-border border-b pb-6" : null,
-        className,
-      )}
+      className={cn("space-y-4", size === "page" ? "border-border border-b pb-6" : null, className)}
       {...props}
     >
       {lead}
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className={cn(size === "page" ? "text-page-title" : "text-section-title", "text-balance")}>
+          <h1
+            className={cn(
+              size === "page" ? "text-page-title" : "text-section-title",
+              "text-balance",
+            )}
+          >
             {title}
           </h1>
           {actions}
@@ -174,7 +175,7 @@ function PageHeader({
 Rules:
 
 - The element stays an `<h1>` in both sizes. It is still the page's only top-level heading; only the
-  *visual* role changes. Do not switch it to `<h2>`.
+  _visual_ role changes. Do not switch it to `<h2>`.
 - Do not invent a new spacing value. `space-y-4` is shared; the section variant just drops the
   border and the `pb-6`.
 
@@ -231,10 +232,7 @@ export function libraryAddHref(category: LibraryAddCategory, from?: LibraryView)
  * Where an add sub-page's Back link points. `from` arrives from the URL and is untrusted: anything
  * not an exact known view falls back to the page's own section.
  */
-export function libraryAddBackHref(
-  from: string | undefined | null,
-  fallback: LibraryView,
-): string {
+export function libraryAddBackHref(from: string | undefined | null, fallback: LibraryView): string {
   return libraryViewHref(matchLibraryView(from) ?? fallback);
 }
 ```
@@ -307,8 +305,8 @@ export function AddPageShell({
 
 Why each piece is there — keep all four, they are the redesign:
 
-| Choice                                | Signal it sends                                                                        |
-| ------------------------------------- | -------------------------------------------------------------------------------------- |
+| Choice                                | Signal it sends                                                                         |
+| ------------------------------------- | --------------------------------------------------------------------------------------- |
 | `max-w-2xl` inside the 5xl `AppShell` | A narrow column reads as a focused task, not a browsing surface                         |
 | `size="section"` + no bottom border   | Removes the two strongest "top-level page" cues (`text-page-title` and the header rule) |
 | `BackLink` in `lead`                  | An explicit way out that does not go through the nav                                    |
@@ -373,14 +371,14 @@ Reuse the existing description copy from `add-workspace.tsx:23-24` rather than w
 
 ### 6.3 Toolbar buttons
 
-| File                                               | Change                                                                                                                                                       |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `components/tracks/library-list.tsx:96-106`        | The `toolbar` already holds a conditional `ClearFiltersButton`. Wrap both in `<div className="flex items-center gap-2">{hasFilters ? <ClearFiltersButton … /> : null}<AddNewButton href={libraryAddHref("tracks")} label="Add track" /></div>` so the toolbar is now unconditionally present. |
-| `components/library/transitions-list.tsx`          | Add `toolbar={<AddNewButton href={libraryAddHref("submissions", "transitions")} label="Add transition" />}`. Leave its `ClearFiltersButton` in `filterBar` where it already is — do not move it.                                                                                             |
-| `components/library/submissions-list.tsx:119-126`  | Replace the inline `Button`/`Link` with `<AddNewButton href={libraryAddHref("submissions")} label="New submission" />`. Visual output is unchanged.                                                                                                                                          |
+| File                                              | Change                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `components/tracks/library-list.tsx:96-106`       | The `toolbar` already holds a conditional `ClearFiltersButton`. Wrap both in `<div className="flex items-center gap-2">{hasFilters ? <ClearFiltersButton … /> : null}<AddNewButton href={libraryAddHref("tracks")} label="Add track" /></div>` so the toolbar is now unconditionally present. |
+| `components/library/transitions-list.tsx`         | Add `toolbar={<AddNewButton href={libraryAddHref("submissions", "transitions")} label="Add transition" />}`. Leave its `ClearFiltersButton` in `filterBar` where it already is — do not move it.                                                                                              |
+| `components/library/submissions-list.tsx:119-126` | Replace the inline `Button`/`Link` with `<AddNewButton href={libraryAddHref("submissions")} label="New submission" />`. Visual output is unchanged.                                                                                                                                           |
 
 The Transitions button is labelled "Add transition" but lands on the submission page. That is
-correct and intentional: today writing a submission *is* how you author a transition. DJ-113
+correct and intentional: today writing a submission _is_ how you author a transition. DJ-113
 changes the destination, not the label.
 
 ### 6.4 Expected side effect — do not "fix" this
@@ -411,19 +409,19 @@ Then rewrite every remaining reference. This table is complete; it was produced 
 `rg -n '"/add' apps/web` against the current tree. Prefer `libraryAddHref(...)` over a literal
 string in every `.tsx` case.
 
-| File                                                | Line | Was                     | Becomes                                                     |
-| --------------------------------------------------- | ---- | ----------------------- | ----------------------------------------------------------- |
-| `components/app-shell.tsx`                          | 8    | `{ href: "/add", … }`   | **delete the entry** — `links` becomes Library + Graph       |
-| `app/page.tsx`                                      | 21   | `/add?mode=transition`  | `libraryAddHref("submissions")`                             |
-| `app/page.tsx`                                      | 27   | `/add`                  | `libraryAddHref("tracks")`                                  |
-| `components/tracks/library-list.tsx`                | 130  | `/add` (empty CTA)      | `libraryAddHref("tracks")`                                  |
-| `components/library/transitions-list.tsx`           | 243  | `/add?mode=transition`  | `libraryAddHref("submissions", "transitions")`               |
-| `components/library/submissions-list.tsx`           | 173  | `/add?mode=transition`  | `libraryAddHref("submissions")`                             |
-| `components/library/proposal-endpoint-picker.tsx`   | 288  | `/add`                  | `libraryAddHref("tracks")`                                  |
-| `components/graph/add-transition-panel.tsx`         | 75   | `/add`                  | `libraryAddHref("tracks")`                                  |
-| `components/graph/next-transitions.tsx`             | 86   | `/add` ("Add a track")  | `libraryAddHref("tracks")`                                  |
-| `next.config.ts`                                    | 27   | `/add?mode=track`       | `/library/add/tracks` (literal — config cannot import `@/`)  |
-| `next.config.ts`                                    | 32   | `/add?mode=track`       | `/library/add/tracks` (literal)                              |
+| File                                              | Line | Was                    | Becomes                                                     |
+| ------------------------------------------------- | ---- | ---------------------- | ----------------------------------------------------------- |
+| `components/app-shell.tsx`                        | 8    | `{ href: "/add", … }`  | **delete the entry** — `links` becomes Library + Graph      |
+| `app/page.tsx`                                    | 21   | `/add?mode=transition` | `libraryAddHref("submissions")`                             |
+| `app/page.tsx`                                    | 27   | `/add`                 | `libraryAddHref("tracks")`                                  |
+| `components/tracks/library-list.tsx`              | 130  | `/add` (empty CTA)     | `libraryAddHref("tracks")`                                  |
+| `components/library/transitions-list.tsx`         | 243  | `/add?mode=transition` | `libraryAddHref("submissions", "transitions")`              |
+| `components/library/submissions-list.tsx`         | 173  | `/add?mode=transition` | `libraryAddHref("submissions")`                             |
+| `components/library/proposal-endpoint-picker.tsx` | 288  | `/add`                 | `libraryAddHref("tracks")`                                  |
+| `components/graph/add-transition-panel.tsx`       | 75   | `/add`                 | `libraryAddHref("tracks")`                                  |
+| `components/graph/next-transitions.tsx`           | 86   | `/add` ("Add a track") | `libraryAddHref("tracks")`                                  |
+| `next.config.ts`                                  | 27   | `/add?mode=track`      | `/library/add/tracks` (literal — config cannot import `@/`) |
+| `next.config.ts`                                  | 32   | `/add?mode=track`      | `/library/add/tracks` (literal)                             |
 
 The three links reached from Graph and from proposal review are the ones most likely to be
 forgotten. They are not in the Library UI, but they all mean "I need a track that isn't in my
