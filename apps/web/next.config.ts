@@ -10,13 +10,7 @@ loadRootEnv(resolve(dirname(fileURLToPath(import.meta.url)), "../.."));
 const apiOrigin = process.env.API_ORIGIN ?? "http://localhost:3001";
 
 const nextConfig: NextConfig = {
-  transpilePackages: [
-    "@selecta/db",
-    "@selecta/library",
-    "@selecta/mix-notes",
-    "@selecta/submissions",
-    "@selecta/ui",
-  ],
+  transpilePackages: ["@selecta/db", "@selecta/library", "@selecta/submissions", "@selecta/ui"],
   images: {
     remotePatterns: [
       {

@@ -11,7 +11,7 @@ import {
   type SubmissionAgentServices,
   type SearchCandidatesOutput,
   type SearchQueriesInput,
-} from "@selecta/mix-notes";
+} from "@selecta/agentics/submission-parser";
 
 function emptyResults(input: SearchQueriesInput): SearchCandidatesOutput {
   return {

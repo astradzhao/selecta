@@ -6,7 +6,7 @@ import {
   type SubmissionProcessingPlan,
   type SubmissionTransitionPlan,
   type SingleTransitionDraft,
-} from "@selecta/mix-notes";
+} from "@selecta/agentics/submission-parser";
 import { isPostgresConfigured } from "@selecta/db";
 import { getProposalById, updateProposalGuarded } from "@selecta/submissions";
 

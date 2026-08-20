@@ -17,7 +17,7 @@ import {
   type ConfidenceLevel,
   type ParseSingleTransitionReceipt,
   type SingleTransitionDraft,
-} from "@selecta/mix-notes";
+} from "@selecta/agentics/submission-parser";
 import { isPostgresConfigured, runInDbTransaction, type SubmissionProposal } from "@selecta/db";
 import {
   claimProposal,
@@ -130,7 +130,7 @@ export async function beginOrchestration(
 
 /**
  * Resolve model + orchestrator prompts in a step so the workflow sandbox
- * never imports @selecta/mix-notes (and its node:crypto graph).
+ * never imports @selecta/agentics/submission-parser (and its node:crypto graph).
  */
 export async function resolveOrchestratorConfig(
   ctx: OrchestratorContext,

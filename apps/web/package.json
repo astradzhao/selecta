@@ -13,7 +13,6 @@
   "dependencies": {
     "@selecta/db": "workspace:*",
     "@selecta/library": "workspace:*",
-    "@selecta/mix-notes": "workspace:*",
     "@selecta/submissions": "workspace:*",
     "@selecta/ui": "workspace:*",
     "lucide-react": "^1.28.0",

@@ -1,4 +1,4 @@
-/** NL parse / preview / commit orchestration + schemas (M3). */
+/** Submission NL parse / preview / commit orchestration + schemas. */
 
 import { ORCHESTRATOR_PROMPT_VERSION } from "./agent/orchestrator-prompt";
 
@@ -116,10 +116,10 @@ export {
 } from "./agent/limits";
 export { providerFromModel } from "./agent/provider";
 
-export function getMixNotesStatus() {
+export function getSubmissionParserStatus() {
   return {
     configured: true as const,
-    feature: "mix-notes" as const,
+    feature: "submission-parser" as const,
     promptVersion: ORCHESTRATOR_PROMPT_VERSION,
   };
 }

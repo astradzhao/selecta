@@ -14,7 +14,6 @@ const nextConfig: NextConfig = {
     "@selecta/catalog",
     "@selecta/db",
     "@selecta/library",
-    "@selecta/mix-notes",
     "@selecta/submissions",
   ],
 };

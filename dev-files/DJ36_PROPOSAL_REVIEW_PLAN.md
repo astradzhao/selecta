@@ -26,11 +26,11 @@ ticket much more than a data-modelling ticket.
 | Capability                                                                                                | Where                                                                                                                                     |
 | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `note_proposals` rows with span offsets, `draft`, `resolution`, `policy_result`, `attempt_count`, `error` | `packages/db/src/schema.ts` L178–220                                                                                                      |
-| Stable idempotency keys (`proposal_key`, `(note_id, extraction_version, source_fingerprint)`)             | same file; `packages/mix-notes/src/agent/proposal-key.ts`                                                                                 |
+| Stable idempotency keys (`proposal_key`, `(note_id, extraction_version, source_fingerprint)`)             | same file; `packages/agentics/src/submission-parser/agent/proposal-key.ts`                                                                |
 | Statuses incl. unused `rejected`                                                                          | `noteProposalStatusEnum`, `packages/db/src/schema.ts` L50–60                                                                              |
 | Ranked candidates (≤5 per mention) persisted                                                              | `note_proposals.resolution.candidates`, written in `resolveAndApplyProposals` (`apps/api/workflows/process-submission.steps.ts` L365–379) |
 | Gate reasons persisted                                                                                    | `policy_result.reviewReasons` (same step)                                                                                                 |
-| Deterministic policy + single music writer                                                                | `evaluateProposalPolicy`, `applyProposalPolicy` (`packages/mix-notes/src/agent/`)                                                         |
+| Deterministic policy + single music writer                                                                | `evaluateProposalPolicy`, `applyProposalPolicy` (`packages/agentics/src/submission-parser/agent/`)                                        |
 | ACID commit + idempotent edge insert                                                                      | `runInDbTransaction` (`packages/db/src/executor.ts`), `commitTransitionProposal` (`packages/db/src/music/transitions.ts` L601–667)        |
 | Commit audit incl. unused `rejected` status                                                               | `note_transition_commits`                                                                                                                 |
 | Partial-success rollup                                                                                    | `deriveSubmissionExtractionStatus` (`packages/db/src/proposals.ts` L241–281)                                                              |
@@ -225,7 +225,7 @@ Server sequence, entirely inside one `runInDbTransaction`:
 1. CAS-load the proposal: `status ∈ {needs_review, failed}` and
    `updated_at = expectedUpdatedAt`; `committed` → 200 `{ alreadyCommitted: true }`
    with the existing transition; `superseded`/`rejected` → 409.
-2. `buildReviewerPolicyResult()` (new, `packages/mix-notes`) turns reviewer input
+2. `buildReviewerPolicyResult()` (new, `packages/agentics/src/submission-parser`) turns reviewer input
    into a normal `ProposalPolicyResult` with `decision: "auto_commit"`, imports
    for `spotify` endpoints, `resolvedTrackIdsByMention` for `track` endpoints,
    and a plan carrying the edited transition fields.
@@ -363,7 +363,7 @@ last.
   `refreshSubmissionExtractionStatus`, review fields on `UpdateProposalInput`,
   review-event insert helper.
 - `packages/db/src/music/transitions.ts`: `countTransitionsBetween`.
-- `packages/mix-notes/src/agent/reviewer-policy.ts`: `buildReviewerPolicyResult`
+- `packages/agentics/src/submission-parser/agent/reviewer-policy.ts`: `buildReviewerPolicyResult`
   (+ validation that endpoints are `track`/`spotify` only).
 - `apps/api/app/proposals/[id]/approve/route.ts`, `…/reject/route.ts`,
   `…/resolve/route.ts`, `PATCH` in `…/[id]/route.ts`.

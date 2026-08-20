@@ -1,7 +1,7 @@
 import { type SubmissionProposal, type SubmissionTransitionCommit } from "@selecta/db";
 import { getTrackSummariesByIds, type TrackSummary } from "@selecta/library";
 import { type ProposalDetail } from "@selecta/submissions";
-import { parseCandidateHandle } from "@selecta/mix-notes";
+import { parseCandidateHandle } from "@selecta/agentics/submission-parser";
 
 export type SerializedTrackSummary = {
   id: string;
