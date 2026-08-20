@@ -85,7 +85,6 @@ export function LibraryWorkspace({ view }: { view: LibraryView }) {
         }
       >
         <div className="space-y-4">
-          <AddNewButton href={ADD_ACTIONS[view].href} label={ADD_ACTIONS[view].label} />
           <SegmentedTabs aria-label="Library views">
             {VIEWS.map((item) => {
               const isActive = item.id === view;
@@ -105,6 +104,7 @@ export function LibraryWorkspace({ view }: { view: LibraryView }) {
               );
             })}
           </SegmentedTabs>
+          <AddNewButton href={ADD_ACTIONS[view].href} label={ADD_ACTIONS[view].label} />
         </div>
       </PageHeader>
 
