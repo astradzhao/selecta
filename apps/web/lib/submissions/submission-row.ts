@@ -2,7 +2,7 @@ import type { ApiSubmission } from "./types";
 
 /** Shared column geometry for the Library submissions header and each note row. */
 export const CRATE_SUBMISSION_GRID =
-  "grid grid-cols-[minmax(0,1fr)_8.5rem_3.5rem] items-center gap-3.5 px-3.5 sm:grid-cols-[minmax(0,1fr)_8.5rem_4.75rem_4.25rem_3.5rem]";
+  "grid grid-cols-[minmax(0,1fr)_8.5rem_3.5rem] items-center gap-3.5 px-3.5 sm:grid-cols-[minmax(0,1fr)_8.5rem_9.5rem_3.5rem]";
 
 export type SubmissionRowInput = Pick<
   ApiSubmission,

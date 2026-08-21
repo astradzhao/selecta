@@ -318,7 +318,7 @@
       .thead,
       .row {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 136px 76px 68px 56px;
+        grid-template-columns: minmax(0, 1fr) 136px 152px 56px;
         align-items: center;
         gap: 14px;
         padding: 0 14px;
@@ -334,8 +334,13 @@
         text-transform: uppercase;
         color: var(--muted-foreground);
       }
-      .center {
-        text-align: center;
+      .row > span:nth-child(2) {
+        display: flex;
+        justify-content: center;
+      }
+      /* Status already covers review state; keep one count column. */
+      .row > .num-cell + .num-cell {
+        display: none;
       }
 
       /* Group label: explains why the order is not purely chronological. */
@@ -693,9 +698,8 @@
 
             <div class="thead" aria-hidden="true">
               <span>Note</span>
-              <span>Status</span>
-              <span class="num-col center">Committed</span>
-              <span class="num-col center">Review</span>
+              <span class="center">Status</span>
+              <span class="num-col center"># of transitions</span>
               <span class="center">Added</span>
             </div>
 
@@ -983,10 +987,10 @@
             the column before any text is read.
           </li>
           <li>
-            <b>Counts become columns, not a run-on caption.</b> Today the row ends with “1 committed
-            · 2 need review · 1 failed” <em>and</em> a Review badge <em>and</em> a timestamp in one
-            wrapping line. Committed and Review get their own centered numeric columns with the
-            crate’s em-dash-when-zero rule, so rows line up.
+            <b>The count is transitions, not another status.</b> Status already says committed /
+            needs review / failed, so a Review column just restated the badge. The remaining numeric
+            column is how many transitions this note actually wrote into the graph (em dash when
+            zero).
           </li>
           <li>
             <b>The second line answers “what happened to this note”.</b> Proposal count plus the one

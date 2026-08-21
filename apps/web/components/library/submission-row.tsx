@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { AlertTriangleIcon, CheckIcon, ListIcon, LoaderCircleIcon, XIcon } from "lucide-react";
 
 import { DataListRow } from "@selecta/ui/components/data-list";
@@ -48,35 +47,10 @@ function StatusTile({ status }: { status: ApiSubmission["extractionStatus"] }) {
   );
 }
 
-function CountCell({
-  value,
-  tone,
-  icon,
-}: {
-  value: number;
-  tone?: "success" | "warning";
-  icon?: ReactNode;
-}) {
-  if (value <= 0) {
-    return (
-      <span className="text-crate-meta hidden text-center opacity-40 sm:block" aria-hidden>
-        —
-      </span>
-    );
-  }
-
+function CountCell({ value }: { value: number }) {
   return (
-    <span
-      className={cn(
-        "text-crate-meta hidden justify-center font-medium sm:flex",
-        tone === "success" && "text-success",
-        tone === "warning" && "text-warning",
-      )}
-    >
-      <span className="inline-flex items-center gap-1">
-        {icon}
-        {value}
-      </span>
+    <span className={cn("text-crate-meta hidden text-center sm:block", value <= 0 && "opacity-40")}>
+      {value > 0 ? value : "—"}
     </span>
   );
 }
@@ -134,15 +108,10 @@ export function LibrarySubmissionRow({ submission }: { submission: ApiSubmission
             ) : null}
           </span>
         </span>
-        <span className="min-w-0">
+        <span className="flex min-w-0 justify-center">
           <ExtractionStatusBadge status={submission.extractionStatus} />
         </span>
-        <CountCell
-          value={counts?.committed ?? 0}
-          tone="success"
-          icon={<CheckIcon className="size-3" aria-hidden />}
-        />
-        <CountCell value={counts?.needsReview ?? 0} tone="warning" />
+        <CountCell value={counts?.committed ?? 0} />
         <span className="text-crate-meta text-center" title={formatTimestamp(submission.createdAt)}>
           {formatCompactAge(submission.createdAt)}
         </span>
@@ -158,9 +127,8 @@ export function LibrarySubmissionColumnHeader() {
       aria-hidden
     >
       <span>Note</span>
-      <span>Status</span>
-      <span className="text-center">Committed</span>
-      <span className="text-center">Review</span>
+      <span className="text-center">Status</span>
+      <span className="text-center whitespace-nowrap"># of transitions</span>
       <span className="text-center">Added</span>
     </div>
   );
