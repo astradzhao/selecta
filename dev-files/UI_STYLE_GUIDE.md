@@ -22,32 +22,33 @@ is the wash behind `text-X`.
 
 ### Surfaces and chrome
 
-| Token                                         | Use                                                |
-| --------------------------------------------- | -------------------------------------------------- |
-| `--background` / `--foreground`               | Page canvas and default ink                        |
-| `--card` / `--popover`                        | Raised panels (dialogs, menus)                     |
-| `--muted` / `--muted-foreground`              | Recessed fill and secondary copy                   |
-| `--border` / `--input` / `--ring`             | Hairlines, field chrome, focus rings               |
-| `--surface-1` / `--surface-2` / `--surface-3` | Elevation steps (replaces `bg-muted/NN`)           |
-| `--overlay`                                   | Dialog/scrim (`bg-overlay`)                        |
-| `--selected` / `--selected-foreground`        | Active nav/tab wash (`bg-brand-subtle text-brand`) |
-| `--highlight` / `--highlight-foreground`      | Inline source-span highlight                       |
+| Token                                         | Use                                                              |
+| --------------------------------------------- | ---------------------------------------------------------------- |
+| `--background` / `--foreground`               | Page canvas and default ink                                      |
+| `--card` / `--popover`                        | Raised panels (dialogs, menus)                                   |
+| `--muted` / `--muted-foreground`              | Recessed fill and secondary copy                                 |
+| `--border` / `--input` / `--ring`             | Hairlines, field chrome, focus rings                             |
+| `--surface-1` / `--surface-2` / `--surface-3` | Elevation steps (replaces `bg-muted/NN`)                         |
+| `--overlay`                                   | Dialog/scrim (`bg-overlay`)                                      |
+| `--selected` / `--selected-foreground`        | Active nav/tab cue (`after:bg-selected`, ink is page foreground) |
+| `--highlight` / `--highlight-foreground`      | Inline source-span highlight                                     |
 
-`--primary` is the filled CTA and shares Sonar's teal hue. In dark it sits
-**darker** than `--brand` so a solid button never becomes the brightest object
-on the page. `--brand` is the chromatic accent for connectivity chrome (edge
-counts, transition arrows, active-tab text). `variant="brand"` is the teal
-wash (`bg-brand-subtle text-brand`), not a second solid fill.
+`--primary` is the **soft CTA wash** (pale lavender + hairline), not a solid
+fill. `--primary-foreground` is the ink on that wash. `--brand` is the
+chromatic accent for connectivity chrome (edge counts, transition arrows,
+the 2px active-tab marker). `variant="brand"` is the same lavender wash
+(`bg-brand-subtle text-brand`). Links and checked-field chrome use `--brand`,
+never `--primary`, because `--primary` is a wash and would disappear as text.
 
 ### Status
 
-| Token           | Use                                   |
-| --------------- | ------------------------------------- |
-| `--brand`       | Accent chrome, `variant="brand"` wash |
-| `--success`     | Committed / complete                  |
-| `--warning`     | Needs review / caution                |
-| `--info`        | Neutral notices                       |
-| `--destructive` | Failed / irreversible                 |
+| Token           | Use                                               |
+| --------------- | ------------------------------------------------- |
+| `--brand`       | Accent chrome, cue marker, `variant="brand"` wash |
+| `--success`     | Committed / complete                              |
+| `--warning`     | Needs review / caution                            |
+| `--info`        | Neutral notices                                   |
+| `--destructive` | Failed / irreversible                             |
 
 Recipe for status text on a wash: `bg-X-subtle text-X`. Warning is the
 exception to invert-solid: `--warning-foreground` stays dark in both themes,
@@ -61,21 +62,22 @@ Do not recreate opacity ladders with `bg-foreground/45`.
 
 ### Contrast (WCAG AA 4.5:1, normal text)
 
-Verified pairs for the Sonar theme (teal 197, cool neutrals). Dark
+Verified pairs for the Haze theme (lavender 305, violet-tinted neutrals). Dark
 `--destructive` solid + white is still too weak — components use
 `bg-destructive-subtle text-destructive`.
 
-| Pair                                      | Light   | Dark   |
-| ----------------------------------------- | ------- | ------ |
-| `--primary` / `--primary-foreground`      | 5.09:1  | 6.99:1 |
-| `--brand` as text on `--background`       | 5.12:1  | 8.86:1 |
-| `--brand` / `--brand-subtle` (active tab) | 4.54:1  | 6.25:1 |
-| `--success` / `--success-subtle`          | 5.38:1  | 6.28:1 |
-| `--warning` as text on `--background`     | 5.13:1  | pass   |
-| `--info` as text on `--background`        | 5.66:1  | pass   |
-| `--destructive` as text on `--background` | 5.55:1  | 7.04:1 |
-| `--muted-foreground` on `--background`    | 4.78:1  | 6.12:1 |
-| `--highlight` / `--highlight-foreground`  | 13.03:1 | pass   |
+| Pair                                       | Light   | Dark    |
+| ------------------------------------------ | ------- | ------- |
+| `--primary` / `--primary-foreground`       | 6.87:1  | 7.74:1  |
+| `--brand` as text on `--background`        | 6.03:1  | 9.76:1  |
+| `--brand` / `--brand-subtle` (chip, arrow) | 5.28:1  | 7.11:1  |
+| `--selected` marker on `--background`      | 6.03:1  | 9.76:1  |
+| `--success` / `--success-subtle`           | 5.38:1  | 6.28:1  |
+| `--warning` / `--warning-subtle`           | 4.65:1  | 6.50:1  |
+| `--info` / `--info-subtle`                 | 5.12:1  | 5.84:1  |
+| `--destructive` / `--destructive-subtle`   | 4.97:1  | 5.25:1  |
+| `--muted-foreground` on `--background`     | 4.80:1  | 6.09:1  |
+| `--highlight` / `--highlight-foreground`   | 13.03:1 | 10.36:1 |
 
 Check **both** themes before merging UI.
 

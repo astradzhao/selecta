@@ -9,7 +9,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/80",
+        default:
+          "border-[color-mix(in_oklch,var(--brand)_28%,transparent)] bg-primary text-primary-foreground hover:bg-[color-mix(in_oklch,var(--primary),var(--brand)_12%)]",
         brand:
           "bg-brand-subtle text-brand hover:bg-[color-mix(in_oklch,var(--brand-subtle),var(--brand)_12%)]",
         outline:
@@ -25,7 +26,7 @@ const buttonVariants = cva(
         warning:
           "bg-warning-subtle text-warning hover:bg-[color-mix(in_oklch,var(--warning-subtle),var(--warning)_12%)]",
         info: "bg-info-subtle text-info hover:bg-[color-mix(in_oklch,var(--info-subtle),var(--info)_12%)]",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-brand underline-offset-4 hover:underline",
       },
       size: {
         default:
