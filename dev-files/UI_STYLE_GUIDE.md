@@ -27,11 +27,11 @@ is the wash behind `text-X`.
 | `--background` / `--foreground`                                 | Page canvas and default ink                                      |
 | `--card` / `--popover`                                          | Raised panels (dialogs, menus)                                   |
 | `--muted` / `--muted-foreground`                                | Recessed fill and secondary copy                                 |
-| `--tertiary` / `--tertiary-foreground`                          | Quiet gray fill. Crate chips, intent, ok-quality, neutral status |
+| `--tertiary` / `--tertiary-foreground`                          | Quiet gray fill. Neutral status, not labels                      |
 | `--accent` / `--accent-foreground`                              | shadcn hover fill (= muted). **Not** the theme accent            |
 | `--primary` / `--primary-foreground`                            | Lavender CTA wash + ink on that wash                             |
 | `--brand` / `--brand-foreground` / `--brand-subtle`             | Chromatic theme accent (lavender 305). Use this, not `--accent`  |
-| `--secondary` / `--secondary-foreground` / `--secondary-subtle` | Mix-partner teal 197. Supporting CTAs only — not chips           |
+| `--secondary` / `--secondary-foreground` / `--secondary-subtle` | Mix-partner teal 197. Button wash; Badge hairline on gray chips  |
 | `--border` / `--input` / `--ring`                               | Hairlines, field chrome, focus rings                             |
 | `--surface-1` / `--surface-2` / `--surface-3`                   | Elevation steps (replaces `bg-muted/NN`)                         |
 | `--overlay`                                                     | Dialog/scrim (`bg-overlay`)                                      |
@@ -43,23 +43,23 @@ fill. `--primary-foreground` is the ink on that wash. `--brand` is the
 chromatic accent for connectivity chrome (edge counts, transition arrows,
 the 2px active-tab marker). `variant="brand"` is the same lavender wash
 (`bg-brand-subtle text-brand`). `--secondary` is the **teal mix partner**
-(hue 197), rationed to supporting CTAs like **Add a track**
-(`bg-secondary-subtle text-secondary`). Do not use it on crate chips, intent,
-technique, or ok-quality — those stay `--tertiary`, the quiet gray
-`--secondary` used to be. Links and checked-field chrome use `--brand`, never
+(hue 197): `Button variant="secondary"` is the supporting CTA wash (**Add a
+track**); `Badge variant="secondary"` keeps the quiet gray fill and text
+(`bg-tertiary text-tertiary-foreground`) and only the hairline is teal.
+Ok-quality stays non-teal. Links and checked-field chrome use `--brand`, never
 `--primary`, because `--primary` is a wash and would disappear as text.
 
 ### Status
 
-| Token           | Use                                               |
-| --------------- | ------------------------------------------------- |
-| `--brand`       | Accent chrome, cue marker, `variant="brand"` wash |
-| `--secondary`   | Teal supporting CTA only (`variant="secondary"`)  |
-| `--tertiary`    | Quiet gray chips, ok-quality, neutral status      |
-| `--success`     | Committed / complete                              |
-| `--warning`     | Needs review / caution                            |
-| `--info`        | Neutral notices                                   |
-| `--destructive` | Failed / irreversible                             |
+| Token           | Use                                                          |
+| --------------- | ------------------------------------------------------------ |
+| `--brand`       | Accent chrome, cue marker, `variant="brand"` wash            |
+| `--secondary`   | Teal CTA wash (button) / teal hairline on gray chips (badge) |
+| `--tertiary`    | Quiet gray fill, neutral status                              |
+| `--success`     | Committed / complete                                         |
+| `--warning`     | Needs review / caution                                       |
+| `--info`        | Neutral notices                                              |
+| `--destructive` | Failed / irreversible                                        |
 
 Recipe for status text on a wash: `bg-X-subtle text-X`. Warning is the
 exception to invert-solid: `--warning-foreground` stays dark in both themes,

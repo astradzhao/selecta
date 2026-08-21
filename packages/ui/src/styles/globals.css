@@ -82,9 +82,10 @@
    * Haze (lavender 305). Semantic roles — use these names, never a raw hue:
    *
    *   --brand       chromatic theme accent, lavender 305 (edge counts, cue marker, graph)
-   *   --secondary   mix-partner accent, teal 197. Scarce: supporting CTAs (Add a track).
-   *                 Not chips, not labels — those stay --tertiary.
-   *   --tertiary    quiet gray fill. Crate chips, intent/technique, ok-quality, neutral status.
+   *   --secondary   mix-partner accent, teal 197. Scarce:
+   *                   Button: supporting CTA wash (Add a track).
+   *                   Badge: teal hairline only; fill and text stay tertiary gray.
+   *   --tertiary    quiet gray fill. Neutral status. Not labels.
    *   --primary     CTA wash (pale brand + hairline). Not a solid fill.
    *   --selected    active-tab cue (same ink as brand). Label uses --selected-foreground.
    *   --success     committed / complete
