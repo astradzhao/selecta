@@ -86,11 +86,11 @@ export function NextTransitions({
             <Button type="button" size="sm" onClick={onToggleAdd}>
               Add transition
             </Button>
+            <Button asChild size="sm">
+              <Link href={libraryAddHref("tracks")}>Add a track</Link>
+            </Button>
             <Button type="button" variant="outline" size="sm" onClick={onExit}>
               Choose another track
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href={libraryAddHref("tracks")}>Add a track</Link>
             </Button>
           </div>
         </EmptyState>
