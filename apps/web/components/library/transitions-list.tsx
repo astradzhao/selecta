@@ -194,7 +194,7 @@ export function TransitionsList() {
         filteredTitle: "No matching transitions",
         action: (
           <Button asChild size="sm">
-            <Link href={libraryAddHref("submissions", "transitions")}>Add a transition</Link>
+            <Link href={libraryAddHref("transitions")}>Add a transition</Link>
           </Button>
         ),
       }}

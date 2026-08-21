@@ -1,0 +1,1067 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Selecta — Add transition mock</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Tokens from packages/ui/src/styles/globals.css — no new colors. */
+      [data-theme="light"] {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --border: oklch(0.922 0 0);
+        --input: oklch(0.922 0 0);
+        --surface-1: oklch(0.985 0 0);
+        --surface-2: oklch(0.97 0 0);
+        --surface-3: oklch(0.94 0 0);
+        --primary: oklch(0.205 0 0);
+        --primary-foreground: oklch(0.985 0 0);
+        --brand: oklch(0.48 0.19 264);
+        --brand-subtle: oklch(0.96 0.03 264);
+        --success: oklch(0.45 0.15 145);
+        --success-subtle: oklch(0.96 0.03 145);
+        --info: oklch(0.48 0.14 250);
+        --info-subtle: oklch(0.96 0.02 250);
+        --selected: oklch(0.145 0 0);
+        --selected-foreground: oklch(0.985 0 0);
+        --ring: oklch(0.708 0 0);
+        --stage: oklch(0.955 0 0);
+      }
+      [data-theme="dark"] {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --border: oklch(1 0 0 / 10%);
+        --input: oklch(1 0 0 / 15%);
+        --surface-1: oklch(0.18 0 0);
+        --surface-2: oklch(0.205 0 0);
+        --surface-3: oklch(0.269 0 0);
+        --primary: oklch(0.922 0 0);
+        --primary-foreground: oklch(0.205 0 0);
+        --brand: oklch(0.72 0.16 264);
+        --brand-subtle: oklch(0.28 0.06 264);
+        --success: oklch(0.78 0.14 145);
+        --success-subtle: oklch(0.28 0.05 145);
+        --info: oklch(0.76 0.1 250);
+        --info-subtle: oklch(0.28 0.04 250);
+        --selected: oklch(0.985 0 0);
+        --selected-foreground: oklch(0.145 0 0);
+        --ring: oklch(0.556 0 0);
+        --stage: oklch(0.11 0 0);
+      }
+
+      :root {
+        --radius: 0.625rem;
+        --radius-md: calc(var(--radius) * 0.7);
+        --radius-lg: var(--radius);
+        --radius-xl: calc(var(--radius) * 1.4);
+        --motion-fast: 200ms;
+        --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+        --content: 64rem;
+        /* One height for every control on the page. */
+        --control: 34px;
+        --slot: 56px;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 40px 24px 72px;
+        background: var(--stage);
+        color: var(--foreground);
+        font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        transition: background var(--motion-fast) var(--motion-ease);
+      }
+
+      .stage {
+        max-width: 1120px;
+        margin: 0 auto;
+      }
+      .stage-bar {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+        color: var(--muted-foreground);
+        font-size: 12px;
+      }
+      .stage-bar strong {
+        color: var(--foreground);
+        font-weight: 600;
+      }
+      .theme-toggle {
+        font: inherit;
+        color: var(--foreground);
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 5px 11px;
+        cursor: pointer;
+      }
+      .frame {
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+      }
+
+      .appbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 52px;
+        padding: 0 24px;
+        border-bottom: 1px solid var(--border);
+      }
+      .wordmark {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      .appnav {
+        display: flex;
+        gap: 4px;
+        font-size: 13px;
+      }
+      .appnav a {
+        color: var(--muted-foreground);
+        text-decoration: none;
+        padding: 5px 11px;
+        border-radius: var(--radius-lg);
+      }
+      .appnav a[aria-current] {
+        background: var(--selected);
+        color: var(--selected-foreground);
+      }
+
+      .page {
+        max-width: var(--content);
+        margin: 0 auto;
+        padding: 36px 24px 48px;
+      }
+
+      .back {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--muted-foreground);
+        text-decoration: none;
+        font-size: 13px;
+      }
+      .back svg {
+        width: 16px;
+        height: 16px;
+      }
+      .back:hover {
+        color: var(--foreground);
+      }
+
+      h1 {
+        margin: 10px 0 0;
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .lede {
+        margin: 6px 0 0;
+        color: var(--muted-foreground);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .state-cap {
+        margin: 28px 0 -8px;
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .card {
+        margin-top: 20px;
+        padding: 20px;
+        background: var(--surface-1);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+      }
+
+      .pair {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 6rem minmax(0, 1fr);
+        grid-template-areas:
+          "from-label seam-label to-label"
+          "from-slot seam-swap to-slot"
+          "from-bar seam-overlap to-bar";
+        gap: 8px 16px;
+        align-items: start;
+      }
+      .from-label {
+        grid-area: from-label;
+      }
+      .to-label {
+        grid-area: to-label;
+      }
+      .from-slot {
+        grid-area: from-slot;
+      }
+      .to-slot {
+        grid-area: to-slot;
+      }
+      .from-bar {
+        grid-area: from-bar;
+        justify-self: end;
+      }
+      .to-bar {
+        grid-area: to-bar;
+        justify-self: start;
+      }
+      .seam-swap {
+        grid-area: seam-swap;
+      }
+      .seam-overlap {
+        grid-area: seam-overlap;
+        justify-self: center;
+      }
+
+      /* Eyebrow: the only uppercase label tier. Field labels stay sentence case. */
+      .side-label {
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+
+      /* Both sides are the same slot: same height, same left square, same rhythm. */
+      .slot {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+        height: var(--slot);
+        padding: 0 12px;
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+      }
+      .art {
+        flex: none;
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-md);
+        background: var(--surface-3);
+        box-shadow: inset 0 0 0 1px var(--border);
+      }
+      .art img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: var(--radius-md);
+        display: block;
+      }
+      /* Empty side: the artwork square becomes the search affordance. */
+      .art.empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        box-shadow: none;
+        border: 1px dashed var(--input);
+        color: var(--muted-foreground);
+      }
+      .art.empty svg {
+        width: 15px;
+        height: 15px;
+      }
+      .meta {
+        min-width: 0;
+        flex: 1;
+      }
+      .title {
+        display: block;
+        font-size: 13.5px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .sub {
+        display: block;
+        color: var(--muted-foreground);
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      /* BPM / key rides its own right-hand column, same as the library crate row. */
+      .crate {
+        flex: none;
+        font-family: "Geist Mono", ui-monospace, monospace;
+        font-size: 11.5px;
+        font-variant-numeric: tabular-nums;
+        color: var(--muted-foreground);
+      }
+      .change {
+        flex: none;
+        font: inherit;
+        font-size: 12px;
+        color: var(--muted-foreground);
+        background: transparent;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+      }
+      .change:hover {
+        color: var(--foreground);
+        text-decoration: underline;
+      }
+
+      .swap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: var(--slot);
+        color: var(--brand);
+        background: transparent;
+        border: 0;
+        cursor: pointer;
+        padding: 0;
+      }
+      .swap:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+      .swap-disk {
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--brand-subtle);
+        color: var(--brand);
+      }
+      .swap-disk svg {
+        width: 15px;
+        height: 15px;
+      }
+
+      /* Picking slot: dashed frame, no nested input box. */
+      .slot.picking {
+        border-style: dashed;
+        background: transparent;
+      }
+      .slot.picking:focus-within {
+        border-style: solid;
+        border-color: var(--ring);
+        box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent);
+      }
+      .slot-input {
+        flex: 1;
+        min-width: 0;
+        height: 100%;
+        font: inherit;
+        font-size: 13.5px;
+        color: var(--foreground);
+        background: transparent;
+        border: 0;
+        padding: 0;
+        outline: none;
+      }
+      .slot-input::placeholder {
+        color: var(--muted-foreground);
+      }
+
+      /* Hits float like the technique combobox instead of pushing the seam down. */
+      .results {
+        position: absolute;
+        z-index: 2;
+        left: -1px;
+        right: -1px;
+        top: calc(100% + 6px);
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: 0 8px 24px color-mix(in oklch, var(--foreground) 8%, transparent);
+      }
+      .group {
+        padding: 7px 12px 4px;
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+        background: var(--surface-1);
+        border-bottom: 1px solid var(--border);
+      }
+      .hit {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        text-decoration: none;
+        color: inherit;
+        border-bottom: 1px solid var(--border);
+      }
+      .hit:last-child {
+        border-bottom: 0;
+      }
+      .hit:hover,
+      .hit[aria-selected="true"] {
+        background: var(--surface-2);
+      }
+      .badge {
+        flex: none;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 500;
+        background: var(--surface-2);
+        color: var(--muted-foreground);
+      }
+      .badge.success {
+        background: var(--success-subtle);
+        color: var(--success);
+      }
+      .badge.info {
+        background: var(--info-subtle);
+        color: var(--info);
+      }
+
+      .mix {
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
+      }
+      .mix .side-label {
+        margin-bottom: 12px;
+      }
+      .row3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .field label,
+      .field .label-text {
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--muted-foreground);
+        margin-bottom: 6px;
+      }
+      .hit .art {
+        width: 30px;
+        height: 30px;
+      }
+      .field input,
+      .field select,
+      .field textarea {
+        width: 100%;
+        font: inherit;
+        font-size: 13px;
+        color: var(--foreground);
+        background: var(--background);
+        border: 1px solid var(--input);
+        border-radius: var(--radius-lg);
+        outline: none;
+      }
+      .field input,
+      .field select {
+        height: var(--control);
+        padding: 0 10px;
+      }
+      .field textarea {
+        min-height: 72px;
+        padding: 8px 10px;
+        resize: vertical;
+        line-height: 1.5;
+      }
+      .notes-field {
+        margin-top: 16px;
+      }
+      .field input:focus,
+      .field select:focus,
+      .field textarea:focus {
+        border-color: var(--ring);
+        box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent);
+      }
+
+      /* Bar counts read as one seam sentence: 64 bar → 16 bars → 1 bar. */
+      .field.bars label {
+        text-align: center;
+      }
+      .measure {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        width: 6.25rem;
+        height: var(--control);
+        padding: 0 10px;
+        background: var(--background);
+        border: 1px solid var(--input);
+        border-radius: var(--radius-lg);
+      }
+      .measure:focus-within {
+        border-color: var(--ring);
+        box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent);
+      }
+      .measure input {
+        width: 100%;
+        min-width: 0;
+        height: auto;
+        padding: 0;
+        font: inherit;
+        font-family: "Geist Mono", ui-monospace, monospace;
+        font-variant-numeric: tabular-nums;
+        font-size: 13px;
+        text-align: right;
+        color: var(--foreground);
+        background: transparent;
+        border: 0;
+        outline: none;
+      }
+      .measure .unit {
+        flex: none;
+        font-size: 11px;
+        color: var(--muted-foreground);
+      }
+
+      /* Three values + unset: a segmented control beats a dropdown. */
+      .segmented {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 3px;
+        height: var(--control);
+        padding: 3px;
+        background: var(--surface-2);
+        border-radius: var(--radius-lg);
+      }
+      .segmented button {
+        font: inherit;
+        font-size: 12.5px;
+        color: var(--muted-foreground);
+        background: transparent;
+        border: 0;
+        border-radius: calc(var(--radius-lg) - 3px);
+        cursor: pointer;
+      }
+      .segmented button[aria-pressed="true"] {
+        background: var(--background);
+        color: var(--foreground);
+        font-weight: 500;
+        box-shadow: 0 1px 2px color-mix(in oklch, var(--foreground) 8%, transparent);
+      }
+
+      .combo {
+        position: relative;
+      }
+      .combo-list {
+        position: absolute;
+        z-index: 2;
+        left: 0;
+        right: 0;
+        top: calc(100% + 6px);
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: 0 8px 24px color-mix(in oklch, var(--foreground) 8%, transparent);
+      }
+      .combo-list button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        font: inherit;
+        font-size: 13px;
+        color: var(--foreground);
+        background: transparent;
+        border: 0;
+        padding: 8px 10px;
+        cursor: pointer;
+      }
+      .combo-list button[aria-selected="true"],
+      .combo-list button:hover {
+        background: var(--surface-2);
+      }
+      .combo-list .custom {
+        color: var(--muted-foreground);
+        border-top: 1px solid var(--border);
+        font-style: italic;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+      }
+      .hint {
+        margin-right: auto;
+        color: var(--muted-foreground);
+        font-size: 12px;
+      }
+      .btn {
+        font: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        height: var(--control);
+        padding: 0 14px;
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+      }
+      .btn-primary {
+        background: var(--primary);
+        color: var(--primary-foreground);
+        border: 0;
+      }
+      .btn-primary:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--muted-foreground);
+        border: 1px solid var(--border);
+      }
+      .btn-ghost:hover {
+        color: var(--foreground);
+      }
+
+      .notes {
+        max-width: 720px;
+        margin: 36px auto 0;
+        color: var(--muted-foreground);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+      .notes h2 {
+        color: var(--foreground);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        margin: 0 0 10px;
+      }
+      .notes ol {
+        margin: 0;
+        padding-left: 20px;
+      }
+      .notes li {
+        margin-bottom: 9px;
+      }
+      .notes b {
+        color: var(--foreground);
+        font-weight: 500;
+      }
+
+      @media (max-width: 720px) {
+        .pair {
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-areas:
+            "from-label"
+            "from-slot"
+            "from-bar"
+            "seam-swap"
+            "seam-overlap"
+            "to-label"
+            "to-slot"
+            "to-bar";
+        }
+        .from-bar,
+        .to-bar {
+          justify-self: start;
+        }
+        .seam-overlap {
+          justify-self: start;
+        }
+        .field.bars label {
+          text-align: left;
+        }
+        .swap {
+          height: auto;
+          justify-content: flex-start;
+          padding: 4px 0;
+        }
+        .row3 {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <div class="stage-bar">
+        <span
+          ><strong>Selecta / Add a transition</strong> — proposed composition, shown twice: mid-pick
+          with both popovers open, then at rest with both tracks chosen.</span
+        >
+        <button class="theme-toggle" type="button" id="theme">Dark</button>
+      </div>
+
+      <div class="frame">
+        <div class="appbar">
+          <span class="wordmark">Selecta</span>
+          <nav class="appnav">
+            <a href="#" aria-current="page">Library</a>
+            <a href="#">Graph</a>
+          </nav>
+        </div>
+
+        <main class="page">
+          <a class="back" href="#">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            Back to library
+          </a>
+          <h1>Add a transition</h1>
+          <p class="lede">Pick two tracks and the mix. Nothing is sent to the model.</p>
+
+          <p class="state-cap">State — picking the “To” track</p>
+          <section class="card">
+            <div class="pair">
+              <div class="side-label from-label">From</div>
+              <div class="side-label to-label">To</div>
+
+              <div class="slot from-slot">
+                <span class="art" aria-hidden="true"></span>
+                <span class="meta">
+                  <span class="title">Animals</span>
+                  <span class="sub">Martin Garrix</span>
+                </span>
+                <span class="crate">128 / 8A</span>
+                <button class="change" type="button">Change</button>
+              </div>
+
+              <button class="swap seam-swap" type="button" aria-label="Swap from and to" disabled>
+                <span class="swap-disk">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </span>
+              </button>
+
+              <div class="slot picking to-slot">
+                <span class="art empty" aria-hidden="true">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="m20 20-3.5-3.5" />
+                  </svg>
+                </span>
+                <input
+                  class="slot-input"
+                  type="search"
+                  value="back"
+                  aria-label="To track"
+                  placeholder="Search tracks…"
+                />
+                <div class="results">
+                  <div class="group">In library</div>
+                  <a class="hit" href="#" aria-selected="true">
+                    <span class="art" aria-hidden="true"></span>
+                    <span class="meta">
+                      <span class="title">Backspin Bass</span>
+                      <span class="sub">Interplanetary Criminal</span>
+                    </span>
+                    <span class="badge success">In library</span>
+                  </a>
+                  <div class="group">Catalog</div>
+                  <a class="hit" href="#">
+                    <span class="art" aria-hidden="true"></span>
+                    <span class="meta">
+                      <span class="title">Backspin</span>
+                      <span class="sub">Knife Party</span>
+                    </span>
+                    <span class="badge info">Will import</span>
+                  </a>
+                  <a class="hit" href="#">
+                    <span class="art" aria-hidden="true"></span>
+                    <span class="meta">
+                      <span class="title">Backbone</span>
+                      <span class="sub">Chase &amp; Status, Stormzy</span>
+                    </span>
+                    <span class="badge info">Will import</span>
+                  </a>
+                </div>
+              </div>
+
+              <div class="field bars from-bar">
+                <label for="from-bar">Cut out at</label>
+                <span class="measure">
+                  <input id="from-bar" inputmode="decimal" value="64" />
+                  <span class="unit">bar</span>
+                </span>
+              </div>
+              <div class="field bars seam-overlap">
+                <label for="overlap">Overlap</label>
+                <span class="measure">
+                  <input id="overlap" inputmode="decimal" value="16" />
+                  <span class="unit">bars</span>
+                </span>
+              </div>
+              <div class="field bars to-bar">
+                <label for="to-bar">Come in at</label>
+                <span class="measure">
+                  <input id="to-bar" inputmode="decimal" value="1" />
+                  <span class="unit">bar</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="mix">
+              <div class="side-label">Mix</div>
+              <div class="row3">
+                <div class="field combo">
+                  <label for="technique">Technique</label>
+                  <input
+                    id="technique"
+                    value="high p"
+                    aria-expanded="true"
+                    aria-autocomplete="list"
+                  />
+                  <div class="combo-list" role="listbox">
+                    <button type="button" aria-selected="true">High-pass filter</button>
+                    <button type="button">Low-pass filter</button>
+                    <button type="button" class="custom">Use “high p”</button>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="intent">Intent</label>
+                  <input id="intent" placeholder="Build hype, cool down…" />
+                </div>
+                <div class="field">
+                  <span class="label-text" id="quality-label">Quality</span>
+                  <div class="segmented" role="group" aria-labelledby="quality-label">
+                    <button type="button" aria-pressed="false">Great</button>
+                    <button type="button" aria-pressed="true">OK</button>
+                    <button type="button" aria-pressed="false">Risky</button>
+                  </div>
+                </div>
+              </div>
+              <div class="field notes-field">
+                <label for="notes">Notes</label>
+                <textarea id="notes">echo out on the 32 and it slammed</textarea>
+              </div>
+            </div>
+
+            <div class="actions">
+              <span class="hint">Pick a “To” track to save.</span>
+              <a class="btn btn-ghost" href="#">Cancel</a>
+              <button class="btn btn-primary" type="button" disabled>Create transition</button>
+            </div>
+          </section>
+
+          <p class="state-cap">State — both picked, nothing open</p>
+          <section class="card">
+            <div class="pair">
+              <div class="side-label from-label">From</div>
+              <div class="side-label to-label">To</div>
+
+              <div class="slot from-slot">
+                <span class="art" aria-hidden="true"></span>
+                <span class="meta">
+                  <span class="title">Animals</span>
+                  <span class="sub">Martin Garrix</span>
+                </span>
+                <span class="crate">128 / 8A</span>
+                <button class="change" type="button">Change</button>
+              </div>
+
+              <button class="swap seam-swap" type="button" aria-label="Swap from and to">
+                <span class="swap-disk">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </span>
+              </button>
+
+              <div class="slot to-slot">
+                <span class="art" aria-hidden="true"></span>
+                <span class="meta">
+                  <span class="title">Backspin Bass</span>
+                  <span class="sub">Interplanetary Criminal</span>
+                </span>
+                <span class="crate">140 / 9A</span>
+                <button class="change" type="button">Change</button>
+              </div>
+
+              <div class="field bars from-bar">
+                <label for="from-bar-2">Cut out at</label>
+                <span class="measure">
+                  <input id="from-bar-2" inputmode="decimal" value="64" />
+                  <span class="unit">bar</span>
+                </span>
+              </div>
+              <div class="field bars seam-overlap">
+                <label for="overlap-2">Overlap</label>
+                <span class="measure">
+                  <input id="overlap-2" inputmode="decimal" value="16" />
+                  <span class="unit">bars</span>
+                </span>
+              </div>
+              <div class="field bars to-bar">
+                <label for="to-bar-2">Come in at</label>
+                <span class="measure">
+                  <input id="to-bar-2" inputmode="decimal" value="1" />
+                  <span class="unit">bar</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="mix">
+              <div class="side-label">Mix</div>
+              <div class="row3">
+                <div class="field">
+                  <label for="technique-2">Technique</label>
+                  <input id="technique-2" value="High-pass filter" />
+                </div>
+                <div class="field">
+                  <label for="intent-2">Intent</label>
+                  <input id="intent-2" value="Build hype" />
+                </div>
+                <div class="field">
+                  <span class="label-text" id="quality-label-2">Quality</span>
+                  <div class="segmented" role="group" aria-labelledby="quality-label-2">
+                    <button type="button" aria-pressed="false">Great</button>
+                    <button type="button" aria-pressed="true">OK</button>
+                    <button type="button" aria-pressed="false">Risky</button>
+                  </div>
+                </div>
+              </div>
+              <div class="field notes-field">
+                <label for="notes-2">Notes</label>
+                <textarea id="notes-2">echo out on the 32 and it slammed</textarea>
+              </div>
+            </div>
+
+            <div class="actions">
+              <a class="btn btn-ghost" href="#">Cancel</a>
+              <button class="btn btn-primary" type="button">Create transition</button>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <section class="notes">
+        <h2>Notes — Add transition</h2>
+        <ol>
+          <li>
+            <b>This is not New submission.</b> The Transitions “Add transition” button currently
+            opens the LLM note form. This page writes one <code>transitions</code> row and never
+            creates a submission. Dumping a paragraph of mixes still happens on
+            <b>New submission</b>.
+          </li>
+          <li>
+            <b>One search per side, two sources.</b> Library hits sit first. Catalog hits sit under
+            their own group and stay pending until submit — the blue chip is a promise, not an
+            import. Tabs (Suggested / Library / Catalog) are for proposal review, where the model
+            already guessed; they are extra chrome here.
+          </li>
+          <li>
+            <b>Quality is a closed enum. Technique and intent are not.</b> Ranking sorts on
+            <code>great / ok / risky</code> — three values, so a segmented control shows the whole
+            enum and costs one click instead of two. Technique and intent suggest the known
+            vocabulary (High-pass filter, Cut, Build hype…) but you can keep typing a custom mix.
+            The open list in the mock is that combobox.
+          </li>
+          <li>
+            <b>Swap is not reverse.</b> It exchanges the two endpoints of this one edge. There is no
+            “also create B → A” checkbox — bars and a mix that works one way are not symmetric.
+          </li>
+          <li>
+            <b>Bars live on the songs they belong to, and read as a sentence.</b> Each box is only
+            as wide as the number it holds, carries its own unit, and is labelled by what it does:
+            <code>Cut out at 64 bar</code> under the outgoing track, <code>Overlap 16 bars</code> on
+            the seam, <code>Come in at 1 bar</code> under the incoming one. They still map to
+            <code>fromBar / overlapBars / toBar</code>. Technique, intent, quality, and notes are
+            the mix itself, so they sit in a second block under a Mix label, not in the same grid as
+            the tracks.
+          </li>
+          <li>
+            <b>An empty side is the search field.</b> Both slots are the same height with the same
+            artwork square; the empty one is dashed and its square holds a magnifier, so there is no
+            input box floating inside a card. Hits drop as a popover anchored to the slot, so
+            picking a song never shoves the bar row around. Every control on the page — search, bar
+            boxes, comboboxes, quality, buttons — is one height.
+          </li>
+          <li>
+            <b>Create stays disabled</b> until To is picked (and never if both sides resolve to the
+            same track). Cancel and the back link return to the Library tab that opened this page.
+          </li>
+        </ol>
+      </section>
+    </div>
+
+    <script>
+      const root = document.documentElement;
+      const button = document.getElementById("theme");
+      if (new URLSearchParams(location.search).get("theme") === "dark") {
+        root.dataset.theme = "dark";
+        button.textContent = "Light";
+      }
+      button.addEventListener("click", () => {
+        const next = root.dataset.theme === "light" ? "dark" : "light";
+        root.dataset.theme = next;
+        button.textContent = next === "light" ? "Dark" : "Light";
+      });
+    </script>
+  </body>
+</html>
