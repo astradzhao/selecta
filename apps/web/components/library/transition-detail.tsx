@@ -155,7 +155,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
         }
       >
         <div className="flex flex-wrap items-center gap-2">
-          {transition.technique ? <Badge variant="secondary">{transition.technique}</Badge> : null}
+          {transition.technique ? <Badge variant="tertiary">{transition.technique}</Badge> : null}
           {transition.intent ? <Badge variant="outline">{transition.intent}</Badge> : null}
           {transition.quality ? <Badge variant="outline">{transition.quality}</Badge> : null}
           <span className="text-caption text-numeric">

@@ -31,8 +31,8 @@ export function formatGraphLabel(value: string | null | undefined): string | nul
     .join(" ");
 }
 
-export function qualityBadgeTone(quality: string | null): "brand" | "secondary" | "outline" {
+export function qualityBadgeTone(quality: string | null): "brand" | "tertiary" | "outline" {
   if (quality === "great") return "brand";
-  if (quality === "ok") return "secondary";
+  if (quality === "ok") return "tertiary";
   return "outline";
 }
