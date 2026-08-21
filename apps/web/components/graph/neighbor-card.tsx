@@ -54,9 +54,9 @@ export function NeighborCard({
         "border-border bg-background overflow-hidden rounded-2xl border",
         "ease-standard duration-hop transition-[opacity,transform]",
         "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 fill-mode-both",
-        "hover:border-foreground/20",
         fadingOut && "pointer-events-none opacity-0 motion-safe:translate-x-6",
         choosing && "pointer-events-none opacity-0",
+        expanded ? "border-brand/30" : "hover:border-brand/25",
       )}
       style={{
         animationDelay: `${Math.min(index, 8) * 30}ms`,

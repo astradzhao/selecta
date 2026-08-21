@@ -15,6 +15,7 @@ export function NowPlayingPanel({
   artHidden,
   swapping,
   canGoBack,
+  outboundCount,
   onBack,
   panelRef,
 }: {
@@ -23,6 +24,7 @@ export function NowPlayingPanel({
   artHidden: boolean;
   swapping: boolean;
   canGoBack: boolean;
+  outboundCount: number;
   onBack: () => void;
   panelRef: Ref<HTMLElement>;
 }) {
@@ -75,7 +77,7 @@ export function NowPlayingPanel({
               copyPhase !== "visible" && "pointer-events-none",
             )}
           >
-            <dl className="text-muted-foreground grid grid-cols-2 gap-3 text-xs">
+            <dl className="text-muted-foreground grid grid-cols-3 gap-3 text-xs">
               <div>
                 <dt className="text-eyebrow">BPM</dt>
                 <dd className="text-numeric text-foreground mt-0.5 text-sm">
@@ -88,6 +90,12 @@ export function NowPlayingPanel({
                   {current.musicalKey ?? "—"}
                 </dd>
               </div>
+              <div>
+                <dt className="text-eyebrow">Outbound</dt>
+                <dd className="text-numeric mt-0.5 text-sm font-semibold text-brand">
+                  {outboundCount}
+                </dd>
+              </div>
             </dl>
             <div className="flex items-center justify-between gap-3">
               {canGoBack ? (
@@ -97,7 +105,7 @@ export function NowPlayingPanel({
                   onClick={onBack}
                   className={cn(
                     "text-muted-foreground text-sm underline-offset-4",
-                    "hover:text-foreground hover:underline",
+                    "hover:text-brand hover:underline",
                     "disabled:pointer-events-none disabled:opacity-50",
                   )}
                 >

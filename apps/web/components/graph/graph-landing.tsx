@@ -12,11 +12,11 @@ import type { ApiTrack } from "@/lib/tracks/api";
 function GraphLogo() {
   return (
     <svg viewBox="0 0 40 40" className="size-10" aria-hidden="true">
-      <line x1="2" y1="20" x2="38" y2="20" className="stroke-foreground" strokeWidth="1" />
-      <line x1="20" y1="2" x2="20" y2="38" className="stroke-foreground" strokeWidth="1" />
-      <circle cx="6" cy="20" r="5" className="fill-background stroke-foreground" strokeWidth="2" />
-      <circle cx="20" cy="6" r="5" className="fill-background stroke-foreground" strokeWidth="2" />
-      <circle cx="34" cy="34" r="5" className="fill-background stroke-foreground" strokeWidth="2" />
+      <line x1="2" y1="20" x2="38" y2="20" className="stroke-border" strokeWidth="1" />
+      <line x1="20" y1="2" x2="20" y2="38" className="stroke-border" strokeWidth="1" />
+      <circle cx="6" cy="20" r="5" className="fill-background stroke-brand" strokeWidth="2" />
+      <circle cx="20" cy="6" r="5" className="fill-background stroke-brand" strokeWidth="2" />
+      <circle cx="34" cy="34" r="5" className="fill-background stroke-brand" strokeWidth="2" />
     </svg>
   );
 }

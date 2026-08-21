@@ -24,7 +24,10 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-subtle: var(--secondary-subtle);
   --color-secondary: var(--secondary);
+  --color-tertiary-foreground: var(--tertiary-foreground);
+  --color-tertiary: var(--tertiary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
@@ -75,56 +78,77 @@
 
 :root {
   color-scheme: light;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
+  /*
+   * Haze (lavender 305). Semantic roles — use these names, never a raw hue:
+   *
+   *   --brand       chromatic theme accent, lavender 305 (edge counts, cue marker, graph)
+   *   --secondary   mix-partner accent, teal 197. Scarce — Button supporting CTA
+   *                 wash only (Add a track). Never badges, chips, or labels.
+   *   --tertiary    quiet gray fill. Track/transition labels and neutral status.
+   *   --primary     CTA wash (pale brand + hairline). Not a solid fill.
+   *   --selected    active-tab cue (same ink as brand). Label uses --selected-foreground.
+   *   --success     committed / complete
+   *   --warning     needs review / caution  (not --highlight)
+   *   --info        processing / informational (245, kept distinct from teal 197)
+   *   --destructive failed / irreversible
+   *   --highlight   source-span location, not a status
+   *   --accent      shadcn hover fill (= muted). NOT the theme accent — that is --brand.
+   *   --viz-*       graph only. Strong / overlap / meter / connector mix --brand;
+   *                 beat-grid ticks stay on --foreground so the strip is not a lavender wall.
+   */
+  --background: oklch(0.988 0.004 305);
+  --foreground: oklch(0.27 0.012 300);
+  --card: oklch(0.988 0.004 305);
+  --card-foreground: oklch(0.27 0.012 300);
+  --popover: oklch(0.988 0.004 305);
+  --popover-foreground: oklch(0.27 0.012 300);
+  --primary: oklch(0.945 0.032 305);
+  --primary-foreground: oklch(0.44 0.105 305);
+  --secondary: oklch(0.48 0.08 197);
+  --secondary-foreground: oklch(0.99 0.005 197);
+  --secondary-subtle: oklch(0.948 0.028 197);
+  --tertiary: oklch(0.954 0.007 305);
+  --tertiary-foreground: oklch(0.27 0.012 300);
+  --muted: oklch(0.954 0.007 305);
+  --muted-foreground: oklch(0.545 0.012 300);
+  --accent: oklch(0.954 0.007 305);
+  --accent-foreground: oklch(0.27 0.012 300);
+  --destructive: oklch(0.53 0.165 27);
   --destructive-foreground: oklch(0.985 0 0);
-  --destructive-subtle: oklch(0.96 0.03 27);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --destructive-subtle: oklch(0.955 0.025 27);
+  --border: oklch(0.906 0.009 305);
+  --input: oklch(0.906 0.009 305);
+  --ring: oklch(0.5 0.08 305);
   --radius: 0.625rem;
-  --brand: oklch(0.48 0.19 264);
-  --brand-foreground: oklch(0.985 0 0);
-  --brand-subtle: oklch(0.96 0.03 264);
-  --success: oklch(0.45 0.15 145);
+  --brand: oklch(0.5 0.095 305);
+  --brand-foreground: oklch(0.99 0.005 305);
+  --brand-subtle: oklch(0.945 0.032 305);
+  --success: oklch(0.485 0.115 145);
   --success-foreground: oklch(0.985 0 0);
-  --success-subtle: oklch(0.96 0.03 145);
-  --warning: oklch(0.5 0.16 75);
+  --success-subtle: oklch(0.955 0.024 145);
+  --warning: oklch(0.535 0.125 70);
   --warning-foreground: oklch(0.205 0 0);
-  --warning-subtle: oklch(0.96 0.04 85);
-  --info: oklch(0.48 0.14 250);
+  --warning-subtle: oklch(0.955 0.03 78);
+  --info: oklch(0.505 0.105 245);
   --info-foreground: oklch(0.985 0 0);
-  --info-subtle: oklch(0.96 0.02 250);
-  --overlay: oklch(0.145 0 0 / 10%);
-  --surface-1: oklch(0.985 0 0);
-  --surface-2: oklch(0.97 0 0);
-  --surface-3: oklch(0.94 0 0);
-  --selected: oklch(0.145 0 0);
-  --selected-foreground: oklch(0.985 0 0);
+  --info-subtle: oklch(0.955 0.02 245);
+  --overlay: oklch(0.27 0.012 300 / 10%);
+  --surface-1: oklch(0.972 0.005 305);
+  --surface-2: oklch(0.954 0.007 305);
+  --surface-3: oklch(0.928 0.01 305);
+  --selected: oklch(0.5 0.095 305);
+  --selected-foreground: oklch(0.27 0.012 300);
   --highlight: oklch(0.93 0.06 85);
   --highlight-foreground: oklch(0.25 0.04 85);
-  --viz-bar-strong: var(--foreground);
-  --viz-bar-mid: color-mix(in oklch, var(--foreground) 45%, transparent);
+  --viz-bar-strong: var(--brand);
+  --viz-bar-mid: color-mix(in oklch, var(--brand) 45%, transparent);
   --viz-bar-weak: color-mix(in oklch, var(--foreground) 22%, transparent);
   --viz-bar-faint: color-mix(in oklch, var(--foreground) 12%, transparent);
   --viz-meter-track: var(--muted);
-  --viz-meter-fill: color-mix(in oklch, var(--foreground) 70%, transparent);
+  --viz-meter-fill: color-mix(in oklch, var(--brand) 70%, transparent);
   --viz-meter-empty: color-mix(in oklch, var(--foreground) 18%, transparent);
-  --viz-connector-from: color-mix(in oklch, var(--foreground) 30%, transparent);
-  --viz-connector-via: color-mix(in oklch, var(--foreground) 10%, transparent);
+  --viz-connector-from: color-mix(in oklch, var(--brand) 28%, transparent);
+  --viz-connector-via: color-mix(in oklch, var(--brand) 8%, transparent);
   --motion-fast: 200ms;
   --motion-base: 300ms;
   --motion-slow: 500ms;
@@ -134,45 +158,49 @@
 }
 
 .dark {
+  /* Same roles as :root; viz tokens inherit via var(--brand) / var(--foreground). */
   color-scheme: dark;
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --destructive-subtle: oklch(0.3 0.08 22);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --brand: oklch(0.72 0.16 264);
-  --brand-foreground: oklch(0.205 0 0);
-  --brand-subtle: oklch(0.28 0.06 264);
-  --success: oklch(0.78 0.14 145);
+  --background: oklch(0.185 0.007 300);
+  --foreground: oklch(0.925 0.004 305);
+  --card: oklch(0.215 0.008 300);
+  --card-foreground: oklch(0.925 0.004 305);
+  --popover: oklch(0.215 0.008 300);
+  --popover-foreground: oklch(0.925 0.004 305);
+  --primary: oklch(0.305 0.045 305);
+  --primary-foreground: oklch(0.825 0.075 305);
+  --secondary: oklch(0.78 0.08 197);
+  --secondary-foreground: oklch(0.2 0.012 240);
+  --secondary-subtle: oklch(0.305 0.04 197);
+  --tertiary: oklch(0.3 0.011 300);
+  --tertiary-foreground: oklch(0.925 0.004 305);
+  --muted: oklch(0.3 0.011 300);
+  --muted-foreground: oklch(0.665 0.012 300);
+  --accent: oklch(0.3 0.011 300);
+  --accent-foreground: oklch(0.925 0.004 305);
+  --destructive: oklch(0.72 0.15 25);
+  --destructive-foreground: oklch(0.205 0 0);
+  --destructive-subtle: oklch(0.3 0.048 25);
+  --border: oklch(0.925 0.004 305 / 14%);
+  --input: oklch(0.925 0.004 305 / 16%);
+  --ring: oklch(0.8 0.07 305);
+  --brand: oklch(0.8 0.075 305);
+  --brand-foreground: oklch(0.2 0.012 300);
+  --brand-subtle: oklch(0.305 0.045 305);
+  --success: oklch(0.755 0.105 145);
   --success-foreground: oklch(0.205 0 0);
-  --success-subtle: oklch(0.28 0.05 145);
-  --warning: oklch(0.82 0.12 75);
+  --success-subtle: oklch(0.305 0.038 145);
+  --warning: oklch(0.785 0.1 70);
   --warning-foreground: oklch(0.205 0 0);
-  --warning-subtle: oklch(0.3 0.05 75);
-  --info: oklch(0.76 0.1 250);
+  --warning-subtle: oklch(0.315 0.038 75);
+  --info: oklch(0.735 0.08 245);
   --info-foreground: oklch(0.205 0 0);
-  --info-subtle: oklch(0.28 0.04 250);
-  --overlay: oklch(0 0 0 / 50%);
-  --surface-1: oklch(0.18 0 0);
-  --surface-2: oklch(0.205 0 0);
-  --surface-3: oklch(0.269 0 0);
-  --selected: oklch(0.985 0 0);
-  --selected-foreground: oklch(0.145 0 0);
+  --info-subtle: oklch(0.3 0.033 245);
+  --overlay: oklch(0.12 0.008 300 / 50%);
+  --surface-1: oklch(0.215 0.008 300);
+  --surface-2: oklch(0.245 0.009 300);
+  --surface-3: oklch(0.3 0.011 300);
+  --selected: oklch(0.8 0.075 305);
+  --selected-foreground: oklch(0.925 0.004 305);
   --highlight: oklch(0.32 0.06 85);
   --highlight-foreground: oklch(0.93 0.04 85);
 }

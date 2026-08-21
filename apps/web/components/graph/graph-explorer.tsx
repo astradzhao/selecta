@@ -35,7 +35,7 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
           <Button type="button" variant="outline" onClick={onExit}>
             Back to Graph
           </Button>
-          <Button asChild variant="secondary">
+          <Button asChild variant="outline">
             <Link href={`/tracks/${trackId}`}>Track detail</Link>
           </Button>
         </div>
@@ -64,6 +64,7 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
           artHidden={explorer.artHidden}
           swapping={swapping}
           canGoBack={explorer.trail.length > 0}
+          outboundCount={neighbors.length}
           onBack={explorer.goBackInTrail}
           panelRef={explorer.panelRef}
         />
