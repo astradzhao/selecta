@@ -19,7 +19,7 @@ export default function Home() {
         </div>
         <div className="flex flex-wrap gap-3">
           <Button asChild>
-            <Link href={libraryAddHref("submissions")}>Add a transition</Link>
+            <Link href={libraryAddHref("transitions")}>Add a transition</Link>
           </Button>
           <Button asChild variant="outline">
             <Link href="/library">Open library</Link>

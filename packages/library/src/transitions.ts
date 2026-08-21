@@ -21,9 +21,11 @@ import { getExecutor, runInDbTransaction } from "@selecta/db";
 import { collectSequenceIdsUsingTransition, recomputeSequencesDerived } from "./blocks";
 import {
   artists,
+  subgenres,
   submissionProposals,
   trackArtists,
   trackExternalIds,
+  trackSubgenres,
   tracks,
   transitions,
   type SubmissionProposalStatus,
@@ -41,6 +43,7 @@ import type { NamedNode, TrackNode } from "./types";
 export type TransitionEndpointSummary = {
   track: TrackNode;
   artists: NamedNode[];
+  subgenres: NamedNode[];
 };
 
 export type TransitionRecord = {
@@ -240,14 +243,39 @@ async function loadArtistsByTrackIds(trackIds: string[]): Promise<Map<string, Na
   return map;
 }
 
+async function loadSubgenresByTrackIds(trackIds: string[]): Promise<Map<string, NamedNode[]>> {
+  const map = new Map<string, NamedNode[]>();
+  if (trackIds.length === 0) {
+    return map;
+  }
+  const rows = await getExecutor()
+    .select({
+      trackId: trackSubgenres.trackId,
+      id: subgenres.id,
+      name: subgenres.name,
+      nameNormalized: subgenres.nameNormalized,
+    })
+    .from(trackSubgenres)
+    .innerJoin(subgenres, eq(trackSubgenres.subgenreId, subgenres.id))
+    .where(inArray(trackSubgenres.trackId, trackIds));
+  for (const row of rows) {
+    const list = map.get(row.trackId) ?? [];
+    list.push(toNamedNode(row));
+    map.set(row.trackId, list);
+  }
+  return map;
+}
+
 function toEndpoint(
   track: Track,
   artistsByTrack: Map<string, NamedNode[]>,
+  subgenresByTrack: Map<string, NamedNode[]>,
   extMaps: Map<string, Record<string, string>>,
 ): TransitionEndpointSummary {
   return {
     track: toTrackNode(track, extMaps.get(track.id) ?? {}),
     artists: artistsByTrack.get(track.id) ?? [],
+    subgenres: subgenresByTrack.get(track.id) ?? [],
   };
 }
 
@@ -264,8 +292,9 @@ async function hydrateTransitionRecords(
   const trackIds = [
     ...new Set([...edgeRows.map((e) => e.fromTrackId), ...edgeRows.map((e) => e.toTrackId)]),
   ];
-  const [artistsByTrack, extMaps] = await Promise.all([
+  const [artistsByTrack, subgenresByTrack, extMaps] = await Promise.all([
     loadArtistsByTrackIds(trackIds),
+    loadSubgenresByTrackIds(trackIds),
     loadExternalIdMaps(trackIds),
   ]);
 
@@ -278,8 +307,8 @@ async function hydrateTransitionRecords(
     }
     records.push({
       id: edge.id,
-      from: toEndpoint(from, artistsByTrack, extMaps),
-      to: toEndpoint(to, artistsByTrack, extMaps),
+      from: toEndpoint(from, artistsByTrack, subgenresByTrack, extMaps),
+      to: toEndpoint(to, artistsByTrack, subgenresByTrack, extMaps),
       edge: transitionRowToEdge(edge),
     });
   }

@@ -19,6 +19,7 @@ import {
   formatKeyShift,
 } from "@/lib/transitions/transition-row";
 import type { ApiTransition, ApiTransitionEndpoint } from "@/lib/transitions/types";
+import { displayVocab } from "@/lib/transitions/vocab-labels";
 
 const ARTWORK_PX = TRACK_ROW_ARTWORK_PX.sm;
 
@@ -133,6 +134,8 @@ function TransitionTime({ iso }: { iso: string }) {
 export function LibraryTransitionRow({ transition }: { transition: ApiTransition }) {
   const from = fromTransitionEndpoint(transition.fromTrack);
   const to = fromTransitionEndpoint(transition.toTrack);
+  const techniqueLabel = displayVocab(transition.technique);
+  const intentLabel = displayVocab(transition.intent);
 
   return (
     <DataListRow interactive={false}>
@@ -148,14 +151,14 @@ export function LibraryTransitionRow({ transition }: { transition: ApiTransition
         <TransitionArrow />
         <EndpointCell endpoint={to} />
         <span className="hidden min-w-0 flex-wrap items-center gap-1.5 sm:flex">
-          {transition.technique ? (
+          {techniqueLabel ? (
             <Badge variant="tertiary" className="max-w-full truncate">
-              {transition.technique}
+              {techniqueLabel}
             </Badge>
           ) : null}
-          {transition.intent ? (
+          {intentLabel ? (
             <Badge variant="tertiary" className="max-w-full truncate">
-              {transition.intent}
+              {intentLabel}
             </Badge>
           ) : null}
           {transition.proposal?.status === "needs_review" ? (

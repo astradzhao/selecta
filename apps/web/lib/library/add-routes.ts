@@ -1,10 +1,11 @@
 import { matchLibraryView, type LibraryView } from "@/lib/library/view";
 
-export type LibraryAddCategory = "tracks" | "submissions";
+export type LibraryAddCategory = "tracks" | "submissions" | "transitions";
 
 const ADD_PATHS: Record<LibraryAddCategory, string> = {
   tracks: "/library/add/tracks",
   submissions: "/library/add/submissions",
+  transitions: "/library/add/transitions",
 };
 
 /** Href for a Library section. Tracks is the default view, so it has no query param. */

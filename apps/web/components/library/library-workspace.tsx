@@ -25,7 +25,7 @@ const VIEWS: Array<{ id: LibraryView; label: string }> = [
 
 const ADD_ACTIONS: Record<LibraryView, { href: string; label: string }> = {
   tracks: { href: libraryAddHref("tracks"), label: "Add track" },
-  transitions: { href: libraryAddHref("submissions", "transitions"), label: "Add transition" },
+  transitions: { href: libraryAddHref("transitions"), label: "Add transition" },
   submissions: { href: libraryAddHref("submissions"), label: "New submission" },
 };
 

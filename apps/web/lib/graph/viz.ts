@@ -1,3 +1,5 @@
+import { qualityRankTone, vocabLabel } from "@/lib/transitions/vocab-labels";
+
 /** Pure graph-viz helpers — bar counts and meter fills, not ranking. */
 
 export function barStripTickCount(
@@ -24,15 +26,9 @@ export function clampConfidence(value: number | null | undefined): number | null
 
 export function formatGraphLabel(value: string | null | undefined): string | null {
   if (!value?.trim()) return null;
-  return value
-    .split(/[_\s]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+  return vocabLabel(value.trim());
 }
 
-export function qualityBadgeTone(quality: string | null): "brand" | "tertiary" | "outline" {
-  if (quality === "great") return "brand";
-  if (quality === "ok") return "tertiary";
-  return "outline";
+export function qualityBadgeTone(quality: string | null): "success" | "tertiary" | "warning" {
+  return qualityRankTone(quality) ?? "tertiary";
 }

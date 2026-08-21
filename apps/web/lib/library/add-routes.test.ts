@@ -32,4 +32,10 @@ describe("libraryAddHref", () => {
   it("omits a redundant from that matches the category", () => {
     assert.equal(libraryAddHref("submissions", "submissions"), "/library/add/submissions");
   });
+
+  it("builds the manual transition path and records a different from", () => {
+    assert.equal(libraryAddHref("transitions"), "/library/add/transitions");
+    assert.equal(libraryAddHref("transitions", "tracks"), "/library/add/transitions?from=tracks");
+    assert.equal(libraryAddHref("transitions", "transitions"), "/library/add/transitions");
+  });
 });

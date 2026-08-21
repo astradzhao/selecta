@@ -51,15 +51,15 @@ as text.
 
 ### Status
 
-| Token           | Use                                                          |
-| --------------- | ------------------------------------------------------------ |
-| `--brand`       | Accent chrome, cue marker, `variant="brand"` wash            |
-| `--secondary`   | Teal supporting CTA wash (button only)                       |
-| `--tertiary`    | Quiet gray fill: labels, chips, and neutral status           |
-| `--success`     | Committed / complete                                         |
-| `--warning`     | Needs review / caution                                       |
-| `--info`        | Neutral notices                                              |
-| `--destructive` | Failed / irreversible                                        |
+| Token           | Use                                                |
+| --------------- | -------------------------------------------------- |
+| `--brand`       | Accent chrome, cue marker, `variant="brand"` wash  |
+| `--secondary`   | Teal supporting CTA wash (button only)             |
+| `--tertiary`    | Quiet gray fill: labels, chips, and neutral status |
+| `--success`     | Committed / complete                               |
+| `--warning`     | Needs review / caution                             |
+| `--info`        | Neutral notices                                    |
+| `--destructive` | Failed / irreversible                              |
 
 Recipe for status text on a wash: `bg-X-subtle text-X`. Warning is the
 exception to invert-solid: `--warning-foreground` stays dark in both themes,
@@ -163,8 +163,8 @@ not own graph UI (`components/graph`, `lib/graph`).
 
 ### `@selecta/ui`
 
-Primitives: `Button`, `Input`, `Textarea`, `Select`, `Checkbox`, `Label`,
-`Badge`, `Separator`, `Dialog`, `ConfirmDialog`, `Field`.
+Primitives: `Button`, `Input`, `Textarea`, `Select`, `Checkbox`, `Combobox`,
+`Segmented`, `Label`, `Badge`, `Separator`, `Dialog`, `ConfirmDialog`, `Field`.
 
 Feedback: `Alert`, `Skeleton`, `ListSkeleton`, `EmptyState`, `StatePanel`.
 
@@ -205,8 +205,11 @@ bottom border, `text-section-title` instead of `text-page-title`),
   `size="section"` plus a `BackLink` in `lead`. Never `text-page-title`, never
   a second page-header component.
 - **Form:** `FormField` wrapping `@selecta/ui` `Field*` + `Input` / `Select` /
-  `Textarea`. Field errors use `aria-invalid` / `aria-describedby` (see
-  `omitFieldError`). Reuse `TransitionFields` instead of a second field grid.
+  `Textarea` / `Combobox`. Closed three-value enums use `Segmented` (press the
+  active segment to clear). Field errors use `aria-invalid` / `aria-describedby`
+  (see `omitFieldError`). Reuse `TransitionFields` instead of a second field
+  grid; the add-transition page hides bars via `includeBars={false}` so they can
+  sit under From / To.
 - **Empty:** `EmptyState` with a title, description, and optional CTA.
 - **Loading:** `StatePanel variant="loading"` or `ListSkeleton` — never a
   one-off “Loading…” paragraph.

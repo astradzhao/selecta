@@ -5,15 +5,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
 import { Alert } from "@selecta/ui/components/alert";
-import { Badge } from "@selecta/ui/components/badge";
 import { Button } from "@selecta/ui/components/button";
 import { ConfirmDialog } from "@selecta/ui/components/confirm-dialog";
 import { PageBreadcrumb, PageHeader } from "@selecta/ui/components/page-header";
-import { SectionHeading } from "@selecta/ui/components/section-heading";
 import { StatePanel } from "@selecta/ui/components/state-panel";
 
 import { BackLink } from "@/components/common/back-link";
 import { omitFieldError } from "@/components/common/form-field";
+import { TransitionView } from "@/components/library/transition-view";
 import {
   parseTransitionFieldPatch,
   TransitionFields,
@@ -22,8 +21,8 @@ import {
   type TransitionFieldValues,
 } from "@/components/tracks/transition-fields";
 import { describeApiError } from "@/lib/api/errors";
-import { artistLine, formatTimestamp } from "@/lib/format";
 import { libraryViewHref } from "@/lib/library/add-routes";
+import { invalidateLibraryCache } from "@/lib/library-cache";
 import {
   deleteTransition,
   getTransition,
@@ -35,15 +34,17 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
   const router = useRouter();
   const [transition, setTransition] = useState<ApiTransition | null>(null);
   const [form, setForm] = useState<TransitionFieldValues | null>(null);
+  const [editing, setEditing] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<TransitionFieldErrors>({});
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [loading, startLoad] = useTransition();
   const [saving, startSave] = useTransition();
   const [deleting, startDelete] = useTransition();
+
+  const listHref = libraryViewHref("transitions");
 
   useEffect(() => {
     let cancelled = false;
@@ -53,12 +54,14 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
         if (cancelled) return;
         setTransition(response.transition);
         setForm(transitionFieldsFromEdge(response.transition));
+        setEditing(false);
         setFieldErrors({});
         setLoadError(null);
       } catch (err) {
         if (cancelled) return;
         setTransition(null);
         setForm(null);
+        setEditing(false);
         setLoadError(describeApiError(err, { fallback: "Failed to load transition." }));
       }
     });
@@ -66,8 +69,6 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
       cancelled = true;
     };
   }, [transitionId]);
-
-  const listHref = libraryViewHref("transitions");
 
   if (loading && !transition) {
     return <StatePanel variant="loading">Loading transition…</StatePanel>;
@@ -86,7 +87,23 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
     setForm((current) => (current ? { ...current, [field]: value } : current));
     setFieldErrors((current) => omitFieldError(current, field));
     setSaveError(null);
-    setSaveMessage(null);
+  }
+
+  function startEditing() {
+    if (!transition) return;
+    setForm(transitionFieldsFromEdge(transition));
+    setFieldErrors({});
+    setSaveError(null);
+    setDeleteError(null);
+    setEditing(true);
+  }
+
+  function cancelEditing() {
+    if (!transition) return;
+    setForm(transitionFieldsFromEdge(transition));
+    setFieldErrors({});
+    setSaveError(null);
+    setEditing(false);
   }
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -97,7 +114,6 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
     if (!parsed.ok) {
       setFieldErrors(parsed.fields);
       setSaveError(null);
-      setSaveMessage(null);
       return;
     }
 
@@ -108,9 +124,9 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
         setForm(transitionFieldsFromEdge(response.transition));
         setFieldErrors({});
         setSaveError(null);
-        setSaveMessage("Saved.");
+        setEditing(false);
+        invalidateLibraryCache();
       } catch (err) {
-        setSaveMessage(null);
         setSaveError(describeApiError(err, { fallback: "Failed to save transition." }));
       }
     });
@@ -122,6 +138,7 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
     startDelete(async () => {
       try {
         await deleteTransition(transition.id);
+        invalidateLibraryCache();
         router.push(listHref);
         router.refresh();
       } catch (err) {
@@ -130,111 +147,123 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
     });
   }
 
+  const deleteDialog = (
+    <ConfirmDialog
+      open={deleteOpen}
+      onOpenChange={setDeleteOpen}
+      title="Delete transition?"
+      description={`Delete the transition from “${transition.fromTrack.title}” to “${transition.toTrack.title}”? This cannot be undone.`}
+      confirmLabel="Delete"
+      pending={deleting}
+      pendingLabel="Deleting…"
+      onConfirm={confirmDelete}
+    />
+  );
+
+  if (editing) {
+    return (
+      <div className="space-y-10">
+        {deleteDialog}
+        <PageHeader
+          lead={
+            <>
+              <BackLink href={listHref}>Library</BackLink>
+              <PageBreadcrumb>Edit transition</PageBreadcrumb>
+            </>
+          }
+          title={
+            <>
+              {transition.fromTrack.title}
+              <span className="text-muted-foreground font-normal"> → </span>
+              {transition.toTrack.title}
+            </>
+          }
+          actions={
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={saving || deleting}
+                onClick={cancelEditing}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                disabled={deleting || saving}
+                onClick={() => setDeleteOpen(true)}
+              >
+                {deleting ? "Deleting…" : "Delete"}
+              </Button>
+            </div>
+          }
+        />
+
+        {deleteError ? <Alert variant="destructive">{deleteError}</Alert> : null}
+
+        <form onSubmit={onSubmit} className="space-y-6">
+          <TransitionFields
+            idPrefix="transition"
+            values={form}
+            onChange={onFieldChange}
+            errors={fieldErrors}
+            disabled={saving}
+          />
+          {saveError ? <Alert variant="destructive">{saveError}</Alert> : null}
+          <div className="flex flex-wrap gap-3">
+            <Button type="submit" disabled={saving || deleting}>
+              {saving ? "Saving…" : "Save changes"}
+            </Button>
+            <Button type="button" variant="outline" disabled={saving} onClick={cancelEditing}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-10">
-      <PageHeader
-        lead={
-          <>
-            <BackLink href={listHref}>Library</BackLink>
-            <PageBreadcrumb>Transition</PageBreadcrumb>
-          </>
-        }
-        title={
-          <>
-            {transition.fromTrack.title}
-            <span className="text-muted-foreground font-normal"> → </span>
-            {transition.toTrack.title}
-          </>
-        }
-        description={
-          <>
-            {artistLine(transition.fromTrack.artists)}
-            <span className="text-muted-foreground/70"> → </span>
-            {artistLine(transition.toTrack.artists)}
-          </>
-        }
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          {transition.technique ? <Badge variant="tertiary">{transition.technique}</Badge> : null}
-          {transition.intent ? <Badge variant="tertiary">{transition.intent}</Badge> : null}
-          {transition.quality ? <Badge variant="outline">{transition.quality}</Badge> : null}
-          <span className="text-caption text-numeric">
-            Created {formatTimestamp(transition.createdAt)}
-            {transition.updatedAt !== transition.createdAt
-              ? ` · updated ${formatTimestamp(transition.updatedAt)}`
-              : null}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-3 pt-1">
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/tracks/${transition.fromTrack.id}`}>From track</Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/tracks/${transition.toTrack.id}`}>To track</Link>
-          </Button>
-          {transition.sourceSubmissionId ? (
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/library/submissions/${transition.sourceSubmissionId}`}>
-                Source submission
-              </Link>
+      {deleteDialog}
+      <div className="space-y-3">
+        <BackLink href={listHref}>Library</BackLink>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <PageBreadcrumb>Transition</PageBreadcrumb>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={startEditing}>
+              Edit
             </Button>
-          ) : null}
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/graph?track=${encodeURIComponent(transition.fromTrack.id)}`}>
-              Open in graph
-            </Link>
-          </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={deleting}
+              onClick={() => setDeleteOpen(true)}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </div>
         </div>
-      </PageHeader>
+      </div>
 
-      <form onSubmit={onSubmit} className="space-y-6">
-        <TransitionFields
-          idPrefix="transition"
-          values={form}
-          onChange={onFieldChange}
-          errors={fieldErrors}
-          disabled={saving}
-        />
+      {deleteError ? <Alert variant="destructive">{deleteError}</Alert> : null}
 
-        {saveError ? <Alert variant="destructive">{saveError}</Alert> : null}
-        {saveMessage ? <Alert variant="success">{saveMessage}</Alert> : null}
+      <TransitionView transition={transition} />
 
-        <div className="flex flex-wrap gap-3">
-          <Button type="submit" disabled={saving}>
-            {saving ? "Saving…" : "Save changes"}
-          </Button>
-          <Button asChild type="button" variant="outline">
-            <Link href={listHref}>Back to transitions</Link>
-          </Button>
-        </div>
-      </form>
-
-      <section className="border-border space-y-3 border-t pt-8">
-        <SectionHeading
-          title="Delete"
-          hint="Removes this committed transition edge from the graph. Source submissions stay intact."
-        />
-        {deleteError ? <Alert variant="destructive">{deleteError}</Alert> : null}
-        <Button
-          type="button"
-          variant="destructive"
-          size="sm"
-          disabled={deleting}
-          onClick={() => setDeleteOpen(true)}
-        >
-          {deleting ? "Deleting…" : "Delete transition"}
+      <div className="flex flex-wrap gap-3">
+        <Button asChild>
+          <Link href={`/graph?track=${encodeURIComponent(transition.fromTrack.id)}`}>
+            Open in graph
+          </Link>
         </Button>
-        <ConfirmDialog
-          open={deleteOpen}
-          onOpenChange={setDeleteOpen}
-          title="Delete transition?"
-          description={`Delete the transition from “${transition.fromTrack.title}” to “${transition.toTrack.title}”? This cannot be undone.`}
-          confirmLabel="Delete"
-          pending={deleting}
-          pendingLabel="Deleting…"
-          onConfirm={confirmDelete}
-        />
-      </section>
+        <Button asChild variant="outline">
+          <Link href={listHref}>Back to transitions</Link>
+        </Button>
+      </div>
     </div>
   );
 }

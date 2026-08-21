@@ -250,6 +250,29 @@ describe("transition CRUD + AI commit", { skip: !pgIntegration }, () => {
     assert.equal(impossible.transitions.length, 0);
   });
 
+  it("hydrates endpoint subgenres so the mix display can chip them", async () => {
+    const suffix = randomUUID().slice(0, 8);
+    const from = await createTrack({
+      title: `DJ-113 From ${suffix}`,
+      artists: [`DJ-113 Artist ${suffix}`],
+      subgenres: [{ name: `UKG ${suffix}` }, { name: `Breaks ${suffix}` }],
+    });
+    const to = await createTrack({
+      title: `DJ-113 To ${suffix}`,
+      artists: [`DJ-113 Artist ${suffix}`],
+    });
+    const edge = await createTransition({
+      fromTrackId: from.track.id,
+      toTrackId: to.track.id,
+    });
+
+    assert.deepEqual(
+      edge.from.subgenres.map((item) => item.name).sort(),
+      [`Breaks ${suffix}`, `UKG ${suffix}`].sort(),
+    );
+    assert.equal(edge.to.subgenres.length, 0);
+  });
+
   it("rolls back commitTransitionProposal when the surrounding transaction fails", async () => {
     const suffix = randomUUID().slice(0, 8);
     const from = await createTrack({

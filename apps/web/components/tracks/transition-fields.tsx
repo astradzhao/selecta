@@ -1,12 +1,26 @@
 "use client";
 
+import { Combobox } from "@selecta/ui/components/combobox";
+import { Field, FieldError, FieldTitle } from "@selecta/ui/components/field";
 import { Input } from "@selecta/ui/components/input";
+import { Segmented } from "@selecta/ui/components/segmented";
 import { Textarea } from "@selecta/ui/components/textarea";
 
 import { FormField } from "@/components/common/form-field";
 import { optionalNumber, optionalNumberError } from "@/lib/format";
+import {
+  INTENT_OPTIONS,
+  QUALITY_OPTIONS,
+  qualityRankTone,
+  TECHNIQUE_OPTIONS,
+} from "@/lib/transitions/vocab-labels";
 
-/** Compact editable fields shared by Library detail and Graph inline panel. */
+const QUALITY_SEGMENTED_OPTIONS = QUALITY_OPTIONS.map((option) => ({
+  ...option,
+  tone: qualityRankTone(option.value) ?? undefined,
+}));
+
+/** Compact editable fields shared by Library detail, Graph, and Add. */
 export type TransitionFieldValues = {
   fromBar: string;
   toBar: string;
@@ -96,6 +110,7 @@ export function TransitionFields({
   errors,
   disabled = false,
   compact = false,
+  includeBars = true,
 }: {
   idPrefix: string;
   values: TransitionFieldValues;
@@ -103,61 +118,74 @@ export function TransitionFields({
   errors?: TransitionFieldErrors;
   disabled?: boolean;
   compact?: boolean;
+  /** Graph and Library detail keep the stacked bar row; the add page places bars on the pair. */
+  includeBars?: boolean;
 }) {
   return (
     <div className={compact ? "space-y-3" : "space-y-6"}>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <FormField id={`${idPrefix}-from-bar`} label="From bar" error={errors?.fromBar}>
-          <Input
-            inputMode="decimal"
-            className="text-numeric"
-            value={values.fromBar}
-            onChange={(event) => onChange("fromBar", event.target.value)}
-            disabled={disabled}
-          />
-        </FormField>
-        <FormField id={`${idPrefix}-to-bar`} label="To bar" error={errors?.toBar}>
-          <Input
-            inputMode="decimal"
-            className="text-numeric"
-            value={values.toBar}
-            onChange={(event) => onChange("toBar", event.target.value)}
-            disabled={disabled}
-          />
-        </FormField>
-        <FormField id={`${idPrefix}-bars-overlap`} label="Overlap" error={errors?.barsOverlap}>
-          <Input
-            inputMode="decimal"
-            className="text-numeric"
-            value={values.barsOverlap}
-            onChange={(event) => onChange("barsOverlap", event.target.value)}
-            disabled={disabled}
-          />
-        </FormField>
-      </div>
+      {includeBars ? (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <FormField id={`${idPrefix}-from-bar`} label="From bar" error={errors?.fromBar}>
+            <Input
+              inputMode="decimal"
+              className="text-numeric"
+              value={values.fromBar}
+              onChange={(event) => onChange("fromBar", event.target.value)}
+              disabled={disabled}
+            />
+          </FormField>
+          <FormField id={`${idPrefix}-to-bar`} label="To bar" error={errors?.toBar}>
+            <Input
+              inputMode="decimal"
+              className="text-numeric"
+              value={values.toBar}
+              onChange={(event) => onChange("toBar", event.target.value)}
+              disabled={disabled}
+            />
+          </FormField>
+          <FormField id={`${idPrefix}-bars-overlap`} label="Overlap" error={errors?.barsOverlap}>
+            <Input
+              inputMode="decimal"
+              className="text-numeric"
+              value={values.barsOverlap}
+              onChange={(event) => onChange("barsOverlap", event.target.value)}
+              disabled={disabled}
+            />
+          </FormField>
+        </div>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <FormField id={`${idPrefix}-technique`} label="Technique" error={errors?.technique}>
-          <Input
+          <Combobox
             value={values.technique}
-            onChange={(event) => onChange("technique", event.target.value)}
+            onChange={(next) => onChange("technique", next)}
+            options={TECHNIQUE_OPTIONS}
             disabled={disabled}
           />
         </FormField>
         <FormField id={`${idPrefix}-intent`} label="Intent" error={errors?.intent}>
-          <Input
+          <Combobox
             value={values.intent}
-            onChange={(event) => onChange("intent", event.target.value)}
+            onChange={(next) => onChange("intent", next)}
+            options={INTENT_OPTIONS}
             disabled={disabled}
+            placeholder="Build hype, cool down…"
           />
         </FormField>
-        <FormField id={`${idPrefix}-quality`} label="Quality" error={errors?.quality}>
-          <Input
+        <Field data-invalid={errors?.quality ? true : undefined}>
+          <FieldTitle id={`${idPrefix}-quality-label`}>Quality</FieldTitle>
+          <Segmented
+            aria-labelledby={`${idPrefix}-quality-label`}
             value={values.quality}
-            onChange={(event) => onChange("quality", event.target.value)}
+            onChange={(next) => onChange("quality", next)}
+            options={QUALITY_SEGMENTED_OPTIONS}
             disabled={disabled}
           />
-        </FormField>
+          {errors?.quality ? (
+            <FieldError id={`${idPrefix}-quality-error`}>{errors.quality}</FieldError>
+          ) : null}
+        </Field>
       </div>
 
       <FormField id={`${idPrefix}-notes`} label="Notes" error={errors?.notes}>
