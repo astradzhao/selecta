@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { barStripTickCount, clampConfidence, qualityFill } from "./viz";
+import { barStripTickCount, clampConfidence, qualityFill, qualityBadgeTone } from "./viz";
 
 describe("barStripTickCount", () => {
   it("returns null when no bar data is set so the strip can hide", () => {
@@ -21,6 +21,14 @@ describe("qualityFill", () => {
     assert.equal(qualityFill("ok"), 0.55);
     assert.equal(qualityFill("risky"), 0.25);
     assert.equal(qualityFill(null), null);
+  });
+});
+
+describe("qualityBadgeTone", () => {
+  it("uses the brand wash for great so a quality chip is not a solid CTA", () => {
+    assert.equal(qualityBadgeTone("great"), "brand");
+    assert.equal(qualityBadgeTone("ok"), "secondary");
+    assert.equal(qualityBadgeTone("risky"), "outline");
   });
 });
 

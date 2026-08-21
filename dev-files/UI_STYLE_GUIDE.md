@@ -22,29 +22,32 @@ is the wash behind `text-X`.
 
 ### Surfaces and chrome
 
-| Token                                         | Use                                      |
-| --------------------------------------------- | ---------------------------------------- |
-| `--background` / `--foreground`               | Page canvas and default ink              |
-| `--card` / `--popover`                        | Raised panels (dialogs, menus)           |
-| `--muted` / `--muted-foreground`              | Recessed fill and secondary copy         |
-| `--border` / `--input` / `--ring`             | Hairlines, field chrome, focus rings     |
-| `--surface-1` / `--surface-2` / `--surface-3` | Elevation steps (replaces `bg-muted/NN`) |
-| `--overlay`                                   | Dialog/scrim (`bg-overlay`)              |
-| `--selected` / `--selected-foreground`        | Active nav/tab inversion                 |
-| `--highlight` / `--highlight-foreground`      | Inline source-span highlight             |
+| Token                                         | Use                                                |
+| --------------------------------------------- | -------------------------------------------------- |
+| `--background` / `--foreground`               | Page canvas and default ink                        |
+| `--card` / `--popover`                        | Raised panels (dialogs, menus)                     |
+| `--muted` / `--muted-foreground`              | Recessed fill and secondary copy                   |
+| `--border` / `--input` / `--ring`             | Hairlines, field chrome, focus rings               |
+| `--surface-1` / `--surface-2` / `--surface-3` | Elevation steps (replaces `bg-muted/NN`)           |
+| `--overlay`                                   | Dialog/scrim (`bg-overlay`)                        |
+| `--selected` / `--selected-foreground`        | Active nav/tab wash (`bg-brand-subtle text-brand`) |
+| `--highlight` / `--highlight-foreground`      | Inline source-span highlight                       |
 
-`--primary` stays **grayscale** (high-contrast CTA). `--brand` is the chromatic
-accent (indigo). Do not retint every `Button` by folding brand into primary.
+`--primary` is the filled CTA and shares Sonar's teal hue. In dark it sits
+**darker** than `--brand` so a solid button never becomes the brightest object
+on the page. `--brand` is the chromatic accent for connectivity chrome (edge
+counts, transition arrows, active-tab text). `variant="brand"` is the teal
+wash (`bg-brand-subtle text-brand`), not a second solid fill.
 
 ### Status
 
-| Token           | Use                              |
-| --------------- | -------------------------------- |
-| `--brand`       | Accent chrome, `variant="brand"` |
-| `--success`     | Committed / complete             |
-| `--warning`     | Needs review / caution           |
-| `--info`        | Neutral notices                  |
-| `--destructive` | Failed / irreversible            |
+| Token           | Use                                   |
+| --------------- | ------------------------------------- |
+| `--brand`       | Accent chrome, `variant="brand"` wash |
+| `--success`     | Committed / complete                  |
+| `--warning`     | Needs review / caution                |
+| `--info`        | Neutral notices                       |
+| `--destructive` | Failed / irreversible                 |
 
 Recipe for status text on a wash: `bg-X-subtle text-X`. Warning is the
 exception to invert-solid: `--warning-foreground` stays dark in both themes,
@@ -58,18 +61,21 @@ Do not recreate opacity ladders with `bg-foreground/45`.
 
 ### Contrast (WCAG AA 4.5:1, normal text)
 
-Verified pairs from the UI-1 pass. Dark `--destructive` solid + white is
-**2.75:1 — do not use**; components use `bg-destructive-subtle text-destructive`.
+Verified pairs for the Sonar theme (teal 197, cool neutrals). Dark
+`--destructive` solid + white is still too weak — components use
+`bg-destructive-subtle text-destructive`.
 
-| Pair                                      | Light          | Dark   |
-| ----------------------------------------- | -------------- | ------ |
-| `--brand` / `--brand-foreground`          | 6.55:1         | 7.10:1 |
-| `--success` / `--success-foreground`      | 6.64:1         | pass   |
-| `--warning` as text on `--background`     | 6.12:1         | pass   |
-| `--info` / `--info-foreground`            | 6.25:1         | pass   |
-| `--destructive` as text on `--background` | 4.76:1         | 6.89:1 |
-| `--muted-foreground` on `--background`    | 4.73:1 (tight) | 7.63:1 |
-| `--highlight` / `--highlight-foreground`  | 13.03:1        | pass   |
+| Pair                                      | Light   | Dark   |
+| ----------------------------------------- | ------- | ------ |
+| `--primary` / `--primary-foreground`      | 5.09:1  | 6.99:1 |
+| `--brand` as text on `--background`       | 5.12:1  | 8.86:1 |
+| `--brand` / `--brand-subtle` (active tab) | 4.54:1  | 6.25:1 |
+| `--success` / `--success-subtle`          | 5.38:1  | 6.28:1 |
+| `--warning` as text on `--background`     | 5.13:1  | pass   |
+| `--info` as text on `--background`        | 5.66:1  | pass   |
+| `--destructive` as text on `--background` | 5.55:1  | 7.04:1 |
+| `--muted-foreground` on `--background`    | 4.78:1  | 6.12:1 |
+| `--highlight` / `--highlight-foreground`  | 13.03:1 | pass   |
 
 Check **both** themes before merging UI.
 

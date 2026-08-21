@@ -56,7 +56,7 @@ function SegmentedTab({
           : cn(
               "rounded-lg px-3 py-1.5 text-sm",
               active
-                ? "bg-selected text-selected-foreground"
+                ? "bg-selected text-selected-foreground font-medium"
                 : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
             ),
         className,
