@@ -56,7 +56,13 @@ export function NextTransitions({
             {transitionCount !== destinationCount ? ` · ${transitionCount} transitions` : null}
           </span>
         </div>
-        <Button type="button" variant="outline" size="sm" disabled={swapping} onClick={onToggleAdd}>
+        <Button
+          type="button"
+          variant={adding ? "outline" : "default"}
+          size="sm"
+          disabled={swapping}
+          onClick={onToggleAdd}
+        >
           {adding ? "Cancel add" : "Add transition"}
         </Button>
       </div>
@@ -77,14 +83,14 @@ export function NextTransitions({
           description="Add a transition to a library track, or capture a mix note that links this song onward."
         >
           <div className="flex flex-wrap justify-center gap-2 pt-1">
-            <Button type="button" variant="secondary" size="sm" onClick={onToggleAdd}>
+            <Button type="button" size="sm" onClick={onToggleAdd}>
               Add transition
+            </Button>
+            <Button asChild variant="secondary" size="sm">
+              <Link href={libraryAddHref("tracks")}>Add a track</Link>
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={onExit}>
               Choose another track
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href={libraryAddHref("tracks")}>Add a track</Link>
             </Button>
           </div>
         </EmptyState>

@@ -9,9 +9,12 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
-        brand: "bg-brand text-brand-foreground [a]:hover:bg-brand/80",
-        secondary: "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
+        default:
+          "bg-primary text-primary-foreground [a]:hover:bg-[color-mix(in_oklch,var(--primary),var(--brand)_12%)]",
+        brand:
+          "bg-brand-subtle text-brand [a]:hover:bg-[color-mix(in_oklch,var(--brand-subtle),var(--brand)_12%)]",
+        secondary: "bg-tertiary text-tertiary-foreground [a]:hover:bg-tertiary/80",
+        tertiary: "bg-tertiary text-tertiary-foreground [a]:hover:bg-tertiary/80",
         destructive:
           "bg-destructive-subtle text-destructive focus-visible:ring-destructive/20 [a]:hover:bg-[color-mix(in_oklch,var(--destructive-subtle),var(--destructive)_12%)]",
         success:
@@ -22,7 +25,7 @@ const badgeVariants = cva(
         outline:
           "border-border text-foreground [a]:hover:bg-surface-2 [a]:hover:text-muted-foreground",
         ghost: "hover:bg-surface-2 hover:text-muted-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-brand underline-offset-4 hover:underline",
       },
     },
     defaultVariants: {

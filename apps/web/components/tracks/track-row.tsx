@@ -103,7 +103,7 @@ export function TrackRow({
         <span
           className={cn(
             "border-border size-4 shrink-0 rounded-full border transition-all duration-200",
-            selected && "border-selected bg-selected scale-110",
+            selected && "border-brand bg-brand scale-110",
           )}
           aria-hidden
         />

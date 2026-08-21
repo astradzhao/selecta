@@ -172,7 +172,7 @@ function TrackPickerList({
             {itemBadges.length > 0 ? (
               <span className="flex flex-wrap gap-1.5 pt-0.5">
                 {itemBadges.map((badge) => (
-                  <Badge key={badge} variant="secondary" className="font-normal">
+                  <Badge key={badge} variant="tertiary" className="font-normal">
                     {badge}
                   </Badge>
                 ))}

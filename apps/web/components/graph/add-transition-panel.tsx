@@ -73,7 +73,10 @@ export function AddTransitionPanel({
           <h3 className="text-card-title">Add transition</h3>
           <p className="text-muted-foreground text-xs text-pretty">
             Pick an existing library track. Missing a song?{" "}
-            <Link href={libraryAddHref("tracks")} className="underline-offset-4 hover:underline">
+            <Link
+              href={libraryAddHref("tracks")}
+              className="text-brand underline-offset-4 hover:underline"
+            >
               Add it first
             </Link>
             .

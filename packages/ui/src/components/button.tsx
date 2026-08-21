@@ -9,12 +9,16 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/80",
-        brand: "bg-brand text-brand-foreground hover:bg-brand/80",
+        default:
+          "border-[color-mix(in_oklch,var(--brand)_28%,transparent)] bg-primary text-primary-foreground hover:bg-[color-mix(in_oklch,var(--primary),var(--brand)_12%)]",
+        brand:
+          "bg-brand-subtle text-brand hover:bg-[color-mix(in_oklch,var(--brand-subtle),var(--brand)_12%)]",
         outline:
           "border-border bg-background hover:bg-surface-2 hover:text-foreground aria-expanded:bg-surface-2 aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "border-[color-mix(in_oklch,var(--secondary)_28%,transparent)] bg-secondary-subtle text-secondary hover:bg-[color-mix(in_oklch,var(--secondary-subtle),var(--secondary)_12%)]",
+        tertiary:
+          "bg-tertiary text-tertiary-foreground hover:bg-[color-mix(in_oklch,var(--tertiary),var(--foreground)_5%)] aria-expanded:bg-tertiary aria-expanded:text-tertiary-foreground",
         ghost:
           "hover:bg-surface-2 hover:text-foreground aria-expanded:bg-surface-2 aria-expanded:text-foreground",
         destructive:
@@ -24,7 +28,7 @@ const buttonVariants = cva(
         warning:
           "bg-warning-subtle text-warning hover:bg-[color-mix(in_oklch,var(--warning-subtle),var(--warning)_12%)]",
         info: "bg-info-subtle text-info hover:bg-[color-mix(in_oklch,var(--info-subtle),var(--info)_12%)]",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-brand underline-offset-4 hover:underline",
       },
       size: {
         default:
