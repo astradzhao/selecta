@@ -149,12 +149,12 @@ export function LibraryTransitionRow({ transition }: { transition: ApiTransition
         <EndpointCell endpoint={to} />
         <span className="hidden min-w-0 flex-wrap items-center gap-1.5 sm:flex">
           {transition.technique ? (
-            <Badge variant="secondary" className="max-w-full truncate">
+            <Badge variant="tertiary" className="max-w-full truncate">
               {transition.technique}
             </Badge>
           ) : null}
           {transition.intent ? (
-            <Badge variant="secondary" className="max-w-full truncate">
+            <Badge variant="tertiary" className="max-w-full truncate">
               {transition.intent}
             </Badge>
           ) : null}

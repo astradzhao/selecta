@@ -89,7 +89,7 @@ export function LibraryTrackRow({ track }: { track: ApiTrack }) {
             <span className="flex min-w-0 items-center gap-1.5">
               <span className="text-card-title min-w-0 truncate">{track.title}</span>
               {subgenres.map((item) => (
-                <Badge key={item.id} variant="secondary" className="max-w-36 truncate">
+                <Badge key={item.id} variant="tertiary" className="max-w-36 truncate">
                   {item.name}
                 </Badge>
               ))}

@@ -153,8 +153,8 @@ export function NeighborDetail({
       {t && panelMode === "view" ? (
         <>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            {technique ? <Badge variant="secondary">{technique}</Badge> : null}
-            {intent ? <Badge variant="secondary">{intent}</Badge> : null}
+            {technique ? <Badge variant="tertiary">{technique}</Badge> : null}
+            {intent ? <Badge variant="tertiary">{intent}</Badge> : null}
             <p className="text-caption">
               {provenance?.kind === "ai" ? "From submission" : "Manual"}
               {provenance?.submissionId ? (
