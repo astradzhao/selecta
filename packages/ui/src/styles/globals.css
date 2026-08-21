@@ -24,7 +24,10 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-subtle: var(--secondary-subtle);
   --color-secondary: var(--secondary);
+  --color-tertiary-foreground: var(--tertiary-foreground);
+  --color-tertiary: var(--tertiary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
@@ -78,12 +81,14 @@
   /*
    * Haze (lavender 305). Semantic roles — use these names, never a raw hue:
    *
-   *   --brand       chromatic theme accent (edge counts, cue marker, graph markers)
+   *   --brand       chromatic theme accent, lavender 305 (edge counts, cue marker, graph)
+   *   --secondary   mix-partner accent, teal 197 (Add a track, crate chips, ok quality)
+   *   --tertiary    quiet gray fill (old --secondary). Neutral chips, not a third hue.
    *   --primary     CTA wash (pale brand + hairline). Not a solid fill.
    *   --selected    active-tab cue (same ink as brand). Label uses --selected-foreground.
    *   --success     committed / complete
    *   --warning     needs review / caution  (not --highlight)
-   *   --info        processing / informational
+   *   --info        processing / informational (245, kept distinct from teal 197)
    *   --destructive failed / irreversible
    *   --highlight   source-span location, not a status
    *   --accent      shadcn hover fill (= muted). NOT the theme accent — that is --brand.
@@ -98,8 +103,11 @@
   --popover-foreground: oklch(0.27 0.012 300);
   --primary: oklch(0.945 0.032 305);
   --primary-foreground: oklch(0.44 0.105 305);
-  --secondary: oklch(0.954 0.007 305);
-  --secondary-foreground: oklch(0.27 0.012 300);
+  --secondary: oklch(0.48 0.08 197);
+  --secondary-foreground: oklch(0.99 0.005 197);
+  --secondary-subtle: oklch(0.948 0.028 197);
+  --tertiary: oklch(0.954 0.007 305);
+  --tertiary-foreground: oklch(0.27 0.012 300);
   --muted: oklch(0.954 0.007 305);
   --muted-foreground: oklch(0.545 0.012 300);
   --accent: oklch(0.954 0.007 305);
@@ -159,8 +167,11 @@
   --popover-foreground: oklch(0.925 0.004 305);
   --primary: oklch(0.305 0.045 305);
   --primary-foreground: oklch(0.825 0.075 305);
-  --secondary: oklch(0.3 0.011 300);
-  --secondary-foreground: oklch(0.925 0.004 305);
+  --secondary: oklch(0.78 0.08 197);
+  --secondary-foreground: oklch(0.2 0.012 240);
+  --secondary-subtle: oklch(0.305 0.04 197);
+  --tertiary: oklch(0.3 0.011 300);
+  --tertiary-foreground: oklch(0.925 0.004 305);
   --muted: oklch(0.3 0.011 300);
   --muted-foreground: oklch(0.665 0.012 300);
   --accent: oklch(0.3 0.011 300);

@@ -25,7 +25,7 @@ describe("qualityFill", () => {
 });
 
 describe("qualityBadgeTone", () => {
-  it("uses the brand wash for great so a quality chip is not a solid CTA", () => {
+  it("uses the brand wash for great and the teal secondary wash for ok", () => {
     assert.equal(qualityBadgeTone("great"), "brand");
     assert.equal(qualityBadgeTone("ok"), "secondary");
     assert.equal(qualityBadgeTone("risky"), "outline");

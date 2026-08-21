@@ -22,37 +22,44 @@ is the wash behind `text-X`.
 
 ### Surfaces and chrome
 
-| Token                                               | Use                                                              |
-| --------------------------------------------------- | ---------------------------------------------------------------- |
-| `--background` / `--foreground`                     | Page canvas and default ink                                      |
-| `--card` / `--popover`                              | Raised panels (dialogs, menus)                                   |
-| `--muted` / `--muted-foreground`                    | Recessed fill and secondary copy                                 |
-| `--secondary` / `--secondary-foreground`            | Quiet chip fill (`Badge variant="secondary"`)                    |
-| `--accent` / `--accent-foreground`                  | shadcn hover fill (= muted). **Not** the theme accent            |
-| `--primary` / `--primary-foreground`                | CTA wash + ink on that wash                                      |
-| `--brand` / `--brand-foreground` / `--brand-subtle` | Chromatic theme accent (lavender). Use this, not `--accent`      |
-| `--border` / `--input` / `--ring`                   | Hairlines, field chrome, focus rings                             |
-| `--surface-1` / `--surface-2` / `--surface-3`       | Elevation steps (replaces `bg-muted/NN`)                         |
-| `--overlay`                                         | Dialog/scrim (`bg-overlay`)                                      |
-| `--selected` / `--selected-foreground`              | Active nav/tab cue (`after:bg-selected`, ink is page foreground) |
-| `--highlight` / `--highlight-foreground`            | Inline source-span highlight                                     |
+| Token                                                           | Use                                                              |
+| --------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `--background` / `--foreground`                                 | Page canvas and default ink                                      |
+| `--card` / `--popover`                                          | Raised panels (dialogs, menus)                                   |
+| `--muted` / `--muted-foreground`                                | Recessed fill and secondary copy                                 |
+| `--tertiary` / `--tertiary-foreground`                          | Quiet gray fill (old `--secondary`). Neutral chips, not a hue    |
+| `--accent` / `--accent-foreground`                              | shadcn hover fill (= muted). **Not** the theme accent            |
+| `--primary` / `--primary-foreground`                            | Lavender CTA wash + ink on that wash                             |
+| `--brand` / `--brand-foreground` / `--brand-subtle`             | Chromatic theme accent (lavender 305). Use this, not `--accent`  |
+| `--secondary` / `--secondary-foreground` / `--secondary-subtle` | Mix-partner accent (teal 197). `variant="secondary"` wash        |
+| `--border` / `--input` / `--ring`                               | Hairlines, field chrome, focus rings                             |
+| `--surface-1` / `--surface-2` / `--surface-3`                   | Elevation steps (replaces `bg-muted/NN`)                         |
+| `--overlay`                                                     | Dialog/scrim (`bg-overlay`)                                      |
+| `--selected` / `--selected-foreground`                          | Active nav/tab cue (`after:bg-selected`, ink is page foreground) |
+| `--highlight` / `--highlight-foreground`                        | Inline source-span highlight                                     |
 
 `--primary` is the **soft CTA wash** (pale lavender + hairline), not a solid
 fill. `--primary-foreground` is the ink on that wash. `--brand` is the
 chromatic accent for connectivity chrome (edge counts, transition arrows,
 the 2px active-tab marker). `variant="brand"` is the same lavender wash
-(`bg-brand-subtle text-brand`). Links and checked-field chrome use `--brand`,
-never `--primary`, because `--primary` is a wash and would disappear as text.
+(`bg-brand-subtle text-brand`). `--secondary` is the **teal mix partner**
+(hue 197): crate chips, ok-quality, and supporting CTAs like Add a track
+(`bg-secondary-subtle text-secondary`). `--tertiary` is the quiet gray that
+`--secondary` used to be — use it for neutral status, not as a third hue.
+Links and checked-field chrome use `--brand`, never `--primary`, because
+`--primary` is a wash and would disappear as text.
 
 ### Status
 
-| Token           | Use                                               |
-| --------------- | ------------------------------------------------- |
-| `--brand`       | Accent chrome, cue marker, `variant="brand"` wash |
-| `--success`     | Committed / complete                              |
-| `--warning`     | Needs review / caution                            |
-| `--info`        | Neutral notices                                   |
-| `--destructive` | Failed / irreversible                             |
+| Token           | Use                                                         |
+| --------------- | ----------------------------------------------------------- |
+| `--brand`       | Accent chrome, cue marker, `variant="brand"` wash           |
+| `--secondary`   | Mix-partner chrome, crate chips, `variant="secondary"` wash |
+| `--tertiary`    | Quiet gray fill, neutral status                             |
+| `--success`     | Committed / complete                                        |
+| `--warning`     | Needs review / caution                                      |
+| `--info`        | Neutral notices                                             |
+| `--destructive` | Failed / irreversible                                       |
 
 Recipe for status text on a wash: `bg-X-subtle text-X`. Warning is the
 exception to invert-solid: `--warning-foreground` stays dark in both themes,
@@ -68,7 +75,7 @@ with `bg-foreground/45`.
 
 ### Contrast (WCAG AA 4.5:1, normal text)
 
-Verified pairs for the Haze theme (lavender 305, violet-tinted neutrals). Dark
+Verified pairs for the Haze theme (lavender 305 + teal 197). Dark
 `--destructive` solid + white is still too weak — components use
 `bg-destructive-subtle text-destructive`.
 
@@ -77,6 +84,7 @@ Verified pairs for the Haze theme (lavender 305, violet-tinted neutrals). Dark
 | `--primary` / `--primary-foreground`       | 6.87:1  | 7.74:1  |
 | `--brand` as text on `--background`        | 6.03:1  | 9.76:1  |
 | `--brand` / `--brand-subtle` (chip, arrow) | 5.28:1  | 7.11:1  |
+| `--secondary` / `--secondary-subtle`       | 5.45:1  | 6.80:1  |
 | `--selected` marker on `--background`      | 6.03:1  | 9.76:1  |
 | `--success` / `--success-subtle`           | 5.38:1  | 6.28:1  |
 | `--warning` / `--warning-subtle`           | 4.65:1  | 6.50:1  |
