@@ -7,8 +7,9 @@ import { Badge } from "@selecta/ui/components/badge";
 import { Separator } from "@selecta/ui/components/separator";
 import { cn } from "@selecta/ui/lib/utils";
 
+import { TrackChips } from "@/components/tracks/track-chips";
 import { artistLine, formatTimestamp } from "@/lib/format";
-import { formatBpmKey } from "@/lib/tracks/crate-row";
+import { CRATE_SUBGENRE_LIMIT } from "@/lib/tracks/crate-row";
 import { EMPTY_SHIFT, formatBpmShift, formatKeyShift } from "@/lib/transitions/transition-row";
 import type { ApiTransition, ApiTransitionEndpoint } from "@/lib/transitions/types";
 import { displayVocab, qualityRankTone } from "@/lib/transitions/vocab-labels";
@@ -56,7 +57,11 @@ function SleeveMeta({
         {track.title}
       </h2>
       <p className="text-body text-muted-foreground">{artistLine(track.artists)}</p>
-      <p className="text-crate-meta">{formatBpmKey(track.bpm, track.musicalKey)}</p>
+      <TrackChips
+        subgenres={track.subgenres}
+        limit={CRATE_SUBGENRE_LIMIT}
+        className={align === "end" ? "sm:justify-end" : undefined}
+      />
     </div>
   );
 }

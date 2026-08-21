@@ -16,6 +16,7 @@ function serializeEndpoint(endpoint: TransitionRecord["from"]) {
     id: endpoint.track.id,
     title: endpoint.track.title,
     artists: endpoint.artists,
+    subgenres: endpoint.subgenres,
     artworkUrl: endpoint.track.artworkUrl,
     bpm: endpoint.track.bpm,
     musicalKey: endpoint.track.musicalKey,
