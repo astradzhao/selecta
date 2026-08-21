@@ -55,6 +55,7 @@ function BarField({
   error,
   disabled,
   onChange,
+  align = "start",
   className,
 }: {
   id: string;
@@ -64,11 +65,20 @@ function BarField({
   error?: string;
   disabled?: boolean;
   onChange: (value: string) => void;
+  align?: "start" | "center" | "end";
   className?: string;
 }) {
   return (
-    <div className={cn("min-w-0", className)}>
-      <label htmlFor={id} className="text-caption mb-1.5 block text-center">
+    <div
+      className={cn(
+        "min-w-0",
+        align === "start" && "justify-self-start text-left",
+        align === "center" && "justify-self-center text-center",
+        align === "end" && "justify-self-end text-right",
+        className,
+      )}
+    >
+      <label htmlFor={id} className="text-caption mb-1.5 block">
         {label}
       </label>
       <MeasureInput
@@ -240,12 +250,12 @@ export function ManualTransitionForm({
 
         <button
           type="button"
-          className="text-brand flex h-14 items-center justify-center disabled:opacity-40 [grid-area:swap]"
+          className="text-secondary flex h-14 items-center justify-center disabled:opacity-40 [grid-area:swap]"
           aria-label="Swap from and to"
           disabled={pending || from == null || to == null}
           onClick={swap}
         >
-          <span className="bg-brand-subtle flex size-8 items-center justify-center rounded-full">
+          <span className="bg-secondary-subtle flex size-8 items-center justify-center rounded-full">
             <ArrowRightIcon className="size-4" aria-hidden />
           </span>
         </button>
@@ -266,31 +276,34 @@ export function ManualTransitionForm({
           id="add-from-bar"
           label="Cut out at"
           unit="bar"
+          align="start"
           value={form.fromBar}
           error={fieldErrors.fromBar}
           disabled={pending}
           onChange={(value) => updateField("fromBar", value)}
-          className="justify-self-start [grid-area:from-bar] sm:justify-self-end"
+          className="[grid-area:from-bar]"
         />
         <BarField
           id="add-overlap"
           label="Overlap"
           unit="bars"
+          align="center"
           value={form.barsOverlap}
           error={fieldErrors.barsOverlap}
           disabled={pending}
           onChange={(value) => updateField("barsOverlap", value)}
-          className="justify-self-start [grid-area:overlap] sm:justify-self-center"
+          className="[grid-area:overlap]"
         />
         <BarField
           id="add-to-bar"
           label="Come in at"
           unit="bar"
+          align="end"
           value={form.toBar}
           error={fieldErrors.toBar}
           disabled={pending}
           onChange={(value) => updateField("toBar", value)}
-          className="justify-self-start [grid-area:to-bar]"
+          className="[grid-area:to-bar]"
         />
       </div>
 

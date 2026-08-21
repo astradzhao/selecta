@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { SearchIcon } from "lucide-react";
 
 import { Alert } from "@selecta/ui/components/alert";
 import { Badge } from "@selecta/ui/components/badge";
@@ -20,21 +19,10 @@ import {
   type EndpointSelection,
 } from "@/lib/transitions/endpoint-selection";
 
-function SlotArt({ url, searching = false }: { url?: string | null; searching?: boolean }) {
+function SlotArt({ url }: { url?: string | null }) {
   return (
-    <span
-      className={cn(
-        "relative size-10 shrink-0 overflow-hidden rounded-md",
-        searching
-          ? "border-input text-muted-foreground flex items-center justify-center border border-dashed bg-transparent"
-          : "bg-muted ring-border ring-1 ring-inset",
-      )}
-    >
-      {searching ? (
-        <SearchIcon className="size-4" aria-hidden />
-      ) : url ? (
-        <Image src={url} alt="" fill className="object-cover" sizes="40px" />
-      ) : null}
+    <span className="bg-muted ring-border relative size-10 shrink-0 overflow-hidden rounded-md ring-1 ring-inset">
+      {url ? <Image src={url} alt="" fill className="object-cover" sizes="40px" /> : null}
     </span>
   );
 }
@@ -188,11 +176,10 @@ export function TransitionEndpointField({
         <>
           <label
             className={cn(
-              "border-input flex h-14 min-w-0 items-center gap-3 rounded-lg border border-dashed bg-transparent px-3 transition-colors",
+              "border-input flex h-14 min-w-0 items-center rounded-lg border border-dashed bg-transparent px-3.5 transition-colors",
               "focus-within:border-ring focus-within:ring-ring/50 focus-within:border-solid focus-within:ring-3",
             )}
           >
-            <SlotArt searching />
             <input
               id={id}
               type="search"
