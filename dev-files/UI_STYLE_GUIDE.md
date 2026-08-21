@@ -51,15 +51,15 @@ as text.
 
 ### Status
 
-| Token           | Use                                                          |
-| --------------- | ------------------------------------------------------------ |
-| `--brand`       | Accent chrome, cue marker, `variant="brand"` wash            |
-| `--secondary`   | Teal supporting CTA wash (button only)                       |
-| `--tertiary`    | Quiet gray fill: labels, chips, and neutral status           |
-| `--success`     | Committed / complete                                         |
-| `--warning`     | Needs review / caution                                       |
-| `--info`        | Neutral notices                                              |
-| `--destructive` | Failed / irreversible                                        |
+| Token           | Use                                                |
+| --------------- | -------------------------------------------------- |
+| `--brand`       | Accent chrome, cue marker, `variant="brand"` wash  |
+| `--secondary`   | Teal supporting CTA wash (button only)             |
+| `--tertiary`    | Quiet gray fill: labels, chips, and neutral status |
+| `--success`     | Committed / complete                               |
+| `--warning`     | Needs review / caution                             |
+| `--info`        | Neutral notices                                    |
+| `--destructive` | Failed / irreversible                              |
 
 Recipe for status text on a wash: `bg-X-subtle text-X`. Warning is the
 exception to invert-solid: `--warning-foreground` stays dark in both themes,
