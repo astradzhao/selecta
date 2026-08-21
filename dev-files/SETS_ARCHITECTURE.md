@@ -3,9 +3,9 @@
 > Design record for **Blocks** — ordered, persisted, composable paths through the transition
 > graph — and the **manual transition entry** path they require.
 >
-> Status: in progress. SET-1 and SET-2 have shipped; SET-3 onward are open.
+> Status: in progress. SET-1, SET-2, and SET-3 have shipped; SET-4 onward are open.
 >
-> Last updated: 2026-08-20
+> Last updated: 2026-08-21
 >
 > Builds on [`NEXT_PRODUCT_ARCHITECTURE.md`](./NEXT_PRODUCT_ARCHITECTURE.md) (Add → Library →
 > Graph product model) and [`TICKET_ORDER.md`](./TICKET_ORDER.md). Storage is one Postgres.
@@ -731,7 +731,7 @@ revisited; the richer surfaces arrive later.
 | **SET-1**  | [DJ-111](https://linear.app/dj-project-astradzhao/issue/DJ-111) | Schema + `0010_blocks.sql` + the sequence module (now `packages/library/src/blocks.ts`): gap states, derived caches with transitive completeness, expansion, cycle checks, staleness validation, reorder in one transaction. Tests from §10. | —            |
 | **SET-2**  | [DJ-112](https://linear.app/dj-project-astradzhao/issue/DJ-112) | `apps/api` routes for blocks, steps, and reorder (§7).                                                                                                                                                                                       | SET-1        |
 | **SET-3**  | [DJ-113](https://linear.app/dj-project-astradzhao/issue/DJ-113) | Manual transition mode on `/add` (§9) with the vocabulary comboboxes. Ships standalone value.                                                                                                                                                | —            |
-| **SET-4**  | [DJ-114](https://linear.app/dj-project-astradzhao/issue/DJ-114) | `/sets` top-level tab with Sets/Blocks sub-tabs + the two-pane workspace: running order with append, remove, reorder, gap linking, seams, and the library palette. Transitions only as connectors.                                           | SET-2        |
+| **SET-4**  | [DJ-114](https://linear.app/dj-project-astradzhao/issue/DJ-114) | `/sets` top-level tab with Sets/Blocks sub-tabs + the two-pane workspace: running order with append, remove, reorder, gap linking, seams, and the library palette. Transitions only as connectors. Plan: [`sets-feature/DJ114_SETS_WORKSPACE_PLAN.md`](./sets-feature/DJ114_SETS_WORKSPACE_PLAN.md). | SET-2        |
 | **SET-5**  | [DJ-115](https://linear.app/dj-project-astradzhao/issue/DJ-115) | Block connectors: connector picker over blocks, collapsed rows, expand, detach-to-copy, "Save trail as a block".                                                                                                                             | SET-4        |
 | **SET-6**  | [DJ-116](https://linear.app/dj-project-astradzhao/issue/DJ-116) | Alternates: spans, labels, and the alternate list.                                                                                                                                                                                           | SET-4        |
 | **SET-7**  | [DJ-117](https://linear.app/dj-project-astradzhao/issue/DJ-117) | Versions: API, switcher, overlap validation.                                                                                                                                                                                                 | SET-6        |
