@@ -156,12 +156,15 @@ export function TransitionView({ transition }: { transition: ApiTransition }) {
           </Link>
         </div>
 
-        <div className="hidden sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-start sm:gap-x-6">
-          <Link href={`/tracks/${from.id}`} className="group flex min-w-0 flex-col items-end gap-4">
+        <div className="hidden sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(6.5rem,auto)_minmax(0,1fr)] sm:items-start sm:gap-x-12 lg:gap-x-16">
+          <Link
+            href={`/tracks/${from.id}`}
+            className="group flex w-full min-w-0 flex-col items-end gap-4"
+          >
             <SleeveArt url={from.artworkUrl} />
             <SleeveMeta side="From" track={from} align="end" />
           </Link>
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center px-2">
             <div className="flex h-48 items-center">
               <span className="bg-brand-subtle text-brand flex size-10 items-center justify-center rounded-full">
                 <ArrowRightIcon className="size-4" aria-hidden />
@@ -170,7 +173,10 @@ export function TransitionView({ transition }: { transition: ApiTransition }) {
             </div>
             <MixShift from={from} to={to} />
           </div>
-          <Link href={`/tracks/${to.id}`} className="group flex min-w-0 flex-col items-start gap-4">
+          <Link
+            href={`/tracks/${to.id}`}
+            className="group flex w-full min-w-0 flex-col items-start gap-4"
+          >
             <SleeveArt url={to.artworkUrl} />
             <SleeveMeta side="To" track={to} align="start" />
           </Link>
