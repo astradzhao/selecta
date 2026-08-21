@@ -233,7 +233,7 @@ export function AddTrackFlow() {
             placeholder="Add subgenre, then Enter — or pick one below"
             values={subgenres}
             onChange={setSubgenres}
-            badgeVariant="tertiary"
+            badgeVariant="secondary"
             vocab="subgenres"
           />
 

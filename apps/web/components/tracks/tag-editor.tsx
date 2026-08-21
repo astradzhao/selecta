@@ -34,7 +34,7 @@ type TagEditorBase = {
   label: string;
   hint?: string;
   placeholder: string;
-  badgeVariant?: "tertiary" | "outline";
+  badgeVariant?: "secondary" | "outline";
 };
 
 type NamedEditorProps = TagEditorBase & {
@@ -58,7 +58,7 @@ export function TagEditor(props: NamedEditorProps | FolderEditorProps) {
   const id = props.id ?? inputId;
   const withKind = props.kind === true;
   const vocab = withKind ? (props.vocab ?? "folders") : props.vocab;
-  const badgeVariant = props.badgeVariant ?? (withKind ? "outline" : "tertiary");
+  const badgeVariant = props.badgeVariant ?? (withKind ? "outline" : "secondary");
   const [draft, setDraft] = useState("");
   const [kind, setKind] = useState<FolderKind>(
     withKind ? (props.defaultKind ?? DEFAULT_KIND) : DEFAULT_KIND,
