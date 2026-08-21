@@ -22,16 +22,20 @@ is the wash behind `text-X`.
 
 ### Surfaces and chrome
 
-| Token                                         | Use                                                              |
-| --------------------------------------------- | ---------------------------------------------------------------- |
-| `--background` / `--foreground`               | Page canvas and default ink                                      |
-| `--card` / `--popover`                        | Raised panels (dialogs, menus)                                   |
-| `--muted` / `--muted-foreground`              | Recessed fill and secondary copy                                 |
-| `--border` / `--input` / `--ring`             | Hairlines, field chrome, focus rings                             |
-| `--surface-1` / `--surface-2` / `--surface-3` | Elevation steps (replaces `bg-muted/NN`)                         |
-| `--overlay`                                   | Dialog/scrim (`bg-overlay`)                                      |
-| `--selected` / `--selected-foreground`        | Active nav/tab cue (`after:bg-selected`, ink is page foreground) |
-| `--highlight` / `--highlight-foreground`      | Inline source-span highlight                                     |
+| Token                                               | Use                                                              |
+| --------------------------------------------------- | ---------------------------------------------------------------- |
+| `--background` / `--foreground`                     | Page canvas and default ink                                      |
+| `--card` / `--popover`                              | Raised panels (dialogs, menus)                                   |
+| `--muted` / `--muted-foreground`                    | Recessed fill and secondary copy                                 |
+| `--secondary` / `--secondary-foreground`            | Quiet chip fill (`Badge variant="secondary"`)                    |
+| `--accent` / `--accent-foreground`                  | shadcn hover fill (= muted). **Not** the theme accent            |
+| `--primary` / `--primary-foreground`                | CTA wash + ink on that wash                                      |
+| `--brand` / `--brand-foreground` / `--brand-subtle` | Chromatic theme accent (lavender). Use this, not `--accent`      |
+| `--border` / `--input` / `--ring`                   | Hairlines, field chrome, focus rings                             |
+| `--surface-1` / `--surface-2` / `--surface-3`       | Elevation steps (replaces `bg-muted/NN`)                         |
+| `--overlay`                                         | Dialog/scrim (`bg-overlay`)                                      |
+| `--selected` / `--selected-foreground`              | Active nav/tab cue (`after:bg-selected`, ink is page foreground) |
+| `--highlight` / `--highlight-foreground`            | Inline source-span highlight                                     |
 
 `--primary` is the **soft CTA wash** (pale lavender + hairline), not a solid
 fill. `--primary-foreground` is the ink on that wash. `--brand` is the
@@ -56,9 +60,11 @@ so prefer `bg-warning-subtle text-warning` rather than white-on-amber.
 
 ### Visualization (graph only)
 
-`--viz-bar-strong|mid|weak|faint`, `--viz-meter-track|fill|empty`,
-`--viz-connector-from|via`. These mix `--foreground` so they track both themes.
-Do not recreate opacity ladders with `bg-foreground/45`.
+`--viz-bar-strong|mid` and `--viz-meter-fill` / `--viz-connector-*` mix
+`--brand` so from/to markers, overlap, meters, and the now-playing connector
+pick up the theme accent. `--viz-bar-weak|faint` stay on `--foreground` so the
+beat grid does not become a lavender wall. Do not recreate opacity ladders
+with `bg-foreground/45`.
 
 ### Contrast (WCAG AA 4.5:1, normal text)
 

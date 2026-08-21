@@ -136,7 +136,7 @@ export function NeighborDetail({
                 }}
                 className={
                   selectedEdge
-                    ? "border-foreground/40 bg-surface-2 rounded-md border px-2.5 py-1 text-left text-xs"
+                    ? "border-brand/30 bg-brand-subtle text-brand rounded-md border px-2.5 py-1 text-left text-xs"
                     : "border-border hover:bg-surface-1 rounded-md border px-2.5 py-1 text-left text-xs"
                 }
               >
@@ -162,7 +162,7 @@ export function NeighborDetail({
                   {" · "}
                   <Link
                     href={`/library/submissions/${provenance.submissionId}`}
-                    className="underline-offset-4 hover:underline"
+                    className="text-brand underline-offset-4 hover:underline"
                   >
                     Source submission
                   </Link>

@@ -64,6 +64,7 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
           artHidden={explorer.artHidden}
           swapping={swapping}
           canGoBack={explorer.trail.length > 0}
+          outboundCount={neighbors.length}
           onBack={explorer.goBackInTrail}
           panelRef={explorer.panelRef}
         />
