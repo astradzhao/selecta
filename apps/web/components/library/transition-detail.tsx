@@ -30,6 +30,7 @@ import {
   updateTransition,
   type ApiTransition,
 } from "@/lib/transitions/api";
+import { displayVocab } from "@/lib/transitions/vocab-labels";
 
 export function TransitionDetail({ transitionId }: { transitionId: string }) {
   const router = useRouter();
@@ -81,6 +82,9 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
       </div>
     );
   }
+
+  const techniqueLabel = displayVocab(transition.technique);
+  const intentLabel = displayVocab(transition.intent);
 
   function onFieldChange(field: keyof TransitionFieldValues, value: string) {
     setForm((current) => (current ? { ...current, [field]: value } : current));
@@ -155,9 +159,8 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
         }
       >
         <div className="flex flex-wrap items-center gap-2">
-          {transition.technique ? <Badge variant="tertiary">{transition.technique}</Badge> : null}
-          {transition.intent ? <Badge variant="tertiary">{transition.intent}</Badge> : null}
-          {transition.quality ? <Badge variant="outline">{transition.quality}</Badge> : null}
+          {techniqueLabel ? <Badge variant="tertiary">{techniqueLabel}</Badge> : null}
+          {intentLabel ? <Badge variant="tertiary">{intentLabel}</Badge> : null}
           <span className="text-caption text-numeric">
             Created {formatTimestamp(transition.createdAt)}
             {transition.updatedAt !== transition.createdAt

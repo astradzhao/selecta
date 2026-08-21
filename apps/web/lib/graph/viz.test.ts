@@ -25,10 +25,10 @@ describe("qualityFill", () => {
 });
 
 describe("qualityBadgeTone", () => {
-  it("uses the brand wash for great so a quality chip is not a solid CTA", () => {
-    assert.equal(qualityBadgeTone("great"), "brand");
+  it("maps ranked quality onto status washes, never teal", () => {
+    assert.equal(qualityBadgeTone("great"), "success");
     assert.equal(qualityBadgeTone("ok"), "tertiary");
-    assert.equal(qualityBadgeTone("risky"), "outline");
+    assert.equal(qualityBadgeTone("risky"), "warning");
   });
 });
 

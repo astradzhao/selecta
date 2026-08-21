@@ -36,6 +36,12 @@ describe("commitVocabValue", () => {
 describe("vocabLabel", () => {
   it("renders the human label for a known token and the raw string otherwise", () => {
     assert.equal(vocabLabel("high_pass_filter"), "High-pass filter");
+    assert.equal(vocabLabel("bass_swap"), "Bass swap");
+    assert.equal(vocabLabel("ok"), "OK");
     assert.equal(vocabLabel("filter fade"), "filter fade");
+  });
+
+  it("drops underscores on unknown snake_case instead of showing the token", () => {
+    assert.equal(vocabLabel("filter_fade"), "Filter fade");
   });
 });

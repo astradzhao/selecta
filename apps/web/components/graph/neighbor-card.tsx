@@ -93,8 +93,8 @@ export function NeighborCard({
                 </Badge>
               ) : null}
               {selected?.quality ? (
-                <Badge variant={qualityBadgeTone(selected.quality)} className="capitalize">
-                  {selected.quality}
+                <Badge variant={qualityBadgeTone(selected.quality)}>
+                  {formatGraphLabel(selected.quality)}
                 </Badge>
               ) : null}
             </div>

@@ -57,9 +57,33 @@ const LABEL_BY_TOKEN = new Map<string, string>(
   ]),
 );
 
-/** Human label for a stored token; unknown values render as typed. */
+function humanizeSnake(value: string): string {
+  if (!value.includes("_")) return value;
+  const parts = value.split(/_+/).filter(Boolean);
+  if (parts.length === 0) return value;
+  return parts
+    .map((part, index) => (index === 0 ? part.charAt(0).toUpperCase() + part.slice(1) : part))
+    .join(" ");
+}
+
+/** Human label for a stored token; unknown snake_case drops the underscores. */
 export function vocabLabel(token: string): string {
-  return LABEL_BY_TOKEN.get(token) ?? token;
+  return LABEL_BY_TOKEN.get(token) ?? humanizeSnake(token);
+}
+
+export function displayVocab(token: string | null | undefined): string | null {
+  const trimmed = token?.trim();
+  return trimmed ? vocabLabel(trimmed) : null;
+}
+
+/** Status-token wash for the closed quality enum. OK stays quiet gray, never teal. */
+export function qualityRankTone(
+  quality: string | null | undefined,
+): "success" | "tertiary" | "warning" | null {
+  if (quality === "great") return "success";
+  if (quality === "ok") return "tertiary";
+  if (quality === "risky") return "warning";
+  return null;
 }
 
 export function filterVocabOptions(query: string, options: readonly VocabOption[]): VocabOption[] {

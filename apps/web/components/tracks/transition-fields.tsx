@@ -8,7 +8,17 @@ import { Textarea } from "@selecta/ui/components/textarea";
 
 import { FormField } from "@/components/common/form-field";
 import { optionalNumber, optionalNumberError } from "@/lib/format";
-import { INTENT_OPTIONS, QUALITY_OPTIONS, TECHNIQUE_OPTIONS } from "@/lib/transitions/vocab-labels";
+import {
+  INTENT_OPTIONS,
+  QUALITY_OPTIONS,
+  qualityRankTone,
+  TECHNIQUE_OPTIONS,
+} from "@/lib/transitions/vocab-labels";
+
+const QUALITY_SEGMENTED_OPTIONS = QUALITY_OPTIONS.map((option) => ({
+  ...option,
+  tone: qualityRankTone(option.value) ?? undefined,
+}));
 
 /** Compact editable fields shared by Library detail, Graph, and Add. */
 export type TransitionFieldValues = {
@@ -169,7 +179,7 @@ export function TransitionFields({
             aria-labelledby={`${idPrefix}-quality-label`}
             value={values.quality}
             onChange={(next) => onChange("quality", next)}
-            options={QUALITY_OPTIONS}
+            options={QUALITY_SEGMENTED_OPTIONS}
             disabled={disabled}
           />
           {errors?.quality ? (
