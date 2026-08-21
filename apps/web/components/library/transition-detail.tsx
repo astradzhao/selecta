@@ -12,6 +12,7 @@ import { PageBreadcrumb, PageHeader } from "@selecta/ui/components/page-header";
 import { SectionHeading } from "@selecta/ui/components/section-heading";
 import { StatePanel } from "@selecta/ui/components/state-panel";
 
+import { BackLink } from "@/components/common/back-link";
 import { omitFieldError } from "@/components/common/form-field";
 import {
   parseTransitionFieldPatch,
@@ -75,10 +76,8 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
   if (loadError || !transition || !form) {
     return (
       <div className="space-y-4">
+        <BackLink href={listHref}>Library</BackLink>
         <Alert variant="destructive">{loadError ?? "Transition not found."}</Alert>
-        <Button asChild variant="outline">
-          <Link href={listHref}>Back to transitions</Link>
-        </Button>
       </div>
     );
   }
@@ -135,13 +134,10 @@ export function TransitionDetail({ transitionId }: { transitionId: string }) {
     <div className="space-y-10">
       <PageHeader
         lead={
-          <PageBreadcrumb>
-            <Link href={listHref} className="hover:text-foreground transition-colors">
-              Transitions
-            </Link>
-            {" / "}
-            Detail
-          </PageBreadcrumb>
+          <>
+            <BackLink href={listHref}>Library</BackLink>
+            <PageBreadcrumb>Transition</PageBreadcrumb>
+          </>
         }
         title={
           <>
