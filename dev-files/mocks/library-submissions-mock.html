@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Selecta — Library / Submissions mock</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ------------------------------------------------------------------
+         Tokens copied from packages/ui/src/styles/globals.css so this mock
+         is implementable as-is. No new colors are introduced.
+         ------------------------------------------------------------------ */
+      [data-theme="light"] {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --border: oklch(0.922 0 0);
+        --input: oklch(0.922 0 0);
+        --surface-1: oklch(0.985 0 0);
+        --surface-2: oklch(0.97 0 0);
+        --surface-3: oklch(0.94 0 0);
+        --primary: oklch(0.205 0 0);
+        --primary-foreground: oklch(0.985 0 0);
+        --secondary: oklch(0.97 0 0);
+        --secondary-foreground: oklch(0.205 0 0);
+        --brand: oklch(0.48 0.19 264);
+        --brand-subtle: oklch(0.96 0.03 264);
+        --success: oklch(0.45 0.15 145);
+        --success-subtle: oklch(0.96 0.03 145);
+        --warning: oklch(0.5 0.16 75);
+        --warning-subtle: oklch(0.96 0.04 85);
+        --info: oklch(0.48 0.14 250);
+        --info-subtle: oklch(0.96 0.02 250);
+        --destructive: oklch(0.577 0.245 27.325);
+        --destructive-subtle: oklch(0.96 0.03 27);
+        --selected: oklch(0.145 0 0);
+        --selected-foreground: oklch(0.985 0 0);
+        --ring: oklch(0.708 0 0);
+        --stage: oklch(0.955 0 0);
+      }
+      [data-theme="dark"] {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --border: oklch(1 0 0 / 10%);
+        --input: oklch(1 0 0 / 15%);
+        --surface-1: oklch(0.18 0 0);
+        --surface-2: oklch(0.205 0 0);
+        --surface-3: oklch(0.269 0 0);
+        --primary: oklch(0.922 0 0);
+        --primary-foreground: oklch(0.205 0 0);
+        --secondary: oklch(0.269 0 0);
+        --secondary-foreground: oklch(0.985 0 0);
+        --brand: oklch(0.72 0.16 264);
+        --brand-subtle: oklch(0.28 0.06 264);
+        --success: oklch(0.78 0.14 145);
+        --success-subtle: oklch(0.28 0.05 145);
+        --warning: oklch(0.82 0.12 75);
+        --warning-subtle: oklch(0.3 0.05 75);
+        --info: oklch(0.76 0.1 250);
+        --info-subtle: oklch(0.28 0.04 250);
+        --destructive: oklch(0.704 0.191 22.216);
+        --destructive-subtle: oklch(0.3 0.08 22);
+        --selected: oklch(0.985 0 0);
+        --selected-foreground: oklch(0.145 0 0);
+        --ring: oklch(0.556 0 0);
+        --stage: oklch(0.11 0 0);
+      }
+
+      :root {
+        --radius: 0.625rem;
+        --radius-lg: var(--radius);
+        --radius-xl: calc(var(--radius) * 1.4);
+        --motion-fast: 200ms;
+        --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+        --content: 64rem; /* matches AppShell max-w-5xl */
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 40px 24px 72px;
+        background: var(--stage);
+        color: var(--foreground);
+        font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        transition: background var(--motion-fast) var(--motion-ease);
+      }
+
+      /* ---- mock scaffolding (not part of the design) ---- */
+      .stage {
+        max-width: 1120px;
+        margin: 0 auto;
+      }
+      .stage-bar {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+        color: var(--muted-foreground);
+        font-size: 12px;
+      }
+      .stage-bar strong {
+        color: var(--foreground);
+        font-weight: 600;
+      }
+      .theme-toggle {
+        font: inherit;
+        color: var(--foreground);
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 5px 11px;
+        cursor: pointer;
+      }
+      .frame {
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+      }
+
+      /* ---- app chrome ---- */
+      .appbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 52px;
+        padding: 0 24px;
+        border-bottom: 1px solid var(--border);
+      }
+      .wordmark {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      .appnav {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+      }
+      .appnav a {
+        color: var(--muted-foreground);
+        text-decoration: none;
+        padding: 5px 11px;
+        border-radius: var(--radius-lg);
+      }
+      .appnav a[aria-current] {
+        background: var(--selected);
+        color: var(--selected-foreground);
+      }
+
+      .page {
+        max-width: var(--content);
+        margin: 0 auto;
+        padding: 36px 24px 48px;
+      }
+
+      /* ---- masthead ---- */
+      .masthead {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+      }
+      .masthead h1 {
+        margin: 0;
+        font-size: 30px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+      }
+      .stats {
+        margin: 7px 0 0;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted-foreground);
+        font-size: 13px;
+      }
+      .stats b {
+        color: var(--foreground);
+        font-weight: 500;
+        font-family: "Geist Mono", ui-monospace, monospace;
+        font-variant-numeric: tabular-nums;
+      }
+      .stats span[aria-hidden] {
+        opacity: 0.45;
+      }
+      .stats a {
+        color: var(--warning);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .stats a:hover {
+        text-decoration: underline;
+      }
+
+      .btn-primary {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        height: 34px;
+        padding: 0 13px;
+        border-radius: var(--radius-lg);
+        background: var(--primary);
+        color: var(--primary-foreground);
+        font-size: 13px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: opacity var(--motion-fast) var(--motion-ease);
+      }
+      .btn-primary:hover {
+        opacity: 0.88;
+      }
+      .btn-primary svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* ---- tab rail ---- */
+      .tabs {
+        display: flex;
+        gap: 4px;
+        margin-top: 24px;
+      }
+      .tabs a {
+        padding: 6px 12px;
+        border-radius: var(--radius-lg);
+        font-size: 13px;
+        color: var(--muted-foreground);
+        text-decoration: none;
+        transition:
+          background var(--motion-fast) var(--motion-ease),
+          color var(--motion-fast) var(--motion-ease);
+      }
+      .tabs a:hover {
+        background: var(--surface-2);
+        color: var(--foreground);
+      }
+      .tabs a[aria-current] {
+        background: var(--selected);
+        color: var(--selected-foreground);
+      }
+
+      /* ---- workbench ---- */
+      .card {
+        margin-top: 16px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        background: var(--background);
+      }
+
+      .toolbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 170px;
+        gap: 8px;
+        padding: 10px;
+        background: var(--surface-1);
+        border-bottom: 1px solid var(--border);
+      }
+      .field {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      .field svg {
+        position: absolute;
+        left: 10px;
+        width: 15px;
+        height: 15px;
+        color: var(--muted-foreground);
+        pointer-events: none;
+      }
+      .field input,
+      .field select {
+        width: 100%;
+        height: 32px;
+        font: inherit;
+        font-size: 13px;
+        color: var(--foreground);
+        background: var(--background);
+        border: 1px solid var(--input);
+        border-radius: var(--radius-lg);
+        padding: 0 10px;
+        outline: none;
+        appearance: none;
+        transition: border-color var(--motion-fast) var(--motion-ease);
+      }
+      .field.search input {
+        padding-left: 32px;
+      }
+      .field input::placeholder {
+        color: var(--muted-foreground);
+      }
+      .field input:focus,
+      .field select:focus {
+        border-color: var(--ring);
+        box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent);
+      }
+      /* Shared column geometry: header and every row use this grid. */
+      .thead,
+      .row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 136px 152px 56px;
+        align-items: center;
+        gap: 14px;
+        padding: 0 14px;
+      }
+
+      .thead {
+        height: 30px;
+        background: var(--surface-1);
+        border-bottom: 1px solid var(--border);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .row > span:nth-child(2) {
+        display: flex;
+        justify-content: center;
+      }
+      /* Status already covers review state; keep one count column. */
+      .row > .num-cell + .num-cell {
+        display: none;
+      }
+
+      /* Group label: explains why the order is not purely chronological. */
+      .group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 14px;
+        background: var(--surface-1);
+        border-bottom: 1px solid var(--border);
+      }
+      .eyebrow {
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .group .pill {
+        padding: 0 7px;
+        border-radius: 999px;
+        background: var(--warning-subtle);
+        color: var(--warning);
+        font-family: "Geist Mono", ui-monospace, monospace;
+        font-size: 11px;
+        font-weight: 500;
+      }
+
+      .rows {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .row {
+        min-height: 60px;
+        border-bottom: 1px solid var(--border);
+        text-decoration: none;
+        color: inherit;
+        transition: background var(--motion-fast) var(--motion-ease);
+      }
+      .rows.last li:last-child .row {
+        border-bottom: 0;
+      }
+      .row:hover {
+        background: var(--surface-2);
+      }
+      .row:focus-visible {
+        outline: none;
+        background: var(--surface-2);
+        box-shadow: inset 0 0 0 2px var(--ring);
+      }
+
+      /* ---- the note cell: a status-tinted tile keeps the left rail scannable,
+             in the same position the Tracks tab puts artwork ---- */
+      .note {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+      .tile {
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 6px;
+        box-shadow: inset 0 0 0 1px var(--border);
+        background: var(--surface-3);
+        color: var(--muted-foreground);
+      }
+      .tile svg {
+        width: 15px;
+        height: 15px;
+      }
+      .tile.success {
+        background: var(--success-subtle);
+        color: var(--success);
+        box-shadow: none;
+      }
+      .tile.warning {
+        background: var(--warning-subtle);
+        color: var(--warning);
+        box-shadow: none;
+      }
+      .tile.info {
+        background: var(--info-subtle);
+        color: var(--info);
+        box-shadow: none;
+      }
+      .tile.destructive {
+        background: var(--destructive-subtle);
+        color: var(--destructive);
+        box-shadow: none;
+      }
+      .meta {
+        min-width: 0;
+      }
+      .text {
+        display: block;
+        font-size: 13.5px;
+        font-weight: 500;
+        line-height: 1.35;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .text.empty {
+        color: var(--muted-foreground);
+        font-weight: 400;
+        font-style: italic;
+      }
+      .sub {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+        font-family: "Geist Mono", ui-monospace, monospace;
+        font-size: 11.5px;
+        font-variant-numeric: tabular-nums;
+        color: var(--muted-foreground);
+        line-height: 1.4;
+      }
+      .sub .trunc {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .sub .dot {
+        opacity: 0.45;
+      }
+      .sub .err {
+        color: var(--destructive);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* ---- status badges (tone → token pairs already in globals.css) ---- */
+      .badge {
+        display: inline-block;
+        padding: 2px 9px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 500;
+        white-space: nowrap;
+        background: var(--secondary);
+        color: var(--secondary-foreground);
+      }
+      .badge.success {
+        background: var(--success-subtle);
+        color: var(--success);
+      }
+      .badge.warning {
+        background: var(--warning-subtle);
+        color: var(--warning);
+      }
+      .badge.info {
+        background: var(--info-subtle);
+        color: var(--info);
+      }
+      .badge.destructive {
+        background: var(--destructive-subtle);
+        color: var(--destructive);
+      }
+      .badge.pulse {
+        animation: pulse 2s var(--motion-ease) infinite;
+      }
+      @keyframes pulse {
+        50% {
+          opacity: 0.55;
+        }
+      }
+
+      /* ---- numeric rail ---- */
+      .mono {
+        font-family: "Geist Mono", ui-monospace, monospace;
+        font-size: 11.5px;
+        font-variant-numeric: tabular-nums;
+        color: var(--muted-foreground);
+      }
+      .count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        width: 100%;
+        font-weight: 500;
+      }
+      .count svg {
+        width: 12px;
+        height: 12px;
+      }
+      .count.committed {
+        color: var(--success);
+      }
+      .count.review {
+        color: var(--warning);
+      }
+      .empty {
+        opacity: 0.35;
+        font-weight: 400;
+      }
+
+      /* ---- footer of the card ---- */
+      .cardfoot {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 14px;
+        border-top: 1px solid var(--border);
+      }
+      .btn-quiet {
+        font: inherit;
+        font-size: 12.5px;
+        color: var(--foreground);
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 5px 11px;
+        cursor: pointer;
+      }
+      .cardfoot .mono {
+        margin-left: auto;
+      }
+
+      /* ---- notes (outside the design) ---- */
+      .notes {
+        max-width: 720px;
+        margin: 36px auto 0;
+        color: var(--muted-foreground);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+      .notes h2 {
+        color: var(--foreground);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        margin: 0 0 10px;
+      }
+      .notes ol {
+        margin: 0;
+        padding-left: 20px;
+      }
+      .notes li {
+        margin-bottom: 9px;
+      }
+      .notes b {
+        color: var(--foreground);
+        font-weight: 500;
+      }
+
+      @media (max-width: 900px) {
+        .thead,
+        .row {
+          grid-template-columns: minmax(0, 1fr) 136px 56px;
+        }
+        .thead .num-col,
+        .row .num-cell {
+          display: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+          animation: none !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="stage">
+      <div class="stage-bar">
+        <span><strong>Selecta / Library → Submissions</strong> — proposed composition</span>
+        <button class="theme-toggle" type="button" id="theme">Dark</button>
+      </div>
+
+      <div class="frame">
+        <div class="appbar">
+          <span class="wordmark">Selecta</span>
+          <nav class="appnav">
+            <a href="#" aria-current="page">Library</a>
+            <a href="#">Graph</a>
+          </nav>
+        </div>
+
+        <main class="page">
+          <div class="masthead">
+            <div>
+              <h1>Library</h1>
+              <p class="stats">
+                <b>36</b> tracks <span aria-hidden="true">·</span> <b>25</b> transitions
+                <span aria-hidden="true">·</span> <b>16</b> dead ends
+                <span aria-hidden="true">·</span> <a href="#">3 need review</a>
+              </p>
+            </div>
+            <a class="btn-primary" href="#">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              New submission
+            </a>
+          </div>
+
+          <nav class="tabs">
+            <a href="#">Tracks</a>
+            <a href="#">Transitions</a>
+            <a href="#" aria-current="page">Submissions</a>
+          </nav>
+
+          <section class="card">
+            <div class="toolbar">
+              <div class="field search">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
+                <input
+                  type="search"
+                  aria-label="Search submissions"
+                  placeholder="Search submission text"
+                />
+              </div>
+              <div class="field">
+                <select aria-label="Status">
+                  <option>Any status</option>
+                  <option>Needs review</option>
+                  <option>Partially committed</option>
+                  <option>Committed</option>
+                  <option>Processing</option>
+                  <option>Failed</option>
+                  <option>Dismissed</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="thead" aria-hidden="true">
+              <span>Note</span>
+              <span class="center">Status</span>
+              <span class="num-col center"># of transitions</span>
+              <span class="center">Added</span>
+            </div>
+
+            <!-- Anything with open review work floats above the chronological list. -->
+            <div class="group">
+              <span class="eyebrow">Needs review</span>
+              <span class="pill">3</span>
+            </div>
+
+            <ul class="rows">
+              <li>
+                <a class="row" href="#">
+                  <span class="note">
+                    <span class="tile warning" aria-hidden="true">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M12 9v5" />
+                        <path d="M12 17.5v.01" />
+                        <path
+                          d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"
+                        />
+                      </svg>
+                    </span>
+                    <span class="meta">
+                      <span class="text">
+                        toxic → derre is risky but the crowd loved it. also tried hello into first
+                        time
+                      </span>
+                      <span class="sub">
+                        <span>3 proposals</span>
+                        <span class="dot" aria-hidden="true">·</span>
+                        <span class="trunc">2 tracks unmatched</span>
+                      </span>
+                    </span>
+                  </span>
+                  <span><span class="badge warning">Needs review</span></span>
+                  <span class="num-cell mono">
+                    <span class="count committed">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="m4 12.5 5 5L20 6.5" />
+                      </svg>
+                      1
+                    </span>
+                  </span>
+                  <span class="num-cell mono">
+                    <span class="count review">2</span>
+                  </span>
+                  <span class="mono center">5h</span>
+                </a>
+              </li>
+
+              <li>
+                <a class="row" href="#">
+                  <span class="note">
+                    <span class="tile warning" aria-hidden="true">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M12 9v5" />
+                        <path d="M12 17.5v.01" />
+                        <path
+                          d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"
+                        />
+                      </svg>
+                    </span>
+                    <span class="meta">
+                      <span class="text">
+                        beam remix into drop em with a filter fade, then back to u over the tail
+                      </span>
+                      <span class="sub">
+                        <span>3 proposals</span>
+                        <span class="dot" aria-hidden="true">·</span>
+                        <span class="err trunc">1 commit failed</span>
+                      </span>
+                    </span>
+                  </span>
+                  <span><span class="badge warning">Partially committed</span></span>
+                  <span class="num-cell mono">
+                    <span class="count committed">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="m4 12.5 5 5L20 6.5" />
+                      </svg>
+                      1
+                    </span>
+                  </span>
+                  <span class="num-cell mono">
+                    <span class="count review">1</span>
+                  </span>
+                  <span class="mono center">1d</span>
+                </a>
+              </li>
+            </ul>
+
+            <div class="group">
+              <span class="eyebrow">Recent</span>
+            </div>
+
+            <ul class="rows last">
+              <li>
+                <a class="row" href="#">
+                  <span class="note">
+                    <span class="tile info" aria-hidden="true">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M12 3a9 9 0 1 0 9 9" />
+                      </svg>
+                    </span>
+                    <span class="meta">
+                      <span class="text">
+                        quick note: btw the whistle doubles with euphoria rush, same key
+                      </span>
+                      <span class="sub">
+                        <span>Extracting…</span>
+                      </span>
+                    </span>
+                  </span>
+                  <span><span class="badge info pulse">Processing</span></span>
+                  <span class="num-cell mono"><span class="empty">—</span></span>
+                  <span class="num-cell mono"><span class="empty">—</span></span>
+                  <span class="mono center">1m</span>
+                </a>
+              </li>
+
+              <li>
+                <a class="row" href="#">
+                  <span class="note">
+                    <span class="tile success" aria-hidden="true">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="m4 12.5 5 5L20 6.5" />
+                      </svg>
+                    </span>
+                    <span class="meta">
+                      <span class="text">
+                        played animals into backspin bass, echo out on the 32 and it slammed
+                      </span>
+                      <span class="sub">
+                        <span>2 proposals</span>
+                        <span class="dot" aria-hidden="true">·</span>
+                        <span class="trunc">v2 · claude-sonnet-4</span>
+                      </span>
+                    </span>
+                  </span>
+                  <span><span class="badge success">Committed</span></span>
+                  <span class="num-cell mono">
+                    <span class="count committed">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="m4 12.5 5 5L20 6.5" />
+                      </svg>
+                      2
+                    </span>
+                  </span>
+                  <span class="num-cell mono"><span class="empty">—</span></span>
+                  <span class="mono center">2d</span>
+                </a>
+              </li>
+
+              <li>
+                <a class="row" href="#">
+                  <span class="note">
+                    <span class="tile destructive" aria-hidden="true">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M6 6l12 12M18 6 6 18" />
+                      </svg>
+                    </span>
+                    <span class="meta">
+                      <span class="text">asdf</span>
+                      <span class="sub">
+                        <span class="err trunc">
+                          No transition found in this note — nothing to resolve
+                        </span>
+                      </span>
+                    </span>
+                  </span>
+                  <span><span class="badge destructive">Failed</span></span>
+                  <span class="num-cell mono"><span class="empty">—</span></span>
+                  <span class="num-cell mono"><span class="empty">—</span></span>
+                  <span class="mono center">3d</span>
+                </a>
+              </li>
+
+              <li>
+                <a class="row" href="#">
+                  <span class="note">
+                    <span class="tile" aria-hidden="true">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M4 6h16M4 12h10M4 18h7" />
+                      </svg>
+                    </span>
+                    <span class="meta">
+                      <span class="text empty">Empty submission</span>
+                      <span class="sub">
+                        <span>Dismissed before extraction</span>
+                      </span>
+                    </span>
+                  </span>
+                  <span><span class="badge">Dismissed</span></span>
+                  <span class="num-cell mono"><span class="empty">—</span></span>
+                  <span class="num-cell mono"><span class="empty">—</span></span>
+                  <span class="mono center">4d</span>
+                </a>
+              </li>
+            </ul>
+
+            <div class="cardfoot">
+              <button class="btn-quiet" type="button">Load more</button>
+              <span class="mono">18 submissions</span>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <section class="notes">
+        <h2>Notes — Submissions</h2>
+        <ol>
+          <li>
+            <b>Review work floats to the top instead of hiding behind a checkbox.</b> “Needs review
+            only” asked the DJ to remember there was a queue and then opt into it. Sorting anything
+            with open review work above the chronological list means the queue is simply the first
+            thing on the page, and the status dropdown still narrows to one state when that is what
+            you want. Two group labels keep the non-chronological order from looking like a bug.
+          </li>
+          <li>
+            <b>The tile replaces the artwork slot.</b> Submissions have no artwork, but the left
+            rail is where the eye lands, so the tile carries the status tone (green committed, amber
+            review, blue processing, red failed, neutral dismissed). Status becomes scannable down
+            the column before any text is read.
+          </li>
+          <li>
+            <b>The count is transitions, not another status.</b> Status already says committed /
+            needs review / failed, so a Review column just restated the badge. The remaining numeric
+            column is how many transitions this note actually wrote into the graph (em dash when
+            zero).
+          </li>
+          <li>
+            <b>The second line answers “what happened to this note”.</b> Proposal count plus the one
+            fact that matters for that state: unmatched tracks while reviewing, model and extraction
+            version once committed, the error string when it failed. All of it is already on the
+            list payload.
+          </li>
+          <li>
+            <b>Preview drops to one line.</b> Two-line clamping made every row a different height.
+            One line at 13.5px with the second line doing the work is denser and still readable.
+          </li>
+          <li>
+            <b>Ships with no API change.</b> Status, <code>proposalCounts</code>,
+            <code>extractionError</code>, <code>model</code>, and <code>extractionVersion</code> all
+            already come back from <code>GET /submissions</code>. “2 tracks unmatched” is the only
+            line that would need review-reason counts — it can fall back to the proposal count. The
+            pinned group is a client-side partition on
+            <code>proposalCounts.needsReview &gt; 0</code>, so it works with the existing
+            <code>?needsReview=1</code> query the masthead link already uses.
+          </li>
+        </ol>
+      </section>
+    </div>
+
+    <script>
+      const root = document.documentElement;
+      const button = document.getElementById("theme");
+      button.addEventListener("click", () => {
+        const next = root.dataset.theme === "light" ? "dark" : "light";
+        root.dataset.theme = next;
+        button.textContent = next === "light" ? "Dark" : "Light";
+      });
+    </script>
+  </body>
+</html>

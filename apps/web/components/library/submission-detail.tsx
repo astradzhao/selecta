@@ -9,12 +9,13 @@ import { PageBreadcrumb, PageHeader } from "@selecta/ui/components/page-header";
 import { StatePanel } from "@selecta/ui/components/state-panel";
 import { Textarea } from "@selecta/ui/components/textarea";
 
+import { BackLink } from "@/components/common/back-link";
 import { FormField } from "@/components/common/form-field";
 import { ExtractionStatusBadge } from "@/components/common/status-badge";
 import { SubmissionProposals } from "@/components/library/submission-proposals";
 import { SubmissionTrackLinks } from "@/components/library/submission-track-links";
 import { describeApiError } from "@/lib/api/errors";
-import { formatTimestamp } from "@/lib/format";
+import { formatTimestamp, previewText } from "@/lib/format";
 import { libraryViewHref } from "@/lib/library/add-routes";
 import {
   extractSubmission,
@@ -113,10 +114,8 @@ export function SubmissionDetail({ submissionId }: { submissionId: string }) {
   if (loadError || !submission) {
     return (
       <div className="space-y-4">
+        <BackLink href={LIST_HREF}>Library</BackLink>
         <Alert variant="destructive">{loadError ?? "Submission not found."}</Alert>
-        <Button asChild variant="outline">
-          <Link href={LIST_HREF}>Back to submissions</Link>
-        </Button>
       </div>
     );
   }
@@ -127,15 +126,15 @@ export function SubmissionDetail({ submissionId }: { submissionId: string }) {
     <div className="space-y-10">
       <PageHeader
         lead={
-          <PageBreadcrumb>
-            <Link href={LIST_HREF} className="hover:text-foreground transition-colors">
-              Submissions
-            </Link>
-            {" / "}
-            Detail
-          </PageBreadcrumb>
+          <>
+            <BackLink href={LIST_HREF}>Library</BackLink>
+            <PageBreadcrumb>Submission</PageBreadcrumb>
+          </>
         }
-        title="Submission"
+        title={previewText(submission.rawText, {
+          maxLength: 80,
+          fallback: "Empty submission",
+        })}
         description={
           <span className="text-numeric">Created {formatTimestamp(submission.createdAt)}</span>
         }

@@ -2,12 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { Badge } from "@selecta/ui/components/badge";
+import { useRouter, useSearchParams } from "next/navigation";
+
 import { Button } from "@selecta/ui/components/button";
-import { Checkbox } from "@selecta/ui/components/checkbox";
-import { DataListRow } from "@selecta/ui/components/data-list";
-import { Label } from "@selecta/ui/components/label";
+import { DataList } from "@selecta/ui/components/data-list";
 import { SearchField } from "@selecta/ui/components/search-field";
 import { Select } from "@selecta/ui/components/select";
 
@@ -16,20 +14,24 @@ import {
   FilterField,
   FilteredListShell,
 } from "@/components/common/filtered-list-shell";
-import { ExtractionStatusBadge } from "@/components/common/status-badge";
+import { LibraryGroupHeader } from "@/components/library/library-group-header";
+import {
+  LibrarySubmissionColumnHeader,
+  LibrarySubmissionRow,
+} from "@/components/library/submission-row";
 import { useFilteredList } from "@/hooks/use-filtered-list";
-import { formatTimestamp, previewText } from "@/lib/format";
-import { libraryAddHref } from "@/lib/library/add-routes";
+import { libraryAddHref, libraryViewHref } from "@/lib/library/add-routes";
 import { submissionListQuery, type SubmissionListFilters } from "@/lib/library/list-params";
-import { formatListCount } from "@/lib/library/list-view-state";
 import { listSubmissions, type SubmissionExtractionStatus } from "@/lib/submissions/api";
 import { SUBMISSION_STATUS_FILTER_OPTIONS } from "@/lib/submissions/extraction-status";
+import { partitionSubmissions } from "@/lib/submissions/submission-row";
 
 export function SubmissionsList() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"" | SubmissionExtractionStatus>("");
-  const [needsReviewOnly, setNeedsReviewOnly] = useState(searchParams.get("needsReview") === "1");
+  const needsReviewOnly = searchParams.get("needsReview") === "1";
   const filters = useMemo(
     () => ({ query, status, needsReviewOnly }),
     [query, status, needsReviewOnly],
@@ -51,14 +53,22 @@ export function SubmissionsList() {
     pagination: true,
   });
 
+  const { review, recent } = useMemo(() => partitionSubmissions(list.items), [list.items]);
+
+  function clearFilters() {
+    setQuery("");
+    setStatus("");
+    if (needsReviewOnly) router.replace(libraryViewHref("submissions"));
+  }
+
   return (
     <FilteredListShell
       filtersAriaLabel="Submission filters"
       listAriaLabel="Submissions"
-      filterGridClassName="md:grid-cols-[minmax(0,2fr)_minmax(10rem,1fr)]"
+      filterGridClassName="md:grid-cols-[minmax(0,1fr)_10.625rem]"
       filterControls={
         <>
-          <FilterField htmlFor="submissions-q" label="Search">
+          <FilterField htmlFor="submissions-q" label="Search submissions">
             <SearchField
               id="submissions-q"
               placeholder="Search submission text"
@@ -81,80 +91,35 @@ export function SubmissionsList() {
           </FilterField>
         </>
       }
-      filterBar={
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="filter-needs-review"
-              checked={needsReviewOnly}
-              onChange={(event) => setNeedsReviewOnly(event.target.checked)}
-            />
-            <Label htmlFor="filter-needs-review" className="font-normal">
-              Needs review only
-            </Label>
-          </div>
-          {hasFilters ? (
-            <ClearFiltersButton
-              onClick={() => {
-                setQuery("");
-                setStatus("");
-                setNeedsReviewOnly(false);
-              }}
-            />
-          ) : null}
-        </div>
-      }
-      count={
-        list.isInitialLoading
-          ? "Loading submissions…"
-          : list.error
-            ? null
-            : formatListCount(list.items.length, {
-                singular: "submission",
-                plural: "submissions",
-                hasMore: list.hasMore,
-              })
-      }
+      filterBar={hasFilters ? <ClearFiltersButton onClick={clearFilters} /> : null}
+      count={null}
+      showCountRow={false}
       unavailableTitle="Submissions unavailable"
       loadingAriaLabel="Loading submissions"
       error={list.error}
       hasFetched={list.hasFetched}
       hasFilters={hasFilters}
-      items={list.items}
+      items={recent}
       getItemKey={(submission) => submission.id}
-      renderRow={(submission) => {
-        const counts = submission.proposalCounts;
-        return (
-          <DataListRow className="flex-col gap-2">
-            <Link href={`/library/submissions/${submission.id}`}>
-              <p className="text-card-title line-clamp-2 text-pretty">
-                {previewText(submission.rawText, {
-                  maxLength: 120,
-                  fallback: "Empty submission",
-                })}
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <ExtractionStatusBadge status={submission.extractionStatus} />
-                {counts && counts.total > 0 ? (
-                  <span className="text-caption">
-                    {counts.committed} committed
-                    {counts.needsReview > 0 ? ` · ${counts.needsReview} need review` : null}
-                    {counts.failed > 0 ? ` · ${counts.failed} failed` : null}
-                  </span>
-                ) : null}
-                {(counts?.needsReview ?? 0) > 0 ? (
-                  <Badge variant="warning" className="text-xs">
-                    Review {counts?.needsReview}
-                  </Badge>
-                ) : null}
-                <span className="text-caption text-numeric">
-                  {formatTimestamp(submission.createdAt)}
-                </span>
-              </div>
-            </Link>
-          </DataListRow>
-        );
-      }}
+      hasContent={list.items.length > 0}
+      columnHeader={<LibrarySubmissionColumnHeader />}
+      leading={
+        review.length > 0 ? (
+          <>
+            <LibraryGroupHeader label="Needs review" count={review.length} />
+            <DataList className="rounded-none border-0">
+              {review.map((submission) => (
+                <LibrarySubmissionRow key={submission.id} submission={submission} />
+              ))}
+            </DataList>
+          </>
+        ) : null
+      }
+      leadingBleed
+      listHeading={
+        review.length > 0 && recent.length > 0 ? <LibraryGroupHeader label="Recent" /> : null
+      }
+      renderRow={(submission) => <LibrarySubmissionRow submission={submission} />}
       empty={{
         noneTitle: "No submissions yet",
         noneDescription: "Submit a transition to capture mix knowledge.",
@@ -170,6 +135,7 @@ export function SubmissionsList() {
         loadingMore: list.loadingMore,
         onLoadMore: () => void list.loadMore(),
       }}
+      errorBanner={false}
     />
   );
 }
