@@ -566,4 +566,67 @@ describe("sequence module invariants", { skip: !pgIntegration }, () => {
     );
     assert.equal(reordered.steps[0]!.id, current.steps[1]!.id);
   });
+
+  it("embeds track and transition summaries on sequence detail", async () => {
+    const a = await track("EmbedA");
+    const b = await track("EmbedB");
+    const ab = await createTransition({
+      fromTrackId: a.track.id,
+      toTrackId: b.track.id,
+      technique: "blend",
+    });
+    const sequence = await createSequence({
+      title: `Embed ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, b.track.id] },
+    });
+    await updateSequenceStep(sequence.id, stepByTrack(sequence, b.track.id).id, {
+      inTransitionId: ab.id,
+    });
+    const linked = await getSequenceDetail(sequence.id);
+    assert.equal(stepByTrack(linked, b.track.id).track?.title, b.track.title);
+    assert.equal(stepByTrack(linked, b.track.id).inTransition?.technique, "blend");
+
+    await deleteTransitionById(ab.id);
+    const after = await getSequenceDetail(sequence.id);
+    assert.equal(after.steps.length, 2);
+    assert.equal(stepByTrack(after, b.track.id).inTransition, null);
+    assert.notEqual(stepByTrack(after, b.track.id).gapState, "linked");
+  });
+
+  it("returns stepCount and seamCount on listSequences", async () => {
+    const a = await track("CountA");
+    const b = await track("CountB");
+    const c = await track("CountC");
+    const title = `Counts ${randomUUID().slice(0, 8)}`;
+    const sequence = await createSequence({
+      title,
+      seed: { trackIds: [a.track.id, b.track.id, c.track.id] },
+    });
+    await updateSequenceStep(sequence.id, stepByTrack(sequence, c.track.id).id, { isSeam: true });
+    const listed = await listSequences({ query: title, limit: 50 });
+    const row = listed.sequences.find((item) => item.id === sequence.id);
+    assert.ok(row);
+    assert.equal(row.stepCount, 3);
+    assert.equal(row.seamCount, 1);
+  });
+
+  it("clears a linked connector when marking a seam", async () => {
+    const a = await track("SeamLinkA");
+    const b = await track("SeamLinkB");
+    const ab = await createTransition({ fromTrackId: a.track.id, toTrackId: b.track.id });
+    const sequence = await createSequence({
+      title: `SeamLink ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, b.track.id] },
+    });
+    await updateSequenceStep(sequence.id, stepByTrack(sequence, b.track.id).id, {
+      inTransitionId: ab.id,
+    });
+    const withSeam = await updateSequenceStep(sequence.id, stepByTrack(sequence, b.track.id).id, {
+      isSeam: true,
+    });
+    const step = stepByTrack(withSeam, b.track.id);
+    assert.equal(step.gapState, "seam");
+    assert.equal(step.inTransitionId, null);
+    assert.equal(withSeam.isComplete, true);
+  });
 });

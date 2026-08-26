@@ -26,6 +26,7 @@ import { SEQUENCE_MAX_NESTING_DEPTH, isBlockKind, type GapState } from "./consta
 import { MusicWriteError } from "./errors";
 import { clampListLimit, clampListOffset, type ListPageMeta } from "./list-page";
 import { optionalString, requireTrimmed } from "./shared";
+import { getTrackSummariesByIds } from "./tracks";
 
 export type SequenceRecord = {
   id: string;
@@ -35,9 +36,34 @@ export type SequenceRecord = {
   startTrackId: string | null;
   endTrackId: string | null;
   isComplete: boolean;
+  stepCount: number;
+  seamCount: number;
   libraryId: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type SequenceStepTrack = {
+  id: string;
+  title: string;
+  artists: string[];
+  artworkUrl: string | null;
+  bpm: number | null;
+  musicalKey: string | null;
+  durationSec: number | null;
+};
+
+export type SequenceStepTransition = {
+  id: string;
+  fromTrackId: string;
+  toTrackId: string;
+  fromBar: number | null;
+  toBar: number | null;
+  barsOverlap: number | null;
+  technique: string | null;
+  intent: string | null;
+  quality: string | null;
+  notes: string | null;
 };
 
 export type SequenceStep = {
@@ -51,6 +77,10 @@ export type SequenceStep = {
   /** Null on the first step — there is no inbound gap. */
   gapState: GapState | null;
   candidateCount: number;
+  /** Transition-only candidate count for SET-4 chrome (excludes block connectors). */
+  transitionCandidateCount: number;
+  track: SequenceStepTrack | null;
+  inTransition: SequenceStepTransition | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -205,7 +235,10 @@ function parseKind(value: string | undefined, fallback: BlockKind = "block"): Bl
   return value;
 }
 
-function toRecord(row: BlockRow): SequenceRecord {
+function toRecord(
+  row: BlockRow,
+  counts: { stepCount: number; seamCount: number } = { stepCount: 0, seamCount: 0 },
+): SequenceRecord {
   return {
     id: row.id,
     kind: row.kind,
@@ -214,6 +247,8 @@ function toRecord(row: BlockRow): SequenceRecord {
     startTrackId: row.startTrackId ?? null,
     endTrackId: row.endTrackId ?? null,
     isComplete: row.isComplete,
+    stepCount: counts.stepCount,
+    seamCount: counts.seamCount,
     libraryId: row.libraryId ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -516,17 +551,22 @@ async function assertAcyclicReference(parentId: string, childId: string): Promis
   }
 }
 
+type PairCounts = { candidateCount: number; transitionCandidateCount: number };
+
 async function countConnectorsForPairs(
   pairs: Array<{ fromTrackId: string; toTrackId: string }>,
   excludeSequenceId: string,
-): Promise<Map<string, number>> {
-  const counts = new Map<string, number>();
+): Promise<Map<string, PairCounts>> {
+  const counts = new Map<string, PairCounts>();
   const unique = new Map<string, { fromTrackId: string; toTrackId: string }>();
   for (const pair of pairs) {
     unique.set(pairKey(pair.fromTrackId, pair.toTrackId), pair);
   }
   for (const pair of unique.values()) {
-    counts.set(pairKey(pair.fromTrackId, pair.toTrackId), 0);
+    counts.set(pairKey(pair.fromTrackId, pair.toTrackId), {
+      candidateCount: 0,
+      transitionCandidateCount: 0,
+    });
   }
   if (unique.size === 0) {
     return counts;
@@ -541,8 +581,10 @@ async function countConnectorsForPairs(
     .where(and(inArray(transitions.fromTrackId, fromIds), inArray(transitions.toTrackId, toIds)));
   for (const row of transitionRows) {
     const key = pairKey(row.fromTrackId, row.toTrackId);
-    if (counts.has(key)) {
-      counts.set(key, (counts.get(key) ?? 0) + 1);
+    const current = counts.get(key);
+    if (current) {
+      current.candidateCount += 1;
+      current.transitionCandidateCount += 1;
     }
   }
 
@@ -566,8 +608,9 @@ async function countConnectorsForPairs(
       continue;
     }
     const key = pairKey(row.startTrackId, row.endTrackId);
-    if (counts.has(key)) {
-      counts.set(key, (counts.get(key) ?? 0) + 1);
+    const current = counts.get(key);
+    if (current) {
+      current.candidateCount += 1;
     }
   }
   return counts;
@@ -749,11 +792,46 @@ async function hydrateSteps(sequenceId: string, steps: BlockStepRow[]): Promise<
     pairs.push({ fromTrackId: steps[i - 1]!.trackId, toTrackId: steps[i]!.trackId });
   }
   const candidates = await countConnectorsForPairs(pairs, sequenceId);
+  const summaries = await getTrackSummariesByIds(steps.map((step) => step.trackId));
+  const transitionIds = [
+    ...new Set(steps.map((step) => step.inTransitionId).filter((id): id is string => Boolean(id))),
+  ];
+  const transitionById = new Map<string, SequenceStepTransition>();
+  if (transitionIds.length > 0) {
+    const rows = await getExecutor()
+      .select()
+      .from(transitions)
+      .where(inArray(transitions.id, transitionIds));
+    for (const row of rows) {
+      transitionById.set(row.id, {
+        id: row.id,
+        fromTrackId: row.fromTrackId,
+        toTrackId: row.toTrackId,
+        fromBar: row.fromBar,
+        toBar: row.toBar,
+        barsOverlap: row.barsOverlap,
+        technique: row.technique ?? null,
+        intent: row.intent ?? null,
+        quality: row.quality ?? null,
+        notes: row.notes ?? null,
+      });
+    }
+  }
+
   const hydrated: SequenceStep[] = [];
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i]!;
+    const summary = summaries.get(step.trackId);
+    if (!summary) {
+      continue;
+    }
     const prev = i > 0 ? steps[i - 1] : null;
-    const candidateCount = prev ? (candidates.get(pairKey(prev.trackId, step.trackId)) ?? 0) : 0;
+    const pair = prev
+      ? (candidates.get(pairKey(prev.trackId, step.trackId)) ?? {
+          candidateCount: 0,
+          transitionCandidateCount: 0,
+        })
+      : { candidateCount: 0, transitionCandidateCount: 0 };
     hydrated.push({
       id: step.id,
       position: step.position,
@@ -762,8 +840,19 @@ async function hydrateSteps(sequenceId: string, steps: BlockStepRow[]): Promise<
       inBlockId: step.inBlockId,
       isSeam: step.isSeam,
       note: step.note ?? null,
-      gapState: prev ? await deriveGapState(prev, step, candidateCount) : null,
-      candidateCount,
+      gapState: prev ? await deriveGapState(prev, step, pair.candidateCount) : null,
+      candidateCount: pair.candidateCount,
+      transitionCandidateCount: pair.transitionCandidateCount,
+      track: {
+        id: summary.track.id,
+        title: summary.track.title,
+        artists: summary.artists.map((artist) => artist.name),
+        artworkUrl: summary.track.artworkUrl,
+        bpm: summary.track.bpm,
+        musicalKey: summary.track.musicalKey,
+        durationSec: summary.track.durationSec,
+      },
+      inTransition: step.inTransitionId ? (transitionById.get(step.inTransitionId) ?? null) : null,
       createdAt: step.createdAt.toISOString(),
       updatedAt: step.updatedAt.toISOString(),
     });
@@ -1013,7 +1102,10 @@ async function buildDetail(
     expansion = await expandResolvedSteps(row.id, resolved, 0);
   }
   return {
-    ...toRecord(row),
+    ...toRecord(row, {
+      stepCount: steps.length,
+      seamCount: steps.filter((step) => step.isSeam).length,
+    }),
     startTrackId: steps[0]?.trackId ?? null,
     endTrackId: steps.length > 0 ? steps[steps.length - 1]!.trackId : null,
     isComplete: await computeIsComplete(steps),
@@ -1085,8 +1177,31 @@ export async function listSequences(input: ListSequencesInput = {}): Promise<Lis
     .offset(offset);
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
+  const countsById = new Map<string, { stepCount: number; seamCount: number }>();
+  if (page.length > 0) {
+    const countRows = await getExecutor()
+      .select({
+        blockId: blockSteps.blockId,
+        stepCount: sql<number>`cast(count(*) as int)`,
+        seamCount: sql<number>`cast(count(*) filter (where ${blockSteps.isSeam}) as int)`,
+      })
+      .from(blockSteps)
+      .where(
+        inArray(
+          blockSteps.blockId,
+          page.map((row) => row.id),
+        ),
+      )
+      .groupBy(blockSteps.blockId);
+    for (const countRow of countRows) {
+      countsById.set(countRow.blockId, {
+        stepCount: Number(countRow.stepCount),
+        seamCount: Number(countRow.seamCount),
+      });
+    }
+  }
   return {
-    sequences: page.map(toRecord),
+    sequences: page.map((row) => toRecord(row, countsById.get(row.id))),
     limit,
     offset,
     hasMore,
@@ -1327,6 +1442,14 @@ export async function updateSequenceStep(
     let isSeam = current.isSeam;
     if (input.isSeam !== undefined) {
       isSeam = input.isSeam;
+      if (
+        input.isSeam === true &&
+        input.inTransitionId === undefined &&
+        input.inBlockId === undefined
+      ) {
+        inTransitionId = null;
+        inBlockId = null;
+      }
     }
     if (input.inTransitionId !== undefined) {
       inTransitionId = optionalString(input.inTransitionId);

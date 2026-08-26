@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "@selecta/ui/globals.css";
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { ToastProvider } from "@selecta/ui/components/toast";
 
 const fontSans = Geist({
   subsets: ["latin"],
@@ -36,7 +37,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <ToastProvider>{children}</ToastProvider>
         </ThemeProvider>
       </body>
     </html>
