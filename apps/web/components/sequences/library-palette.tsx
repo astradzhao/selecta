@@ -15,7 +15,6 @@ import { useFilteredList } from "@/hooks/use-filtered-list";
 import { artistLine } from "@/lib/format";
 import {
   numericInsertIndex,
-  paletteAddTitle,
   paletteTransitionQuery,
   paletteTransitionReason,
   type FitPayload,
@@ -139,28 +138,17 @@ export function LibraryPalette({
   const gapSelected = Boolean(fromStep && toStep);
   const hasContext = gapSelected || (tab === "transitions" && Boolean(anchor));
   const contextLabel = gapSelected
-    ? `Fits the selected gap · ${fromStep?.track?.title ?? "Track"} → ${toStep?.track?.title ?? "Track"}`
+    ? `${fromStep?.track?.title ?? "Track"} → ${toStep?.track?.title ?? "Track"}`
     : anchor
-      ? `Out of ${anchor.track?.title ?? "Track"}${selection.kind === "none" ? " · end of the set" : ""}`
+      ? `Out of ${anchor.track?.title ?? "Track"}`
       : "";
-
-  const hint =
-    tab === "transitions" && !gapSelected
-      ? anchor
-        ? `+ adds the transition and the track it lands on, after ${anchor.track?.title ?? "this track"}.`
-        : "+ starts the set with both tracks of the transition."
-      : selection.kind === "gap"
-        ? "+ links a matching transition, or inserts a track at this position."
-        : selection.kind === "step"
-          ? "+ inserts after the selected step."
-          : "Read-only over your library. + appends to the end of the running order.";
 
   const items = tab === "tracks" ? tracks : transitions;
   const emptyText =
     tab === "transitions" && gapSelected
-      ? "No transition exists for this pair yet — author one from Library › Add transition."
+      ? "No transition for this pair yet."
       : tab === "transitions" && anchor
-        ? `Nothing out of ${anchor.track?.title ?? "this track"} yet. Add one from Library › Add transition, or select an earlier step to extend from there.`
+        ? `Nothing out of ${anchor.track?.title ?? "this track"} yet.`
         : "Nothing matches that search.";
 
   return (
@@ -225,7 +213,6 @@ export function LibraryPalette({
                     ? `${Math.round(track.bpm)}${track.musicalKey ? ` · ${track.musicalKey}` : ""}`
                     : (track.musicalKey ?? "")
                 }
-                addTitle={paletteAddTitle(payload, selection, steps)}
                 disabled={false}
                 onAdd={() => onAddTrack(track)}
                 onDragStart={(event) => {
@@ -257,8 +244,8 @@ export function LibraryPalette({
                 }`}
                 sub={`${transition.fromTrack.title} → ${transition.toTrack.title}`}
                 meta={displayVocab(transition.quality) ?? ""}
-                addTitle={paletteAddTitle(payload, selection, steps)}
                 disabled={Boolean(reason)}
+                disabledReason={reason}
                 onAdd={() => onAddTransition(transition)}
                 onDragStart={(event) => {
                   startPaletteDrag(event, payload);
@@ -270,7 +257,6 @@ export function LibraryPalette({
           })
         )}
       </div>
-      <p className="border-border text-caption border-t px-3.5 py-2.5">{hint}</p>
     </aside>
   );
 }
@@ -281,8 +267,8 @@ function PaletteRow({
   title,
   sub,
   meta,
-  addTitle,
   disabled,
+  disabledReason,
   onAdd,
   onDragStart,
   onDragEnd,
@@ -292,8 +278,8 @@ function PaletteRow({
   title: string;
   sub: string;
   meta: string;
-  addTitle: string;
   disabled: boolean;
+  disabledReason?: string | null;
   onAdd: () => void;
   onDragStart: (event: DragEvent) => void;
   onDragEnd: () => void;
@@ -301,7 +287,7 @@ function PaletteRow({
   return (
     <div
       draggable={!disabled}
-      title={disabled ? addTitle : "Drag into the running order"}
+      title={disabledReason ?? undefined}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       className={cn(
@@ -326,7 +312,8 @@ function PaletteRow({
         type="button"
         variant="ghost"
         size="icon-xs"
-        title={addTitle}
+        aria-label="Add"
+        title={disabledReason ?? undefined}
         disabled={disabled}
         onClick={onAdd}
       >

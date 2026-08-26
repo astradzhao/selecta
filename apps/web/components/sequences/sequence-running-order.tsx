@@ -6,7 +6,7 @@ import { Button } from "@selecta/ui/components/button";
 import { cn } from "@selecta/ui/lib/utils";
 
 import type { FitPayload } from "@/lib/sequences/drag";
-import { dropFit, dropLabel } from "@/lib/sequences/drag";
+import { dropFit } from "@/lib/sequences/drag";
 import type { DropTarget, SequenceStep, WorkspaceSelection } from "@/lib/sequences/types";
 import type { ApiTransition } from "@/lib/transitions/types";
 
@@ -110,7 +110,6 @@ export function SequenceRunningOrder({
                 pickerOpen={pickerStepId === step.id}
                 dropArmed={gapArmed}
                 dropOver={sameTarget(dropTarget, gapTarget)}
-                dragPayload={dragPayload}
                 onSelect={() => onSelectGap(step.id)}
                 onTogglePicker={() => onTogglePicker(step.id)}
                 onPick={(transition) => onPickTransition(step.id, transition)}
@@ -134,7 +133,6 @@ export function SequenceRunningOrder({
               dragging={draggingStepId === step.id}
               dropArmed={Boolean(dragPayload) && stepArmed}
               dropOver={sameTarget(dropTarget, stepTarget)}
-              dropHint={dragPayload ? dropLabel(dragPayload, stepTarget) : ""}
               onSelect={() => onSelectStep(step.id)}
               onMove={(delta) => onMove(step.id, delta)}
               onToggleNote={() => onToggleNote(step.id)}
@@ -164,12 +162,8 @@ export function SequenceRunningOrder({
       })}
 
       {steps.length === 0 ? (
-        <div className="border-border flex flex-col items-center gap-2 rounded-2xl border border-dashed px-5 py-10 text-center">
+        <div className="border-border flex flex-col items-center rounded-2xl border border-dashed px-5 py-10 text-center">
           <p className="font-medium">{kindNounEmpty}</p>
-          <p className="text-body text-muted-foreground max-w-sm">
-            Pull tracks in from the palette on the right. The joins between them become gaps you can
-            plan or leave as seams.
-          </p>
         </div>
       ) : null}
 
@@ -181,12 +175,10 @@ export function SequenceRunningOrder({
             if (dragPayload) onPaletteDrop(endTarget);
           }}
           className={cn(
-            "mt-2 ml-[34px] flex items-center justify-center rounded-xl border border-dashed px-3.5 py-3.5 text-sm font-medium",
-            endOver ? "border-selected bg-brand-subtle text-brand" : "border-ring text-brand",
+            "mt-2 ml-[34px] rounded-xl border border-dashed px-3.5 py-3.5",
+            endOver ? "border-selected bg-brand-subtle" : "border-ring",
           )}
-        >
-          {dragPayload ? `${dropLabel(dragPayload, endTarget)} at the end` : ""}
-        </div>
+        />
       ) : null}
 
       <div className="flex gap-2 pt-4 pl-[34px]">

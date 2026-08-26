@@ -60,13 +60,6 @@ export function dropFit(
   return !prev || edge.fromTrackId === prev.trackId;
 }
 
-export function dropLabel(payload: FitPayload | null, target: DropTarget): string {
-  if (!payload) return "";
-  if (payload.kind === "track") return `Insert ${payload.title} here`;
-  if (target.kind === "gap") return `Link ${payload.technique}`;
-  return `${payload.technique} → ${payload.toTitle}`;
-}
-
 export function autoLinkTransitionId(candidates: readonly { id: string }[]): string | null {
   return candidates.length === 1 ? candidates[0]!.id : null;
 }
@@ -92,21 +85,6 @@ export function paletteTransitionQuery(
   }
   const last = steps[steps.length - 1];
   return last ? { fromTrackId: last.trackId } : {};
-}
-
-export function paletteAddTitle(
-  payload: FitPayload,
-  selection: WorkspaceSelection,
-  steps: readonly { id: string; trackId: string }[],
-): string {
-  if (payload.kind === "track") {
-    return selection.kind === "none" ? "Append to the end" : "Insert here";
-  }
-  const disabled = paletteTransitionReason(payload, selection, steps);
-  if (disabled) return disabled;
-  if (selection.kind === "gap") return "Link to the selected gap";
-  if (steps.length === 0) return `Start the set with ${payload.fromTitle} → ${payload.toTitle}`;
-  return `Add this transition and ${payload.toTitle}`;
 }
 
 export function paletteTransitionReason(

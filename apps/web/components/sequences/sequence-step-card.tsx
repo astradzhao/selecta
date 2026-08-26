@@ -42,7 +42,6 @@ export function SequenceStepCard({
   dragging,
   dropArmed,
   dropOver,
-  dropHint,
   onSelect,
   onMove,
   onToggleNote,
@@ -63,7 +62,6 @@ export function SequenceStepCard({
   dragging: boolean;
   dropArmed: boolean;
   dropOver: boolean;
-  dropHint: string;
   onSelect: () => void;
   onMove: (delta: -1 | 1) => void;
   onToggleNote: () => void;
@@ -169,9 +167,6 @@ export function SequenceStepCard({
           </Button>
         </span>
       </div>
-      {dropOver && dropHint ? (
-        <span className="text-brand block pt-1 pl-[84px] text-xs font-medium">↳ {dropHint}</span>
-      ) : null}
       {notesOpen ? (
         <div className="flex items-center gap-2 pt-1.5 pl-[84px]">
           <span className="text-eyebrow">Note</span>

@@ -8,8 +8,6 @@ import { cn } from "@selecta/ui/lib/utils";
 
 import { bpmDelta, mixLabel } from "@/lib/sequences/metrics";
 import { availableGapLabel, displayGapState, gapChrome } from "@/lib/sequences/gap-display";
-import type { FitPayload } from "@/lib/sequences/drag";
-import { dropLabel } from "@/lib/sequences/drag";
 import type { SequenceStep } from "@/lib/sequences/types";
 import { addTransitionHref } from "@/lib/sequences/view";
 import { displayVocab } from "@/lib/transitions/vocab-labels";
@@ -24,7 +22,6 @@ export function SequenceGap({
   pickerOpen,
   dropArmed,
   dropOver,
-  dragPayload,
   onSelect,
   onTogglePicker,
   onPick,
@@ -39,7 +36,6 @@ export function SequenceGap({
   pickerOpen: boolean;
   dropArmed: boolean;
   dropOver: boolean;
-  dragPayload: FitPayload | null;
   onSelect: () => void;
   onTogglePicker: () => void;
   onPick: (transition: ApiTransition) => void;
@@ -63,7 +59,6 @@ export function SequenceGap({
       quality: displayVocab(transition.quality),
     });
   const delta = bpmDelta(previous.track?.bpm, step.track?.bpm);
-  const hint = dropOver ? dropLabel(dragPayload, { kind: "gap", index: 0 }) : "";
 
   let label = linkedLabel ?? "";
   if (state === "available") label = availableGapLabel(step.transitionCandidateCount);
@@ -160,7 +155,6 @@ export function SequenceGap({
           </Button>
         </span>
       </div>
-      {hint ? <span className="text-brand text-xs font-medium">{hint}</span> : null}
       {pickerOpen ? (
         <TransitionPicker
           fromTrackId={previous.trackId}
