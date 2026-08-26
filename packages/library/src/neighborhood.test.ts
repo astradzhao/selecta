@@ -32,7 +32,29 @@ function rankable(
   transition: Partial<RankableNeighbor["transition"]> = {},
 ): RankableNeighbor {
   return {
+    track: { title },
+    transition: {
+      id: `edge:${id}:${transition.proposalKey ?? "default"}`,
+      proposalKey: `key:${id}`,
+      confidence: null,
+      fromBar: null,
+      quality: null,
+      ...transition,
+    },
+  };
+}
+
+function flat(
+  id: string,
+  title: string,
+  transition: Partial<FlatNeighborhoodNeighbor["transition"]> = {},
+): FlatNeighborhoodNeighbor {
+  return {
     track: track({ id, title }),
+    artists: [],
+    genres: [],
+    subgenres: [],
+    folders: [],
     transition: {
       id: `edge:${id}:${transition.proposalKey ?? "default"}`,
       proposalKey: `key:${id}`,
@@ -51,22 +73,6 @@ function rankable(
       updatedAt: null,
       ...transition,
     },
-  };
-}
-
-function flat(
-  id: string,
-  title: string,
-  transition: Partial<FlatNeighborhoodNeighbor["transition"]> = {},
-): FlatNeighborhoodNeighbor {
-  const row = rankable(id, title, transition);
-  return {
-    track: row.track,
-    artists: [],
-    genres: [],
-    subgenres: [],
-    folders: [],
-    transition: row.transition,
   };
 }
 

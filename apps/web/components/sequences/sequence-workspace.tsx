@@ -1,0 +1,521 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { DragEvent } from "react";
+import { XIcon } from "lucide-react";
+
+import { Alert } from "@selecta/ui/components/alert";
+import { Badge } from "@selecta/ui/components/badge";
+import { Button } from "@selecta/ui/components/button";
+import { ConfirmDialog } from "@selecta/ui/components/confirm-dialog";
+import { StatePanel } from "@selecta/ui/components/state-panel";
+import { useToast } from "@selecta/ui/components/toast";
+
+import { BackLink } from "@/components/common/back-link";
+import { ApiClientError } from "@/lib/api/client";
+import { describeApiError } from "@/lib/api/errors";
+import {
+  addSequenceStep,
+  deleteSequence,
+  deleteSequenceStep,
+  getSequence,
+  reorderSequence,
+  updateSequence,
+  updateSequenceStep,
+} from "@/lib/sequences/api";
+import { autoLinkTransitionId, dropFit, insertIndex, type FitPayload } from "@/lib/sequences/drag";
+import {
+  formatApproxRuntime,
+  formatPlannedLine,
+  plannedMetrics,
+  sequenceRuntimeSec,
+} from "@/lib/sequences/metrics";
+import { moveUnit, reorderTo } from "@/lib/sequences/reorder";
+import type {
+  DropTarget,
+  SequenceDetail,
+  SequenceKind,
+  SequenceStep,
+  WorkspaceSelection,
+} from "@/lib/sequences/types";
+import { sequenceWorkspaceHref, setsViewHref } from "@/lib/sequences/view";
+import { listTransitions } from "@/lib/transitions/api";
+import type { ApiTransition } from "@/lib/transitions/types";
+import { displayVocab } from "@/lib/transitions/vocab-labels";
+import type { ApiTrack } from "@/lib/tracks/api";
+
+import { LibraryPalette, type PaletteTab } from "./library-palette";
+import { SequenceRunningOrder } from "./sequence-running-order";
+
+export function SequenceWorkspace({
+  sequenceId,
+  routeKind,
+}: {
+  sequenceId: string;
+  routeKind: SequenceKind;
+}) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [detail, setDetail] = useState<SequenceDetail | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<string | null>(null);
+  const [selection, setSelection] = useState<WorkspaceSelection>({ kind: "none" });
+  const [paletteTab, setPaletteTab] = useState<PaletteTab>("tracks");
+  const [pickerStepId, setPickerStepId] = useState<string | null>(null);
+  const [notesOpen, setNotesOpen] = useState<Record<string, boolean>>({});
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [dragPayload, setDragPayload] = useState<FitPayload | null>(null);
+  const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
+  const [draggingStepId, setDraggingStepId] = useState<string | null>(null);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [pendingDelete, setPendingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const result = await getSequence(sequenceId);
+        if (cancelled) return;
+        setDetail(result.sequence);
+        setTitleDraft(result.sequence.title);
+        setLoadError(null);
+      } catch (err) {
+        if (!cancelled) {
+          setLoadError(describeApiError(err, { resource: "sequence" }));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sequenceId]);
+
+  useEffect(() => {
+    if (!detail) return;
+    if (detail.kind !== routeKind) {
+      router.replace(sequenceWorkspaceHref(detail.kind, detail.id));
+    }
+  }, [detail, routeKind, router]);
+
+  function applyDetail(next: SequenceDetail) {
+    setDetail(next);
+    setTitleDraft(next.title);
+    setSelection((current) => {
+      if (current.kind === "none") return current;
+      const step = next.steps.find((item) => item.id === current.stepId);
+      if (!step) return { kind: "none" };
+      if (current.kind === "gap" && step.gapState == null) return { kind: "none" };
+      return current;
+    });
+    setPickerStepId((current) => {
+      if (!current) return null;
+      const step = next.steps.find((item) => item.id === current);
+      return step && step.gapState != null ? current : null;
+    });
+  }
+
+  async function mutate(
+    writer: () => Promise<{ sequence: SequenceDetail }>,
+    message?: string,
+  ): Promise<SequenceDetail | null> {
+    try {
+      const result = await writer();
+      applyDetail(result.sequence);
+      if (message) toast(message);
+      setConflict(null);
+      return result.sequence;
+    } catch (err) {
+      if (err instanceof ApiClientError && err.status === 409) {
+        const fresh = await getSequence(sequenceId);
+        applyDetail(fresh.sequence);
+        setConflict("Sequence was updated elsewhere. Reloaded the latest version.");
+        return fresh.sequence;
+      }
+      toast(describeApiError(err));
+      return null;
+    }
+  }
+
+  function clearTransient() {
+    setSelection({ kind: "none" });
+    setPickerStepId(null);
+  }
+
+  async function addTrackAt(trackId: string, title: string, position: number | "append") {
+    if (!detail) return;
+    const numeric = position === "append" ? detail.steps.length : position;
+    const prev = detail.steps[numeric - 1];
+    let inTransitionId: string | undefined;
+    let linkedTechnique: string | null = null;
+    if (prev) {
+      const candidates = await listTransitions({
+        fromTrackId: prev.trackId,
+        toTrackId: trackId,
+        limit: 5,
+      });
+      const autoId = autoLinkTransitionId(candidates.transitions);
+      if (autoId) {
+        inTransitionId = autoId;
+        const hit = candidates.transitions.find((item) => item.id === autoId);
+        linkedTechnique = displayVocab(hit?.technique) ?? "mix";
+      }
+    }
+    const where =
+      numeric === detail.steps.length ? `Appended ${title}` : `Inserted ${title} at ${numeric + 1}`;
+    await mutate(
+      () =>
+        addSequenceStep(detail.id, {
+          trackId,
+          position,
+          ...(inTransitionId ? { inTransitionId } : {}),
+        }),
+      inTransitionId ? `${where} · linked ${linkedTechnique}` : where,
+    );
+    clearTransient();
+  }
+
+  async function handleAddTrack(track: ApiTrack) {
+    if (!detail) return;
+    await addTrackAt(track.id, track.title, insertIndex(selection, detail.steps));
+  }
+
+  async function handleAddTransition(transition: ApiTransition) {
+    if (!detail) return;
+    const technique = displayVocab(transition.technique) ?? "mix";
+    if (selection.kind === "gap") {
+      await mutate(
+        () =>
+          updateSequenceStep(detail.id, selection.stepId, {
+            inTransitionId: transition.id,
+            isSeam: false,
+          }),
+        `Linked ${technique}`,
+      );
+      clearTransient();
+      return;
+    }
+    if (detail.steps.length === 0) {
+      await mutate(async () => {
+        const first = await addSequenceStep(detail.id, { trackId: transition.fromTrack.id });
+        return addSequenceStep(first.sequence.id, {
+          trackId: transition.toTrack.id,
+          inTransitionId: transition.id,
+        });
+      }, `${technique} → ${transition.toTrack.title} added`);
+      return;
+    }
+    await mutate(
+      () =>
+        addSequenceStep(detail.id, {
+          trackId: transition.toTrack.id,
+          position: insertIndex(selection, detail.steps),
+          inTransitionId: transition.id,
+        }),
+      `${technique} → ${transition.toTrack.title} added`,
+    );
+    clearTransient();
+  }
+
+  async function handlePaletteDrop(target: DropTarget) {
+    if (!detail || !dragPayload) return;
+    const edge = dragPayload.kind === "transition" ? dragPayload : null;
+    if (!dropFit(dragPayload, target, detail.steps, edge)) return;
+    if (dragPayload.kind === "track") {
+      await addTrackAt(dragPayload.id, dragPayload.title, target.index);
+      return;
+    }
+    const technique = dragPayload.technique;
+    if (target.kind === "gap") {
+      const dest = detail.steps[target.index];
+      if (!dest) return;
+      await mutate(
+        () =>
+          updateSequenceStep(detail.id, dest.id, {
+            inTransitionId: dragPayload.id,
+            isSeam: false,
+          }),
+        `Linked ${technique}`,
+      );
+      clearTransient();
+      return;
+    }
+    if (detail.steps.length === 0) {
+      await mutate(async () => {
+        const first = await addSequenceStep(detail.id, { trackId: dragPayload.fromTrackId });
+        return addSequenceStep(first.sequence.id, {
+          trackId: dragPayload.toTrackId,
+          inTransitionId: dragPayload.id,
+        });
+      }, `${technique} → ${dragPayload.toTitle} added`);
+      return;
+    }
+    await mutate(
+      () =>
+        addSequenceStep(detail.id, {
+          trackId: dragPayload.toTrackId,
+          position: target.index,
+          inTransitionId: dragPayload.id,
+        }),
+      `${technique} → ${dragPayload.toTitle} added`,
+    );
+    clearTransient();
+  }
+
+  async function handleReorderIds(stepIds: string[], message: string) {
+    if (!detail) return;
+    await mutate(
+      () =>
+        reorderSequence(detail.id, {
+          stepIds,
+          expectedUpdatedAt: detail.updatedAt,
+        }),
+      message,
+    );
+  }
+
+  async function handleMove(stepId: string, delta: -1 | 1) {
+    if (!detail) return;
+    const index = detail.steps.findIndex((step) => step.id === stepId);
+    const next = moveUnit(detail.steps, index, delta);
+    if (next.every((step, i) => step.id === detail.steps[i]?.id)) return;
+    await handleReorderIds(
+      next.map((step) => step.id),
+      "Reordered — affected gaps re-derived",
+    );
+  }
+
+  async function handleReorderDrop(targetStepId: string) {
+    if (!detail || !draggingStepId || draggingStepId === targetStepId) return;
+    const fromIndex = detail.steps.findIndex((step) => step.id === draggingStepId);
+    const targetIndex = detail.steps.findIndex((step) => step.id === targetStepId);
+    const next = reorderTo(detail.steps, fromIndex, targetIndex);
+    if (next.every((step, i) => step.id === detail.steps[i]?.id)) return;
+    await handleReorderIds(
+      next.map((step) => step.id),
+      "Reordered — affected gaps re-derived",
+    );
+  }
+
+  async function commitTitle() {
+    if (!detail) return;
+    const title = titleDraft.trim();
+    if (!title || title === detail.title) {
+      setTitleDraft(detail.title);
+      return;
+    }
+    await mutate(
+      () => updateSequence(detail.id, { title, expectedUpdatedAt: detail.updatedAt }),
+      "Renamed",
+    );
+  }
+
+  async function commitNote(stepId: string) {
+    if (!detail) return;
+    const step = detail.steps.find((item) => item.id === stepId);
+    if (!step) return;
+    const next = (noteDrafts[stepId] ?? step.note ?? "").trim() || null;
+    const current = step.note?.trim() || null;
+    if (next === current) return;
+    await mutate(() => updateSequenceStep(detail.id, stepId, { note: next }));
+  }
+
+  if (loadError) {
+    return <StatePanel variant="error" title="Sequence unavailable" description={loadError} />;
+  }
+  if (!detail) {
+    return <StatePanel variant="loading" title="Loading sequence" />;
+  }
+
+  const isBlockKind = detail.kind === "block";
+  const metrics = plannedMetrics(detail.steps);
+  const runtimeSec = sequenceRuntimeSec(detail.steps);
+  const browseHref = setsViewHref(isBlockKind ? "blocks" : "sets");
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <BackLink href={browseHref}>{isBlockKind ? "Blocks" : "Sets"}</BackLink>
+      <div className="border-border flex items-start justify-between gap-6 border-b pb-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <input
+            aria-label="Sequence title"
+            value={titleDraft}
+            onChange={(event) => setTitleDraft(event.target.value)}
+            onBlur={() => void commitTitle()}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                (event.target as HTMLInputElement).blur();
+              }
+            }}
+            className="text-page-title max-w-xl rounded-lg border border-transparent bg-transparent px-1.5 py-0.5 outline-none hover:border-border focus-visible:border-ring focus-visible:bg-surface-1 focus-visible:ring-3 focus-visible:ring-ring/50"
+          />
+          <div className="text-muted-foreground flex flex-wrap items-center gap-2.5 text-sm">
+            {detail.steps.length === 0 ? (
+              <span className="text-numeric">0 tracks</span>
+            ) : (
+              <>
+                <span className="text-numeric">{formatApproxRuntime(runtimeSec)}</span>
+                <span aria-hidden>·</span>
+                <span>
+                  {detail.steps.length} {detail.steps.length === 1 ? "track" : "tracks"}
+                </span>
+              </>
+            )}
+            <span aria-hidden>·</span>
+            <span>{formatPlannedLine(metrics, detail.steps.length)}</span>
+            {metrics.seams > 0 ? (
+              <Badge variant="tertiary">
+                {metrics.seams} {metrics.seams === 1 ? "seam" : "seams"}
+              </Badge>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            title="Delete"
+            aria-label="Delete sequence"
+            onClick={() => setPendingDelete(true)}
+          >
+            <XIcon />
+          </Button>
+        </div>
+      </div>
+      {conflict ? <Alert variant="warning">{conflict}</Alert> : null}
+      <div className="grid min-h-0 flex-1 grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(20rem,2fr)]">
+        <SequenceRunningOrder
+          kindNounEmpty={isBlockKind ? "This block has no tracks yet" : "This night is empty"}
+          steps={detail.steps}
+          selection={selection}
+          pickerStepId={pickerStepId}
+          notesOpenFor={(step) =>
+            step.id in notesOpen ? Boolean(notesOpen[step.id]) : Boolean(step.note?.trim())
+          }
+          noteValue={(step) => noteDrafts[step.id] ?? step.note ?? ""}
+          dragPayload={dragPayload}
+          dropTarget={dropTarget}
+          draggingStepId={draggingStepId}
+          onSelectGap={(stepId) => {
+            const selected = selection.kind === "gap" && selection.stepId === stepId;
+            setSelection(selected ? { kind: "none" } : { kind: "gap", stepId });
+            setPaletteTab(selected ? "tracks" : "transitions");
+            setPickerStepId(null);
+          }}
+          onSelectStep={(stepId) => {
+            const selected = selection.kind === "step" && selection.stepId === stepId;
+            setSelection(selected ? { kind: "none" } : { kind: "step", stepId });
+          }}
+          onTogglePicker={(stepId) => {
+            setPickerStepId((current) => (current === stepId ? null : stepId));
+            setSelection({ kind: "gap", stepId });
+            setPaletteTab("transitions");
+          }}
+          onPickTransition={(stepId, transition) => {
+            void mutate(
+              () =>
+                updateSequenceStep(detail.id, stepId, {
+                  inTransitionId: transition.id,
+                  isSeam: false,
+                }),
+              `Linked ${displayVocab(transition.technique) ?? "mix"}`,
+            );
+            setPickerStepId(null);
+            setSelection({ kind: "none" });
+          }}
+          onUnlink={(stepId) => {
+            void mutate(
+              () => updateSequenceStep(detail.id, stepId, { inTransitionId: null }),
+              "Unlinked — the transition stays in your library",
+            );
+          }}
+          onToggleSeam={(step) => {
+            void mutate(
+              () => updateSequenceStep(detail.id, step.id, { isSeam: !step.isSeam }),
+              step.isSeam
+                ? "Seam removed — this join counts again"
+                : "Marked a seam — excluded from completeness",
+            );
+          }}
+          onMove={(stepId, delta) => void handleMove(stepId, delta)}
+          onToggleNote={(stepId) => {
+            setNotesOpen((current) => {
+              const step = detail.steps.find((item) => item.id === stepId);
+              const open =
+                stepId in current ? Boolean(current[stepId]) : Boolean(step?.note?.trim());
+              return { ...current, [stepId]: !open };
+            });
+          }}
+          onNoteChange={(stepId, value) => {
+            setNoteDrafts((current) => ({ ...current, [stepId]: value }));
+          }}
+          onNoteCommit={(stepId) => void commitNote(stepId)}
+          onRemove={(step) => {
+            void mutate(() => deleteSequenceStep(detail.id, step.id), "Step removed");
+          }}
+          onStepDragStart={(event: DragEvent, step: SequenceStep) => {
+            event.dataTransfer.setData("text/plain", step.id);
+            event.dataTransfer.effectAllowed = "move";
+            setDraggingStepId(step.id);
+            setDragPayload(null);
+          }}
+          onPaletteDrop={(target) => void handlePaletteDrop(target)}
+          onReorderDrop={(targetStepId) => void handleReorderDrop(targetStepId)}
+          onDragEnd={() => {
+            setDragPayload(null);
+            setDropTarget(null);
+            setDraggingStepId(null);
+          }}
+          onSetDropTarget={setDropTarget}
+          onAddTrackCta={() => {
+            setPaletteTab("tracks");
+            setSelection({ kind: "none" });
+          }}
+        />
+        <LibraryPalette
+          selection={selection}
+          steps={detail.steps}
+          tab={paletteTab}
+          onTab={setPaletteTab}
+          onAddTrack={(track) => void handleAddTrack(track)}
+          onAddTransition={(transition) => void handleAddTransition(transition)}
+          onClearSelection={() => {
+            setSelection({ kind: "none" });
+            setPickerStepId(null);
+            setPaletteTab("tracks");
+          }}
+          onDragStart={setDragPayload}
+          onDragEnd={() => {
+            setDragPayload(null);
+            setDropTarget(null);
+          }}
+        />
+      </div>
+      <ConfirmDialog
+        open={pendingDelete}
+        onOpenChange={setPendingDelete}
+        title={`Delete “${detail.title}”?`}
+        description="The tracks and transitions stay in your library — only this sequence and its ordering go away. This cannot be undone."
+        confirmLabel="Delete"
+        pending={deleting}
+        pendingLabel="Deleting…"
+        onConfirm={() => {
+          void (async () => {
+            setDeleting(true);
+            try {
+              await deleteSequence(detail.id);
+              toast(`Deleted “${detail.title}”`);
+              router.push(browseHref);
+            } catch (err) {
+              toast(describeApiError(err, { fallback: "Could not delete the sequence." }));
+              setDeleting(false);
+            }
+          })();
+        }}
+      />
+    </div>
+  );
+}

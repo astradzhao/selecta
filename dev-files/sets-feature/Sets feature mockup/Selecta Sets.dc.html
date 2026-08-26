@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; }
+  .sel, .sel *, .sel *::before, .sel *::after { box-sizing: border-box; }
+  .sel {
+    color-scheme: light;
+    --background: oklch(0.988 0.004 305); --foreground: oklch(0.27 0.012 300);
+    --card: oklch(0.988 0.004 305); --popover: oklch(0.988 0.004 305);
+    --primary: oklch(0.945 0.032 305); --primary-foreground: oklch(0.44 0.105 305);
+    --secondary: oklch(0.48 0.08 197); --secondary-subtle: oklch(0.948 0.028 197);
+    --tertiary: oklch(0.954 0.007 305); --tertiary-foreground: oklch(0.27 0.012 300);
+    --muted: oklch(0.954 0.007 305); --muted-foreground: oklch(0.545 0.012 300);
+    --destructive: oklch(0.53 0.165 27); --destructive-subtle: oklch(0.955 0.025 27);
+    --border: oklch(0.906 0.009 305); --input: oklch(0.906 0.009 305); --ring: oklch(0.5 0.08 305);
+    --brand: oklch(0.5 0.095 305); --brand-subtle: oklch(0.945 0.032 305);
+    --success: oklch(0.485 0.115 145); --success-subtle: oklch(0.955 0.024 145);
+    --warning: oklch(0.535 0.125 70); --warning-subtle: oklch(0.955 0.03 78);
+    --info: oklch(0.505 0.105 245); --info-subtle: oklch(0.955 0.02 245);
+    --overlay: oklch(0.27 0.012 300 / 10%);
+    --surface-1: oklch(0.972 0.005 305); --surface-2: oklch(0.954 0.007 305); --surface-3: oklch(0.928 0.01 305);
+    --selected: oklch(0.5 0.095 305);
+    --highlight: oklch(0.93 0.06 85);
+    --shadow-card: 0 1px 2px oklch(0.27 0.012 300 / 6%);
+  }
+  .sel.dark {
+    color-scheme: dark;
+    --background: oklch(0.185 0.007 300); --foreground: oklch(0.925 0.004 305);
+    --card: oklch(0.215 0.008 300); --popover: oklch(0.215 0.008 300);
+    --primary: oklch(0.305 0.045 305); --primary-foreground: oklch(0.825 0.075 305);
+    --secondary: oklch(0.78 0.08 197); --secondary-subtle: oklch(0.305 0.04 197);
+    --tertiary: oklch(0.3 0.011 300); --tertiary-foreground: oklch(0.925 0.004 305);
+    --muted: oklch(0.3 0.011 300); --muted-foreground: oklch(0.665 0.012 300);
+    --destructive: oklch(0.72 0.15 25); --destructive-subtle: oklch(0.3 0.048 25);
+    --border: oklch(0.925 0.004 305 / 14%); --input: oklch(0.925 0.004 305 / 16%); --ring: oklch(0.8 0.07 305);
+    --brand: oklch(0.8 0.075 305); --brand-subtle: oklch(0.305 0.045 305);
+    --success: oklch(0.755 0.105 145); --success-subtle: oklch(0.305 0.038 145);
+    --warning: oklch(0.785 0.1 70); --warning-subtle: oklch(0.315 0.038 75);
+    --info: oklch(0.735 0.08 245); --info-subtle: oklch(0.3 0.033 245);
+    --overlay: oklch(0.12 0.008 300 / 50%);
+    --surface-1: oklch(0.215 0.008 300); --surface-2: oklch(0.245 0.009 300); --surface-3: oklch(0.3 0.011 300);
+    --selected: oklch(0.8 0.075 305);
+    --highlight: oklch(0.32 0.06 85);
+    --shadow-card: 0 1px 2px oklch(0 0 0 / 30%);
+  }
+  .sel button:not(:disabled), .sel a[href] { cursor: pointer; }
+  .sel button:disabled { cursor: not-allowed; opacity: 0.4; }
+  .sel input, .sel select, .sel button, .sel textarea { font: inherit; }
+  .sel a { color: var(--brand); text-decoration: none; }
+  .sel a:hover { color: var(--brand); text-decoration: underline; }
+  .sel *:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  @keyframes selFade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  @keyframes selToast { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+</style>
+</helmet>
+
+<div class="sel {{ themeClass }}" style="min-height:100vh; background:var(--background); color:var(--foreground); font-family:'Geist',system-ui,sans-serif; font-size:14px; line-height:1.45; display:flex; flex-direction:column">
+
+  <header style="position:sticky; top:0; z-index:20; border-bottom:1px solid var(--border); background:var(--background); backdrop-filter:blur(8px)">
+    <div style="margin:0 auto; display:flex; height:56px; width:100%; max-width:1280px; align-items:center; justify-content:space-between; gap:24px; padding:0 24px">
+      <span style="font-size:14px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--foreground)">Selecta</span>
+      <div style="display:flex; align-items:center; gap:8px">
+        <nav style="display:flex; align-items:center; gap:2px" aria-label="Primary">
+          <span style="position:relative; padding:8px 12px; font-size:14px; color:var(--muted-foreground)">Library</span>
+          <span style="position:relative; padding:8px 12px; font-size:14px; font-weight:500; color:var(--foreground)">Sets<span style="position:absolute; left:12px; right:12px; bottom:-1px; height:2px; border-radius:2px; background:var(--selected)"></span></span>
+          <span style="position:relative; padding:8px 12px; font-size:14px; color:var(--muted-foreground)">Graph</span>
+        </nav>
+        <button type="button" onClick="{{ toggleTheme }}" title="{{ themeLabel }}" aria-label="{{ themeLabel }}" style="display:flex; height:32px; width:32px; align-items:center; justify-content:center; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--muted-foreground)" style-hover="background:var(--surface-2); color:var(--foreground)">{{ themeIcon }}</button>
+      </div>
+    </div>
+  </header>
+
+  <sc-if value="{{ isBrowse }}" hint-placeholder-val="{{ true }}">
+    <div style="margin:0 auto; display:flex; width:100%; max-width:1024px; flex:1; flex-direction:column; padding:32px 24px; gap:24px">
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:24px; border-bottom:1px solid var(--border); padding-bottom:20px">
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <h1 style="margin:0; font-size:30px; font-weight:600; letter-spacing:-0.02em">Sets</h1>
+          <p style="margin:0; font-size:14px; color:var(--muted-foreground)">{{ browseSubtitle }}</p>
+        </div>
+        <button type="button" onClick="{{ openCreate }}" style="display:inline-flex; height:36px; align-items:center; gap:6px; border-radius:10px; border:1px solid var(--brand-subtle); background:var(--primary); padding:0 14px; font-size:14px; font-weight:500; color:var(--primary-foreground)" style-hover="filter:brightness(0.97)">+ {{ newLabel }}</button>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:2px">
+        <button type="button" onClick="{{ showSets }}" style="position:relative; border:0; background:transparent; padding:8px 12px; font-size:14px; color:{{ setsTabColor }}; font-weight:{{ setsTabWeight }}">Sets<span style="position:absolute; left:12px; right:12px; bottom:0; height:2px; border-radius:2px; background:{{ setsTabMarker }}"></span></button>
+        <button type="button" onClick="{{ showBlocks }}" style="position:relative; border:0; background:transparent; padding:8px 12px; font-size:14px; color:{{ blocksTabColor }}; font-weight:{{ blocksTabWeight }}">Blocks<span style="position:absolute; left:12px; right:12px; bottom:0; height:2px; border-radius:2px; background:{{ blocksTabMarker }}"></span></button>
+      </div>
+
+      <div style="border:1px solid var(--border); border-radius:14px; background:var(--card); box-shadow:var(--shadow-card); overflow:hidden">
+        <div style="display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border); padding:12px 16px">
+          <div style="position:relative; flex:1; max-width:340px">
+            <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--muted-foreground); font-size:13px">⌕</span>
+            <input value="{{ browseQuery }}" onChange="{{ onBrowseQuery }}" placeholder="{{ browsePlaceholder }}" style="height:34px; width:100%; border-radius:10px; border:1px solid var(--input); background:transparent; color:var(--foreground); padding:0 12px 0 28px; font-size:14px" />
+          </div>
+          <sc-if value="{{ isBlocksTab }}" hint-placeholder-val="{{ false }}">
+            <select value="{{ completeFilter }}" onChange="{{ onCompleteFilter }}" style="height:34px; border-radius:10px; border:1px solid var(--input); background:var(--background); color:var(--foreground); padding:0 10px; font-size:14px">
+              <option value="all">All blocks</option>
+              <option value="complete">Complete</option>
+              <option value="incomplete">Incomplete</option>
+            </select>
+          </sc-if>
+          <span style="margin-left:auto; font-family:'Geist Mono',monospace; font-size:11.5px; color:var(--muted-foreground); font-variant-numeric:tabular-nums">{{ browseCount }}</span>
+        </div>
+
+        <sc-for list="{{ browseRows }}" as="item" hint-placeholder-count="3">
+          <div onClick="{{ item.onOpen }}" style="display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:16px; border-bottom:1px solid var(--border); padding:12px 16px" style-hover="background:var(--surface-1)">
+            <div style="display:flex; flex-direction:column; gap:3px; min-width:0">
+              <span style="font-weight:500">{{ item.title }}</span>
+              <span style="font-size:12px; color:var(--muted-foreground)">{{ item.meta }}</span>
+            </div>
+            <span style="display:inline-flex; align-items:center; border-radius:999px; padding:2px 8px; font-size:11px; font-weight:500; background:{{ item.badgeBg }}; color:{{ item.badgeFg }}">{{ item.badge }}</span>
+            <span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:var(--muted-foreground); font-variant-numeric:tabular-nums">{{ item.age }}</span>
+            <button type="button" onClick="{{ item.onDelete }}" title="Delete" style="border:0; background:transparent; color:var(--muted-foreground); padding:4px 6px; border-radius:8px; font-size:13px" style-hover="background:var(--destructive-subtle); color:var(--destructive)">✕</button>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{ browseEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:40px 20px; text-align:center">
+            <p style="margin:0; font-weight:500">{{ emptyTitle }}</p>
+            <p style="margin:0; font-size:14px; color:var(--muted-foreground); max-width:380px">{{ emptyBody }}</p>
+            <button type="button" onClick="{{ openCreate }}" style="margin-top:8px; height:34px; border-radius:10px; border:1px solid var(--brand-subtle); background:var(--primary); padding:0 14px; font-size:14px; font-weight:500; color:var(--primary-foreground)">+ {{ newLabel }}</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isWorkspace }}" hint-placeholder-val="{{ false }}">
+    <div style="margin:0 auto; display:flex; width:100%; max-width:1280px; flex:1; min-height:0; flex-direction:column; padding:20px 24px 32px; gap:16px">
+
+      <button type="button" onClick="{{ goBrowse }}" style="align-self:flex-start; border:0; background:transparent; padding:0; font-size:13px; color:var(--muted-foreground)" style-hover="color:var(--foreground)">← {{ backLabel }}</button>
+
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:24px; border-bottom:1px solid var(--border); padding-bottom:16px">
+        <div style="display:flex; flex-direction:column; gap:6px; min-width:0; flex:1">
+          <input value="{{ wsTitle }}" onChange="{{ onRename }}" aria-label="Sequence title" style="border:1px solid transparent; border-radius:8px; background:transparent; color:var(--foreground); font-size:30px; font-weight:600; letter-spacing:-0.02em; padding:2px 6px; margin-left:-6px; width:100%; max-width:560px" style-hover="border-color:var(--border)" style-focus="border-color:var(--ring); background:var(--surface-1)" />
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; font-size:13px; color:var(--muted-foreground)">
+            <span style="font-family:'Geist Mono',monospace; font-variant-numeric:tabular-nums">{{ wsRuntime }}</span>
+            <span aria-hidden="true">·</span>
+            <span>{{ wsPlanned }}</span>
+            <sc-if value="{{ wsHasSeams }}" hint-placeholder-val="{{ true }}">
+              <span style="display:inline-flex; align-items:center; border-radius:999px; background:var(--tertiary); color:var(--tertiary-foreground); padding:2px 8px; font-size:11px; font-weight:500">{{ wsSeams }}</span>
+            </sc-if>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-shrink:0">
+          <select value="{{ versionId }}" onChange="{{ onVersion }}" title="Version" style="height:32px; border-radius:10px; border:1px solid var(--input); background:var(--background); color:var(--foreground); padding:0 8px; font-size:13px">
+            <sc-for list="{{ versions }}" as="v" hint-placeholder-count="2">
+              <option value="{{ v.id }}">{{ v.name }}</option>
+            </sc-for>
+          </select>
+          <button type="button" onClick="{{ notImpl }}" style="height:32px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--foreground); padding:0 12px; font-size:13px" style-hover="background:var(--surface-2)">Open in graph</button>
+          <button type="button" onClick="{{ notImpl }}" style="height:32px; border-radius:10px; border:1px solid var(--secondary-subtle); background:var(--secondary-subtle); color:var(--secondary); padding:0 12px; font-size:13px; font-weight:500" style-hover="filter:brightness(0.97)">Follow</button>
+          <button type="button" onClick="{{ onDeleteCurrent }}" title="Delete" style="height:32px; width:32px; display:flex; align-items:center; justify-content:center; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--muted-foreground)" style-hover="background:var(--destructive-subtle); color:var(--destructive); border-color:var(--destructive-subtle)">✕</button>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:minmax(0,3fr) minmax(320px,2fr); gap:20px; align-items:start; flex:1; min-height:0">
+
+        <div style="display:flex; flex-direction:column; min-width:0">
+          <sc-for list="{{ rows }}" as="row" hint-placeholder-count="5">
+            <div draggable="{{ row.isUnit }}" onDragStart="{{ row.onDragStart }}" onDragOver="{{ row.onDragOver }}" onDrop="{{ row.onDrop }}" onDragEnd="{{ row.onDragEnd }}" style="border:1px solid {{ row.wrapBorder }}; border-bottom-width:{{ row.wrapBottom }}; background:{{ row.wrapBg }}; border-radius:{{ row.wrapRadius }}; padding:{{ row.wrapPad }}; margin:{{ row.wrapMargin }}">
+              <sc-if value="{{ row.hasGap }}" hint-placeholder-val="{{ true }}">
+                <div onClick="{{ row.onSelectGap }}" onDragOver="{{ row.onGapDragOver }}" onDrop="{{ row.onGapDrop }}" style="margin-left:34px; border-left:2px solid {{ row.railColor }}; padding:6px 0 6px 16px; display:flex; flex-direction:column; gap:6px">
+                  <div style="display:flex; align-items:center; gap:8px; border:1px solid {{ row.gapBorder }}; background:{{ row.gapBg }}; border-radius:10px; padding:6px 10px" style-hover="border-color:var(--ring)">
+                    <span style="font-size:13px; color:{{ row.gapInk }}; font-weight:500; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ row.gapIcon }} {{ row.gapLabel }}</span>
+                    <sc-if value="{{ row.hasBpm }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-family:'Geist Mono',monospace; font-size:11px; border-radius:999px; background:var(--surface-2); color:var(--muted-foreground); padding:1px 7px; font-variant-numeric:tabular-nums; white-space:nowrap; flex-shrink:0">{{ row.bpmDelta }} BPM</span>
+                    </sc-if>
+                    <sc-if value="{{ row.gapAltActive }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size:11px; font-weight:500; border-radius:999px; background:var(--brand-subtle); color:var(--brand); padding:1px 7px">alternate · {{ row.altActiveLabel }}</span>
+                    </sc-if>
+                    <span style="margin-left:auto; display:flex; align-items:center; gap:2px; flex-shrink:0">
+                      <sc-if value="{{ row.canPick }}" hint-placeholder-val="{{ false }}">
+                        <button type="button" onClick="{{ row.onTogglePicker }}" style="border:0; background:transparent; color:var(--brand); padding:2px 8px; border-radius:8px; font-size:12px; font-weight:500" style-hover="background:var(--brand-subtle)">{{ row.pickLabel }}</button>
+                      </sc-if>
+                      <sc-if value="{{ row.isUnmapped }}" hint-placeholder-val="{{ false }}">
+                        <a href="#" onClick="{{ row.onAddTransition }}" style="padding:2px 8px; border-radius:8px; font-size:12px; font-weight:500">Add transition</a>
+                      </sc-if>
+                      <sc-if value="{{ row.canUnlink }}" hint-placeholder-val="{{ false }}">
+                        <button type="button" onClick="{{ row.onUnlink }}" title="Unlink" style="border:0; background:transparent; color:var(--muted-foreground); padding:2px 6px; border-radius:8px; font-size:12px" style-hover="background:var(--surface-2); color:var(--foreground)">Unlink</button>
+                      </sc-if>
+                      <sc-if value="{{ row.isBlockConnector }}" hint-placeholder-val="{{ false }}">
+                        <button type="button" onClick="{{ row.onExpandBlock }}" style="border:0; background:transparent; color:var(--muted-foreground); padding:2px 6px; border-radius:8px; font-size:12px" style-hover="background:var(--surface-2); color:var(--foreground)">{{ row.expandLabel }}</button>
+                      </sc-if>
+                      <sc-if value="{{ row.isBlockConnector }}" hint-placeholder-val="{{ false }}">
+                        <button type="button" onClick="{{ row.onEditBlock }}" title="Open the block — edits apply everywhere it is used" style="border:0; background:transparent; color:var(--muted-foreground); padding:2px 6px; border-radius:8px; font-size:12px" style-hover="background:var(--surface-2); color:var(--foreground)">Edit block</button>
+                      </sc-if>
+                      <sc-if value="{{ row.isBlockConnector }}" hint-placeholder-val="{{ false }}">
+                        <button type="button" onClick="{{ row.onDetach }}" title="Detach to a copy — makes these steps editable in this set only" style="border:0; background:transparent; color:var(--muted-foreground); padding:2px 6px; border-radius:8px; font-size:12px" style-hover="background:var(--surface-2); color:var(--foreground)">Detach</button>
+                      </sc-if>
+                      <button type="button" onClick="{{ row.onToggleSeam }}" title="{{ row.seamTitle }}" style="border:0; background:transparent; color:{{ row.seamInk }}; padding:2px 6px; border-radius:8px; font-size:12px" style-hover="background:var(--surface-2)">〜</button>
+                      <button type="button" onClick="{{ row.onAddAlternate }}" title="Add alternate" style="border:0; background:transparent; color:var(--muted-foreground); padding:2px 6px; border-radius:8px; font-size:12px" style-hover="background:var(--surface-2); color:var(--foreground)">+ alt</button>
+                    </span>
+                  </div>
+
+                  <sc-if value="{{ row.blockExpanded }}" hint-placeholder-val="{{ false }}">
+                    <div style="border:1px dashed var(--border); border-radius:10px; background:var(--surface-1); padding:8px 12px; display:flex; flex-direction:column; gap:4px">
+                      <span style="font-size:11px; font-weight:500; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted-foreground)">Inside this block · read-only</span>
+                      <sc-for list="{{ row.blockSteps }}" as="bs" hint-placeholder-count="3">
+                        <div style="display:flex; align-items:center; gap:10px; font-size:13px">
+                          <span style="font-family:'Geist Mono',monospace; font-size:11px; color:var(--muted-foreground); width:14px">{{ bs.n }}</span>
+                          <span>{{ bs.title }}</span>
+                          <span style="color:var(--muted-foreground); font-size:12px">{{ bs.artist }}</span>
+                          <span style="margin-left:auto; font-family:'Geist Mono',monospace; font-size:11.5px; color:var(--muted-foreground); font-variant-numeric:tabular-nums">{{ bs.meta }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ row.pickerOpen }}" hint-placeholder-val="{{ false }}">
+                    <div style="border:1px solid var(--border); border-radius:12px; background:var(--popover); box-shadow:0 8px 24px var(--overlay); padding:8px; display:flex; flex-direction:column; gap:2px; animation:selFade var(--motion-fast,200ms) ease-out">
+                      <span style="padding:4px 8px; font-size:11px; font-weight:500; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted-foreground)">{{ row.pickerTitle }}</span>
+                      <sc-for list="{{ row.candidates }}" as="c" hint-placeholder-count="3">
+                        <button type="button" onClick="{{ c.onPick }}" style="display:flex; align-items:center; gap:10px; width:100%; border:0; background:transparent; color:var(--foreground); text-align:left; border-radius:8px; padding:6px 8px; font-size:13px" style-hover="background:var(--surface-2)">
+                          <span style="color:var(--brand)">⟶</span>
+                          <span>{{ c.label }}</span>
+                          <span style="margin-left:auto; font-size:11px; font-weight:500; border-radius:999px; padding:1px 7px; background:{{ c.qualBg }}; color:{{ c.qualFg }}">{{ c.quality }}</span>
+                        </button>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+
+                  <sc-for list="{{ row.alts }}" as="alt" hint-placeholder-count="0">
+                    <div style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted-foreground); padding-left:2px">
+                      <span style="color:var(--brand)">⤷</span>
+                      <span style="font-weight:500; color:var(--foreground)">alt · {{ alt.label }}</span>
+                      <span>{{ alt.desc }}</span>
+                      <button type="button" onClick="{{ alt.onRemove }}" style="border:0; background:transparent; color:var(--muted-foreground); padding:1px 5px; border-radius:6px; font-size:11px" style-hover="background:var(--destructive-subtle); color:var(--destructive)">remove</button>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+
+              <div style="border:1px solid {{ row.innerBorder }}; border-bottom-width:{{ row.innerBottom }}; background:{{ row.innerBg }}; border-radius:{{ row.innerRadius }}; padding:{{ row.innerPad }}; margin:{{ row.innerMargin }}">
+              <sc-if value="{{ row.showUnitBadge }}" hint-placeholder-val="{{ false }}">
+                <span style="display:block; padding:0 0 4px 50px; font-size:10.5px; font-weight:500; letter-spacing:0.16em; text-transform:uppercase; color:var(--brand)">{{ row.unitBadge }}</span>
+              </sc-if>
+              <div draggable="{{ true }}" onDragStart="{{ row.onDragStart }}" onDragOver="{{ row.onDragOver }}" onDrop="{{ row.onDrop }}" onDragEnd="{{ row.onDragEnd }}" onClick="{{ row.onSelectStep }}" style="display:grid; grid-template-columns:18px 20px 36px minmax(0,1fr) auto auto auto; align-items:center; gap:10px; border:1px solid {{ row.cardBorder }}; background:{{ row.cardBg }}; border-radius:12px; padding:8px 10px; opacity:{{ row.cardOpacity }}; box-shadow:var(--shadow-card)" style-hover="border-color:var(--ring)">
+                <span title="Drag to reorder" style="cursor:grab; color:var(--muted-foreground); font-size:13px; line-height:1; user-select:none">⠿</span>
+                <span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:var(--muted-foreground); font-variant-numeric:tabular-nums; text-align:right">{{ row.num }}</span>
+                <span style="display:flex; height:36px; width:36px; align-items:center; justify-content:center; border-radius:8px; background:var(--surface-3); color:var(--muted-foreground); font-size:13px; font-weight:600">{{ row.initial }}</span>
+                <span style="display:flex; flex-direction:column; min-width:0; gap:1px">
+                  <span style="font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ row.title }}</span>
+                  <span style="font-size:12px; color:var(--muted-foreground); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ row.artist }}</span>
+                </span>
+                <span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:var(--muted-foreground); font-variant-numeric:tabular-nums; width:86px; text-align:right">{{ row.bpmKey }}</span>
+                <span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:var(--muted-foreground); font-variant-numeric:tabular-nums; width:44px; text-align:right">{{ row.dur }}</span>
+                <span style="display:flex; align-items:center; gap:1px">
+                  <button type="button" onClick="{{ row.onUp }}" disabled="{{ row.upDisabled }}" title="Move up" style="border:0; background:transparent; color:var(--muted-foreground); padding:3px 6px; border-radius:8px; font-size:12px" style-hover="background:var(--surface-2); color:var(--foreground)">↑</button>
+                  <button type="button" onClick="{{ row.onDown }}" disabled="{{ row.downDisabled }}" title="Move down" style="border:0; background:transparent; color:var(--muted-foreground); padding:3px 6px; border-radius:8px; font-size:12px" style-hover="background:var(--surface-2); color:var(--foreground)">↓</button>
+                  <button type="button" onClick="{{ row.onToggleNote }}" title="Step note" style="border:0; background:transparent; color:{{ row.noteInk }}; padding:3px 6px; border-radius:8px; font-size:12px" style-hover="background:var(--surface-2)">✎</button>
+                  <button type="button" onClick="{{ row.onRemove }}" title="{{ row.removeTitle }}" style="border:0; background:transparent; color:var(--muted-foreground); padding:3px 6px; border-radius:8px; font-size:12px" style-hover="background:var(--destructive-subtle); color:var(--destructive)">✕</button>
+                </span>
+              </div>
+
+              <sc-if value="{{ row.dropHintOpen }}" hint-placeholder-val="{{ false }}">
+                <span style="display:block; padding:4px 0 0 84px; font-size:11.5px; font-weight:500; color:var(--brand)">↳ {{ row.dropHint }}</span>
+              </sc-if>
+
+              <sc-if value="{{ row.noteOpen }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; align-items:center; gap:8px; padding:6px 0 0 84px">
+                  <span style="font-size:11px; font-weight:500; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted-foreground)">Note</span>
+                  <input value="{{ row.note }}" onChange="{{ row.onNote }}" placeholder="kill the bass early" style="flex:1; height:30px; border-radius:8px; border:1px solid var(--input); background:transparent; color:var(--foreground); padding:0 10px; font-size:13px" />
+                </div>
+              </sc-if>
+              </div>
+            </div>
+          </sc-for>
+
+          <sc-if value="{{ isEmptySeq }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:8px; border:1px dashed var(--border); border-radius:16px; padding:40px 20px; text-align:center">
+              <p style="margin:0; font-weight:500">{{ emptySeqTitle }}</p>
+              <p style="margin:0; font-size:14px; color:var(--muted-foreground); max-width:340px">Pull tracks in from the palette on the right. The joins between them become gaps you can plan or leave as seams.</p>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ endArmed }}" hint-placeholder-val="{{ false }}">
+            <div onDragOver="{{ onEndDragOver }}" onDrop="{{ onEndDrop }}" style="margin:8px 0 0 34px; display:flex; align-items:center; justify-content:center; border:1px dashed {{ endBorder }}; background:{{ endBg }}; border-radius:12px; padding:14px; font-size:12.5px; font-weight:500; color:var(--brand)">{{ endLabel }}</div>
+          </sc-if>
+
+          <div style="display:flex; gap:8px; padding:16px 0 0 34px">
+            <button type="button" onClick="{{ onAddTrackCta }}" style="height:34px; border-radius:10px; border:1px solid var(--secondary-subtle); background:var(--secondary-subtle); color:var(--secondary); padding:0 12px; font-size:13px; font-weight:500" style-hover="filter:brightness(0.97)">+ Add track</button>
+            <button type="button" onClick="{{ onInsertBlockCta }}" style="height:34px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--foreground); padding:0 12px; font-size:13px" style-hover="background:var(--surface-2)">+ Insert block</button>
+          </div>
+        </div>
+
+        <div style="position:sticky; top:76px; border:1px solid var(--border); border-radius:14px; background:var(--card); box-shadow:var(--shadow-card); display:flex; flex-direction:column; overflow:hidden">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid var(--border); padding:10px 14px">
+            <span style="font-size:11px; font-weight:500; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted-foreground)">Library</span>
+            <div style="display:flex; gap:2px">
+              <button type="button" onClick="{{ palTracks }}" style="border:0; border-radius:8px; padding:4px 10px; font-size:12.5px; background:{{ palTracksBg }}; color:{{ palTracksFg }}">Tracks</button>
+              <button type="button" onClick="{{ palTransitions }}" style="border:0; border-radius:8px; padding:4px 10px; font-size:12.5px; background:{{ palTransBg }}; color:{{ palTransFg }}">Transitions</button>
+              <button type="button" onClick="{{ palBlocks }}" style="border:0; border-radius:8px; padding:4px 10px; font-size:12.5px; background:{{ palBlocksBg }}; color:{{ palBlocksFg }}">Blocks</button>
+            </div>
+          </div>
+
+          <div style="padding:10px 14px; border-bottom:1px solid var(--border)">
+            <div style="position:relative">
+              <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--muted-foreground); font-size:13px">⌕</span>
+              <input value="{{ paletteQuery }}" onChange="{{ onPaletteQuery }}" placeholder="{{ palettePlaceholder }}" style="height:32px; width:100%; border-radius:10px; border:1px solid var(--input); background:transparent; color:var(--foreground); padding:0 12px 0 28px; font-size:13px" />
+            </div>
+          </div>
+
+          <sc-if value="{{ hasContext }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border); background:var(--brand-subtle); padding:8px 14px">
+              <span style="font-size:12.5px; color:var(--brand); font-weight:500">{{ contextLabel }}</span>
+              <button type="button" onClick="{{ clearSelection }}" style="margin-left:auto; border:0; background:transparent; color:var(--brand); font-size:11.5px; padding:2px 6px; border-radius:6px" style-hover="background:var(--background)">clear</button>
+            </div>
+          </sc-if>
+
+          <div style="display:flex; flex-direction:column; max-height:520px; overflow-y:auto">
+            <sc-for list="{{ paletteRows }}" as="p" hint-placeholder-count="6">
+              <div draggable="{{ p.draggable }}" onDragStart="{{ p.onDragStart }}" onDragEnd="{{ p.onDragEnd }}" title="Drag into the running order" style="display:grid; grid-template-columns:28px minmax(0,1fr) auto auto; align-items:center; gap:10px; border-bottom:1px solid var(--border); padding:8px 14px" style-hover="background:var(--surface-1)">
+                <span style="display:flex; height:28px; width:28px; align-items:center; justify-content:center; border-radius:7px; background:{{ p.iconBg }}; color:{{ p.iconFg }}; font-size:12px; font-weight:600; cursor:grab">{{ p.icon }}</span>
+                <span style="display:flex; flex-direction:column; min-width:0; gap:1px">
+                  <span style="font-size:13px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ p.title }}</span>
+                  <span style="font-size:11.5px; color:var(--muted-foreground); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ p.sub }}</span>
+                </span>
+                <span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:var(--muted-foreground); font-variant-numeric:tabular-nums">{{ p.meta }}</span>
+                <button type="button" onClick="{{ p.onAdd }}" disabled="{{ p.disabled }}" title="{{ p.addTitle }}" style="height:26px; width:26px; display:flex; align-items:center; justify-content:center; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--foreground); font-size:13px" style-hover="background:var(--primary); color:var(--primary-foreground); border-color:var(--brand-subtle)">+</button>
+              </div>
+            </sc-for>
+            <sc-if value="{{ paletteEmpty }}" hint-placeholder-val="{{ false }}">
+              <p style="margin:0; padding:28px 16px; text-align:center; font-size:13px; color:var(--muted-foreground)">{{ paletteEmptyText }}</p>
+            </sc-if>
+          </div>
+
+          <p style="margin:0; border-top:1px solid var(--border); padding:8px 14px; font-size:11.5px; color:var(--muted-foreground)">{{ paletteHint }}</p>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ createOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; background:var(--overlay); padding:24px">
+      <div style="width:100%; max-width:420px; border:1px solid var(--border); border-radius:14px; background:var(--popover); box-shadow:0 24px 60px var(--overlay); padding:20px; display:flex; flex-direction:column; gap:14px; animation:selFade var(--motion-fast,200ms) ease-out">
+        <div style="display:flex; flex-direction:column; gap:4px">
+          <h2 style="margin:0; font-size:18px; font-weight:600; letter-spacing:-0.01em">{{ createTitleText }}</h2>
+          <p style="margin:0; font-size:13px; color:var(--muted-foreground)">{{ createBody }}</p>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <label style="font-size:11px; font-weight:500; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted-foreground)">Title</label>
+          <input value="{{ createValue }}" onChange="{{ onCreateInput }}" placeholder="Sunset rooftop" style="height:36px; border-radius:10px; border:1px solid var(--input); background:transparent; color:var(--foreground); padding:0 12px; font-size:14px" />
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px">
+          <button type="button" onClick="{{ closeCreate }}" style="height:34px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--foreground); padding:0 14px; font-size:14px" style-hover="background:var(--surface-2)">Cancel</button>
+          <button type="button" onClick="{{ confirmCreate }}" disabled="{{ createDisabled }}" style="height:34px; border-radius:10px; border:1px solid var(--brand-subtle); background:var(--primary); color:var(--primary-foreground); padding:0 14px; font-size:14px; font-weight:500">Create</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ confirmOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; background:var(--overlay); padding:24px">
+      <div style="width:100%; max-width:400px; border:1px solid var(--border); border-radius:14px; background:var(--popover); box-shadow:0 24px 60px var(--overlay); padding:20px; display:flex; flex-direction:column; gap:14px; animation:selFade var(--motion-fast,200ms) ease-out">
+        <h2 style="margin:0; font-size:18px; font-weight:600; letter-spacing:-0.01em">{{ confirmTitle }}</h2>
+        <p style="margin:0; font-size:13px; color:var(--muted-foreground)">{{ confirmBody }}</p>
+        <div style="display:flex; justify-content:flex-end; gap:8px">
+          <button type="button" onClick="{{ closeConfirm }}" style="height:34px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--foreground); padding:0 14px; font-size:14px" style-hover="background:var(--surface-2)">Cancel</button>
+          <button type="button" onClick="{{ confirmDelete }}" style="height:34px; border-radius:10px; border:1px solid var(--destructive-subtle); background:var(--destructive-subtle); color:var(--destructive); padding:0 14px; font-size:14px; font-weight:500">Delete</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toastOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; left:50%; bottom:24px; z-index:60; transform:translateX(-50%); border:1px solid var(--border); border-radius:10px; background:var(--popover); box-shadow:0 12px 32px var(--overlay); padding:8px 14px; font-size:13px; animation:selToast var(--motion-fast,200ms) ease-out">{{ toastText }}</div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900}}">
+const TRACKS = [
+  { id: "t1", title: "Glue", artist: "Bicep", bpm: 118, key: "6A", dur: 330 },
+  { id: "t2", title: "Sunspot", artist: "Bicep", bpm: 121, key: "5B", dur: 355 },
+  { id: "t3", title: "Midnight City", artist: "M83", bpm: 124, key: "8A", dur: 243 },
+  { id: "t4", title: "Innerbloom", artist: "RÜFÜS DU SOL", bpm: 122, key: "9A", dur: 594 },
+  { id: "t5", title: "Opus", artist: "Eric Prydz", bpm: 126, key: "4A", dur: 546 },
+  { id: "t6", title: "Strobe", artist: "deadmau5", bpm: 128, key: "9B", dur: 634 },
+  { id: "t7", title: "Silver Bullet", artist: "Chris Lake", bpm: 126, key: "10A", dur: 340 },
+  { id: "t8", title: "Acid Rain", artist: "Lorenzo Senni", bpm: 130, key: "11B", dur: 300 },
+  { id: "t9", title: "Higher State", artist: "Josh Wink", bpm: 132, key: "12A", dur: 380 },
+  { id: "t10", title: "Lone Ranger", artist: "Reinier Zonneveld", bpm: 134, key: "1A", dur: 366 },
+  { id: "t11", title: "Sun Rising", artist: "Blue Six", bpm: 120, key: "7A", dur: 402 },
+  { id: "t12", title: "Rapture", artist: "Nadia Ali", bpm: 128, key: "11A", dur: 420 },
+  { id: "t13", title: "You Were Right", artist: "RÜFÜS DU SOL", bpm: 120, key: "8A", dur: 328 },
+  { id: "t14", title: "Cola", artist: "CamelPhat", bpm: 122, key: "6A", dur: 428 },
+  { id: "t15", title: "Body Language", artist: "Booka Shade", bpm: 123, key: "5A", dur: 393 },
+  { id: "t16", title: "Kernkraft", artist: "Zombie Nation", bpm: 130, key: "2A", dur: 300 },
+];
+
+const TRANSITIONS = [
+  { id: "x1", from: "t1", to: "t2", technique: "blend", bars: 16, quality: "great" },
+  { id: "x2", from: "t2", to: "t3", technique: "filter sweep", bars: 8, quality: "ok" },
+  { id: "x3", from: "t3", to: "t4", technique: "blend", bars: 32, quality: "great" },
+  { id: "x4", from: "t3", to: "t4", technique: "echo out", bars: 8, quality: "ok" },
+  { id: "x5", from: "t3", to: "t4", technique: "cut on the drop", bars: 1, quality: "rough" },
+  { id: "x6", from: "t4", to: "t5", technique: "long blend", bars: 32, quality: "great" },
+  { id: "x7", from: "t5", to: "t6", technique: "bass swap", bars: 16, quality: "great" },
+  { id: "x8", from: "t6", to: "t7", technique: "loop roll", bars: 8, quality: "ok" },
+  { id: "x9", from: "t7", to: "t8", technique: "filter sweep", bars: 16, quality: "great" },
+  { id: "x10", from: "t10", to: "t11", technique: "echo out", bars: 8, quality: "great" },
+  { id: "x11", from: "t9", to: "t10", technique: "cut", bars: 1, quality: "ok" },
+  { id: "x12", from: "t4", to: "t12", technique: "blend", bars: 16, quality: "great" },
+  { id: "x13", from: "t12", to: "t5", technique: "bass swap", bars: 16, quality: "great" },
+  { id: "x14", from: "t2", to: "t14", technique: "blend", bars: 16, quality: "ok" },
+  { id: "x15", from: "t14", to: "t3", technique: "filter sweep", bars: 8, quality: "great" },
+  { id: "x16", from: "t8", to: "t16", technique: "loop roll", bars: 4, quality: "ok" },
+  { id: "x17", from: "t7", to: "t16", technique: "bass swap", bars: 16, quality: "great" },
+  { id: "x18", from: "t16", to: "t9", technique: "blend", bars: 8, quality: "ok" },
+  { id: "x19", from: "t9", to: "t8", technique: "filter sweep", bars: 16, quality: "great" },
+  { id: "x20", from: "t11", to: "t13", technique: "long blend", bars: 32, quality: "great" },
+  { id: "x21", from: "t11", to: "t15", technique: "echo out", bars: 8, quality: "ok" },
+];
+
+const BLOCKS = [
+  { id: "b1", title: "Acid build", kind: "block", steps: ["t7", "t16", "t9", "t8"], complete: true, age: "2d" },
+  { id: "b2", title: "Rapture run", kind: "block", steps: ["t4", "t12", "t5"], complete: true, age: "6d" },
+  { id: "b3", title: "Warmup block", kind: "block", steps: ["t1", "t2", "t14"], complete: false, age: "9d" },
+  { id: "b4", title: "Closing three", kind: "block", steps: ["t10", "t11"], complete: true, age: "3w" },
+];
+
+class Component extends DCLogic {
+  state = {
+    theme: "light",
+    view: "browse",
+    openId: null,
+    tab: "sets",
+    completeFilter: "all",
+    q: "",
+    createOpen: false,
+    createValue: "",
+    confirm: null,
+    sel: null,
+    paletteTab: "tracks",
+    paletteQ: "",
+    notesOpen: {},
+    expanded: {},
+    picker: null,
+    dragId: null,
+    dragPal: null,
+    dropAt: null,
+    toast: null,
+    sequences: [
+      {
+        id: "s1",
+        kind: "set",
+        title: "Sunset rooftop",
+        age: "3h",
+        version: "base",
+        versions: [{ id: "base", name: "v1 base" }, { id: "peak", name: "v2 peak-time" }],
+        alternates: [
+          { id: "a1", label: "if the room is hot", intoStepId: "s1-5", connector: { type: "block", id: "b2" }, desc: "Rapture run · 3 tracks" },
+          { id: "a2", label: "if it stays mellow", intoStepId: "s1-8", connector: { type: "transition", id: "x16" }, desc: "loop roll · 4 bars" },
+        ],
+        steps: [
+          { id: "s1-1", trackId: "t1", connector: null, seam: false, note: "" },
+          { id: "s1-2", trackId: "t2", connector: { type: "transition", id: "x1" }, seam: false, note: "" },
+          { id: "s1-3", trackId: "t3", connector: { type: "transition", id: "x2" }, seam: false, note: "kill the bass early" },
+          { id: "s1-4", trackId: "t4", connector: null, seam: false, note: "" },
+          { id: "s1-5", trackId: "t5", connector: { type: "transition", id: "x6" }, seam: false, note: "" },
+          { id: "s1-6", trackId: "t6", connector: null, seam: true, note: "" },
+          { id: "s1-7", trackId: "t7", connector: { type: "transition", id: "x8" }, seam: false, note: "" },
+          { id: "s1-8", trackId: "t8", connector: { type: "block", id: "b1" }, seam: false, note: "" },
+          { id: "s1-9", trackId: "t9", connector: null, seam: false, note: "" },
+          { id: "s1-10", trackId: "t10", connector: { type: "transition", id: "x11" }, seam: false, note: "" },
+          { id: "s1-11", trackId: "t11", connector: null, seam: true, note: "hands up, let it breathe" },
+        ],
+      },
+      { id: "s2", kind: "set", title: "Basement, Friday", age: "2d", version: "base", versions: [{ id: "base", name: "v1 base" }], alternates: [],
+        steps: [
+          { id: "s2-1", trackId: "t7", connector: null, seam: false, note: "" },
+          { id: "s2-2", trackId: "t16", connector: { type: "transition", id: "x9" }, seam: false, note: "" },
+          { id: "s2-3", trackId: "t9", connector: null, seam: true, note: "" },
+        ] },
+      { id: "s3", kind: "set", title: "Beach club, day two", age: "1w", version: "base", versions: [{ id: "base", name: "v1 base" }], alternates: [], steps: [] },
+      ...BLOCKS.map((b) => ({
+        id: b.id, kind: "block", title: b.title, age: b.age, version: "base",
+        versions: [{ id: "base", name: "v1 base" }], alternates: [],
+        steps: b.steps.map((tid, i) => ({
+          id: b.id + "-" + (i + 1), trackId: tid, seam: false, note: "",
+          connector: i === 0 ? null : (function () {
+            const hit = TRANSITIONS.find((x) => x.from === b.steps[i - 1] && x.to === tid);
+            return hit && b.complete ? { type: "transition", id: hit.id } : null;
+          })(),
+        })),
+      })),
+    ],
+  };
+
+  // ---------- helpers ----------
+  track(id) { return TRACKS.find((t) => t.id === id); }
+  transition(id) { return TRANSITIONS.find((x) => x.id === id); }
+  block(id) { return BLOCKS.find((b) => b.id === id); }
+  seq() { return this.state.sequences.find((s) => s.id === this.state.openId); }
+  bars(n) { return n + (n === 1 ? " bar" : " bars"); }
+  mixLabel(x) { return x.technique + " · " + this.bars(x.bars) + " · " + x.quality; }
+  dropLabel(payload, target) {
+    if (!payload) return "";
+    if (payload.kind === "track") return "Insert " + this.track(payload.id).title + " here";
+    if (payload.kind === "transition") {
+      const x = this.transition(payload.id);
+      return target.kind === "gap"
+        ? "Link " + x.technique
+        : x.technique + " → " + this.track(x.to).title;
+    }
+    const blk = this.block(payload.id);
+    return target.kind === "gap" ? "Use " + blk.title + " as the connector" : "Insert " + blk.title + " as one block";
+  }
+  qualStyle(q) {
+    if (q === "great") return { bg: "var(--success-subtle)", fg: "var(--success)" };
+    if (q === "rough") return { bg: "var(--warning-subtle)", fg: "var(--warning)" };
+    return { bg: "var(--tertiary)", fg: "var(--tertiary-foreground)" };
+  }
+  dur(sec) {
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return m + ":" + String(s).padStart(2, "0");
+  }
+  toast(text) {
+    this.setState({ toast: text });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ toast: null }), 2200);
+  }
+  update(fn) {
+    this.setState((st) => ({
+      sequences: st.sequences.map((s) => (s.id === st.openId ? fn({ ...s }) : s)),
+    }));
+  }
+  candidatesFor(fromId, toId) {
+    if (!fromId || !toId) return [];
+    const order = { great: 0, ok: 1, rough: 2 };
+    return TRANSITIONS.filter((x) => x.from === fromId && x.to === toId)
+      .slice()
+      .sort((a, b) => (order[a.quality] - order[b.quality]) || b.bars - a.bars);
+  }
+
+  /** Steps with the active version's alternates substituted in. */
+  resolved(sequence) {
+    const chosen = sequence.version === "base" ? [] : sequence.alternates;
+    return sequence.steps.map((step) => {
+      const alt = chosen.find((a) => a.intoStepId === step.id);
+      return alt ? { ...step, connector: alt.connector, seam: false, _alt: alt.label } : step;
+    });
+  }
+
+  runtime(steps) {
+    let total = 0;
+    steps.forEach((step, i) => {
+      const tr = this.track(step.trackId);
+      if (tr) total += tr.dur;
+      if (i > 0 && step.connector && step.connector.type === "transition") {
+        const x = this.transition(step.connector.id);
+        const prev = this.track(steps[i - 1].trackId);
+        if (x && prev) total -= Math.round((x.bars * 4 * 60) / prev.bpm);
+      }
+    });
+    return Math.max(0, Math.round(total / 60));
+  }
+
+  /** A block connector is only valid when its endpoints still match the neighbours. */
+  blockValid(steps, i) {
+    const step = steps[i];
+    const prev = steps[i - 1];
+    if (!prev || !step.connector || step.connector.type !== "block") return false;
+    const blk = this.block(step.connector.id);
+    if (!blk) return false;
+    return blk.steps[0] === prev.trackId && blk.steps[blk.steps.length - 1] === step.trackId;
+  }
+
+  /** [start, end] indices of the movable unit containing step i. A valid block
+   *  connector plus the anchor step holding its start track travel together. */
+  unitRange(steps, i) {
+    if (this.blockValid(steps, i)) return [i - 1, i];
+    if (i + 1 < steps.length && this.blockValid(steps, i + 1)) return [i, i + 1];
+    return [i, i];
+  }
+
+  gapState(steps, i) {
+    const step = steps[i];
+    if (step.seam) return "seam";
+    const prev = steps[i - 1];
+    if (step.connector) {
+      if (step.connector.type === "block") {
+        if (this.blockValid(steps, i)) return "block";
+      }
+      const x = this.transition(step.connector.id);
+      if (x && x.from === prev.trackId && x.to === step.trackId) return "linked";
+    }
+    return this.candidatesFor(prev.trackId, step.trackId).length ? "available" : "unmapped";
+  }
+
+  // ---------- mutations ----------
+  move(stepId, delta) {
+    this.update((s) => {
+      const steps = s.steps.slice();
+      const i = steps.findIndex((x) => x.id === stepId);
+      const [a, b] = this.unitRange(steps, i);
+      if (delta < 0) {
+        if (a === 0) return s;
+        const [na] = this.unitRange(steps, a - 1);
+        const chunk = steps.splice(a, b - a + 1);
+        steps.splice(na, 0, ...chunk);
+      } else {
+        if (b === steps.length - 1) return s;
+        const [, nb] = this.unitRange(steps, b + 1);
+        const chunk = steps.splice(a, b - a + 1);
+        steps.splice(nb - chunk.length + 1, 0, ...chunk);
+      }
+      s.steps = steps;
+      return s;
+    });
+  }
+  dropOn(targetId) {
+    const dragId = this.state.dragId;
+    if (!dragId || dragId === targetId) return;
+    this.update((s) => {
+      const steps = s.steps.slice();
+      const di = steps.findIndex((x) => x.id === dragId);
+      const [a, b] = this.unitRange(steps, di);
+      const ti = steps.findIndex((x) => x.id === targetId);
+      if (ti >= a && ti <= b) return s;
+      const [ta] = this.unitRange(steps, ti);
+      const anchorId = steps[ta].id;
+      const chunk = steps.splice(a, b - a + 1);
+      const at = steps.findIndex((x) => x.id === anchorId);
+      steps.splice(at, 0, ...chunk);
+      s.steps = steps;
+      return s;
+    });
+    this.setState({ dragId: null });
+    this.toast("Reordered — affected gaps re-derived");
+  }
+  patchStep(stepId, patch) {
+    this.update((s) => {
+      s.steps = s.steps.map((st) => (st.id === stepId ? { ...st, ...patch } : st));
+      return s;
+    });
+  }
+  removeStep(stepId) {
+    let unit = 1;
+    this.update((s) => {
+      const steps = s.steps.slice();
+      const i = steps.findIndex((x) => x.id === stepId);
+      const [a, b] = this.unitRange(steps, i);
+      unit = b - a + 1;
+      steps.splice(a, unit);
+      s.steps = steps;
+      return s;
+    });
+    this.setState({ sel: null, picker: null });
+    this.toast(unit > 1 ? "Block removed — it stays in your library" : "Step removed");
+  }
+  /** Where a palette add lands: at a selected gap, after a selected step, else the end. */
+  insertIndex() {
+    const sequence = this.seq();
+    const sel = this.state.sel;
+    if (sel) {
+      const at = sequence.steps.findIndex((s) => s.id === sel.stepId);
+      if (at >= 0) return sel.kind === "gap" ? at : at + 1;
+    }
+    return sequence.steps.length;
+  }
+  /** The track a new step would follow. */
+  anchorTrack() {
+    const sequence = this.seq();
+    const i = this.insertIndex();
+    const prev = sequence.steps[i - 1];
+    return prev ? this.track(prev.trackId) : null;
+  }
+  addTrack(trackId) {
+    const sequence = this.seq();
+    if (!sequence) return;
+    const index = this.insertIndex();
+    const prev = sequence.steps[index - 1];
+    // Most pairs have exactly one edge — link it rather than making them pick.
+    const only = prev ? this.candidatesFor(prev.trackId, trackId) : [];
+    const auto = only.length === 1 ? { type: "transition", id: only[0].id } : null;
+    const id = sequence.id + "-n" + Math.random().toString(36).slice(2, 7);
+    this.update((s) => {
+      const steps = s.steps.slice();
+      steps.splice(index, 0, { id, trackId, connector: auto, seam: false, note: "" });
+      s.steps = steps;
+      return s;
+    });
+    this.setState({ sel: null, picker: null });
+    const tr = this.track(trackId);
+    const where = index === sequence.steps.length ? "Appended " + tr.title : "Inserted " + tr.title + " at " + (index + 1);
+    this.toast(auto ? where + " · linked " + only[0].technique : where);
+  }
+  /** Add a transition AND the track it lands on, in one move. */
+  extendByTransition(x) {
+    const sequence = this.seq();
+    if (!sequence) return;
+    const index = this.insertIndex();
+    const id = sequence.id + "-x" + Math.random().toString(36).slice(2, 7);
+    this.update((s) => {
+      const steps = s.steps.slice();
+      steps.splice(index, 0, { id, trackId: x.to, connector: { type: "transition", id: x.id }, seam: false, note: "" });
+      s.steps = steps;
+      return s;
+    });
+    this.setState({ sel: null, picker: null });
+    this.toast(x.technique + " → " + this.track(x.to).title + " added");
+  }
+  insertBlock(blockId, at) {
+    const sequence = this.seq();
+    if (!sequence) return;
+    const sel = this.state.sel;
+    if (at === undefined && sel && sel.kind === "gap") {
+      this.patchStep(sel.stepId, { connector: { type: "block", id: blockId }, seam: false });
+      this.setState({ sel: null, picker: null });
+      this.toast("Linked block connector");
+      return;
+    }
+    // Insert as ONE unit: the block rides in as the connector into its own end track.
+    // Its in-between tracks stay inside the block (§2.2) — never loose steps here.
+    const blk = this.block(blockId);
+    const startId = blk.steps[0];
+    const endId = blk.steps[blk.steps.length - 1];
+    const index = at === undefined ? sequence.steps.length : at;
+    const prev = sequence.steps[index - 1];
+    const needsAnchor = !prev || prev.trackId !== startId;
+    const rid = () => sequence.id + "-b" + Math.random().toString(36).slice(2, 7);
+    this.update((s) => {
+      const added = [];
+      if (needsAnchor) added.push({ id: rid(), trackId: startId, connector: null, seam: false, note: "" });
+      added.push({ id: rid(), trackId: endId, connector: { type: "block", id: blockId }, seam: false, note: "" });
+      const steps = s.steps.slice();
+      steps.splice(index, 0, ...added);
+      s.steps = steps;
+      return s;
+    });
+    this.setState({ sel: null, picker: null, dragPal: null, dropAt: null });
+    this.toast("Added " + blk.title + " as one block · " + blk.steps.length + " tracks");
+  }
+
+  // ---------- library → set drag and drop ----------
+  /** Can this palette payload land on this target? target: {kind:'gap'|'step'|'end', index} */
+  dropFit(payload, target) {
+    if (!payload) return false;
+    const steps = this.resolved(this.seq());
+    if (payload.kind === "track") return true;
+    if (payload.kind === "transition") {
+      const x = this.transition(payload.id);
+      if (target.kind === "gap") {
+        const prev = steps[target.index - 1], cur = steps[target.index];
+        return !!prev && x.from === prev.trackId && x.to === cur.trackId;
+      }
+      const prev = steps[target.index - 1];
+      return !prev ? true : x.from === prev.trackId;
+    }
+    const blk = this.block(payload.id);
+    if (!blk.complete) return false;
+    if (target.kind === "gap") {
+      const prev = steps[target.index - 1], cur = steps[target.index];
+      return !!prev && blk.steps[0] === prev.trackId && blk.steps[blk.steps.length - 1] === cur.trackId;
+    }
+    return true;
+  }
+  handleDrop(target) {
+    const payload = this.state.dragPal;
+    if (!payload || !this.dropFit(payload, target)) {
+      this.setState({ dragPal: null, dropAt: null });
+      return;
+    }
+    if (payload.kind === "track") {
+      const sequence = this.seq();
+      const prev = sequence.steps[target.index - 1];
+      const only = prev ? this.candidatesFor(prev.trackId, payload.id) : [];
+      const auto = only.length === 1 ? { type: "transition", id: only[0].id } : null;
+      const id = sequence.id + "-d" + Math.random().toString(36).slice(2, 7);
+      this.update((s) => {
+        const steps = s.steps.slice();
+        steps.splice(target.index, 0, { id, trackId: payload.id, connector: auto, seam: false, note: "" });
+        s.steps = steps;
+        return s;
+      });
+      this.setState({ sel: null, picker: null, dragPal: null, dropAt: null });
+      const tr = this.track(payload.id);
+      this.toast(auto ? "Dropped " + tr.title + " · linked " + only[0].technique : "Dropped " + tr.title);
+      return;
+    }
+    if (payload.kind === "transition") {
+      const x = this.transition(payload.id);
+      if (target.kind === "gap") {
+        this.patchStep(this.resolved(this.seq())[target.index].id, { connector: { type: "transition", id: x.id }, seam: false });
+        this.setState({ sel: null, picker: null, dragPal: null, dropAt: null });
+        this.toast("Linked " + x.technique);
+        return;
+      }
+      const sequence = this.seq();
+      const id = sequence.id + "-x" + Math.random().toString(36).slice(2, 7);
+      this.update((s) => {
+        const steps = s.steps.slice();
+        steps.splice(target.index, 0, { id, trackId: x.to, connector: { type: "transition", id: x.id }, seam: false, note: "" });
+        s.steps = steps;
+        return s;
+      });
+      this.setState({ sel: null, picker: null, dragPal: null, dropAt: null });
+      this.toast(x.technique + " → " + this.track(x.to).title + " added");
+      return;
+    }
+    if (target.kind === "gap") {
+      this.patchStep(this.resolved(this.seq())[target.index].id, { connector: { type: "block", id: payload.id }, seam: false });
+      this.setState({ sel: null, picker: null, dragPal: null, dropAt: null });
+      this.toast("Linked " + this.block(payload.id).title + " as the connector");
+      return;
+    }
+    this.insertBlock(payload.id, target.index);
+  }
+
+  renderVals() {
+    const st = this.state;
+    const dark = st.theme === "dark";
+    const seqAll = st.sequences;
+    const isWorkspace = st.view === "workspace" && !!this.seq();
+    const active = (bool) => (bool ? "var(--surface-2)" : "transparent");
+
+    const vals = {
+      themeClass: dark ? "dark" : "",
+      themeIcon: dark ? "☾" : "☀",
+      themeLabel: dark ? "Switch to light" : "Switch to dark",
+      toggleTheme: () => this.setState({ theme: dark ? "light" : "dark" }),
+      isBrowse: !isWorkspace,
+      isWorkspace,
+      notImpl: () => this.toast("Graph Set mode and Follow land in SET-9 / SET-10"),
+      toastOpen: !!st.toast,
+      toastText: st.toast || "",
+      createOpen: st.createOpen,
+      createValue: st.createValue,
+      createDisabled: st.createValue.trim().length === 0,
+      createTitleText: st.tab === "sets" ? "New set" : "New block",
+      createBody: st.tab === "sets"
+        ? "A night you mean to play, in order."
+        : "A reusable run you can drop into any set as one connector.",
+      openCreate: () => this.setState({ createOpen: true, createValue: "" }),
+      closeCreate: () => this.setState({ createOpen: false }),
+      onCreateInput: (e) => this.setState({ createValue: e.target.value }),
+      confirmCreate: () => {
+        const title = st.createValue.trim();
+        if (!title) return;
+        const id = "new" + Math.random().toString(36).slice(2, 6);
+        this.setState((s) => ({
+          sequences: s.sequences.concat([{
+            id, kind: s.tab === "sets" ? "set" : "block", title, age: "now",
+            version: "base", versions: [{ id: "base", name: "v1 base" }], alternates: [], steps: [],
+          }]),
+          createOpen: false, view: "workspace", openId: id, sel: null, paletteTab: "tracks", paletteQ: "",
+        }));
+      },
+      confirmOpen: !!st.confirm,
+      confirmTitle: st.confirm ? "Delete “" + st.confirm.title + "”?" : "",
+      confirmBody: "The tracks and transitions stay in your library — only this sequence and its ordering go away. This cannot be undone.",
+      closeConfirm: () => this.setState({ confirm: null }),
+      confirmDelete: () => {
+        const id = st.confirm.id;
+        this.setState((s) => ({
+          sequences: s.sequences.filter((x) => x.id !== id),
+          confirm: null,
+          view: s.openId === id ? "browse" : s.view,
+          openId: s.openId === id ? null : s.openId,
+        }));
+        this.toast("Deleted “" + st.confirm.title + "”");
+      },
+    };
+
+    // ---------- browse ----------
+    const isBlocksTab = st.tab === "blocks";
+    const q = st.q.trim().toLowerCase();
+    let list = seqAll.filter((s) => (isBlocksTab ? s.kind === "block" : s.kind === "set"));
+    if (q) list = list.filter((s) => s.title.toLowerCase().includes(q));
+    if (isBlocksTab && st.completeFilter !== "all") {
+      list = list.filter((s) => {
+        const complete = s.steps.length > 0 && s.steps.every((_, i) => i === 0 || this.gapState(s.steps, i) !== "available" && this.gapState(s.steps, i) !== "unmapped");
+        return st.completeFilter === "complete" ? complete : !complete;
+      });
+    }
+
+    Object.assign(vals, {
+      isBlocksTab,
+      browseSubtitle: isBlocksTab
+        ? "Reusable runs. Drop one into a set as a single connector."
+        : "Nights you mean to play, in order.",
+      newLabel: isBlocksTab ? "New block" : "New set",
+      browseQuery: st.q,
+      onBrowseQuery: (e) => this.setState({ q: e.target.value }),
+      browsePlaceholder: isBlocksTab ? "Search blocks" : "Search sets",
+      completeFilter: st.completeFilter,
+      onCompleteFilter: (e) => this.setState({ completeFilter: e.target.value }),
+      showSets: () => this.setState({ tab: "sets", q: "" }),
+      showBlocks: () => this.setState({ tab: "blocks", q: "" }),
+      setsTabColor: isBlocksTab ? "var(--muted-foreground)" : "var(--foreground)",
+      setsTabWeight: isBlocksTab ? "400" : "500",
+      setsTabMarker: isBlocksTab ? "transparent" : "var(--selected)",
+      blocksTabColor: isBlocksTab ? "var(--foreground)" : "var(--muted-foreground)",
+      blocksTabWeight: isBlocksTab ? "500" : "400",
+      blocksTabMarker: isBlocksTab ? "var(--selected)" : "transparent",
+      browseCount: list.length + (isBlocksTab ? " blocks" : " sets"),
+      browseEmpty: list.length === 0,
+      emptyTitle: q ? "Nothing matches “" + st.q + "”" : (isBlocksTab ? "No blocks yet" : "No sets yet"),
+      emptyBody: isBlocksTab
+        ? "A block is a short run you rehearse once and reuse — the joins between blocks are the seams you improvise."
+        : "Start a night, put the tracks in order, and plan the joins you care about.",
+      browseRows: list.map((s) => {
+        const steps = s.steps;
+        const seams = steps.filter((x, i) => i > 0 && x.seam).length;
+        const unplanned = steps.filter((x, i) => i > 0 && !x.seam && this.gapState(steps, i) !== "linked" && this.gapState(steps, i) !== "block").length;
+        const complete = steps.length > 0 && unplanned === 0;
+        return {
+          id: s.id,
+          title: s.title,
+          meta: steps.length === 0
+            ? "empty"
+            : steps.length + " tracks" + (seams ? " · " + seams + (seams === 1 ? " seam" : " seams") : "") + " · approx " + this.runtime(steps) + " min",
+          badge: steps.length === 0 ? "empty" : complete ? "complete" : unplanned + " open",
+          badgeBg: complete && steps.length ? "var(--success-subtle)" : "var(--tertiary)",
+          badgeFg: complete && steps.length ? "var(--success)" : "var(--muted-foreground)",
+          age: s.age,
+          onOpen: () => this.setState({ view: "workspace", openId: s.id, sel: null, picker: null, paletteQ: "", paletteTab: "tracks" }),
+          onDelete: (e) => { e.stopPropagation(); this.setState({ confirm: { id: s.id, title: s.title } }); },
+        };
+      }),
+    });
+
+    if (!isWorkspace) return vals;
+
+    // ---------- workspace ----------
+    const sequence = this.seq();
+    const steps = this.resolved(sequence);
+    const isBlockKind = sequence.kind === "block";
+    const seams = steps.filter((s, i) => i > 0 && s.seam).length;
+    const gapCount = Math.max(0, steps.length - 1);
+    const planned = gapCount - seams;
+    const linked = steps.filter((s, i) => i > 0 && !s.seam && (this.gapState(steps, i) === "linked" || this.gapState(steps, i) === "block")).length;
+
+    const rows = steps.map((step, i) => {
+      const tr = this.track(step.trackId);
+      const prev = i > 0 ? steps[i - 1] : null;
+      const prevTr = prev ? this.track(prev.trackId) : null;
+      const state = i > 0 ? this.gapState(steps, i) : null;
+      const selGap = st.sel && st.sel.kind === "gap" && st.sel.stepId === step.id;
+      const selStep = st.sel && st.sel.kind === "step" && st.sel.stepId === step.id;
+      const cands = prev ? this.candidatesFor(prev.trackId, step.trackId) : [];
+      const x = step.connector && step.connector.type === "transition" ? this.transition(step.connector.id) : null;
+      const blk = step.connector && step.connector.type === "block" ? this.block(step.connector.id) : null;
+      const alts = sequence.alternates.filter((a) => a.intoStepId === step.id && sequence.version === "base");
+      const isUnit = state === "block";
+      const isAnchor = !isUnit && i + 1 < steps.length && this.blockValid(steps, i + 1);
+      const nextBlk = isAnchor ? this.block(steps[i + 1].connector.id) : null;
+      const [uA, uB] = this.unitRange(steps, i);
+
+      let icon = "├─", label = "", ink = "var(--foreground)", bg = "var(--surface-1)", border = "var(--border)", rail = "var(--border)";
+      if (state === "linked") { label = this.mixLabel(x); icon = "⟶"; }
+      else if (state === "block") {
+        icon = "▸";
+        label = blk.title + " · " + blk.steps.length + " tracks · " + this.track(blk.steps[0]).title + " → " + this.track(blk.steps[blk.steps.length - 1]).title;
+        bg = "var(--brand-subtle)"; border = "var(--brand-subtle)"; ink = "var(--brand)"; rail = "var(--brand)";
+      } else if (state === "available") {
+        icon = "⚠"; label = cands.length + (cands.length === 1 ? " transition — pick one" : " transitions — pick one");
+        bg = "var(--warning-subtle)"; border = "var(--warning-subtle)"; ink = "var(--warning)"; rail = "var(--warning)";
+      } else if (state === "unmapped") {
+        icon = "○"; label = "no transition for this pair yet";
+        bg = "var(--destructive-subtle)"; border = "var(--destructive-subtle)"; ink = "var(--destructive)"; rail = "var(--destructive)";
+      } else if (state === "seam") {
+        icon = "〜"; label = "open seam · improvise";
+        bg = "transparent"; border = "var(--border)"; ink = "var(--muted-foreground)"; rail = "var(--muted-foreground)";
+      }
+      if (selGap) { border = "var(--ring)"; rail = "var(--selected)"; }
+
+      // Library drag feedback
+      const pal = st.dragPal;
+      const gapTarget = { kind: "gap", index: i };
+      const stepTarget = { kind: "step", index: i + 1 };
+      const gapArmed = !!pal && i > 0 && this.dropFit(pal, gapTarget);
+      const stepArmed = !!pal && this.dropFit(pal, stepTarget);
+      const overGap = st.dropAt === "g" + step.id;
+      const overStep = st.dropAt === "s" + step.id;
+      if (gapArmed) { border = overGap ? "var(--selected)" : "var(--ring)"; if (overGap) bg = "var(--brand-subtle)"; }
+
+      const delta = prevTr && tr ? tr.bpm - prevTr.bpm : null;
+
+      return {
+        stepId: step.id,
+        num: String(i + 1).padStart(2, "0"),
+        title: tr.title,
+        artist: tr.artist,
+        initial: tr.title.slice(0, 1),
+        bpmKey: tr.bpm + " · " + tr.key,
+        dur: this.dur(tr.dur),
+        note: step.note,
+        noteOpen: !!st.notesOpen[step.id] || (step.note && step.note.length > 0),
+        noteInk: step.note ? "var(--brand)" : "var(--muted-foreground)",
+        cardBorder: overStep ? "var(--selected)" : stepArmed ? "var(--ring)" : selStep ? "var(--ring)" : state === "block" ? "transparent" : "var(--border)",
+        cardBg: overStep ? "var(--brand-subtle)" : selStep ? "var(--surface-1)" : state === "block" ? "transparent" : "var(--card)",
+        dropHintOpen: overStep,
+        dropHint: pal ? this.dropLabel(pal, { kind: "step", index: i + 1 }) : "",
+        isUnit: isUnit || isAnchor,
+        showUnitBadge: isAnchor,
+        // Outer wrapper holds the incoming join, which belongs to the page, not to the block.
+        wrapBorder: isUnit ? "var(--brand-subtle)" : "transparent",
+        wrapBottom: "1px",
+        wrapBg: isUnit ? "var(--brand-subtle)" : "transparent",
+        wrapRadius: isUnit ? "0 0 14px 14px" : "14px",
+        wrapPad: isUnit ? "0 8px 8px 0" : "0",
+        wrapMargin: isUnit ? "0 0 6px" : "0",
+        // Inner wrapper starts the tint at the anchor track card.
+        innerBorder: isAnchor ? "var(--brand-subtle)" : "transparent",
+        innerBottom: isAnchor ? "0" : "1px",
+        innerBg: isAnchor ? "var(--brand-subtle)" : "transparent",
+        innerRadius: isAnchor ? "14px 14px 0 0" : "14px",
+        innerPad: isAnchor ? "8px 8px 0 0" : "0",
+        innerMargin: isAnchor ? "6px 0 0" : "0",
+        unitBadge: nextBlk ? "block · " + nextBlk.title + " · moves as one" : "",
+        removeTitle: isUnit || isAnchor ? "Remove this block from the set" : "Remove step",
+        onEditBlock: (e) => {
+          e.stopPropagation();
+          this.setState({ view: "workspace", openId: blk.id, tab: "blocks", sel: null, picker: null, paletteQ: "", paletteTab: "tracks" });
+        },
+        cardOpacity: st.dragId === step.id ? "0.45" : "1",
+        upDisabled: uA === 0,
+        downDisabled: uB === steps.length - 1,
+        hasGap: i > 0,
+        gapIcon: icon,
+        gapLabel: label,
+        gapInk: ink,
+        gapBg: bg,
+        gapBorder: border,
+        railColor: rail,
+        hasBpm: (state === "linked" || state === "block") && delta !== null,
+        bpmDelta: delta === null ? "" : (delta > 0 ? "+" + delta : String(delta)),
+        gapAltActive: !!step._alt,
+        altActiveLabel: step._alt || "",
+        canPick: state === "available" || state === "linked",
+        pickLabel: st.picker === step.id ? "Close" : (state === "linked" ? "Swap" : "Pick"),
+        pickerOpen: st.picker === step.id,
+        pickerTitle: prevTr ? prevTr.title + " → " + tr.title : "",
+        candidates: cands.map((c) => {
+          const qs = this.qualStyle(c.quality);
+          return {
+            id: c.id,
+            label: c.technique + " · " + this.bars(c.bars),
+            quality: c.quality,
+            qualBg: qs.bg,
+            qualFg: qs.fg,
+            onPick: () => {
+              this.patchStep(step.id, { connector: { type: "transition", id: c.id }, seam: false });
+              this.setState({ picker: null, sel: null });
+              this.toast("Linked " + c.technique);
+            },
+          };
+        }),
+        isUnmapped: state === "unmapped",
+        canUnlink: state === "linked",
+        isBlockConnector: state === "block",
+        blockExpanded: state === "block" && !!st.expanded[step.id],
+        expandLabel: st.expanded[step.id] ? "Collapse" : "Expand",
+        blockSteps: blk ? blk.steps.map((tid, n) => {
+          const t = this.track(tid);
+          return { n: String(n + 1), title: t.title, artist: t.artist, meta: t.bpm + " · " + t.key };
+        }) : [],
+        seamTitle: state === "seam" ? "Unmark seam" : "Mark as a seam",
+        seamInk: state === "seam" ? "var(--brand)" : "var(--muted-foreground)",
+        alts: alts.map((a) => ({
+          id: a.id,
+          label: a.label,
+          desc: a.desc,
+          onRemove: (e) => {
+            e.stopPropagation();
+            this.update((s) => { s.alternates = s.alternates.filter((y) => y.id !== a.id); return s; });
+            this.toast("Alternate removed");
+          },
+        })),
+        onSelectGap: () => this.setState({ sel: selGap ? null : { kind: "gap", stepId: step.id }, paletteTab: selGap ? "tracks" : "transitions", picker: null }),
+        onSelectStep: (e) => { e.stopPropagation(); this.setState({ sel: selStep ? null : { kind: "step", stepId: step.id } }); },
+        onTogglePicker: (e) => { e.stopPropagation(); this.setState({ picker: st.picker === step.id ? null : step.id, sel: { kind: "gap", stepId: step.id }, paletteTab: "transitions" }); },
+        onUnlink: (e) => { e.stopPropagation(); this.patchStep(step.id, { connector: null }); this.toast("Unlinked — the transition stays in your library"); },
+        onToggleSeam: (e) => {
+          e.stopPropagation();
+          this.patchStep(step.id, { seam: !step.seam, connector: step.seam ? step.connector : null });
+          this.toast(step.seam ? "Seam removed — this join counts again" : "Marked a seam — excluded from completeness");
+        },
+        onExpandBlock: (e) => { e.stopPropagation(); this.setState((s) => ({ expanded: { ...s.expanded, [step.id]: !s.expanded[step.id] } })); },
+        onDetach: (e) => {
+          e.stopPropagation();
+          const inner = blk.steps.slice(1, -1);
+          this.update((s) => {
+            const list2 = s.steps.slice();
+            const at = list2.findIndex((y) => y.id === step.id);
+            list2.splice(at, 0, ...inner.map((tid, n) => ({
+              id: s.id + "-d" + Math.random().toString(36).slice(2, 6) + n,
+              trackId: tid, connector: null, seam: false, note: "",
+            })));
+            list2[at + inner.length] = { ...list2[at + inner.length], connector: null };
+            s.steps = list2;
+            return s;
+          });
+          this.toast("Detached to a copy — these steps are editable now");
+        },
+        onAddAlternate: (e) => {
+          e.stopPropagation();
+          const alt = cands[1] || cands[0];
+          if (!alt) { this.toast("No second connector to offer as an alternate"); return; }
+          this.update((s) => {
+            s.alternates = s.alternates.concat([{
+              id: "a" + Math.random().toString(36).slice(2, 6),
+              label: "if the room is hot",
+              intoStepId: step.id,
+              connector: { type: "transition", id: alt.id },
+              desc: alt.technique + " · " + this.bars(alt.bars),
+            }]);
+            return s;
+          });
+          this.toast("Alternate added — label it in the gap menu");
+        },
+        onUp: (e) => { e.stopPropagation(); this.move(step.id, -1); },
+        onDown: (e) => { e.stopPropagation(); this.move(step.id, 1); },
+        onRemove: (e) => { e.stopPropagation(); this.removeStep(step.id); },
+        onToggleNote: (e) => { e.stopPropagation(); this.setState((s) => ({ notesOpen: { ...s.notesOpen, [step.id]: !s.notesOpen[step.id] } })); },
+        onNote: (e) => this.patchStep(step.id, { note: e.target.value }),
+        onDragStart: () => this.setState({ dragId: step.id }),
+        onDragOver: (e) => {
+          if (st.dragPal) {
+            if (!stepArmed) return;
+            e.preventDefault(); e.stopPropagation();
+            if (!overStep) this.setState({ dropAt: "s" + step.id });
+            return;
+          }
+          e.preventDefault();
+        },
+        onDrop: (e) => {
+          e.preventDefault(); e.stopPropagation();
+          if (st.dragPal) this.handleDrop({ kind: "step", index: i + 1 });
+          else this.dropOn(step.id);
+        },
+        onDragEnd: () => this.setState({ dragId: null }),
+        onGapDragOver: (e) => {
+          if (!gapArmed) return;
+          e.preventDefault(); e.stopPropagation();
+          if (!overGap) this.setState({ dropAt: "g" + step.id });
+        },
+        onGapDrop: (e) => {
+          if (!st.dragPal) return;
+          e.preventDefault(); e.stopPropagation();
+          this.handleDrop({ kind: "gap", index: i });
+        },
+      };
+    });
+
+    // ---------- palette ----------
+    const selGapRow = st.sel && st.sel.kind === "gap" ? rows.find((r) => r.stepId === st.sel.stepId) : null;
+    const gapIndex = selGapRow ? steps.findIndex((s) => s.id === selGapRow.stepId) : -1;
+    const fromTrack = gapIndex > 0 ? this.track(steps[gapIndex - 1].trackId) : null;
+    const toTrack = gapIndex > 0 ? this.track(steps[gapIndex].trackId) : null;
+    const pq = st.paletteQ.trim().toLowerCase();
+    let paletteRows = [];
+
+    if (st.paletteTab === "tracks") {
+      paletteRows = TRACKS
+        .filter((t) => !pq || (t.title + " " + t.artist).toLowerCase().includes(pq))
+        .map((t) => ({
+          id: t.id, icon: t.title.slice(0, 1), iconBg: "var(--surface-3)", iconFg: "var(--muted-foreground)",
+          title: t.title, sub: t.artist, meta: t.bpm + " · " + t.key, disabled: false,
+          addTitle: st.sel ? "Insert here" : "Append to the end",
+          onAdd: () => this.addTrack(t.id),
+          draggable: true,
+          onDragStart: () => this.setState({ dragPal: { kind: "track", id: t.id } }),
+          onDragEnd: () => this.setState({ dragPal: null, dropAt: null }),
+        }));
+    } else if (st.paletteTab === "transitions") {
+      // Two modes. With a gap selected: link into that pair. Otherwise: extend the
+      // line — a transition out of the anchor track brings its destination with it.
+      const fits = fromTrack && toTrack;
+      const anchor = fits ? null : this.anchorTrack();
+      const rank = { great: 0, ok: 1, rough: 2 };
+      let source;
+      if (fits) source = this.candidatesFor(fromTrack.id, toTrack.id);
+      else if (anchor) source = TRANSITIONS.filter((x) => x.from === anchor.id);
+      else source = TRANSITIONS;
+      paletteRows = source
+        .filter((x) => {
+          if (!pq) return true;
+          const a = this.track(x.from), b = this.track(x.to);
+          return (x.technique + " " + a.title + " " + b.title).toLowerCase().includes(pq);
+        })
+        .slice()
+        .sort((m, n) => (fits ? 0 : rank[m.quality] - rank[n.quality]))
+        .map((x) => {
+          const a = this.track(x.from), b = this.track(x.to);
+          const qs = this.qualStyle(x.quality);
+          const ok = fits
+            ? x.from === fromTrack.id && x.to === toTrack.id
+            : !!anchor && x.from === anchor.id;
+          const emptyLine = !anchor && !fits;
+          return {
+            id: x.id, icon: "⟶", iconBg: qs.bg, iconFg: qs.fg,
+            title: x.technique + " · " + this.bars(x.bars),
+            sub: a.title + " → " + b.title,
+            meta: x.quality,
+            disabled: !ok && !emptyLine,
+            addTitle: fits
+              ? (ok ? "Link to the selected gap" : "Does not fit the selected gap")
+              : ok
+                ? "Add this transition and " + b.title
+                : emptyLine
+                  ? "Start the set with " + a.title + " → " + b.title
+                  : "Starts from " + a.title + " — select a step there first",
+            draggable: true,
+            onDragStart: () => this.setState({ dragPal: { kind: "transition", id: x.id } }),
+            onDragEnd: () => this.setState({ dragPal: null, dropAt: null }),
+            onAdd: () => {
+              if (fits) {
+                this.patchStep(selGapRow.stepId, { connector: { type: "transition", id: x.id }, seam: false });
+                this.setState({ sel: null, picker: null });
+                this.toast("Linked " + x.technique);
+                return;
+              }
+              if (emptyLine) { this.addTrack(x.from); setTimeout(() => this.extendByTransition(x), 0); return; }
+              this.extendByTransition(x);
+            },
+          };
+        });
+    } else {
+      paletteRows = BLOCKS
+        .filter((b) => !pq || b.title.toLowerCase().includes(pq))
+        .map((b) => {
+          const a = this.track(b.steps[0]), z = this.track(b.steps[b.steps.length - 1]);
+          const fits = !selGapRow || (fromTrack && toTrack && a.id === fromTrack.id && z.id === toTrack.id);
+          return {
+            id: b.id, icon: "▸", iconBg: "var(--brand-subtle)", iconFg: "var(--brand)",
+            title: b.title, sub: a.title + " → " + z.title,
+            meta: b.steps.length + " tracks",
+            disabled: !b.complete || !fits,
+            addTitle: !b.complete ? "Incomplete blocks cannot be used as connectors" : selGapRow ? "Use as the connector for this gap" : "Append these tracks",
+            onAdd: () => this.insertBlock(b.id),
+            draggable: b.complete,
+            onDragStart: () => { if (b.complete) this.setState({ dragPal: { kind: "block", id: b.id } }); },
+            onDragEnd: () => this.setState({ dragPal: null, dropAt: null }),
+          };
+        });
+    }
+
+    Object.assign(vals, {
+      backLabel: isBlockKind ? "Blocks" : "Sets",
+      goBrowse: () => this.setState({ view: "browse", openId: null, sel: null, picker: null, tab: isBlockKind ? "blocks" : "sets" }),
+      wsTitle: sequence.title,
+      onRename: (e) => {
+        const v = e.target.value;
+        this.setState((s) => ({ sequences: s.sequences.map((x) => (x.id === s.openId ? { ...x, title: v } : x)) }));
+      },
+      wsRuntime: steps.length ? "approx " + this.runtime(steps) + " min · " + steps.length + " tracks" : "0 tracks",
+      wsPlanned: steps.length ? linked + " of " + planned + " planned" : "nothing planned yet",
+      wsHasSeams: seams > 0,
+      wsSeams: seams + (seams === 1 ? " seam" : " seams"),
+      versions: sequence.versions,
+      versionId: sequence.version,
+      onVersion: (e) => {
+        const v = e.target.value;
+        this.update((s) => { s.version = v; return s; });
+        this.toast(v === "base" ? "Base path" : "Peak-time version — alternates substituted");
+      },
+      onDeleteCurrent: () => this.setState({ confirm: { id: sequence.id, title: sequence.title } }),
+      rows,
+      isEmptySeq: steps.length === 0,
+      endArmed: !!st.dragPal,
+      endOver: st.dropAt === "end",
+      endBorder: st.dropAt === "end" ? "var(--selected)" : st.dragPal ? "var(--ring)" : "transparent",
+      endBg: st.dropAt === "end" ? "var(--brand-subtle)" : "transparent",
+      endLabel: st.dragPal ? this.dropLabel(st.dragPal, { kind: "end", index: steps.length }) + " at the end" : "",
+      onEndDragOver: (e) => {
+        if (!st.dragPal || !this.dropFit(st.dragPal, { kind: "end", index: steps.length })) return;
+        e.preventDefault();
+        if (st.dropAt !== "end") this.setState({ dropAt: "end" });
+      },
+      onEndDrop: (e) => {
+        if (!st.dragPal) return;
+        e.preventDefault();
+        this.handleDrop({ kind: "end", index: steps.length });
+      },
+      emptySeqTitle: isBlockKind ? "This block has no tracks yet" : "This night is empty",
+      onAddTrackCta: () => this.setState({ paletteTab: "tracks", sel: null }),
+      onInsertBlockCta: () => this.setState({ paletteTab: "blocks" }),
+      palTracks: () => this.setState({ paletteTab: "tracks" }),
+      palTransitions: () => this.setState({ paletteTab: "transitions" }),
+      palBlocks: () => this.setState({ paletteTab: "blocks" }),
+      palTracksBg: active(st.paletteTab === "tracks"),
+      palTracksFg: st.paletteTab === "tracks" ? "var(--foreground)" : "var(--muted-foreground)",
+      palTransBg: active(st.paletteTab === "transitions"),
+      palTransFg: st.paletteTab === "transitions" ? "var(--foreground)" : "var(--muted-foreground)",
+      palBlocksBg: active(st.paletteTab === "blocks"),
+      palBlocksFg: st.paletteTab === "blocks" ? "var(--foreground)" : "var(--muted-foreground)",
+      paletteQuery: st.paletteQ,
+      onPaletteQuery: (e) => this.setState({ paletteQ: e.target.value }),
+      palettePlaceholder: st.paletteTab === "tracks" ? "Search tracks" : st.paletteTab === "transitions" ? "Search transitions" : "Search blocks",
+      hasContext: (!!selGapRow && !!fromTrack) || (st.paletteTab === "transitions" && !selGapRow && !!this.anchorTrack()),
+      contextLabel: selGapRow && fromTrack && toTrack
+        ? "Fits the selected gap · " + fromTrack.title + " → " + toTrack.title
+        : this.anchorTrack()
+          ? "Out of " + this.anchorTrack().title + (st.sel ? "" : " · end of the set")
+          : "",
+      clearSelection: () => this.setState({ sel: null, picker: null }),
+      paletteRows,
+      paletteEmpty: paletteRows.length === 0,
+      paletteEmptyText: st.paletteTab === "transitions" && selGapRow
+        ? "No transition exists for this pair yet — author one from Library › Add transition."
+        : st.paletteTab === "transitions" && this.anchorTrack()
+          ? "Nothing out of " + this.anchorTrack().title + " yet. Add one from Library › Add transition, or select an earlier step to extend from there."
+          : "Nothing matches that search.",
+      paletteHint: st.paletteTab === "transitions" && !(selGapRow && fromTrack)
+        ? (this.anchorTrack()
+            ? "+ adds the transition and the track it lands on, after " + this.anchorTrack().title + "."
+            : "+ starts the set with both tracks of the transition.")
+        : st.sel
+          ? (st.sel.kind === "gap" ? "+ links a matching transition, or inserts a track at this position." : "+ inserts after the selected step.")
+          : "Read-only over your library. + appends to the end of the running order.",
+    });
+
+    return vals;
+  }
+}
+
+</script>
+</body>
+</html>

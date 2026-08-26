@@ -124,6 +124,8 @@ export {
   deleteSequenceVersion,
   type SequenceRecord,
   type SequenceStep,
+  type SequenceStepTrack,
+  type SequenceStepTransition,
   type SequenceAlternate,
   type SequenceVersion,
   type ExpandedSequenceEntry,

@@ -5,7 +5,8 @@
 >
 > Status: in progress. SET-1, SET-2, and SET-3 have shipped; SET-4 onward are open.
 >
-> Last updated: 2026-08-21
+> Last updated: 2026-08-25 — §4 now defers to the interactive mockup in
+> [`sets-feature/Sets feature mockup/`](./sets-feature/Sets%20feature%20mockup/).
 >
 > Builds on [`NEXT_PRODUCT_ARCHITECTURE.md`](./NEXT_PRODUCT_ARCHITECTURE.md) (Add → Library →
 > Graph product model) and [`TICKET_ORDER.md`](./TICKET_ORDER.md). Storage is one Postgres.
@@ -145,6 +146,17 @@ variable.
 
 ## 4. UX design
 
+**Design source of truth:** [`sets-feature/Sets feature mockup/Selecta Sets.dc.html`](./sets-feature/Sets%20feature%20mockup/Selecta%20Sets.dc.html).
+It is an interactive prototype of the end state — browse, workspace, palette, and every gap state —
+built on the real Haze tokens. Open it in a browser before building any Sets surface. Where this
+section and the mockup disagree, **the mockup wins on chrome and interaction**; this document wins
+on the model, the schema, and the API.
+
+The mockup is the end state, not one slice. It renders block connectors (SET-5), alternates
+(SET-6), versions (SET-7), and Follow / Open in graph (SET-9 / SET-10). Each slice builds its own
+piece of that chrome; earlier slices **omit** later controls rather than shipping them disabled
+(§13).
+
 ### 4.1 Where sequences live
 
 Sets are **their own top-level surface**, not a Library view.
@@ -157,7 +169,8 @@ Sets are **their own top-level surface**, not a Library view.
 | Traverse      | `/graph?set=:id`           | Graph in Set mode.                                                                  |
 | Follow        | `/graph?set=:id&follow=1`  | Booth presentation.                                                                 |
 
-Primary nav becomes **Add · Library · Sets · Graph**.
+Primary nav becomes **Library · Sets · Graph**. (An earlier draft said `Add · Library · Sets ·
+Graph`; DJ-138 deleted `/add` and the Add tab, and it is not coming back.)
 
 Library and Sets are different activities, and collapsing them mis-framed the feature. Library is
 a catalog: flat lists of things that already exist, which you search, edit, and curate. Building a
@@ -185,78 +198,113 @@ The palette is what makes this a workspace instead of a detail page. Building a 
 on screen the whole time makes that the default motion, and it means the answer to an `unmapped`
 gap is usually already visible instead of behind a modal.
 
+Left pane takes `3fr`, right pane `minmax(320px, 2fr)`, and the palette is a sticky card. The
+workspace runs at `max-w-7xl` and fills the viewport; browse stays at `max-w-5xl`.
+
 ```text
-┌────────────────────────────────────────────────────────┐
-│ Sunset rooftop                        47 min · 11 tracks
-│ 8 of 8 planned · 2 seams              v1 base ▾
-│                                       [Follow] [Open in graph]
-└────────────────────────────────────────────────────────┘
+← Sets
+Sunset rooftop                      [ v1 base ▾ ] [Open in graph] [Follow] [✕]
+approx 47 min · 11 tracks · 8 of 8 planned · (2 seams)
 
- ⠿ 1  ▮ Midnight City          M83         124 BPM  8A
-      │
-      ├─ blend · 16 bars · great                  ✎  ⇄       ← linked
-      │
- ⠿ 2  ▮ Innerbloom              RÜFÜS      122 BPM  9A
-      │  ⤷ alt · if the room is hot
-      │       ▸ Rapture → Opus                    (block, 2 steps)
-      │
-      ├─ ⚠ 3 connectors available — pick one                 ← available
-      │
- ⠿ 3  ▮ Opus                    Eric Prydz 126 BPM  4A
-      │
-      ├─ ▸ Acid build            4 tracks · Opus → Strobe    ← block connector
-      │
- ⠿ 4  ▮ Strobe                  deadmau5   128 BPM  9B
-      │
-      ├─ 〜 open seam · improvise                            ← seam
-      │
- ⠿ 5  ▮ Sun Rising              Blue Six   120 BPM  7A
+ ⠿ 01 [M] Midnight City   M83          124 · 8A   4:03   ↑ ↓ ✎ ✕
+        │
+        ├─ ⟶ blend · 16 bars · great   (+2 BPM)   Swap  Unlink  〜  + alt
+        │
+ ⠿ 02 [I] Innerbloom      RÜFÜS        122 · 9A   9:54   ↑ ↓ ✎ ✕
+      NOTE  [ kill the bass early                    ]
+        │
+        ├─ ⚠ 3 transitions — pick one                Pick   〜  + alt
+        │  ⤷ alt · if the room is hot   Rapture run · 3 tracks   remove
+        │
+ ⠿ 03 [O] Opus            Eric Prydz   126 · 4A   9:06   ↑ ↓ ✎ ✕
+ ┌──────────────────────────────────────────────────────────────────┐
+ │      ├─ ▸ Acid build · 4 tracks · Opus → Strobe                  │
+ │      │      Expand   Edit block   Detach   〜  + alt             │
+ │ BLOCK · ACID BUILD · MOVES AS ONE                                │
+ │ ⠿ 04 [S] Strobe        deadmau5     128 · 9B   10:34  ↑ ↓ ✎ ✕    │
+ └──────────────────────────────────────────────────────────────────┘
+        │
+        ├─ ○ no transition for this pair yet          Add transition  〜
+        │
+ ⠿ 05 [S] Sun Rising      Blue Six     120 · 7A   6:42   ↑ ↓ ✎ ✕
 
+      ↳ Insert Cola here                       ← drop hint while dragging
       [ + Add track ]  [ + Insert block ]
 ```
 
 The palette, docked on the right:
 
 ```text
-Library              [ Tracks ] [ Transitions ] [ Blocks ]
-⌕ rufus
-
-▮ Innerbloom       RÜFÜS DU SOL   122 BPM  9A        [+]
-▮ You Were Right   RÜFÜS DU SOL   120 BPM  8A        [+]
-
-── Fits the selected gap · Innerbloom → Opus ─────────────
-⟶ blend · 16 bars · great                            [+]
-▸ Acid build       4 tracks · 9A → 4A                [+]
+LIBRARY                       [ Tracks ] [ Transitions ] [ Blocks ]
+⌕ search transitions
+── Fits the selected gap · Innerbloom → Opus ──────────────── clear ──
+⟶  blend · 16 bars          Innerbloom → Opus       great      [+]
+⟶  echo out · 8 bars        Innerbloom → Opus       ok         [+]
+⟶  cut on the drop · 1 bar  Innerbloom → Opus       rough      [+]
+──────────────────────────────────────────────────────────────────────
++ links a matching transition, or inserts a track at this position.
 ```
 
 Palette behaviors:
 
-- **Context-aware.** Selecting a gap filters the palette to connectors that fit it — transitions
-  and complete blocks with matching endpoints, ranked with `compareNeighborhoodNeighbors`. With
-  nothing selected it is a plain library search.
-- **Pull into the line.** `+` appends, or inserts at the selected position. This is the same code
-  path as the gap's own picker; the palette is a second entrance, not a second writer.
-- **Read-only over the library.** It reads `/tracks`, `/transitions`, and `/blocks` and never
-  mutates them. Authoring still goes through `/add` or the gap's inline form (§4.6, §9).
+- **Three tabs: Tracks, Transitions, Blocks.** Read-only over `/tracks`, `/transitions`, and
+  `/blocks`; it never mutates them. Authoring a new edge still goes through the manual transition
+  page (§9).
+- **Context-aware, with a banner that says what the context is.** Selecting a gap narrows the list
+  to connectors that fit that pair — transitions and complete blocks with matching endpoints,
+  ranked with `compareNeighborhoodNeighbors` — and shows `Fits the selected gap · A → B` with a
+  `clear` affordance. Rows that do not fit are disabled with a `title` explaining why, rather than
+  hidden, so the palette never looks broken.
+- **Transitions has two modes, and the second one is the point.** With a gap selected, `+` links
+  the edge into that gap. With nothing selected, the tab lists edges **out of the anchor track**
+  (the last step, or the step after the selection) and `+` adds the transition _and the track it
+  lands on_ in one move. That is how you build a line quickly: you walk the graph you already
+  authored instead of picking a track and then hunting for the edge. On an empty sequence, `+`
+  seeds both endpoints of the transition.
+- **Adding a track auto-links the only edge.** When exactly one transition exists between the
+  previous step and the track being added, pin it instead of making the user pick — the common case
+  is one edge per pair, and a fresh `available` gap for it is busywork.
+- **Pull into the line by `+` or by drag.** `+` inserts at the selected gap, after the selected
+  step, or appends. This is the same writer as the gap's own picker; the palette is a second
+  entrance, not a second writer.
+- **A footer hint always states what `+` will do right now** ("appends to the end of the running
+  order", "inserts after the selected step", "adds the transition and the track it lands on").
+  The behavior is contextual, so it has to be legible.
 
 Running-order behaviors:
 
-- **Drag to reorder** the primary line. Reordering is the operation most likely to invalidate
-  connectors, so affected gaps visibly flip state immediately (§5.7).
-- **Append / insert** from the palette, or inline via the gap's own picker. Neither requires
-  leaving the page.
+- **Reorder by drag or by `↑`/`↓`.** Both exist: drag is faster, the buttons are precise and
+  keyboard-reachable. Reordering is the operation most likely to invalidate connectors, so affected
+  gaps visibly flip state immediately (§5.7).
+- **Three drop targets when dragging from the palette:** a **gap** (link this connector here), a
+  **step** (insert before/after it), and an **end zone** below the last step. Only fitting targets
+  arm, and the armed target shows a drop hint in words ("Use Acid build as the connector", "Insert
+  Cola here"). A palette drag that cannot land anywhere arms nothing.
+- **A block connector and its anchor step move as one unit.** A block spans two steps in the spine:
+  the step holding its start track and the step whose inbound connector is the block. Reorder,
+  remove, and `↑`/`↓` all operate on that unit, and the unit is outlined and labeled
+  `BLOCK · <name> · MOVES AS ONE`. Splitting it would leave a connector whose endpoints no longer
+  match, which is exactly the stale state §5.7 exists to avoid.
 - **Block connectors render collapsed** — one row showing the name, track count, and endpoints.
-  Expand to view read-only. **Detach to a copy** inlines its steps and makes them editable, for
-  when you want this night's version to differ.
-- **Mark a join as a seam** from the gap menu. Seams are the point of the feature for nights built
+  **Expand** shows the inner steps read-only. **Edit block** opens the block's own workspace and
+  warns that edits apply everywhere it is used. **Detach** inlines its interior steps as loose,
+  editable steps, for when this night's version should differ.
+- **Mark a join as a seam** from the gap row. Seams are the point of the feature for nights built
   from blocks (§4.3).
 - **Add alternate** from a gap or a selected span: pick a connector, write the condition label.
-- **Version switcher** in the header. Switching re-renders the resolved path; editing while a
-  non-base version is active edits the underlying sequence, not the version.
-- **BPM delta** on every gap from `tracks.bpm`. Key compatibility is deferred (§12).
-- **Step note** — a per-step reminder ("kill the bass early"). Distinct from `transitions.notes`,
-  which is global truth shared by every sequence. Performance reminders must not pollute the graph.
+  Alternates render as `⤷ alt · <label>` rows under the gap they substitute.
+- **Version switcher** in the header. Switching re-renders the resolved path and tags substituted
+  gaps with an `alternate · <label>` chip; editing while a non-base version is active edits the
+  underlying sequence, not the version.
+- **BPM delta** on every linked gap from `tracks.bpm`. Key compatibility is deferred (§12).
+- **Step note** — a per-step reminder ("kill the bass early"), toggled by `✎` and auto-open when
+  non-empty. Distinct from `transitions.notes`, which is global truth shared by every sequence.
+  Performance reminders must not pollute the graph.
 - **Runtime** from `tracks.duration_sec`, minus overlap where known. Approximate; label it so.
+- **Every mutation confirms in a toast**, and the toast says what happened to the _library_ when
+  that is the anxious question: "Unlinked — the transition stays in your library", "Block removed —
+  it stays in your library", "Reordered — affected gaps re-derived". Destructive edits inside a
+  workspace look lossy even when they are not, and the toast is where that fear gets answered.
 
 ### 4.3 Gap states
 
@@ -268,6 +316,24 @@ Running-order behaviors:
 | **seam**      | Deliberately left open                          | **no**                     | Unmark, or plan it after all                                  |
 
 The first three are derived. **Seam is intent, so it is the only one that needs storage.**
+
+There are four _domain_ states but five _visual_ ones: a gap linked by a **block** connector reads
+differently from one linked by a transition, because the thing filling it is a run you can open
+rather than a single mix. The mockup gives it its own treatment — brand tint, `▸` marker, and the
+unit outline described in §4.2 — while still counting as `linked`. The colors are load-bearing and
+should not be re-derived per surface:
+
+| Visual state | Tint                 | Marker | Reads as                          |
+| ------------ | -------------------- | ------ | --------------------------------- |
+| linked       | `surface-1`          | `⟶`    | done, quiet                       |
+| block        | `brand-subtle`       | `▸`    | done, but composed — openable     |
+| available    | `warning-subtle`     | `⚠`    | your move, and it is easy         |
+| unmapped     | `destructive-subtle` | `○`    | your move, and it needs authoring |
+| seam         | transparent          | `〜`   | deliberate, not a defect          |
+
+`unmapped` is the only one tinted destructive, and that is intentional: `available` is a one-click
+decision, while `unmapped` means the graph does not contain the edge yet and you have to go author
+it. Tinting them the same would flatten the one distinction the DJ acts on.
 
 Seams matter because they are how a night made of blocks is honestly represented. Without them,
 `8 of 10 mapped` nags you to fill in exactly the two joins you meant to improvise. With them the
@@ -726,18 +792,18 @@ Tracked under the epic [DJ-110](https://linear.app/dj-project-astradzhao/issue/D
 issue per slice, one `dj-XXXX` branch each. SET-1 lands the **complete** schema so no migration is
 revisited; the richer surfaces arrive later.
 
-| #          | Issue                                                           | Slice                                                                                                                                                                                                                                        | Depends on   |
-| ---------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| **SET-1**  | [DJ-111](https://linear.app/dj-project-astradzhao/issue/DJ-111) | Schema + `0010_blocks.sql` + the sequence module (now `packages/library/src/blocks.ts`): gap states, derived caches with transitive completeness, expansion, cycle checks, staleness validation, reorder in one transaction. Tests from §10. | —            |
-| **SET-2**  | [DJ-112](https://linear.app/dj-project-astradzhao/issue/DJ-112) | `apps/api` routes for blocks, steps, and reorder (§7).                                                                                                                                                                                       | SET-1        |
-| **SET-3**  | [DJ-113](https://linear.app/dj-project-astradzhao/issue/DJ-113) | Manual transition mode on `/add` (§9) with the vocabulary comboboxes. Ships standalone value.                                                                                                                                                | —            |
-| **SET-4**  | [DJ-114](https://linear.app/dj-project-astradzhao/issue/DJ-114) | `/sets` top-level tab with Sets/Blocks sub-tabs + the two-pane workspace: running order with append, remove, reorder, gap linking, seams, and the library palette. Transitions only as connectors. Plan: [`sets-feature/DJ114_SETS_WORKSPACE_PLAN.md`](./sets-feature/DJ114_SETS_WORKSPACE_PLAN.md). | SET-2        |
-| **SET-5**  | [DJ-115](https://linear.app/dj-project-astradzhao/issue/DJ-115) | Block connectors: connector picker over blocks, collapsed rows, expand, detach-to-copy, "Save trail as a block".                                                                                                                             | SET-4        |
-| **SET-6**  | [DJ-116](https://linear.app/dj-project-astradzhao/issue/DJ-116) | Alternates: spans, labels, and the alternate list.                                                                                                                                                                                           | SET-4        |
-| **SET-7**  | [DJ-117](https://linear.app/dj-project-astradzhao/issue/DJ-117) | Versions: API, switcher, overlap validation.                                                                                                                                                                                                 | SET-6        |
-| **SET-8**  | [DJ-118](https://linear.app/dj-project-astradzhao/issue/DJ-118) | `/add` sequence context and `AddToSequenceMenu` across track and transition surfaces.                                                                                                                                                        | SET-3, SET-4 |
-| **SET-9**  | [DJ-119](https://linear.app/dj-project-astradzhao/issue/DJ-119) | Graph Set mode: session-store cursor, rail, on-script next, alternates, seam handoff, off-script prompt.                                                                                                                                     | SET-5, SET-6 |
-| **SET-10** | [DJ-120](https://linear.app/dj-project-astradzhao/issue/DJ-120) | Follow mode: expansion, alternate chips, keyboard stepping, jump-to-step.                                                                                                                                                                    | SET-9        |
+| #          | Issue                                                           | Slice                                                                                                                                                                                                                                                                                                                                                      | Depends on   |
+| ---------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| **SET-1**  | [DJ-111](https://linear.app/dj-project-astradzhao/issue/DJ-111) | Schema + `0010_blocks.sql` + the sequence module (now `packages/library/src/blocks.ts`): gap states, derived caches with transitive completeness, expansion, cycle checks, staleness validation, reorder in one transaction. Tests from §10.                                                                                                               | —            |
+| **SET-2**  | [DJ-112](https://linear.app/dj-project-astradzhao/issue/DJ-112) | `apps/api` routes for blocks, steps, and reorder (§7).                                                                                                                                                                                                                                                                                                     | SET-1        |
+| **SET-3**  | [DJ-113](https://linear.app/dj-project-astradzhao/issue/DJ-113) | Manual transition mode on `/add` (§9) with the vocabulary comboboxes. Ships standalone value.                                                                                                                                                                                                                                                              | —            |
+| **SET-4**  | [DJ-114](https://linear.app/dj-project-astradzhao/issue/DJ-114) | `/sets` top-level tab with Sets/Blocks sub-tabs + the two-pane workspace, built to the mockup: running order with drag and `↑`/`↓` reorder, palette drag-and-drop, transition-first extension, seams, notes, and toasts. Transitions only as connectors. Plan: [`sets-feature/DJ114_SETS_WORKSPACE_PLAN.md`](./sets-feature/DJ114_SETS_WORKSPACE_PLAN.md). | SET-2        |
+| **SET-5**  | [DJ-115](https://linear.app/dj-project-astradzhao/issue/DJ-115) | Block connectors: Blocks palette tab, collapsed rows, the move-as-one unit, expand, edit-block, detach-to-copy, "Save trail as a block".                                                                                                                                                                                                                   | SET-4        |
+| **SET-6**  | [DJ-116](https://linear.app/dj-project-astradzhao/issue/DJ-116) | Alternates: spans, labels, `+ alt`, and the alternate rows under a gap.                                                                                                                                                                                                                                                                                    | SET-4        |
+| **SET-7**  | [DJ-117](https://linear.app/dj-project-astradzhao/issue/DJ-117) | Versions: API, header switcher, resolved-path rendering with `alternate` chips, overlap validation.                                                                                                                                                                                                                                                        | SET-6        |
+| **SET-8**  | [DJ-118](https://linear.app/dj-project-astradzhao/issue/DJ-118) | `/add` sequence context and `AddToSequenceMenu` across track and transition surfaces.                                                                                                                                                                                                                                                                      | SET-3, SET-4 |
+| **SET-9**  | [DJ-119](https://linear.app/dj-project-astradzhao/issue/DJ-119) | Graph Set mode: session-store cursor, rail, on-script next, alternates, seam handoff, off-script prompt.                                                                                                                                                                                                                                                   | SET-5, SET-6 |
+| **SET-10** | [DJ-120](https://linear.app/dj-project-astradzhao/issue/DJ-120) | Follow mode: expansion, alternate chips, keyboard stepping, jump-to-step.                                                                                                                                                                                                                                                                                  | SET-9        |
 
 If only part ships, make it SET-3 plus SET-1/2/4. That alone lets a user hand-author a full
 running order with seams; blocks, alternates, and versions layer on without migration.
@@ -762,15 +828,20 @@ your own workflow, not a validated finding.
 
 ## 13. Decisions on record
 
-| Question                                 | Decision                                                                                                                                                                     |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Does Sets live inside Library?           | **No — its own top-level tab** (§4.1). Library is a catalog you curate; Sets is a workspace where you assemble from it. Blocks are a sub-tab of Sets, not a fourth nav item. |
-| Is the builder a page or a workspace?    | **A two-pane workspace** (§4.2): running order plus a persistent library palette, so pulling from the catalog is the default motion rather than a modal detour.              |
-| Are blocks and sets different things?    | **No.** One table, one rule set. `kind` is a filter label. The "sets cannot be imported" restriction is a rule, not a shape, and can be relaxed without migration.           |
-| What is a connector?                     | **A transition or a block**, both typed by `(from, to)`. This gives composition and multi-track alternates from one mechanism.                                               |
-| Is the spine tracks or connectors?       | **Tracks.** Connector chains cannot express consecutive gaps or a fresh draft, and make reorder structurally impossible.                                                     |
-| Is the structure JSON or rows?           | **Rows.** JSON loses foreign keys, the "which sets use this block?" query, and safe concurrent edits.                                                                        |
-| How are versions stored?                 | **Two tables**, choices anchored to alternate IDs. Array indexes silently realias on any insert or reorder.                                                                  |
-| Is completeness enforced?                | **No — computed.** It gates importability, never editing, so drafting stays possible.                                                                                        |
-| Composition by copy or reference?        | **Reference**, because a block connector is opaque at the point of use. Expansion happens at read time; "detach to a copy" is the escape hatch.                              |
-| Does the notes/LLM path build sequences? | **Deferred**, [DJ-98](https://linear.app/dj-project-astradzhao/issue/DJ-98).                                                                                                 |
+| Question                                 | Decision                                                                                                                                                                                                                                                                        |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Does Sets live inside Library?           | **No — its own top-level tab** (§4.1). Library is a catalog you curate; Sets is a workspace where you assemble from it. Blocks are a sub-tab of Sets, not a fourth nav item.                                                                                                    |
+| Is the builder a page or a workspace?    | **A two-pane workspace** (§4.2): running order plus a persistent library palette, so pulling from the catalog is the default motion rather than a modal detour.                                                                                                                 |
+| What is the design source of truth?      | **The mockup** at [`sets-feature/Sets feature mockup/`](./sets-feature/Sets%20feature%20mockup/). It owns chrome and interaction; this doc owns model, schema, and API. Do not re-derive layout, copy, or state colors from prose.                                              |
+| Drag-and-drop, or just `↑`/`↓`?          | **Both.** Drag is the fast path for reorder and for pulling from the palette; `↑`/`↓` stay because they are precise and keyboard-reachable. An earlier draft cut drag from SET-4 — the mockup makes it the primary motion, so it ships with the first workspace.                |
+| How do you extend a line quickly?        | **From the Transitions palette with nothing selected**: it lists edges out of the anchor track and `+` adds the transition _and_ its destination track. Picking a track and then hunting for the edge is the slow path; walking the graph you already authored is the fast one. |
+| Do later-slice controls ship early?      | **No.** Versions, `+ alt`, Blocks palette, Follow, and Open in graph are omitted until their slice, not rendered disabled. Dead chrome teaches the wrong model of what the product does.                                                                                        |
+| Where does mutation feedback go?         | **A toast**, and it names the library consequence ("the transition stays in your library"). Workspace edits read as lossy even when they are not.                                                                                                                               |
+| Are blocks and sets different things?    | **No.** One table, one rule set. `kind` is a filter label. The "sets cannot be imported" restriction is a rule, not a shape, and can be relaxed without migration.                                                                                                              |
+| What is a connector?                     | **A transition or a block**, both typed by `(from, to)`. This gives composition and multi-track alternates from one mechanism.                                                                                                                                                  |
+| Is the spine tracks or connectors?       | **Tracks.** Connector chains cannot express consecutive gaps or a fresh draft, and make reorder structurally impossible.                                                                                                                                                        |
+| Is the structure JSON or rows?           | **Rows.** JSON loses foreign keys, the "which sets use this block?" query, and safe concurrent edits.                                                                                                                                                                           |
+| How are versions stored?                 | **Two tables**, choices anchored to alternate IDs. Array indexes silently realias on any insert or reorder.                                                                                                                                                                     |
+| Is completeness enforced?                | **No — computed.** It gates importability, never editing, so drafting stays possible.                                                                                                                                                                                           |
+| Composition by copy or reference?        | **Reference**, because a block connector is opaque at the point of use. Expansion happens at read time; "detach to a copy" is the escape hatch.                                                                                                                                 |
+| Does the notes/LLM path build sequences? | **Deferred**, [DJ-98](https://linear.app/dj-project-astradzhao/issue/DJ-98).                                                                                                                                                                                                    |

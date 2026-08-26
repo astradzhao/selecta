@@ -158,7 +158,7 @@ documented exceptions.
 
 **Rule:** reused across features → `packages/ui`. App-shaped but not domain
 specific → `apps/web/components/common`. Domain → a feature folder
-(`tracks`, `graph`, `library`, `add`). Graph may import tracks; tracks must
+(`tracks`, `graph`, `library`, `add`, `sequences`). Graph may import tracks; tracks must
 not own graph UI (`components/graph`, `lib/graph`).
 
 ### `@selecta/ui`
@@ -182,7 +182,8 @@ bottom border, `text-section-title` instead of `text-page-title`),
 
 `TrackRow` / `TrackPicker` / `TrackChips` / `LibraryTrackRow` /
 `TransitionFields` stay in `components/tracks`. Graph explorer pieces stay in
-`components/graph`.
+`components/graph`. Sequence browse and the two-pane workspace stay in
+`components/sequences`.
 
 ## Patterns
 
