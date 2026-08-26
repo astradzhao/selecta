@@ -5,11 +5,12 @@ Canonical architecture for Blocks / Sets lives at
 tickets all point there). This folder holds the design mockup and the per-ticket implementation
 plans for that epic.
 
-| Doc                                                              | Ticket                                                          | Status                                                                                 |
-| ---------------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| [`../SETS_ARCHITECTURE.md`](../SETS_ARCHITECTURE.md)             | [DJ-110](https://linear.app/dj-project-astradzhao/issue/DJ-110) | Source of truth for the model, schema, API, and slice order                            |
-| [`Sets feature mockup/`](./Sets%20feature%20mockup/)             | [DJ-110](https://linear.app/dj-project-astradzhao/issue/DJ-110) | **Source of truth for chrome and interaction.** Interactive prototype of the end state |
-| [`DJ114_SETS_WORKSPACE_PLAN.md`](./DJ114_SETS_WORKSPACE_PLAN.md) | [DJ-114](https://linear.app/dj-project-astradzhao/issue/DJ-114) | SET-4 task plan — Sets tab + two-pane workspace, built to the mockup                   |
+| Doc                                                                  | Ticket                                                          | Status                                                                                 |
+| -------------------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| [`../SETS_ARCHITECTURE.md`](../SETS_ARCHITECTURE.md)                 | [DJ-110](https://linear.app/dj-project-astradzhao/issue/DJ-110) | Source of truth for the model, schema, API, and slice order                            |
+| [`Sets feature mockup/`](./Sets%20feature%20mockup/)                 | [DJ-110](https://linear.app/dj-project-astradzhao/issue/DJ-110) | **Source of truth for chrome and interaction.** Interactive prototype of the end state |
+| [`DJ114_SETS_WORKSPACE_PLAN.md`](./DJ114_SETS_WORKSPACE_PLAN.md)     | [DJ-114](https://linear.app/dj-project-astradzhao/issue/DJ-114) | SET-4 task plan — Sets tab + two-pane workspace, built to the mockup                   |
+| [`DJ115_BLOCK_CONNECTORS_PLAN.md`](./DJ115_BLOCK_CONNECTORS_PLAN.md) | [DJ-115](https://linear.app/dj-project-astradzhao/issue/DJ-115) | SET-5 task plan — block connectors, detach, save-trail-as-block                        |
 
 ## The mockup
 
@@ -37,7 +38,14 @@ The mockup's alternates are keyed to a single gap; the SET-1 schema already mode
 
 ## Status
 
-SET-1 ([DJ-111](https://linear.app/dj-project-astradzhao/issue/DJ-111)) and SET-2
-([DJ-112](https://linear.app/dj-project-astradzhao/issue/DJ-112)) are on `main`. SET-3
+SET-1 ([DJ-111](https://linear.app/dj-project-astradzhao/issue/DJ-111)), SET-2
+([DJ-112](https://linear.app/dj-project-astradzhao/issue/DJ-112)), and SET-4
+([DJ-114](https://linear.app/dj-project-astradzhao/issue/DJ-114)) are on `main`. SET-3
 ([DJ-113](https://linear.app/dj-project-astradzhao/issue/DJ-113)) shipped the manual transition page
 at `/library/add/transitions`. Do not start SET-5…SET-10 until SET-4 has been used on a real gig.
+
+SET-1 and SET-2 landed more of the backend than the slice order implies. Block connectors
+(`inBlockId` writes, endpoint validation, cycle and depth rejection, expansion, detach, endpoint
+lookup, referrers) **and** the alternates and versions routes are already implemented and tested, so
+SET-5, SET-6, and SET-7 are close to web-only slices. Check what exists before planning API work —
+see [`DJ115_BLOCK_CONNECTORS_PLAN.md`](./DJ115_BLOCK_CONNECTORS_PLAN.md) §1.
