@@ -26,9 +26,14 @@ describe("moveUnit", () => {
 });
 
 describe("reorderTo", () => {
-  it("inserts the dragged step before the target", () => {
+  it("swaps with the next card when dropped on it", () => {
+    assert.deepEqual(reorderTo(["a", "b", "c"], 0, 1), ["b", "a", "c"]);
+    assert.deepEqual(reorderTo(["a", "b", "c"], 2, 1), ["a", "c", "b"]);
+  });
+
+  it("lands on the drop target when moving more than one slot", () => {
+    assert.deepEqual(reorderTo(["a", "b", "c"], 0, 2), ["b", "c", "a"]);
     assert.deepEqual(reorderTo(["a", "b", "c"], 2, 0), ["c", "a", "b"]);
-    assert.deepEqual(reorderTo(["a", "b", "c"], 0, 2), ["b", "a", "c"]);
   });
 
   it("ignores a drop onto the same unit", () => {

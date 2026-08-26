@@ -115,11 +115,20 @@ export function SequenceRunningOrder({
                 onPick={(transition) => onPickTransition(step.id, transition)}
                 onUnlink={() => onUnlink(step.id)}
                 onToggleSeam={() => onToggleSeam(step)}
-                onDragOver={(event) => armOver(event, gapTarget, gapArmed)}
+                onDragOver={(event) => {
+                  if (dragPayload) {
+                    armOver(event, gapTarget, gapArmed);
+                    return;
+                  }
+                  if (draggingStepId && draggingStepId !== step.id) {
+                    event.preventDefault();
+                  }
+                }}
                 onDrop={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
                   if (dragPayload) onPaletteDrop(gapTarget);
+                  else onReorderDrop(step.id);
                 }}
               />
             ) : null}

@@ -17,7 +17,10 @@ export function moveUnit<T>(steps: readonly T[], i: number, delta: -1 | 1): T[] 
   return spliceUnit(steps, start, end, neighborEnd - length + 1);
 }
 
-/** Place the unit at `fromIndex` immediately before the unit at `targetIndex`. */
+/**
+ * Place the dragged unit on the drop target: before it when moving up, after it
+ * when moving down, so dropping on the next card swaps the two.
+ */
 export function reorderTo<T>(steps: readonly T[], fromIndex: number, targetIndex: number): T[] {
   if (
     fromIndex < 0 ||
@@ -29,10 +32,10 @@ export function reorderTo<T>(steps: readonly T[], fromIndex: number, targetIndex
   }
   const [start, end] = unitRange(steps, fromIndex);
   if (targetIndex >= start && targetIndex <= end) return [...steps];
-  const [targetStart] = unitRange(steps, targetIndex);
+  const [targetStart, targetEnd] = unitRange(steps, targetIndex);
   const next = steps.slice();
   const chunk = next.splice(start, end - start + 1);
-  const dest = start < targetStart ? targetStart - chunk.length : targetStart;
+  const dest = start < targetStart ? targetEnd - chunk.length + 1 : targetStart;
   next.splice(dest, 0, ...chunk);
   return next;
 }
