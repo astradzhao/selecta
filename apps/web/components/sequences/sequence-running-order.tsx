@@ -436,7 +436,7 @@ function UnitShell({
           </Button>
         </span>
       </div>
-      {children}
+      <div className="px-2">{children}</div>
     </div>
   );
 }
