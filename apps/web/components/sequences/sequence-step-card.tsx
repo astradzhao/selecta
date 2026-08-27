@@ -94,7 +94,7 @@ export function SequenceStepCard({
         onDragEnd={onDragEnd}
         onClick={onSelect}
         className={cn(
-          "grid grid-cols-[24px_28px_36px_minmax(0,1fr)_auto_auto_auto] items-center gap-3 rounded-xl border px-2.5 py-2",
+          "grid grid-cols-[auto_36px_minmax(0,1fr)_auto_auto_auto] items-center gap-2.5 rounded-xl border px-2.5 py-2",
           dropOver
             ? "border-selected bg-brand-subtle"
             : dropArmed
@@ -105,18 +105,20 @@ export function SequenceStepCard({
           dragging && "opacity-45",
         )}
       >
-        <span
-          title={movable ? "Drag to reorder" : undefined}
-          className={cn(
-            "select-none text-center text-sm leading-none",
-            movable ? "text-muted-foreground cursor-grab" : "text-transparent",
-          )}
-          aria-hidden={!movable}
-        >
-          {movable ? "⠿" : ""}
-        </span>
-        <span className="text-crate-meta text-right">
-          {showIndex ? String(index + 1).padStart(2, "0") : ""}
+        <span className="flex items-center gap-1">
+          <span
+            title={movable ? "Drag to reorder" : undefined}
+            className={cn(
+              "w-3.5 shrink-0 select-none text-sm leading-none",
+              movable ? "text-muted-foreground cursor-grab" : "text-transparent",
+            )}
+            aria-hidden={!movable}
+          >
+            {movable ? "⠿" : ""}
+          </span>
+          <span className="text-crate-meta w-5 shrink-0 tabular-nums">
+            {showIndex ? String(index + 1).padStart(2, "0") : ""}
+          </span>
         </span>
         {stepArtwork(step)}
         <span className="flex min-w-0 flex-col gap-px">
