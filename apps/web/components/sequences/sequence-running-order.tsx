@@ -375,10 +375,10 @@ function UnitShell({
         dragging && "opacity-45",
       )}
     >
-      <div className="grid grid-cols-[18px_20px_minmax(0,1fr)_auto] items-center gap-2.5 px-2.5 py-1.5">
+      <div className="grid grid-cols-[24px_28px_minmax(0,1fr)_auto] items-center gap-3 px-2.5 py-1.5">
         <span
           title="Drag to reorder"
-          className="text-muted-foreground cursor-grab select-none text-sm leading-none"
+          className="text-muted-foreground cursor-grab select-none text-center text-sm leading-none"
         >
           ⠿
         </span>

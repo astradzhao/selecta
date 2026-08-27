@@ -213,6 +213,29 @@ export function SequenceWorkspace({
     }
   }
 
+  async function mutateChild(
+    blockId: string,
+    writer: () => Promise<{ sequence: SequenceDetail }>,
+    message?: string,
+  ): Promise<SequenceDetail | null> {
+    try {
+      const result = await writer();
+      setChildById((current) => ({ ...current, [blockId]: result.sequence }));
+      if (message) toast(message);
+      setConflict(null);
+      return result.sequence;
+    } catch (err) {
+      if (err instanceof ApiClientError && err.status === 409) {
+        const fresh = await getSequence(blockId);
+        setChildById((current) => ({ ...current, [blockId]: fresh.sequence }));
+        setConflict("Sequence was updated elsewhere. Reloaded the latest version.");
+        return fresh.sequence;
+      }
+      toast(describeApiError(err));
+      return null;
+    }
+  }
+
   function clearTransient() {
     setSelection({ kind: "none" });
     setPickerStepId(null);
@@ -236,10 +259,18 @@ export function SequenceWorkspace({
     });
   }
 
-  async function addTrackAt(trackId: string, title: string, position: number | "append") {
+  async function addTrackAt(
+    trackId: string,
+    title: string,
+    position: number | "append",
+    ownerId?: string,
+  ) {
     if (!detail) return;
-    const numeric = position === "append" ? detail.steps.length : position;
-    const prev = detail.steps[numeric - 1];
+    const targetId = ownerId ?? detail.id;
+    const steps = targetId === detail.id ? detail.steps : (childById[targetId]?.steps ?? null);
+    if (!steps) return;
+    const numeric = position === "append" ? steps.length : position;
+    const prev = steps[numeric - 1];
     let inTransitionId: string | undefined;
     let linkedTechnique: string | null = null;
     if (prev) {
@@ -256,21 +287,31 @@ export function SequenceWorkspace({
       }
     }
     const where =
-      numeric === detail.steps.length ? `Appended ${title}` : `Inserted ${title} at ${numeric + 1}`;
-    await mutate(
-      () =>
-        addSequenceStep(detail.id, {
-          trackId,
-          position,
-          ...(inTransitionId ? { inTransitionId } : {}),
-        }),
-      inTransitionId ? `${where} · linked ${linkedTechnique}` : where,
-    );
+      numeric === steps.length ? `Appended ${title}` : `Inserted ${title} at ${numeric + 1}`;
+    const message = inTransitionId ? `${where} · linked ${linkedTechnique}` : where;
+    const writer = () =>
+      addSequenceStep(targetId, {
+        trackId,
+        position,
+        ...(inTransitionId ? { inTransitionId } : {}),
+      });
+    if (targetId === detail.id) await mutate(writer, message);
+    else await mutateChild(targetId, writer, message);
     clearTransient();
   }
 
   async function handleAddTrack(track: ApiTrack) {
     if (!detail) return;
+    if (selection.kind === "step") {
+      const owned = findOwnedStep(detail, childById, selection.stepId);
+      if (owned && owned.sequenceId !== detail.id) {
+        const child = childById[owned.sequenceId];
+        const index = child?.steps.findIndex((item) => item.id === owned.step.id) ?? -1;
+        if (index < 0) return;
+        await addTrackAt(track.id, track.title, index + 1, owned.sequenceId);
+        return;
+      }
+    }
     await addTrackAt(track.id, track.title, insertIndex(selection, detail.steps));
   }
 
@@ -288,6 +329,26 @@ export function SequenceWorkspace({
       );
       clearTransient();
       return;
+    }
+    if (selection.kind === "step") {
+      const owned = findOwnedStep(detail, childById, selection.stepId);
+      if (owned && owned.sequenceId !== detail.id) {
+        const child = childById[owned.sequenceId];
+        const index = child?.steps.findIndex((item) => item.id === owned.step.id) ?? -1;
+        if (index < 0) return;
+        await mutateChild(
+          owned.sequenceId,
+          () =>
+            addSequenceStep(owned.sequenceId, {
+              trackId: transition.toTrack.id,
+              position: index + 1,
+              inTransitionId: transition.id,
+            }),
+          `${technique} → ${transition.toTrack.title} added`,
+        );
+        clearTransient();
+        return;
+      }
     }
     if (detail.steps.length === 0) {
       await mutate(async () => {
@@ -763,6 +824,7 @@ export function SequenceWorkspace({
           sequenceId={detail.id}
           selection={selection}
           steps={detail.steps}
+          nestedSteps={Object.values(childById).flatMap((child) => child.steps)}
           tab={paletteTab}
           onTab={setPaletteTab}
           onAddTrack={(track) => void handleAddTrack(track)}

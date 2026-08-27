@@ -94,7 +94,7 @@ export function SequenceStepCard({
         onDragEnd={onDragEnd}
         onClick={onSelect}
         className={cn(
-          "grid grid-cols-[18px_20px_36px_minmax(0,1fr)_auto_auto_auto] items-center gap-2.5 rounded-xl border px-2.5 py-2",
+          "grid grid-cols-[24px_28px_36px_minmax(0,1fr)_auto_auto_auto] items-center gap-3 rounded-xl border px-2.5 py-2",
           dropOver
             ? "border-selected bg-brand-subtle"
             : dropArmed
@@ -108,7 +108,7 @@ export function SequenceStepCard({
         <span
           title={movable ? "Drag to reorder" : undefined}
           className={cn(
-            "select-none text-sm leading-none",
+            "select-none text-center text-sm leading-none",
             movable ? "text-muted-foreground cursor-grab" : "text-transparent",
           )}
           aria-hidden={!movable}

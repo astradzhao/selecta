@@ -16,6 +16,7 @@ import { artistLine } from "@/lib/format";
 import { listSequences } from "@/lib/sequences/api";
 import {
   blockFitPayload,
+  nestedSelectedStep,
   numericInsertIndex,
   paletteBlockReason,
   paletteTransitionQuery,
@@ -78,6 +79,7 @@ export function LibraryPalette({
   sequenceId,
   selection,
   steps,
+  nestedSteps = [],
   tab,
   onTab,
   onAddTrack,
@@ -90,6 +92,7 @@ export function LibraryPalette({
   sequenceId: string;
   selection: WorkspaceSelection;
   steps: SequenceStep[];
+  nestedSteps?: SequenceStep[];
   tab: PaletteTab;
   onTab: (tab: PaletteTab) => void;
   onAddTrack: (track: ApiTrack) => void;
@@ -101,7 +104,7 @@ export function LibraryPalette({
 }) {
   const [query, setQuery] = useState("");
   const trackFilters = useMemo(() => ({ query }), [query]);
-  const { fromTrackId, toTrackId } = paletteTransitionQuery(selection, steps);
+  const { fromTrackId, toTrackId } = paletteTransitionQuery(selection, steps, nestedSteps);
   const transitionFilters = useMemo(
     () => ({ query, fromTrackId, toTrackId }),
     [query, fromTrackId, toTrackId],
@@ -156,7 +159,8 @@ export function LibraryPalette({
   const fromStep = gapIndex > 0 ? steps[gapIndex - 1] : null;
   const toStep = gapIndex > 0 ? steps[gapIndex] : null;
   const insertAt = numericInsertIndex(selection, steps);
-  const anchor = insertAt > 0 ? steps[insertAt - 1] : null;
+  const nestedAnchor = nestedSelectedStep(selection, steps, nestedSteps);
+  const anchor = nestedAnchor ?? (insertAt > 0 ? steps[insertAt - 1] : null);
   const gapSelected = Boolean(fromStep && toStep);
   const hasContext = gapSelected || (tab === "transitions" && Boolean(anchor));
   const contextLabel = gapSelected
@@ -263,7 +267,7 @@ export function LibraryPalette({
         ) : tab === "transitions" ? (
           (transitions.items as ApiTransition[]).map((transition) => {
             const payload = transitionPayload(transition);
-            const reason = paletteTransitionReason(payload, selection, steps);
+            const reason = paletteTransitionReason(payload, selection, steps, nestedSteps);
             const tone = qualityRankTone(transition.quality);
             return (
               <PaletteRow

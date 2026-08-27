@@ -112,11 +112,24 @@ export function autoLinkTransitionId(candidates: readonly { id: string }[]): str
   return candidates.length === 1 ? candidates[0]!.id : null;
 }
 
+export function nestedSelectedStep<T extends { id: string }>(
+  selection: WorkspaceSelection,
+  steps: readonly T[],
+  nestedSteps: readonly T[],
+): T | null {
+  if (selection.kind !== "step") return null;
+  if (steps.some((step) => step.id === selection.stepId)) return null;
+  return nestedSteps.find((step) => step.id === selection.stepId) ?? null;
+}
+
 /** Query the Transitions palette should send (D13): the selected pair, else outbound from the anchor. */
 export function paletteTransitionQuery(
   selection: WorkspaceSelection,
   steps: readonly { id: string; trackId: string }[],
+  nestedSteps: readonly { id: string; trackId: string }[] = [],
 ): { fromTrackId?: string; toTrackId?: string } {
+  const nested = nestedSelectedStep(selection, steps, nestedSteps);
+  if (nested) return { fromTrackId: nested.trackId };
   if (selection.kind === "gap") {
     const gapIndex = steps.findIndex((step) => step.id === selection.stepId);
     if (gapIndex > 0) {
@@ -139,7 +152,14 @@ export function paletteTransitionReason(
   payload: Extract<FitPayload, { kind: "transition" }>,
   selection: WorkspaceSelection,
   steps: readonly { id: string; trackId: string }[],
+  nestedSteps: readonly { id: string; trackId: string }[] = [],
 ): string | null {
+  const nested = nestedSelectedStep(selection, steps, nestedSteps);
+  if (nested) {
+    return payload.fromTrackId === nested.trackId
+      ? null
+      : `Starts from ${payload.fromTitle} — select a step there first`;
+  }
   const insertAt = numericInsertIndex(selection, steps);
   const target: DropTarget =
     selection.kind === "gap" ? { kind: "gap", index: insertAt } : { kind: "end", index: insertAt };

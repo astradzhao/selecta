@@ -117,6 +117,12 @@ describe("paletteTransitionQuery", () => {
       fromTrackId: "a",
     });
     assert.deepEqual(paletteTransitionQuery({ kind: "none" }, []), {});
+    assert.deepEqual(
+      paletteTransitionQuery({ kind: "step", stepId: "inner" }, steps, [
+        { id: "inner", trackId: "x" },
+      ]),
+      { fromTrackId: "x" },
+    );
   });
 
   it("does not treat a first-step gap selection as a pair", () => {
