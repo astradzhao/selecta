@@ -1,34 +1,52 @@
 import { apiFetch } from "@/lib/api/client";
 
-import type { SequenceDetail, SequenceKind, SequenceRecord } from "./types";
+import type {
+  SequenceDetail,
+  SequenceKind,
+  SequenceRecord,
+  SequenceReferrer,
+  SequenceTrailSeed,
+} from "./types";
 
-export async function listSequences(input: {
+export type ListSequencesParams = {
   kind?: SequenceKind;
   query?: string;
   complete?: boolean;
+  startTrack?: string;
+  endTrack?: string;
   limit?: number;
   offset?: number;
-}): Promise<{
+};
+
+/** HTTP query for `GET /blocks`. Endpoint filters must use `startTrack` / `endTrack`, not `…Id`. */
+export function listSequencesSearchParams(input: ListSequencesParams): string {
+  const params = new URLSearchParams();
+  if (input.kind) params.set("kind", input.kind);
+  if (input.query?.trim()) params.set("q", input.query.trim());
+  if (input.complete === true) params.set("complete", "true");
+  if (input.complete === false) params.set("complete", "false");
+  if (input.startTrack) params.set("startTrack", input.startTrack);
+  if (input.endTrack) params.set("endTrack", input.endTrack);
+  if (input.limit != null) params.set("limit", String(input.limit));
+  if (input.offset != null) params.set("offset", String(input.offset));
+  return params.toString();
+}
+
+export async function listSequences(input: ListSequencesParams = {}): Promise<{
   ok: true;
   sequences: SequenceRecord[];
   limit: number;
   offset: number;
   hasMore: boolean;
 }> {
-  const params = new URLSearchParams();
-  if (input.kind) params.set("kind", input.kind);
-  if (input.query?.trim()) params.set("q", input.query.trim());
-  if (input.complete === true) params.set("complete", "true");
-  if (input.complete === false) params.set("complete", "false");
-  if (input.limit != null) params.set("limit", String(input.limit));
-  if (input.offset != null) params.set("offset", String(input.offset));
-  const qs = params.toString();
+  const qs = listSequencesSearchParams(input);
   return apiFetch(`/blocks${qs ? `?${qs}` : ""}`);
 }
 
 export async function createSequence(body: {
   kind: SequenceKind;
   title: string;
+  seed?: { trail: SequenceTrailSeed[] };
 }): Promise<{ ok: true; sequence: SequenceDetail }> {
   return apiFetch("/blocks", {
     method: "POST",
@@ -38,6 +56,12 @@ export async function createSequence(body: {
 
 export async function getSequence(id: string): Promise<{ ok: true; sequence: SequenceDetail }> {
   return apiFetch(`/blocks/${encodeURIComponent(id)}`);
+}
+
+export async function listSequenceReferrers(
+  id: string,
+): Promise<{ ok: true; referrers: SequenceReferrer[] }> {
+  return apiFetch(`/blocks/${encodeURIComponent(id)}/referrers`);
 }
 
 export async function updateSequence(
@@ -60,6 +84,7 @@ export async function addSequenceStep(
     trackId: string;
     position?: number | "append";
     inTransitionId?: string | null;
+    inBlockId?: string | null;
   },
 ): Promise<{ ok: true; sequence: SequenceDetail }> {
   return apiFetch(`/blocks/${encodeURIComponent(id)}/steps`, {
@@ -100,5 +125,14 @@ export async function reorderSequence(
   return apiFetch(`/blocks/${encodeURIComponent(id)}/reorder`, {
     method: "POST",
     body: JSON.stringify(body),
+  });
+}
+
+export async function detachSequenceStep(
+  id: string,
+  stepId: string,
+): Promise<{ ok: true; sequence: SequenceDetail }> {
+  return apiFetch(`/blocks/${encodeURIComponent(id)}/detach/${encodeURIComponent(stepId)}`, {
+    method: "POST",
   });
 }

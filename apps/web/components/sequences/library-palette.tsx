@@ -13,19 +13,22 @@ import { cn } from "@selecta/ui/lib/utils";
 import { FilterField } from "@/components/common/filtered-list-shell";
 import { useFilteredList } from "@/hooks/use-filtered-list";
 import { artistLine } from "@/lib/format";
+import { listSequences } from "@/lib/sequences/api";
 import {
+  blockFitPayload,
   numericInsertIndex,
+  paletteBlockReason,
   paletteTransitionQuery,
   paletteTransitionReason,
   type FitPayload,
 } from "@/lib/sequences/drag";
-import type { SequenceStep, WorkspaceSelection } from "@/lib/sequences/types";
+import type { SequenceRecord, SequenceStep, WorkspaceSelection } from "@/lib/sequences/types";
 import { listTracks, type ApiTrack } from "@/lib/tracks/api";
 import { listTransitions } from "@/lib/transitions/api";
 import type { ApiTransition } from "@/lib/transitions/types";
 import { displayVocab, qualityRankTone } from "@/lib/transitions/vocab-labels";
 
-export type PaletteTab = "tracks" | "transitions";
+export type PaletteTab = "tracks" | "transitions" | "blocks";
 
 function transitionPayload(transition: ApiTransition): Extract<FitPayload, { kind: "transition" }> {
   return {
@@ -72,22 +75,26 @@ function startPaletteDrag(event: DragEvent, payload: FitPayload) {
 }
 
 export function LibraryPalette({
+  sequenceId,
   selection,
   steps,
   tab,
   onTab,
   onAddTrack,
   onAddTransition,
+  onAddBlock,
   onClearSelection,
   onDragStart,
   onDragEnd,
 }: {
+  sequenceId: string;
   selection: WorkspaceSelection;
   steps: SequenceStep[];
   tab: PaletteTab;
   onTab: (tab: PaletteTab) => void;
   onAddTrack: (track: ApiTrack) => void;
   onAddTransition: (transition: ApiTransition) => void;
+  onAddBlock: (block: SequenceRecord) => void;
   onClearSelection: () => void;
   onDragStart: (payload: FitPayload) => void;
   onDragEnd: () => void;
@@ -99,6 +106,7 @@ export function LibraryPalette({
     () => ({ query, fromTrackId, toTrackId }),
     [query, fromTrackId, toTrackId],
   );
+  const blockFilters = useMemo(() => ({ query }), [query]);
 
   const fetchTracks = useCallback(async (next: { query: string }) => {
     const result = await listTracks({ query: next.query, limit: 50 });
@@ -118,6 +126,15 @@ export function LibraryPalette({
     [],
   );
 
+  const fetchBlocks = useCallback(async (next: { query: string }) => {
+    const result = await listSequences({
+      kind: "block",
+      query: next.query,
+      limit: 50,
+    });
+    return { items: result.sequences, hasMore: result.hasMore };
+  }, []);
+
   const tracks = useFilteredList({
     filters: trackFilters,
     fetchPage: fetchTracks,
@@ -127,6 +144,11 @@ export function LibraryPalette({
     filters: transitionFilters,
     fetchPage: fetchTransitions,
     resource: "transitions",
+  });
+  const blocks = useFilteredList({
+    filters: blockFilters,
+    fetchPage: fetchBlocks,
+    resource: "blocks",
   });
 
   const gapIndex =
@@ -143,13 +165,23 @@ export function LibraryPalette({
       ? `Out of ${anchor.track?.title ?? "Track"}`
       : "";
 
-  const items = tab === "tracks" ? tracks : transitions;
+  const items = tab === "tracks" ? tracks : tab === "transitions" ? transitions : blocks;
   const emptyText =
     tab === "transitions" && gapSelected
       ? "No transition for this pair yet."
       : tab === "transitions" && anchor
         ? `Nothing out of ${anchor.track?.title ?? "this track"} yet.`
-        : "Nothing matches that search.";
+        : tab === "blocks"
+          ? "No blocks yet."
+          : "Nothing matches that search.";
+  const searchPlaceholder =
+    tab === "tracks"
+      ? "Search tracks"
+      : tab === "transitions"
+        ? "Search transitions"
+        : "Search blocks";
+
+  const visibleBlocks = (blocks.items as SequenceRecord[]).filter((row) => row.id !== sequenceId);
 
   return (
     <aside className="border-border bg-card lg:sticky lg:top-20 flex min-h-0 flex-col overflow-hidden rounded-xl border">
@@ -166,13 +198,16 @@ export function LibraryPalette({
           >
             Transitions
           </SegmentedTab>
+          <SegmentedTab type="button" active={tab === "blocks"} onClick={() => onTab("blocks")}>
+            Blocks
+          </SegmentedTab>
         </SegmentedTabs>
       </div>
       <div className="border-border border-b px-3.5 py-2.5">
         <FilterField htmlFor="palette-q" label="Search">
           <SearchField
             id="palette-q"
-            placeholder={tab === "tracks" ? "Search tracks" : "Search transitions"}
+            placeholder={searchPlaceholder}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
@@ -197,6 +232,8 @@ export function LibraryPalette({
           <p className="text-caption px-3.5 py-4">Loading…</p>
         ) : items.error ? (
           <p className="text-caption text-destructive px-3.5 py-4">{items.error}</p>
+        ) : tab === "blocks" && visibleBlocks.length === 0 ? (
+          <p className="text-caption px-3.5 py-6">{emptyText}</p>
         ) : items.items.length === 0 ? (
           <p className="text-caption px-3.5 py-6">{emptyText}</p>
         ) : tab === "tracks" ? (
@@ -223,7 +260,7 @@ export function LibraryPalette({
               />
             );
           })
-        ) : (
+        ) : tab === "transitions" ? (
           (transitions.items as ApiTransition[]).map((transition) => {
             const payload = transitionPayload(transition);
             const reason = paletteTransitionReason(payload, selection, steps);
@@ -247,6 +284,31 @@ export function LibraryPalette({
                 disabled={Boolean(reason)}
                 disabledReason={reason}
                 onAdd={() => onAddTransition(transition)}
+                onDragStart={(event) => {
+                  startPaletteDrag(event, payload);
+                  onDragStart(payload);
+                }}
+                onDragEnd={onDragEnd}
+              />
+            );
+          })
+        ) : (
+          visibleBlocks.map((block) => {
+            const payload = blockFitPayload(block);
+            const reason = paletteBlockReason(payload, selection, steps);
+            const startTitle = block.startTrack?.title ?? "—";
+            const endTitle = block.endTrack?.title ?? "—";
+            return (
+              <PaletteRow
+                key={block.id}
+                icon="▸"
+                iconClass="bg-brand-subtle text-brand"
+                title={block.title}
+                sub={`${startTitle} → ${endTitle}`}
+                meta={`${block.stepCount} ${block.stepCount === 1 ? "track" : "tracks"}`}
+                disabled={Boolean(reason)}
+                disabledReason={reason}
+                onAdd={() => onAddBlock(block)}
                 onDragStart={(event) => {
                   startPaletteDrag(event, payload);
                   onDragStart(payload);

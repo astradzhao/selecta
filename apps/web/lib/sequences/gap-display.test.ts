@@ -1,18 +1,26 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { displayGapState } from "./gap-display";
+import { displayGapState, gapRowLabel } from "./gap-display";
+
+const emptyBlock = {
+  id: "blk-1",
+  title: "Acid build",
+  stepCount: 4,
+  seamCount: 0,
+  isComplete: true,
+  runtimeSec: 400,
+};
 
 describe("displayGapState", () => {
-  it("treats available gaps with zero transition candidates as unmapped", () => {
+  it("keeps available when only block candidates exist", () => {
     assert.equal(
       displayGapState({
         gapState: "available",
         inBlockId: null,
-        inTransitionId: null,
-        transitionCandidateCount: 0,
+        inBlock: null,
       }),
-      "unmapped",
+      "available",
     );
   });
 
@@ -21,22 +29,72 @@ describe("displayGapState", () => {
       displayGapState({
         gapState: "available",
         inBlockId: null,
-        inTransitionId: null,
-        transitionCandidateCount: 2,
+        inBlock: null,
       }),
       "available",
     );
   });
 
-  it("renders a block pin without a valid transition as a muted placeholder", () => {
+  it("treats a linked block connector as block, not an empty transition row", () => {
+    assert.equal(
+      displayGapState({
+        gapState: "linked",
+        inBlockId: "blk-1",
+        inBlock: emptyBlock,
+      }),
+      "block",
+    );
+  });
+
+  it("marks an unfinished child as block-incomplete", () => {
+    assert.equal(
+      displayGapState({
+        gapState: "linked",
+        inBlockId: "blk-1",
+        inBlock: { ...emptyBlock, isComplete: false },
+      }),
+      "block-incomplete",
+    );
+  });
+
+  it("marks a drifted pin as block-broken", () => {
     assert.equal(
       displayGapState({
         gapState: "available",
         inBlockId: "blk-1",
-        inTransitionId: null,
-        transitionCandidateCount: 1,
+        inBlock: emptyBlock,
       }),
-      "block",
+      "block-broken",
+    );
+  });
+});
+
+describe("gapRowLabel", () => {
+  it("names a linked mix with technique, bars, and quality", () => {
+    assert.equal(
+      gapRowLabel(
+        "linked",
+        {
+          inTransition: {
+            id: "tr-1",
+            fromTrackId: "a",
+            toTrackId: "b",
+            fromBar: 48,
+            toBar: 1,
+            barsOverlap: 8,
+            technique: "blend",
+            intent: null,
+            quality: "great",
+            notes: null,
+          },
+          inBlock: null,
+          transitionCandidateCount: 1,
+          candidateCount: 1,
+        },
+        "From",
+        "To",
+      ),
+      "Blend · 8 bars · Great",
     );
   });
 });

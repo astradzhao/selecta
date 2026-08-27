@@ -19,23 +19,37 @@ import {
   addSequenceStep,
   deleteSequence,
   deleteSequenceStep,
+  detachSequenceStep,
   getSequence,
+  listSequenceReferrers,
   reorderSequence,
   updateSequence,
   updateSequenceStep,
 } from "@/lib/sequences/api";
-import { autoLinkTransitionId, dropFit, insertIndex, type FitPayload } from "@/lib/sequences/drag";
+import {
+  autoLinkTransitionId,
+  blockFitPayload,
+  dropFit,
+  insertIndex,
+  numericInsertIndex,
+  paletteBlockReason,
+  type FitPayload,
+} from "@/lib/sequences/drag";
+import { incompleteBlockCount } from "@/lib/sequences/gap-display";
 import {
   formatApproxRuntime,
   formatPlannedLine,
   plannedMetrics,
   sequenceRuntimeSec,
+  sequenceTrackCount,
 } from "@/lib/sequences/metrics";
-import { moveUnit, reorderTo } from "@/lib/sequences/reorder";
+import { moveUnit, reorderTo, unitRange } from "@/lib/sequences/reorder";
 import type {
   DropTarget,
   SequenceDetail,
   SequenceKind,
+  SequenceRecord,
+  SequenceReferrer,
   SequenceStep,
   WorkspaceSelection,
 } from "@/lib/sequences/types";
@@ -71,6 +85,25 @@ export function SequenceWorkspace({
   const [titleDraft, setTitleDraft] = useState("");
   const [pendingDelete, setPendingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [expandedBlockIds, setExpandedBlockIds] = useState<Record<string, boolean>>({});
+  const [childById, setChildById] = useState<Record<string, SequenceDetail>>({});
+  const [childErrorById, setChildErrorById] = useState<Record<string, string>>({});
+  const [referrers, setReferrers] = useState<SequenceReferrer[]>([]);
+  const [pendingRemove, setPendingRemove] = useState<{
+    stepIds: string[];
+    title: string;
+  } | null>(null);
+  const [pendingDetach, setPendingDetach] = useState<{
+    stepId: string;
+    blockId: string;
+    title: string;
+  } | null>(null);
+  const [pendingEdit, setPendingEdit] = useState<{
+    blockId: string;
+    title: string;
+    description: string;
+  } | null>(null);
+  const [pendingAction, setPendingAction] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,6 +131,24 @@ export function SequenceWorkspace({
       router.replace(sequenceWorkspaceHref(detail.kind, detail.id));
     }
   }, [detail, routeKind, router]);
+
+  useEffect(() => {
+    if (routeKind !== "block") {
+      setReferrers([]);
+      return;
+    }
+    let cancelled = false;
+    void listSequenceReferrers(sequenceId)
+      .then((result) => {
+        if (!cancelled) setReferrers(result.referrers);
+      })
+      .catch(() => {
+        if (!cancelled) setReferrers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [routeKind, sequenceId]);
 
   function applyDetail(next: SequenceDetail) {
     setDetail(next);
@@ -141,6 +192,24 @@ export function SequenceWorkspace({
   function clearTransient() {
     setSelection({ kind: "none" });
     setPickerStepId(null);
+  }
+
+  function forgetChild(blockId: string) {
+    setExpandedBlockIds((current) => {
+      const next = { ...current };
+      delete next[blockId];
+      return next;
+    });
+    setChildById((current) => {
+      const next = { ...current };
+      delete next[blockId];
+      return next;
+    });
+    setChildErrorById((current) => {
+      const next = { ...current };
+      delete next[blockId];
+      return next;
+    });
   }
 
   async function addTrackAt(trackId: string, title: string, position: number | "append") {
@@ -218,12 +287,78 @@ export function SequenceWorkspace({
     clearTransient();
   }
 
+  async function insertBlockAt(
+    payload: Extract<FitPayload, { kind: "block" }>,
+    target: DropTarget,
+  ) {
+    if (!detail || !payload.startTrackId || !payload.endTrackId) return;
+    if (target.kind === "gap") {
+      const dest = detail.steps[target.index];
+      if (!dest) return;
+      await mutate(
+        () =>
+          updateSequenceStep(detail.id, dest.id, {
+            inBlockId: payload.id,
+            isSeam: false,
+          }),
+        `Linked ${payload.title}`,
+      );
+      clearTransient();
+      return;
+    }
+    const position = target.index;
+    const prev = detail.steps[position - 1];
+    const needAnchor = !prev || prev.trackId !== payload.startTrackId;
+    let latest = detail;
+    if (needAnchor) {
+      const first = await mutate(() =>
+        addSequenceStep(detail.id, {
+          trackId: payload.startTrackId!,
+          position,
+        }),
+      );
+      if (!first) return;
+      latest = first;
+    }
+    const hostPosition = needAnchor ? position + 1 : position;
+    await mutate(
+      () =>
+        addSequenceStep(latest.id, {
+          trackId: payload.endTrackId!,
+          position: hostPosition,
+          inBlockId: payload.id,
+        }),
+      `Inserted ${payload.title} as a block`,
+    );
+    clearTransient();
+  }
+
+  async function handleAddBlock(block: SequenceRecord) {
+    if (!detail) return;
+    const payload = blockFitPayload(block);
+    const insertAt = numericInsertIndex(selection, detail.steps);
+    const target: DropTarget =
+      selection.kind === "gap"
+        ? { kind: "gap", index: insertAt }
+        : { kind: "end", index: insertAt };
+    const reason = paletteBlockReason(payload, selection, detail.steps);
+    if (reason) {
+      toast(reason);
+      return;
+    }
+    await insertBlockAt(payload, target);
+  }
+
   async function handlePaletteDrop(target: DropTarget) {
     if (!detail || !dragPayload) return;
     const edge = dragPayload.kind === "transition" ? dragPayload : null;
     if (!dropFit(dragPayload, target, detail.steps, edge)) return;
     if (dragPayload.kind === "track") {
       await addTrackAt(dragPayload.id, dragPayload.title, target.index);
+      return;
+    }
+    if (dragPayload.kind === "block") {
+      await insertBlockAt(dragPayload, target);
       return;
     }
     const technique = dragPayload.technique;
@@ -321,6 +456,61 @@ export function SequenceWorkspace({
     await mutate(() => updateSequenceStep(detail.id, stepId, { note: next }));
   }
 
+  async function handleToggleExpand(blockId: string) {
+    const opening = !expandedBlockIds[blockId];
+    setExpandedBlockIds((current) => ({ ...current, [blockId]: opening }));
+    if (!opening || childById[blockId] || childErrorById[blockId]) return;
+    try {
+      const result = await getSequence(blockId);
+      setChildById((current) => ({ ...current, [blockId]: result.sequence }));
+    } catch (err) {
+      setChildErrorById((current) => ({
+        ...current,
+        [blockId]: describeApiError(err, { resource: "block" }),
+      }));
+    }
+  }
+
+  async function handleEditBlock(step: SequenceStep) {
+    const blockId = step.inBlockId;
+    if (!blockId) return;
+    const title = step.inBlock?.title ?? "block";
+    try {
+      const result = await listSequenceReferrers(blockId);
+      const count = result.referrers.length;
+      if (count === 0) {
+        router.push(sequenceWorkspaceHref("block", blockId));
+        return;
+      }
+      setPendingEdit({
+        blockId,
+        title,
+        description: `Edits to “${title}” apply everywhere it is used (${count} ${count === 1 ? "sequence" : "sequences"}).`,
+      });
+    } catch {
+      setPendingEdit({
+        blockId,
+        title,
+        description: `Could not check where “${title}” is used. Edits apply everywhere it is used.`,
+      });
+    }
+  }
+
+  function handleRemoveStep(step: SequenceStep) {
+    if (!detail) return;
+    const index = detail.steps.findIndex((item) => item.id === step.id);
+    const [start, end] = unitRange(detail.steps, index);
+    if (start === end) {
+      void mutate(() => deleteSequenceStep(detail.id, step.id), "Step removed");
+      return;
+    }
+    const host = detail.steps[end]!;
+    setPendingRemove({
+      stepIds: detail.steps.slice(start, end + 1).map((item) => item.id),
+      title: host.inBlock?.title ?? "block",
+    });
+  }
+
   if (loadError) {
     return <StatePanel variant="error" title="Sequence unavailable" description={loadError} />;
   }
@@ -331,6 +521,8 @@ export function SequenceWorkspace({
   const isBlockKind = detail.kind === "block";
   const metrics = plannedMetrics(detail.steps);
   const runtimeSec = sequenceRuntimeSec(detail.steps);
+  const trackCount = sequenceTrackCount(detail.steps);
+  const incompleteBlocks = incompleteBlockCount(detail.steps);
   const browseHref = setsViewHref(isBlockKind ? "blocks" : "sets");
 
   return (
@@ -359,7 +551,7 @@ export function SequenceWorkspace({
                 <span className="text-numeric">{formatApproxRuntime(runtimeSec)}</span>
                 <span aria-hidden>·</span>
                 <span>
-                  {detail.steps.length} {detail.steps.length === 1 ? "track" : "tracks"}
+                  {trackCount} {trackCount === 1 ? "track" : "tracks"}
                 </span>
               </>
             )}
@@ -369,6 +561,9 @@ export function SequenceWorkspace({
               <Badge variant="tertiary">
                 {metrics.seams} {metrics.seams === 1 ? "seam" : "seams"}
               </Badge>
+            ) : null}
+            {incompleteBlocks > 0 ? (
+              <Badge variant="warning">{incompleteBlocks} block incomplete</Badge>
             ) : null}
           </div>
         </div>
@@ -386,8 +581,16 @@ export function SequenceWorkspace({
         </div>
       </div>
       {conflict ? <Alert variant="warning">{conflict}</Alert> : null}
+      {isBlockKind && referrers.length > 0 ? (
+        <Alert variant="warning">
+          Used as a connector in {referrers.length}{" "}
+          {referrers.length === 1 ? "sequence" : "sequences"}. Edits apply everywhere this block is
+          used.
+        </Alert>
+      ) : null}
       <div className="grid min-h-0 flex-1 grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(20rem,2fr)]">
         <SequenceRunningOrder
+          sequenceId={detail.id}
           kindNounEmpty={isBlockKind ? "This block has no tracks yet" : "This night is empty"}
           steps={detail.steps}
           selection={selection}
@@ -399,6 +602,9 @@ export function SequenceWorkspace({
           dragPayload={dragPayload}
           dropTarget={dropTarget}
           draggingStepId={draggingStepId}
+          expandedBlockIds={expandedBlockIds}
+          childById={childById}
+          childErrorById={childErrorById}
           onSelectGap={(stepId) => {
             const selected = selection.kind === "gap" && selection.stepId === stepId;
             setSelection(selected ? { kind: "none" } : { kind: "gap", stepId });
@@ -426,10 +632,30 @@ export function SequenceWorkspace({
             setPickerStepId(null);
             setSelection({ kind: "none" });
           }}
-          onUnlink={(stepId) => {
+          onPickBlock={(stepId, block) => {
             void mutate(
-              () => updateSequenceStep(detail.id, stepId, { inTransitionId: null }),
-              "Unlinked — the transition stays in your library",
+              () =>
+                updateSequenceStep(detail.id, stepId, {
+                  inBlockId: block.id,
+                  isSeam: false,
+                }),
+              `Linked ${block.title}`,
+            );
+            setPickerStepId(null);
+            setSelection({ kind: "none" });
+          }}
+          onUnlink={(stepId) => {
+            const step = detail.steps.find((item) => item.id === stepId);
+            void mutate(
+              () =>
+                updateSequenceStep(
+                  detail.id,
+                  stepId,
+                  step?.inBlockId ? { inBlockId: null } : { inTransitionId: null },
+                ),
+              step?.inBlockId
+                ? "Unlinked — the block stays in your library"
+                : "Unlinked — the transition stays in your library",
             );
           }}
           onToggleSeam={(step) => {
@@ -439,6 +665,16 @@ export function SequenceWorkspace({
                 ? "Seam removed — this join counts again"
                 : "Marked a seam — excluded from completeness",
             );
+          }}
+          onToggleExpand={(blockId) => void handleToggleExpand(blockId)}
+          onEditBlock={(step) => void handleEditBlock(step)}
+          onDetach={(step) => {
+            if (!step.inBlockId) return;
+            setPendingDetach({
+              stepId: step.id,
+              blockId: step.inBlockId,
+              title: step.inBlock?.title ?? "block",
+            });
           }}
           onMove={(stepId, delta) => void handleMove(stepId, delta)}
           onToggleNote={(stepId) => {
@@ -453,9 +689,7 @@ export function SequenceWorkspace({
             setNoteDrafts((current) => ({ ...current, [stepId]: value }));
           }}
           onNoteCommit={(stepId) => void commitNote(stepId)}
-          onRemove={(step) => {
-            void mutate(() => deleteSequenceStep(detail.id, step.id), "Step removed");
-          }}
+          onRemove={handleRemoveStep}
           onStepDragStart={(event: DragEvent, step: SequenceStep) => {
             event.dataTransfer.setData("text/plain", step.id);
             event.dataTransfer.effectAllowed = "move";
@@ -474,14 +708,20 @@ export function SequenceWorkspace({
             setPaletteTab("tracks");
             setSelection({ kind: "none" });
           }}
+          onInsertBlockCta={() => {
+            setPaletteTab("blocks");
+            setSelection({ kind: "none" });
+          }}
         />
         <LibraryPalette
+          sequenceId={detail.id}
           selection={selection}
           steps={detail.steps}
           tab={paletteTab}
           onTab={setPaletteTab}
           onAddTrack={(track) => void handleAddTrack(track)}
           onAddTransition={(transition) => void handleAddTransition(transition)}
+          onAddBlock={(block) => void handleAddBlock(block)}
           onClearSelection={() => {
             setSelection({ kind: "none" });
             setPickerStepId(null);
@@ -514,6 +754,77 @@ export function SequenceWorkspace({
               setDeleting(false);
             }
           })();
+        }}
+      />
+      <ConfirmDialog
+        open={pendingRemove != null}
+        onOpenChange={(open) => {
+          if (!open) setPendingRemove(null);
+        }}
+        title={pendingRemove ? `Remove “${pendingRemove.title}”?` : "Remove block?"}
+        description="The block stays in your library — only this night loses the unit."
+        confirmLabel="Remove"
+        variant="default"
+        pending={pendingAction}
+        pendingLabel="Removing…"
+        onConfirm={() => {
+          if (!pendingRemove) return;
+          const { stepIds } = pendingRemove;
+          setPendingAction(true);
+          void (async () => {
+            const result = await mutate(async () => {
+              let latest = detail;
+              for (const id of [...stepIds].reverse()) {
+                const next = await deleteSequenceStep(latest.id, id);
+                latest = next.sequence;
+              }
+              return { sequence: latest };
+            }, "Block removed — it stays in your library");
+            setPendingAction(false);
+            if (result) setPendingRemove(null);
+          })();
+        }}
+      />
+      <ConfirmDialog
+        open={pendingDetach != null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDetach(null);
+        }}
+        title={pendingDetach ? `Detach “${pendingDetach.title}”?` : "Detach block?"}
+        description="Inline these tracks as editable steps. The original block stays in your library."
+        confirmLabel="Detach"
+        variant="default"
+        pending={pendingAction}
+        pendingLabel="Detaching…"
+        onConfirm={() => {
+          if (!pendingDetach) return;
+          const { stepId, blockId } = pendingDetach;
+          setPendingAction(true);
+          void (async () => {
+            const result = await mutate(
+              () => detachSequenceStep(detail.id, stepId),
+              "Detached to a copy — these steps are editable now",
+            );
+            setPendingAction(false);
+            if (result) {
+              forgetChild(blockId);
+              setPendingDetach(null);
+            }
+          })();
+        }}
+      />
+      <ConfirmDialog
+        open={pendingEdit != null}
+        onOpenChange={(open) => {
+          if (!open) setPendingEdit(null);
+        }}
+        title={pendingEdit ? `Edit “${pendingEdit.title}”?` : "Edit block?"}
+        description={pendingEdit?.description ?? ""}
+        confirmLabel="Open block"
+        variant="default"
+        onConfirm={() => {
+          if (!pendingEdit) return;
+          router.push(sequenceWorkspaceHref("block", pendingEdit.blockId));
         }}
       />
     </div>

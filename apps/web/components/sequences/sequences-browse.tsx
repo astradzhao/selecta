@@ -51,8 +51,11 @@ function kindForView(view: SetsView): SequenceKind {
 function rowMeta(row: SequenceRecord): string {
   if (row.stepCount === 0) return "empty";
   const tracks = `${row.stepCount} ${row.stepCount === 1 ? "track" : "tracks"}`;
-  if (row.seamCount === 0) return tracks;
-  return `${tracks} · ${row.seamCount} ${row.seamCount === 1 ? "seam" : "seams"}`;
+  const ends =
+    row.startTrack && row.endTrack ? `${row.startTrack.title} → ${row.endTrack.title}` : null;
+  const seams =
+    row.seamCount === 0 ? null : `${row.seamCount} ${row.seamCount === 1 ? "seam" : "seams"}`;
+  return [ends, tracks, seams].filter(Boolean).join(" · ");
 }
 
 function completenessBadge(row: SequenceRecord): {

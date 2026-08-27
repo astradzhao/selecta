@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 
 import { Alert } from "@selecta/ui/components/alert";
@@ -8,11 +9,13 @@ import { StatePanel } from "@selecta/ui/components/state-panel";
 
 import { NextTransitions } from "@/components/graph/next-transitions";
 import { NowPlayingPanel } from "@/components/graph/now-playing-panel";
+import { SaveTrailDialog } from "@/components/graph/save-trail-dialog";
 import { useGraphExplorer } from "@/components/graph/use-graph-explorer";
 
 export function GraphExplorer({ onExit }: { onExit: () => void }) {
   const explorer = useGraphExplorer();
-  const { trackId, current, error, pending, choosingId, neighbors } = explorer;
+  const { trackId, current, error, pending, choosingId, neighbors, trail } = explorer;
+  const [saveOpen, setSaveOpen] = useState(false);
 
   if (!trackId) return null;
 
@@ -51,9 +54,20 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
         <p className="text-muted-foreground text-sm text-pretty">
           Expand a neighbor for mix detail, then choose it to traverse.
         </p>
-        <Button type="button" variant="destructive" size="sm" onClick={onExit}>
-          Exit
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={trail.length < 1}
+            onClick={() => setSaveOpen(true)}
+          >
+            Save as block
+          </Button>
+          <Button type="button" variant="destructive" size="sm" onClick={onExit}>
+            Exit
+          </Button>
+        </div>
       </div>
 
       {/* Sticky now-playing column vs next-transitions list; ratios match the old explorer. */}
@@ -88,12 +102,20 @@ export function GraphExplorer({ onExit }: { onExit: () => void }) {
             if (!expanded) void explorer.loadNeighborhood(rowKey).catch(() => null);
           }}
           onPrefetch={(neighborId) => void explorer.loadNeighborhood(neighborId).catch(() => null)}
-          onChoose={(neighborId) =>
-            void explorer.goToTrack(neighborId, explorer.cardElement(neighborId))
+          onChoose={(neighborId, transitionId) =>
+            void explorer.goToTrack(neighborId, transitionId, explorer.cardElement(neighborId))
           }
           onNeighborhoodChange={explorer.refreshNeighborhood}
         />
       </div>
+      {trackId ? (
+        <SaveTrailDialog
+          open={saveOpen}
+          onOpenChange={setSaveOpen}
+          trail={trail}
+          activeId={trackId}
+        />
+      ) : null}
     </div>
   );
 }

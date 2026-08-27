@@ -86,7 +86,11 @@ export function useGraphExplorer() {
     };
   }, [trackId]);
 
-  async function goToTrack(nextId: string, sourceElement?: HTMLElement | null) {
+  async function goToTrack(
+    nextId: string,
+    transitionId: string | null,
+    sourceElement?: HTMLElement | null,
+  ) {
     if (!trackId || choosingId || nextId === trackId) return;
 
     const request = loadNeighborhood(nextId).catch(() => null);
@@ -105,7 +109,7 @@ export function useGraphExplorer() {
       await wait(prefersReducedMotion() ? 0 : HOP_COPY_OUT_MS);
 
       loadedIdRef.current = next ? nextId : null;
-      hopGraphSession(trackId, nextId);
+      hopGraphSession(trackId, nextId, transitionId);
       if (next) {
         setCurrent(next.current);
         setNeighbors(next.neighbors);

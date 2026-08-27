@@ -25,6 +25,15 @@ export type SequenceStepTransition = {
   notes: string | null;
 };
 
+export type SequenceStepBlock = {
+  id: string;
+  title: string;
+  stepCount: number;
+  seamCount: number;
+  isComplete: boolean;
+  runtimeSec: number;
+};
+
 export type SequenceStep = {
   id: string;
   position: number;
@@ -38,6 +47,7 @@ export type SequenceStep = {
   transitionCandidateCount: number;
   track: SequenceStepTrack | null;
   inTransition: SequenceStepTransition | null;
+  inBlock: SequenceStepBlock | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -72,6 +82,8 @@ export type SequenceRecord = {
   isComplete: boolean;
   stepCount: number;
   seamCount: number;
+  startTrack: SequenceStepTrack | null;
+  endTrack: SequenceStepTrack | null;
   libraryId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -88,7 +100,29 @@ export type WorkspaceSelection =
   | { kind: "step"; stepId: string }
   | { kind: "gap"; stepId: string };
 
-export type DragPayload = { kind: "track"; id: string } | { kind: "transition"; id: string };
+export type SequenceReferrer = {
+  id: string;
+  title: string;
+  kind: SequenceKind;
+};
+
+export type SequenceTrailSeed = {
+  trackId: string;
+  inTransitionId: string | null;
+};
+
+export type DragPayload =
+  | { kind: "track"; id: string }
+  | { kind: "transition"; id: string }
+  | {
+      kind: "block";
+      id: string;
+      title: string;
+      stepCount: number;
+      startTrackId: string | null;
+      endTrackId: string | null;
+      isComplete: boolean;
+    };
 
 export type DropTarget =
   | { kind: "gap"; index: number }

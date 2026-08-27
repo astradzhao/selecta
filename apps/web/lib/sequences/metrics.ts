@@ -1,4 +1,8 @@
-import type { SequenceGapState, SequenceStep, SequenceStepTrack } from "./types";
+import { sequenceRuntimeSec, sequenceTrackCount } from "@selecta/library/sequence-runtime";
+
+import type { SequenceStep } from "./types";
+
+export { sequenceRuntimeSec, sequenceTrackCount };
 
 export function plannedMetrics(steps: Pick<SequenceStep, "gapState">[]): {
   linked: number;
@@ -26,38 +30,6 @@ export function formatPlannedLine(
 ): string {
   if (trackCount === 0) return "nothing planned yet";
   return `${metrics.linked} of ${metrics.planned} planned`;
-}
-
-export function sequenceRuntimeSec(
-  steps: Array<{
-    gapState: SequenceGapState | null;
-    track: SequenceStepTrack | null;
-    inTransition: { barsOverlap: number | null } | null;
-  }>,
-): number {
-  let total = 0;
-  for (const step of steps) {
-    const duration = step.track?.durationSec;
-    if (duration != null && Number.isFinite(duration)) total += duration;
-  }
-  for (let i = 1; i < steps.length; i++) {
-    const dest = steps[i]!;
-    const prev = steps[i - 1]!;
-    if (dest.gapState !== "linked") continue;
-    const overlap = dest.inTransition?.barsOverlap;
-    const bpm = prev.track?.bpm;
-    if (
-      overlap == null ||
-      bpm == null ||
-      !Number.isFinite(overlap) ||
-      !Number.isFinite(bpm) ||
-      bpm <= 0
-    ) {
-      continue;
-    }
-    total -= (overlap * 4 * 60) / bpm;
-  }
-  return Math.max(0, total);
 }
 
 export function formatApproxRuntime(totalSec: number): string {

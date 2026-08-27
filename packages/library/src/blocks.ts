@@ -25,8 +25,10 @@ import {
 import { SEQUENCE_MAX_NESTING_DEPTH, isBlockKind, type GapState } from "./constants";
 import { MusicWriteError } from "./errors";
 import { clampListLimit, clampListOffset, type ListPageMeta } from "./list-page";
+import { sequenceRuntimeSec } from "./sequence-runtime";
 import { optionalString, requireTrimmed } from "./shared";
 import { getTrackSummariesByIds } from "./tracks";
+import type { TrackSummary } from "./types";
 
 export type SequenceRecord = {
   id: string;
@@ -38,6 +40,8 @@ export type SequenceRecord = {
   isComplete: boolean;
   stepCount: number;
   seamCount: number;
+  startTrack: SequenceStepTrack | null;
+  endTrack: SequenceStepTrack | null;
   libraryId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -66,6 +70,15 @@ export type SequenceStepTransition = {
   notes: string | null;
 };
 
+export type SequenceStepBlock = {
+  id: string;
+  title: string;
+  stepCount: number;
+  seamCount: number;
+  isComplete: boolean;
+  runtimeSec: number;
+};
+
 export type SequenceStep = {
   id: string;
   position: number;
@@ -81,6 +94,7 @@ export type SequenceStep = {
   transitionCandidateCount: number;
   track: SequenceStepTrack | null;
   inTransition: SequenceStepTransition | null;
+  inBlock: SequenceStepBlock | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -235,9 +249,26 @@ function parseKind(value: string | undefined, fallback: BlockKind = "block"): Bl
   return value;
 }
 
+function toStepTrack(summary: TrackSummary | undefined): SequenceStepTrack | null {
+  if (!summary) return null;
+  return {
+    id: summary.track.id,
+    title: summary.track.title,
+    artists: summary.artists.map((artist) => artist.name),
+    artworkUrl: summary.track.artworkUrl,
+    bpm: summary.track.bpm,
+    musicalKey: summary.track.musicalKey,
+    durationSec: summary.track.durationSec,
+  };
+}
+
 function toRecord(
   row: BlockRow,
   counts: { stepCount: number; seamCount: number } = { stepCount: 0, seamCount: 0 },
+  endpoints: {
+    startTrack?: SequenceStepTrack | null;
+    endTrack?: SequenceStepTrack | null;
+  } = {},
 ): SequenceRecord {
   return {
     id: row.id,
@@ -249,6 +280,8 @@ function toRecord(
     isComplete: row.isComplete,
     stepCount: counts.stepCount,
     seamCount: counts.seamCount,
+    startTrack: endpoints.startTrack ?? null,
+    endTrack: endpoints.endTrack ?? null,
     libraryId: row.libraryId ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -340,6 +373,105 @@ async function loadOrderedSteps(sequenceId: string): Promise<BlockStepRow[]> {
     .from(blockSteps)
     .where(eq(blockSteps.blockId, sequenceId));
   return sortSteps(rows);
+}
+
+async function runtimeSecForSequence(
+  sequenceId: string,
+  memo: Map<string, number>,
+  depth: number,
+): Promise<number> {
+  const cached = memo.get(sequenceId);
+  if (cached != null) return cached;
+  if (depth > SEQUENCE_MAX_NESTING_DEPTH) {
+    memo.set(sequenceId, 0);
+    return 0;
+  }
+  const steps = await loadOrderedSteps(sequenceId);
+  const nestedIds = [
+    ...new Set(steps.map((step) => step.inBlockId).filter((id): id is string => Boolean(id))),
+  ];
+  const childRuntime = new Map<string, number>();
+  for (const nestedId of nestedIds) {
+    childRuntime.set(nestedId, await runtimeSecForSequence(nestedId, memo, depth + 1));
+  }
+  const summaries = await getTrackSummariesByIds(steps.map((step) => step.trackId));
+  const transitionIds = [
+    ...new Set(steps.map((step) => step.inTransitionId).filter((id): id is string => Boolean(id))),
+  ];
+  const overlapById = new Map<string, number | null>();
+  if (transitionIds.length > 0) {
+    const rows = await getExecutor()
+      .select({ id: transitions.id, barsOverlap: transitions.barsOverlap })
+      .from(transitions)
+      .where(inArray(transitions.id, transitionIds));
+    for (const row of rows) {
+      overlapById.set(row.id, row.barsOverlap);
+    }
+  }
+  const runtimeSteps = [];
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i]!;
+    const prev = i > 0 ? steps[i - 1] : null;
+    let gapState: GapState | null = null;
+    if (prev) {
+      if (step.isSeam) {
+        gapState = "seam";
+      } else {
+        const validity = await validateConnector(prev.trackId, step.trackId, step);
+        gapState = validity.valid ? "linked" : "unmapped";
+      }
+    }
+    const summary = summaries.get(step.trackId);
+    runtimeSteps.push({
+      gapState,
+      track: summary ? { durationSec: summary.track.durationSec, bpm: summary.track.bpm } : null,
+      inTransition:
+        step.inTransitionId != null
+          ? { barsOverlap: overlapById.get(step.inTransitionId) ?? null }
+          : null,
+      inBlock:
+        step.inBlockId != null ? { runtimeSec: childRuntime.get(step.inBlockId) ?? 0 } : null,
+    });
+  }
+  const value = sequenceRuntimeSec(runtimeSteps);
+  memo.set(sequenceId, value);
+  return value;
+}
+
+async function loadBlockEmbeds(ids: string[]): Promise<Map<string, SequenceStepBlock>> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  const embeds = new Map<string, SequenceStepBlock>();
+  if (unique.length === 0) return embeds;
+  const rows = await getExecutor().select().from(blocks).where(inArray(blocks.id, unique));
+  const countsById = new Map<string, { stepCount: number; seamCount: number }>();
+  const countRows = await getExecutor()
+    .select({
+      blockId: blockSteps.blockId,
+      stepCount: sql<number>`cast(count(*) as int)`,
+      seamCount: sql<number>`cast(count(*) filter (where ${blockSteps.isSeam}) as int)`,
+    })
+    .from(blockSteps)
+    .where(inArray(blockSteps.blockId, unique))
+    .groupBy(blockSteps.blockId);
+  for (const countRow of countRows) {
+    countsById.set(countRow.blockId, {
+      stepCount: Number(countRow.stepCount),
+      seamCount: Number(countRow.seamCount),
+    });
+  }
+  const memo = new Map<string, number>();
+  for (const row of rows) {
+    const counts = countsById.get(row.id) ?? { stepCount: 0, seamCount: 0 };
+    embeds.set(row.id, {
+      id: row.id,
+      title: row.title,
+      stepCount: counts.stepCount,
+      seamCount: counts.seamCount,
+      isComplete: row.isComplete,
+      runtimeSec: await runtimeSecForSequence(row.id, memo, 0),
+    });
+  }
+  return embeds;
 }
 
 async function loadAlternates(sequenceId: string): Promise<BlockAlternateRow[]> {
@@ -817,6 +949,10 @@ async function hydrateSteps(sequenceId: string, steps: BlockStepRow[]): Promise<
       });
     }
   }
+  const blockIds = [
+    ...new Set(steps.map((step) => step.inBlockId).filter((id): id is string => Boolean(id))),
+  ];
+  const blockById = await loadBlockEmbeds(blockIds);
 
   const hydrated: SequenceStep[] = [];
   for (let i = 0; i < steps.length; i++) {
@@ -843,16 +979,9 @@ async function hydrateSteps(sequenceId: string, steps: BlockStepRow[]): Promise<
       gapState: prev ? await deriveGapState(prev, step, pair.candidateCount) : null,
       candidateCount: pair.candidateCount,
       transitionCandidateCount: pair.transitionCandidateCount,
-      track: {
-        id: summary.track.id,
-        title: summary.track.title,
-        artists: summary.artists.map((artist) => artist.name),
-        artworkUrl: summary.track.artworkUrl,
-        bpm: summary.track.bpm,
-        musicalKey: summary.track.musicalKey,
-        durationSec: summary.track.durationSec,
-      },
+      track: toStepTrack(summary),
       inTransition: step.inTransitionId ? (transitionById.get(step.inTransitionId) ?? null) : null,
+      inBlock: step.inBlockId ? (blockById.get(step.inBlockId) ?? null) : null,
       createdAt: step.createdAt.toISOString(),
       updatedAt: step.updatedAt.toISOString(),
     });
@@ -1101,15 +1230,23 @@ async function buildDetail(
     }
     expansion = await expandResolvedSteps(row.id, resolved, 0);
   }
+  const hydrated = await hydrateSteps(row.id, steps);
   return {
-    ...toRecord(row, {
-      stepCount: steps.length,
-      seamCount: steps.filter((step) => step.isSeam).length,
-    }),
+    ...toRecord(
+      row,
+      {
+        stepCount: steps.length,
+        seamCount: steps.filter((step) => step.isSeam).length,
+      },
+      {
+        startTrack: hydrated[0]?.track ?? null,
+        endTrack: hydrated.length > 0 ? (hydrated[hydrated.length - 1]!.track ?? null) : null,
+      },
+    ),
     startTrackId: steps[0]?.trackId ?? null,
     endTrackId: steps.length > 0 ? steps[steps.length - 1]!.trackId : null,
     isComplete: await computeIsComplete(steps),
-    steps: await hydrateSteps(row.id, steps),
+    steps: hydrated,
     alternates: await hydrateAlternates(steps, alternateRows),
     versions,
     expansion,
@@ -1200,8 +1337,21 @@ export async function listSequences(input: ListSequencesInput = {}): Promise<Lis
       });
     }
   }
+  const endpointIds = [
+    ...new Set(
+      page
+        .flatMap((row) => [row.startTrackId, row.endTrackId])
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const endpointSummaries = await getTrackSummariesByIds(endpointIds);
   return {
-    sequences: page.map((row) => toRecord(row, countsById.get(row.id))),
+    sequences: page.map((row) =>
+      toRecord(row, countsById.get(row.id), {
+        startTrack: row.startTrackId ? toStepTrack(endpointSummaries.get(row.startTrackId)) : null,
+        endTrack: row.endTrackId ? toStepTrack(endpointSummaries.get(row.endTrackId)) : null,
+      }),
+    ),
     limit,
     offset,
     hasMore,
@@ -1339,6 +1489,11 @@ export async function listSequenceReferrers(sequenceId: string): Promise<Sequenc
     map.set(row.id, row);
   }
   return [...map.values()];
+}
+
+export async function getSequenceReferrers(sequenceId: string): Promise<SequenceReferrer[]> {
+  await requireSequenceRow(sequenceId);
+  return listSequenceReferrers(sequenceId);
 }
 
 export async function deleteSequence(sequenceId: string): Promise<{ id: string; deleted: true }> {

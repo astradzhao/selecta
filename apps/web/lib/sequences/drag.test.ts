@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { autoLinkTransitionId, dropFit, insertIndex, paletteTransitionQuery } from "./drag";
+import {
+  autoLinkTransitionId,
+  dropFit,
+  insertIndex,
+  paletteTransitionQuery,
+  type FitPayload,
+} from "./drag";
 import type { DropTarget } from "./types";
 
 const steps = [
@@ -11,6 +17,21 @@ const steps = [
 ];
 
 const ab = { fromTrackId: "a", toTrackId: "b" };
+
+const completeBlock: FitPayload = {
+  kind: "block",
+  id: "blk-1",
+  title: "Acid build",
+  stepCount: 4,
+  startTrackId: "a",
+  endTrackId: "b",
+  isComplete: true,
+};
+
+const incompleteBlock: FitPayload = {
+  ...completeBlock,
+  isComplete: false,
+};
 
 describe("insertIndex", () => {
   it("appends with no selection, inserts at a gap, and after a step", () => {
@@ -58,6 +79,21 @@ describe("dropFit", () => {
       dropFit({ kind: "transition", id: "ab" }, { kind: "end", index: 0 }, [], ab),
       true,
     );
+  });
+
+  it("rejects incomplete blocks everywhere and matches both endpoints on a gap", () => {
+    const targets: DropTarget[] = [
+      { kind: "gap", index: 1 },
+      { kind: "step", index: 2 },
+      { kind: "end", index: 3 },
+    ];
+    for (const target of targets) {
+      assert.equal(dropFit(incompleteBlock, target, steps), false);
+    }
+    assert.equal(dropFit(completeBlock, { kind: "gap", index: 1 }, steps), true);
+    assert.equal(dropFit(completeBlock, { kind: "gap", index: 2 }, steps), false);
+    assert.equal(dropFit(completeBlock, { kind: "step", index: 2 }, steps), true);
+    assert.equal(dropFit(completeBlock, { kind: "end", index: 3 }, steps), true);
   });
 });
 
