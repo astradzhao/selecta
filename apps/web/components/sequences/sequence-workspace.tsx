@@ -62,6 +62,20 @@ import type { ApiTrack } from "@/lib/tracks/api";
 import { LibraryPalette, type PaletteTab } from "./library-palette";
 import { SequenceRunningOrder } from "./sequence-running-order";
 
+function findOwnedStep(
+  parent: SequenceDetail,
+  children: Record<string, SequenceDetail>,
+  stepId: string,
+): { sequenceId: string; step: SequenceStep } | null {
+  const parentStep = parent.steps.find((item) => item.id === stepId);
+  if (parentStep) return { sequenceId: parent.id, step: parentStep };
+  for (const [id, child] of Object.entries(children)) {
+    const inner = child.steps.find((item) => item.id === stepId);
+    if (inner) return { sequenceId: id, step: inner };
+  }
+  return null;
+}
+
 export function SequenceWorkspace({
   sequenceId,
   routeKind,
@@ -156,9 +170,19 @@ export function SequenceWorkspace({
     setSelection((current) => {
       if (current.kind === "none") return current;
       const step = next.steps.find((item) => item.id === current.stepId);
-      if (!step) return { kind: "none" };
-      if (current.kind === "gap" && step.gapState == null) return { kind: "none" };
-      return current;
+      if (step) {
+        if (current.kind === "gap" && step.gapState == null) return { kind: "none" };
+        return current;
+      }
+      if (
+        current.kind === "step" &&
+        Object.values(childById).some((child) =>
+          child.steps.some((item) => item.id === current.stepId),
+        )
+      ) {
+        return current;
+      }
+      return { kind: "none" };
     });
     setPickerStepId((current) => {
       if (!current) return null;
@@ -448,12 +472,34 @@ export function SequenceWorkspace({
 
   async function commitNote(stepId: string) {
     if (!detail) return;
-    const step = detail.steps.find((item) => item.id === stepId);
-    if (!step) return;
-    const next = (noteDrafts[stepId] ?? step.note ?? "").trim() || null;
-    const current = step.note?.trim() || null;
+    const owned = findOwnedStep(detail, childById, stepId);
+    if (!owned) return;
+    const next = (noteDrafts[stepId] ?? owned.step.note ?? "").trim() || null;
+    const current = owned.step.note?.trim() || null;
     if (next === current) return;
-    await mutate(() => updateSequenceStep(detail.id, stepId, { note: next }));
+    if (owned.sequenceId === detail.id) {
+      await mutate(() => updateSequenceStep(detail.id, stepId, { note: next }));
+      return;
+    }
+    try {
+      const result = await updateSequenceStep(owned.sequenceId, stepId, { note: next });
+      setChildById((currentChildren) => ({
+        ...currentChildren,
+        [owned.sequenceId]: result.sequence,
+      }));
+      setConflict(null);
+    } catch (err) {
+      if (err instanceof ApiClientError && err.status === 409) {
+        const fresh = await getSequence(owned.sequenceId);
+        setChildById((currentChildren) => ({
+          ...currentChildren,
+          [owned.sequenceId]: fresh.sequence,
+        }));
+        setConflict("Sequence was updated elsewhere. Reloaded the latest version.");
+        return;
+      }
+      toast(describeApiError(err));
+    }
   }
 
   async function handleToggleExpand(blockId: string) {
@@ -679,9 +725,9 @@ export function SequenceWorkspace({
           onMove={(stepId, delta) => void handleMove(stepId, delta)}
           onToggleNote={(stepId) => {
             setNotesOpen((current) => {
-              const step = detail.steps.find((item) => item.id === stepId);
+              const owned = findOwnedStep(detail, childById, stepId);
               const open =
-                stepId in current ? Boolean(current[stepId]) : Boolean(step?.note?.trim());
+                stepId in current ? Boolean(current[stepId]) : Boolean(owned?.step.note?.trim());
               return { ...current, [stepId]: !open };
             });
           }}

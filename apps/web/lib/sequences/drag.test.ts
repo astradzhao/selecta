@@ -39,6 +39,7 @@ describe("insertIndex", () => {
     assert.equal(insertIndex({ kind: "gap", stepId: "s2" }, steps), 1);
     assert.equal(insertIndex({ kind: "step", stepId: "s2" }, steps), 2);
     assert.equal(insertIndex({ kind: "step", stepId: "s3" }, steps), 3);
+    assert.equal(insertIndex({ kind: "step", stepId: "nested-child" }, steps), "append");
   });
 });
 

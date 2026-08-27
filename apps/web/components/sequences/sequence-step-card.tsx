@@ -69,15 +69,15 @@ export function SequenceStepCard({
   showIndex?: boolean;
   movable?: boolean;
   onSelect: () => void;
-  onMove: (delta: -1 | 1) => void;
+  onMove?: (delta: -1 | 1) => void;
   onToggleNote: () => void;
   onNoteChange: (value: string) => void;
   onNoteCommit: () => void;
-  onRemove: () => void;
-  onDragStart: (event: DragEvent) => void;
-  onDragOver: (event: DragEvent) => void;
-  onDrop: (event: DragEvent) => void;
-  onDragEnd: () => void;
+  onRemove?: () => void;
+  onDragStart?: (event: DragEvent) => void;
+  onDragOver?: (event: DragEvent) => void;
+  onDrop?: (event: DragEvent) => void;
+  onDragEnd?: () => void;
 }) {
   const title = step.track?.title ?? "Unknown track";
   const artists = step.track ? artistLine(step.track.artists) : "Unknown artist";
@@ -136,7 +136,7 @@ export function SequenceStepCard({
                 disabled={!canMoveUp}
                 onClick={(event) => {
                   event.stopPropagation();
-                  onMove(-1);
+                  onMove?.(-1);
                 }}
               >
                 <span aria-hidden>↑</span>
@@ -149,7 +149,7 @@ export function SequenceStepCard({
                 disabled={!canMoveDown}
                 onClick={(event) => {
                   event.stopPropagation();
-                  onMove(1);
+                  onMove?.(1);
                 }}
               >
                 <span aria-hidden>↓</span>
@@ -178,7 +178,7 @@ export function SequenceStepCard({
               className="text-destructive hover:bg-destructive-subtle"
               onClick={(event) => {
                 event.stopPropagation();
-                onRemove();
+                onRemove?.();
               }}
             >
               <span aria-hidden>✕</span>

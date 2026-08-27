@@ -1,15 +1,19 @@
 "use client";
 
-import { useId, type MouseEvent } from "react";
-import Image from "next/image";
+import { useId, type DragEvent, type MouseEvent } from "react";
 
 import { Button } from "@selecta/ui/components/button";
 import { cn } from "@selecta/ui/lib/utils";
 
-import { artistLine, formatDuration } from "@/lib/format";
 import { displayGapState, gapChrome, gapRowLabel } from "@/lib/sequences/gap-display";
 import { bpmDelta } from "@/lib/sequences/metrics";
-import type { SequenceDetail, SequenceStep } from "@/lib/sequences/types";
+import type { SequenceDetail, SequenceStep, WorkspaceSelection } from "@/lib/sequences/types";
+
+import { SequenceStepCard } from "./sequence-step-card";
+
+function ignoreDrag(event: DragEvent) {
+  event.stopPropagation();
+}
 
 export function BlockConnectorRow({
   state,
@@ -21,12 +25,19 @@ export function BlockConnectorRow({
   expanded,
   child,
   childError,
+  selection,
+  notesOpenFor,
+  noteValue,
   onSelect,
   onToggleExpand,
   onEdit,
   onDetach,
   onUnlink,
   onToggleSeam,
+  onSelectStep,
+  onToggleNote,
+  onNoteChange,
+  onNoteCommit,
 }: {
   state: "block" | "block-incomplete" | "block-broken";
   step: SequenceStep;
@@ -37,12 +48,19 @@ export function BlockConnectorRow({
   expanded: boolean;
   child: SequenceDetail | null;
   childError: string | null;
+  selection: WorkspaceSelection;
+  notesOpenFor: (step: SequenceStep) => boolean;
+  noteValue: (step: SequenceStep) => string;
   onSelect: () => void;
   onToggleExpand: () => void;
   onEdit: () => void;
   onDetach: () => void;
   onUnlink: () => void;
   onToggleSeam: () => void;
+  onSelectStep: (stepId: string) => void;
+  onToggleNote: (stepId: string) => void;
+  onNoteChange: (stepId: string, value: string) => void;
+  onNoteCommit: (stepId: string) => void;
 }) {
   const panelId = useId();
   const fromTitle = previous.track?.title ?? "Track";
@@ -175,7 +193,17 @@ export function BlockConnectorRow({
               )}
               onClick={stop}
             >
-              <BlockInteriorSequence child={child} childError={childError} />
+              <BlockInteriorSequence
+                child={child}
+                childError={childError}
+                selection={selection}
+                notesOpenFor={notesOpenFor}
+                noteValue={noteValue}
+                onSelectStep={onSelectStep}
+                onToggleNote={onToggleNote}
+                onNoteChange={onNoteChange}
+                onNoteCommit={onNoteCommit}
+              />
             </div>
           </div>
         </div>
@@ -187,9 +215,23 @@ export function BlockConnectorRow({
 function BlockInteriorSequence({
   child,
   childError,
+  selection,
+  notesOpenFor,
+  noteValue,
+  onSelectStep,
+  onToggleNote,
+  onNoteChange,
+  onNoteCommit,
 }: {
   child: SequenceDetail | null;
   childError: string | null;
+  selection: WorkspaceSelection;
+  notesOpenFor: (step: SequenceStep) => boolean;
+  noteValue: (step: SequenceStep) => string;
+  onSelectStep: (stepId: string) => void;
+  onToggleNote: (stepId: string) => void;
+  onNoteChange: (stepId: string, value: string) => void;
+  onNoteCommit: (stepId: string) => void;
 }) {
   if (childError) {
     return <p className="text-caption text-destructive">{childError}</p>;
@@ -205,44 +247,30 @@ function BlockInteriorSequence({
         return (
           <div key={inner.id}>
             {prev ? <InteriorGap step={inner} previous={prev} /> : null}
-            {isEndpoint ? null : <InteriorTrack step={inner} index={index} />}
+            {isEndpoint ? null : (
+              <div onDragOver={ignoreDrag} onDrop={ignoreDrag}>
+                <SequenceStepCard
+                  step={inner}
+                  index={index}
+                  selected={selection.kind === "step" && selection.stepId === inner.id}
+                  notesOpen={notesOpenFor(inner)}
+                  noteValue={noteValue(inner)}
+                  dragging={false}
+                  dropArmed={false}
+                  dropOver={false}
+                  canMoveUp={false}
+                  canMoveDown={false}
+                  movable={false}
+                  onSelect={() => onSelectStep(inner.id)}
+                  onToggleNote={() => onToggleNote(inner.id)}
+                  onNoteChange={(value) => onNoteChange(inner.id, value)}
+                  onNoteCommit={() => onNoteCommit(inner.id)}
+                />
+              </div>
+            )}
           </div>
         );
       })}
-    </div>
-  );
-}
-
-function InteriorTrack({ step, index }: { step: SequenceStep; index: number }) {
-  const title = step.track?.title ?? "Unknown track";
-  const artists = step.track ? artistLine(step.track.artists) : "Unknown artist";
-  const duration = formatDuration(step.track?.durationSec ?? null) ?? "—";
-  const bpm =
-    step.track?.bpm != null && Number.isFinite(step.track.bpm)
-      ? String(Math.round(step.track.bpm))
-      : "—";
-  const key = step.track?.musicalKey?.trim() || "—";
-  const initial = title.slice(0, 1).toUpperCase();
-
-  return (
-    <div className="grid grid-cols-[20px_28px_minmax(0,1fr)_86px_2.75rem_1.75rem] items-center gap-2.5 py-1 pr-2.5">
-      <span className="text-crate-meta text-right">{String(index + 1).padStart(2, "0")}</span>
-      <span className="bg-surface-3 text-muted-foreground relative flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-md text-xs font-semibold">
-        {step.track?.artworkUrl ? (
-          <Image src={step.track.artworkUrl} alt="" fill className="object-cover" sizes="28px" />
-        ) : (
-          initial
-        )}
-      </span>
-      <span className="flex min-w-0 flex-col gap-px">
-        <span className="truncate text-sm font-medium">{title}</span>
-        <span className="text-caption truncate">{artists}</span>
-      </span>
-      <span className="text-crate-meta text-right">
-        {bpm} · {key}
-      </span>
-      <span className="text-crate-meta text-right">{duration}</span>
-      <span />
     </div>
   );
 }

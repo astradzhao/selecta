@@ -184,6 +184,9 @@ export function SequenceRunningOrder({
         expanded={Boolean(blockId && expandedBlockIds[blockId])}
         child={blockId ? (childById[blockId] ?? null) : null}
         childError={blockId ? (childErrorById[blockId] ?? null) : null}
+        selection={selection}
+        notesOpenFor={notesOpenFor}
+        noteValue={noteValue}
         onSelect={() => onSelectGap(step.id)}
         onTogglePicker={() => onTogglePicker(step.id)}
         onPickTransition={(transition) => onPickTransition(step.id, transition)}
@@ -195,6 +198,10 @@ export function SequenceRunningOrder({
         }}
         onEditBlock={() => onEditBlock(step)}
         onDetach={() => onDetach(step)}
+        onSelectStep={onSelectStep}
+        onToggleNote={onToggleNote}
+        onNoteChange={onNoteChange}
+        onNoteCommit={onNoteCommit}
         onDragOver={(event) => {
           if (dragPayload) {
             armOver(event, gapTarget, gapArmed);
@@ -363,7 +370,7 @@ function UnitShell({
       onDrop={onDrop}
       onDragEnd={onDragEnd}
       className={cn(
-        "rounded-xl border px-1.5 pt-1 pb-1",
+        "rounded-xl border py-1",
         incomplete ? "border-warning" : "border-brand",
         dragging && "opacity-45",
       )}

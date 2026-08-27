@@ -8,7 +8,12 @@ import { cn } from "@selecta/ui/lib/utils";
 
 import { displayGapState, gapChrome, gapRowLabel } from "@/lib/sequences/gap-display";
 import { bpmDelta } from "@/lib/sequences/metrics";
-import type { SequenceDetail, SequenceRecord, SequenceStep } from "@/lib/sequences/types";
+import type {
+  SequenceDetail,
+  SequenceRecord,
+  SequenceStep,
+  WorkspaceSelection,
+} from "@/lib/sequences/types";
 import { addTransitionHref } from "@/lib/sequences/view";
 import type { ApiTransition } from "@/lib/transitions/types";
 
@@ -26,6 +31,9 @@ export function SequenceGap({
   expanded,
   child,
   childError,
+  selection,
+  notesOpenFor,
+  noteValue,
   onSelect,
   onTogglePicker,
   onPickTransition,
@@ -35,6 +43,10 @@ export function SequenceGap({
   onToggleExpand,
   onEditBlock,
   onDetach,
+  onSelectStep,
+  onToggleNote,
+  onNoteChange,
+  onNoteCommit,
   onDragOver,
   onDrop,
 }: {
@@ -48,6 +60,9 @@ export function SequenceGap({
   expanded: boolean;
   child: SequenceDetail | null;
   childError: string | null;
+  selection: WorkspaceSelection;
+  notesOpenFor: (step: SequenceStep) => boolean;
+  noteValue: (step: SequenceStep) => string;
   onSelect: () => void;
   onTogglePicker: () => void;
   onPickTransition: (transition: ApiTransition) => void;
@@ -57,6 +72,10 @@ export function SequenceGap({
   onToggleExpand: () => void;
   onEditBlock: () => void;
   onDetach: () => void;
+  onSelectStep: (stepId: string) => void;
+  onToggleNote: (stepId: string) => void;
+  onNoteChange: (stepId: string, value: string) => void;
+  onNoteCommit: (stepId: string) => void;
   onDragOver: (event: DragEvent) => void;
   onDrop: (event: DragEvent) => void;
 }) {
@@ -88,12 +107,19 @@ export function SequenceGap({
           expanded={expanded}
           child={child}
           childError={childError}
+          selection={selection}
+          notesOpenFor={notesOpenFor}
+          noteValue={noteValue}
           onSelect={onSelect}
           onToggleExpand={onToggleExpand}
           onEdit={onEditBlock}
           onDetach={onDetach}
           onUnlink={onUnlink}
           onToggleSeam={onToggleSeam}
+          onSelectStep={onSelectStep}
+          onToggleNote={onToggleNote}
+          onNoteChange={onNoteChange}
+          onNoteCommit={onNoteCommit}
         />
       ) : (
         <TransitionGapRow
