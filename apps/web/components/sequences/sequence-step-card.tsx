@@ -35,13 +35,16 @@ function bpmKey(step: SequenceStep): string {
 export function SequenceStepCard({
   step,
   index,
-  total,
   selected,
   notesOpen,
   noteValue,
   dragging,
   dropArmed,
   dropOver,
+  canMoveUp,
+  canMoveDown,
+  showIndex = true,
+  movable = true,
   onSelect,
   onMove,
   onToggleNote,
@@ -55,23 +58,26 @@ export function SequenceStepCard({
 }: {
   step: SequenceStep;
   index: number;
-  total: number;
   selected: boolean;
   notesOpen: boolean;
   noteValue: string;
   dragging: boolean;
   dropArmed: boolean;
   dropOver: boolean;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  showIndex?: boolean;
+  movable?: boolean;
   onSelect: () => void;
-  onMove: (delta: -1 | 1) => void;
+  onMove?: (delta: -1 | 1) => void;
   onToggleNote: () => void;
   onNoteChange: (value: string) => void;
   onNoteCommit: () => void;
-  onRemove: () => void;
-  onDragStart: (event: DragEvent) => void;
-  onDragOver: (event: DragEvent) => void;
-  onDrop: (event: DragEvent) => void;
-  onDragEnd: () => void;
+  onRemove?: () => void;
+  onDragStart?: (event: DragEvent) => void;
+  onDragOver?: (event: DragEvent) => void;
+  onDrop?: (event: DragEvent) => void;
+  onDragEnd?: () => void;
 }) {
   const title = step.track?.title ?? "Unknown track";
   const artists = step.track ? artistLine(step.track.artists) : "Unknown artist";
@@ -81,14 +87,14 @@ export function SequenceStepCard({
   return (
     <div>
       <div
-        draggable
-        onDragStart={onDragStart}
+        draggable={movable}
+        onDragStart={movable ? onDragStart : undefined}
         onDragOver={onDragOver}
         onDrop={onDrop}
         onDragEnd={onDragEnd}
         onClick={onSelect}
         className={cn(
-          "grid grid-cols-[18px_20px_36px_minmax(0,1fr)_auto_auto_auto] items-center gap-2.5 rounded-xl border px-2.5 py-2",
+          "grid grid-cols-[auto_36px_minmax(0,1fr)_auto_auto_auto] items-center gap-2.5 rounded-xl border px-2.5 py-2",
           dropOver
             ? "border-selected bg-brand-subtle"
             : dropArmed
@@ -99,13 +105,21 @@ export function SequenceStepCard({
           dragging && "opacity-45",
         )}
       >
-        <span
-          title="Drag to reorder"
-          className="text-muted-foreground cursor-grab select-none text-sm leading-none"
-        >
-          ⠿
+        <span className="flex items-center gap-1">
+          <span
+            title={movable ? "Drag to reorder" : undefined}
+            className={cn(
+              "w-3.5 shrink-0 select-none text-sm leading-none",
+              movable ? "text-muted-foreground cursor-grab" : "text-transparent",
+            )}
+            aria-hidden={!movable}
+          >
+            {movable ? "⠿" : ""}
+          </span>
+          <span className="text-crate-meta w-5 shrink-0 tabular-nums">
+            {showIndex ? String(index + 1).padStart(2, "0") : ""}
+          </span>
         </span>
-        <span className="text-crate-meta text-right">{String(index + 1).padStart(2, "0")}</span>
         {stepArtwork(step)}
         <span className="flex min-w-0 flex-col gap-px">
           <span className="truncate font-medium">{title}</span>
@@ -114,32 +128,36 @@ export function SequenceStepCard({
         <span className="text-crate-meta w-[86px] text-right">{bpmKey(step)}</span>
         <span className="text-crate-meta w-11 text-right">{duration}</span>
         <span className="flex items-center gap-px">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            title="Move up"
-            disabled={index === 0}
-            onClick={(event) => {
-              event.stopPropagation();
-              onMove(-1);
-            }}
-          >
-            <span aria-hidden>↑</span>
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            title="Move down"
-            disabled={index === total - 1}
-            onClick={(event) => {
-              event.stopPropagation();
-              onMove(1);
-            }}
-          >
-            <span aria-hidden>↓</span>
-          </Button>
+          {movable ? (
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                title="Move up"
+                disabled={!canMoveUp}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onMove?.(-1);
+                }}
+              >
+                <span aria-hidden>↑</span>
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                title="Move down"
+                disabled={!canMoveDown}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onMove?.(1);
+                }}
+              >
+                <span aria-hidden>↓</span>
+              </Button>
+            </>
+          ) : null}
           <Button
             type="button"
             variant="ghost"
@@ -153,18 +171,21 @@ export function SequenceStepCard({
           >
             <span aria-hidden>✎</span>
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            title="Remove step"
-            onClick={(event) => {
-              event.stopPropagation();
-              onRemove();
-            }}
-          >
-            <span aria-hidden>✕</span>
-          </Button>
+          {movable ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              title="Remove step"
+              className="text-destructive hover:bg-destructive-subtle"
+              onClick={(event) => {
+                event.stopPropagation();
+                onRemove?.();
+              }}
+            >
+              <span aria-hidden>✕</span>
+            </Button>
+          ) : null}
         </span>
       </div>
       {notesOpen ? (

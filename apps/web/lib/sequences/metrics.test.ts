@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { bpmDelta, formatPlannedLine, plannedMetrics, sequenceRuntimeSec } from "./metrics";
+import {
+  bpmDelta,
+  formatPlannedLine,
+  plannedMetrics,
+  sequenceRuntimeSec,
+  sequenceTrackCount,
+} from "./metrics";
 
 describe("plannedMetrics", () => {
   it("excludes seams from the planned denominator", () => {
@@ -23,34 +29,46 @@ describe("plannedMetrics", () => {
 describe("sequenceRuntimeSec", () => {
   it("subtracts overlap in seconds using the from-track BPM", () => {
     const total = sequenceRuntimeSec([
-      {
-        gapState: null,
-        track: {
-          id: "a",
-          title: "A",
-          artists: [],
-          artworkUrl: null,
-          bpm: 120,
-          musicalKey: null,
-          durationSec: 180,
-        },
-        inTransition: null,
-      },
+      { gapState: null, track: { durationSec: 180, bpm: 120 }, inTransition: null },
       {
         gapState: "linked",
-        track: {
-          id: "b",
-          title: "B",
-          artists: [],
-          artworkUrl: null,
-          bpm: 124,
-          musicalKey: null,
-          durationSec: 180,
-        },
+        track: { durationSec: 180, bpm: 124 },
         inTransition: { barsOverlap: 8 },
       },
     ]);
     assert.equal(total, 344);
+  });
+
+  it("uses the child runtime for a linked block unit instead of the two endpoints", () => {
+    const total = sequenceRuntimeSec([
+      { gapState: null, track: { durationSec: 180, bpm: 120 }, inTransition: null },
+      {
+        gapState: "linked",
+        track: { durationSec: 180, bpm: 124 },
+        inTransition: null,
+        inBlock: { runtimeSec: 500 },
+      },
+      {
+        gapState: "linked",
+        track: { durationSec: 60, bpm: 120 },
+        inTransition: { barsOverlap: null },
+      },
+    ]);
+    assert.equal(total, 560);
+  });
+});
+
+describe("sequenceTrackCount", () => {
+  it("counts a linked block's interior once and the rest of the spine around it", () => {
+    assert.equal(
+      sequenceTrackCount([
+        { gapState: null, inBlock: null },
+        { gapState: "linked", inBlock: { stepCount: 4 } },
+        { gapState: "linked", inBlock: null },
+        { gapState: "unmapped", inBlock: null },
+      ]),
+      6,
+    );
   });
 });
 

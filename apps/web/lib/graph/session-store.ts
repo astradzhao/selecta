@@ -2,11 +2,22 @@
 
 import { useSyncExternalStore } from "react";
 
-const STORAGE_KEY = "selecta.graph-session.v1";
+const STORAGE_KEY = "selecta.graph-session.v2";
+const LEGACY_STORAGE_KEY = "selecta.graph-session.v1";
+
+export type GraphTrailHop = {
+  trackId: string;
+  inTransitionId: string | null;
+};
 
 export type GraphSessionState = {
   activeId: string | null;
-  trail: string[];
+  trail: GraphTrailHop[];
+};
+
+export type GraphTrailSeedStep = {
+  trackId: string;
+  inTransitionId: string | null;
 };
 
 const EMPTY: GraphSessionState = { activeId: null, trail: [] };
@@ -15,16 +26,50 @@ let memory: GraphSessionState = EMPTY;
 let hydrated = false;
 const listeners = new Set<() => void>();
 
-function readStorage(): GraphSessionState {
+function isHop(value: unknown): value is GraphTrailHop {
+  if (!value || typeof value !== "object") return false;
+  const hop = value as { trackId?: unknown; inTransitionId?: unknown };
+  if (typeof hop.trackId !== "string" || !hop.trackId) return false;
+  return hop.inTransitionId == null || typeof hop.inTransitionId === "string";
+}
+
+/** v1 payloads are track-id arrays and are dropped so saved trails stay linked. */
+export function parseGraphSessionState(raw: string | null): GraphSessionState {
+  if (!raw) return EMPTY;
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as Partial<GraphSessionState>;
     const activeId = typeof parsed.activeId === "string" ? parsed.activeId : null;
-    const trail = Array.isArray(parsed.trail)
-      ? parsed.trail.filter((id): id is string => typeof id === "string")
-      : [];
-    return { activeId, trail: activeId ? trail : [] };
+    if (!activeId || !Array.isArray(parsed.trail)) return EMPTY;
+    if (parsed.trail.some((item) => typeof item === "string")) return EMPTY;
+    const trail = parsed.trail.filter(isHop).map((hop) => ({
+      trackId: hop.trackId,
+      inTransitionId: hop.inTransitionId ?? null,
+    }));
+    if (trail.length !== parsed.trail.length) return EMPTY;
+    return { activeId, trail };
+  } catch {
+    return EMPTY;
+  }
+}
+
+/**
+ * Seed for `POST /blocks { seed: { trail } }`.
+ * Each hop's outbound edge becomes the next step's inbound transition.
+ */
+export function graphTrailToSequenceSeed(
+  trail: GraphTrailHop[],
+  activeId: string,
+): GraphTrailSeedStep[] {
+  const hops: GraphTrailHop[] = [...trail, { trackId: activeId, inTransitionId: null }];
+  return hops.map((hop, index) => ({
+    trackId: hop.trackId,
+    inTransitionId: index === 0 ? null : hops[index - 1]!.inTransitionId,
+  }));
+}
+
+function readStorage(): GraphSessionState {
+  try {
+    return parseGraphSessionState(sessionStorage.getItem(STORAGE_KEY));
   } catch {
     return EMPTY;
   }
@@ -32,6 +77,7 @@ function readStorage(): GraphSessionState {
 
 function writeStorage(state: GraphSessionState) {
   try {
+    sessionStorage.removeItem(LEGACY_STORAGE_KEY);
     if (!state.activeId) {
       sessionStorage.removeItem(STORAGE_KEY);
       return;
@@ -101,10 +147,13 @@ export function clearGraphSession() {
 }
 
 /** Traverse forward: push `fromId` onto the trail and make `toId` current. */
-export function hopGraphSession(fromId: string, toId: string) {
+export function hopGraphSession(fromId: string, toId: string, transitionId: string | null = null) {
   hydrated = true;
   if (fromId === toId) return;
-  memory = { activeId: toId, trail: [...memory.trail, fromId] };
+  memory = {
+    activeId: toId,
+    trail: [...memory.trail, { trackId: fromId, inTransitionId: transitionId }],
+  };
   emit();
 }
 
@@ -114,9 +163,9 @@ export function popGraphTrail(): string | null {
   if (memory.trail.length === 0) return null;
   const trail = memory.trail.slice(0, -1);
   const previous = memory.trail[memory.trail.length - 1]!;
-  memory = { activeId: previous, trail };
+  memory = { activeId: previous.trackId, trail };
   emit();
-  return previous;
+  return previous.trackId;
 }
 
 export function useGraphSession(): GraphSessionState {

@@ -1,4 +1,5 @@
-import type { DragPayload, DropTarget, WorkspaceSelection } from "./types";
+import { isLiveBlockHost } from "./reorder";
+import type { DragPayload, DropTarget, SequenceRecord, WorkspaceSelection } from "./types";
 
 export type FitTransition = {
   fromTrackId: string;
@@ -15,7 +16,34 @@ export type FitPayload =
       fromTitle: string;
       toTitle: string;
       technique: string;
+    }
+  | {
+      kind: "block";
+      id: string;
+      title: string;
+      stepCount: number;
+      startTrackId: string | null;
+      endTrackId: string | null;
+      isComplete: boolean;
     };
+
+export type FitStep = {
+  trackId: string;
+  inBlockId?: string | null;
+  gapState?: string | null;
+};
+
+export function blockFitPayload(row: SequenceRecord): Extract<FitPayload, { kind: "block" }> {
+  return {
+    kind: "block",
+    id: row.id,
+    title: row.title,
+    stepCount: row.stepCount,
+    startTrackId: row.startTrackId,
+    endTrackId: row.endTrackId,
+    isComplete: row.isComplete,
+  };
+}
 
 export function insertIndex(
   selection: WorkspaceSelection,
@@ -38,11 +66,31 @@ export function numericInsertIndex(
 export function dropFit(
   payload: DragPayload | FitPayload | null,
   target: DropTarget,
-  steps: readonly { trackId: string }[],
+  steps: readonly FitStep[],
   transition: FitTransition | null = null,
 ): boolean {
   if (!payload) return false;
-  if (payload.kind === "track") return true;
+  if (payload.kind === "track") {
+    if (target.kind === "gap") {
+      const dest = steps[target.index];
+      if (dest && isLiveBlockHost(dest)) return false;
+    }
+    return true;
+  }
+  if (payload.kind === "block") {
+    if (!payload.isComplete || !payload.startTrackId || !payload.endTrackId) return false;
+    if (target.kind === "gap") {
+      const prev = steps[target.index - 1];
+      const dest = steps[target.index];
+      return Boolean(
+        prev &&
+        dest &&
+        payload.startTrackId === prev.trackId &&
+        payload.endTrackId === dest.trackId,
+      );
+    }
+    return true;
+  }
   const edge =
     transition ??
     (payload.kind === "transition" && "fromTrackId" in payload
@@ -64,11 +112,24 @@ export function autoLinkTransitionId(candidates: readonly { id: string }[]): str
   return candidates.length === 1 ? candidates[0]!.id : null;
 }
 
+export function nestedSelectedStep<T extends { id: string }>(
+  selection: WorkspaceSelection,
+  steps: readonly T[],
+  nestedSteps: readonly T[],
+): T | null {
+  if (selection.kind !== "step") return null;
+  if (steps.some((step) => step.id === selection.stepId)) return null;
+  return nestedSteps.find((step) => step.id === selection.stepId) ?? null;
+}
+
 /** Query the Transitions palette should send (D13): the selected pair, else outbound from the anchor. */
 export function paletteTransitionQuery(
   selection: WorkspaceSelection,
   steps: readonly { id: string; trackId: string }[],
+  nestedSteps: readonly { id: string; trackId: string }[] = [],
 ): { fromTrackId?: string; toTrackId?: string } {
+  const nested = nestedSelectedStep(selection, steps, nestedSteps);
+  if (nested) return { fromTrackId: nested.trackId };
   if (selection.kind === "gap") {
     const gapIndex = steps.findIndex((step) => step.id === selection.stepId);
     if (gapIndex > 0) {
@@ -91,11 +152,34 @@ export function paletteTransitionReason(
   payload: Extract<FitPayload, { kind: "transition" }>,
   selection: WorkspaceSelection,
   steps: readonly { id: string; trackId: string }[],
+  nestedSteps: readonly { id: string; trackId: string }[] = [],
 ): string | null {
+  const nested = nestedSelectedStep(selection, steps, nestedSteps);
+  if (nested) {
+    return payload.fromTrackId === nested.trackId
+      ? null
+      : `Starts from ${payload.fromTitle} — select a step there first`;
+  }
   const insertAt = numericInsertIndex(selection, steps);
   const target: DropTarget =
     selection.kind === "gap" ? { kind: "gap", index: insertAt } : { kind: "end", index: insertAt };
   if (dropFit(payload, target, steps, payload)) return null;
   if (selection.kind === "gap") return "Does not fit the selected gap";
   return `Starts from ${payload.fromTitle} — select a step there first`;
+}
+
+export function paletteBlockReason(
+  payload: Extract<FitPayload, { kind: "block" }>,
+  selection: WorkspaceSelection,
+  steps: readonly { id: string; trackId: string }[],
+): string | null {
+  if (!payload.isComplete || !payload.startTrackId || !payload.endTrackId) {
+    return "Incomplete blocks cannot be used as connectors";
+  }
+  const insertAt = numericInsertIndex(selection, steps);
+  const target: DropTarget =
+    selection.kind === "gap" ? { kind: "gap", index: insertAt } : { kind: "end", index: insertAt };
+  if (dropFit(payload, target, steps)) return null;
+  if (selection.kind === "gap") return "Does not fit the selected gap";
+  return null;
 }

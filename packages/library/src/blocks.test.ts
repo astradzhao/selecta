@@ -14,6 +14,7 @@ import {
   detachSequenceStep,
   getSequenceDetail,
   listSequences,
+  getSequenceReferrers,
   reorderSequence,
   updateSequence,
   updateSequenceStep,
@@ -28,6 +29,8 @@ async function track(label: string) {
   return createTrack({
     title: `${label} ${suffix}`,
     artists: [`Seq Artist ${suffix}`],
+    durationSec: 180,
+    bpm: 120,
   });
 }
 
@@ -591,6 +594,83 @@ describe("sequence module invariants", { skip: !pgIntegration }, () => {
     assert.equal(after.steps.length, 2);
     assert.equal(stepByTrack(after, b.track.id).inTransition, null);
     assert.notEqual(stepByTrack(after, b.track.id).gapState, "linked");
+  });
+
+  it("embeds inBlock and endpoint titles on sequence detail and list", async () => {
+    const a = await track("BlkA");
+    const x = await track("BlkX");
+    const b = await track("BlkB");
+    const ax = await createTransition({
+      fromTrackId: a.track.id,
+      toTrackId: x.track.id,
+      fromBar: 16,
+      toBar: 1,
+      barsOverlap: 8,
+    });
+    const xb = await createTransition({
+      fromTrackId: x.track.id,
+      toTrackId: b.track.id,
+      fromBar: 16,
+      toBar: 1,
+      barsOverlap: 8,
+    });
+    const child = await createSequence({
+      title: `EmbedChild ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, x.track.id, b.track.id] },
+    });
+    await updateSequenceStep(child.id, stepByTrack(child, x.track.id).id, {
+      inTransitionId: ax.id,
+    });
+    await updateSequenceStep(child.id, stepByTrack(child, b.track.id).id, {
+      inTransitionId: xb.id,
+    });
+    const parent = await createSequence({
+      title: `EmbedParent ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, b.track.id] },
+    });
+    await updateSequenceStep(parent.id, stepByTrack(parent, b.track.id).id, {
+      inBlockId: child.id,
+    });
+    const linked = await getSequenceDetail(parent.id);
+    const host = stepByTrack(linked, b.track.id);
+    assert.equal(host.inBlock?.id, child.id);
+    assert.equal(host.inBlock?.title, child.title);
+    assert.equal(host.inBlock?.stepCount, 3);
+    assert.equal(host.inBlock?.isComplete, true);
+    assert.ok((host.inBlock?.runtimeSec ?? 0) > 0);
+    assert.equal(linked.startTrack?.title, a.track.title);
+    assert.equal(linked.endTrack?.title, b.track.title);
+
+    const listed = await listSequences({ query: child.title, limit: 50 });
+    const row = listed.sequences.find((item) => item.id === child.id);
+    assert.ok(row);
+    assert.equal(row.startTrack?.title, a.track.title);
+    assert.equal(row.endTrack?.title, b.track.title);
+  });
+
+  it("lists parent sequences as referrers of a used block", async () => {
+    const a = await track("RefA");
+    const b = await track("RefB");
+    const child = await createSequence({
+      title: `RefChild ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, b.track.id] },
+    });
+    const ab = await createTransition({ fromTrackId: a.track.id, toTrackId: b.track.id });
+    await updateSequenceStep(child.id, stepByTrack(child, b.track.id).id, {
+      inTransitionId: ab.id,
+    });
+    const parent = await createSequence({
+      title: `RefParent ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, b.track.id] },
+    });
+    await updateSequenceStep(parent.id, stepByTrack(parent, b.track.id).id, {
+      inBlockId: child.id,
+    });
+    const referrers = await getSequenceReferrers(child.id);
+    assert.equal(
+      referrers.some((item) => item.id === parent.id && item.title === parent.title),
+      true,
+    );
   });
 
   it("returns stepCount and seamCount on listSequences", async () => {

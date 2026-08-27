@@ -38,7 +38,7 @@ export function NextTransitions({
   registerRef: (rowKey: string, element: HTMLElement | null) => void;
   onToggle: (rowKey: string, expanded: boolean) => void;
   onPrefetch: (neighborId: string) => void;
-  onChoose: (neighborId: string) => void;
+  onChoose: (neighborId: string, transitionId: string | null) => void;
   onNeighborhoodChange: () => Promise<void>;
 }) {
   const destinationCount = neighbors.length;
@@ -109,7 +109,7 @@ export function NextTransitions({
                 registerRef={(element) => registerRef(rowKey, element)}
                 onToggle={() => onToggle(rowKey, expanded)}
                 onPrefetch={() => onPrefetch(neighbor.id)}
-                onChoose={() => onChoose(neighbor.id)}
+                onChoose={(transitionId) => onChoose(neighbor.id, transitionId)}
                 onNeighborhoodChange={onNeighborhoodChange}
                 fadingOut={swapping && choosingId !== neighbor.id}
                 choosing={choosingId === neighbor.id}

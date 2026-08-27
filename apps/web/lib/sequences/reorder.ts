@@ -1,6 +1,35 @@
-/** Inclusive [start, end] of the movable unit containing step `i`. SET-4 is always one step. */
-export function unitRange(_steps: readonly unknown[], i: number): [number, number] {
+type UnitStep = {
+  inBlockId?: string | null;
+  gapState?: string | null;
+};
+
+/** A live block unit is a linked host whose inbound connector is a block. Broken pins are not units. */
+export function isLiveBlockHost(step: unknown): boolean {
+  if (!step || typeof step !== "object") return false;
+  const row = step as UnitStep;
+  return Boolean(row.inBlockId && row.gapState === "linked");
+}
+
+/** Inclusive [start, end] of the movable unit containing step `i`. */
+export function unitRange(steps: readonly unknown[], i: number): [number, number] {
+  const step = steps[i];
+  if (isLiveBlockHost(step) && i > 0) return [i - 1, i];
+  const next = steps[i + 1];
+  if (isLiveBlockHost(next)) return [i, i + 1];
   return [i, i];
+}
+
+/**
+ * 0-based display index for the unit containing step `i`.
+ * A live block unit shares one number across its anchor and host.
+ */
+export function unitDisplayIndex(steps: readonly unknown[], i: number): number {
+  let n = 0;
+  for (let j = 0; j <= i; j++) {
+    const [start] = unitRange(steps, j);
+    if (start === j) n += 1;
+  }
+  return Math.max(0, n - 1);
 }
 
 export function moveUnit<T>(steps: readonly T[], i: number, delta: -1 | 1): T[] {

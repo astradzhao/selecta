@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { autoLinkTransitionId, dropFit, insertIndex, paletteTransitionQuery } from "./drag";
+import {
+  autoLinkTransitionId,
+  dropFit,
+  insertIndex,
+  paletteTransitionQuery,
+  type FitPayload,
+} from "./drag";
 import type { DropTarget } from "./types";
 
 const steps = [
@@ -12,12 +18,28 @@ const steps = [
 
 const ab = { fromTrackId: "a", toTrackId: "b" };
 
+const completeBlock: FitPayload = {
+  kind: "block",
+  id: "blk-1",
+  title: "Acid build",
+  stepCount: 4,
+  startTrackId: "a",
+  endTrackId: "b",
+  isComplete: true,
+};
+
+const incompleteBlock: FitPayload = {
+  ...completeBlock,
+  isComplete: false,
+};
+
 describe("insertIndex", () => {
   it("appends with no selection, inserts at a gap, and after a step", () => {
     assert.equal(insertIndex({ kind: "none" }, steps), "append");
     assert.equal(insertIndex({ kind: "gap", stepId: "s2" }, steps), 1);
     assert.equal(insertIndex({ kind: "step", stepId: "s2" }, steps), 2);
     assert.equal(insertIndex({ kind: "step", stepId: "s3" }, steps), 3);
+    assert.equal(insertIndex({ kind: "step", stepId: "nested-child" }, steps), "append");
   });
 });
 
@@ -59,6 +81,21 @@ describe("dropFit", () => {
       true,
     );
   });
+
+  it("rejects incomplete blocks everywhere and matches both endpoints on a gap", () => {
+    const targets: DropTarget[] = [
+      { kind: "gap", index: 1 },
+      { kind: "step", index: 2 },
+      { kind: "end", index: 3 },
+    ];
+    for (const target of targets) {
+      assert.equal(dropFit(incompleteBlock, target, steps), false);
+    }
+    assert.equal(dropFit(completeBlock, { kind: "gap", index: 1 }, steps), true);
+    assert.equal(dropFit(completeBlock, { kind: "gap", index: 2 }, steps), false);
+    assert.equal(dropFit(completeBlock, { kind: "step", index: 2 }, steps), true);
+    assert.equal(dropFit(completeBlock, { kind: "end", index: 3 }, steps), true);
+  });
 });
 
 describe("autoLinkTransitionId", () => {
@@ -80,6 +117,12 @@ describe("paletteTransitionQuery", () => {
       fromTrackId: "a",
     });
     assert.deepEqual(paletteTransitionQuery({ kind: "none" }, []), {});
+    assert.deepEqual(
+      paletteTransitionQuery({ kind: "step", stepId: "inner" }, steps, [
+        { id: "inner", trackId: "x" },
+      ]),
+      { fromTrackId: "x" },
+    );
   });
 
   it("does not treat a first-step gap selection as a pair", () => {

@@ -29,7 +29,7 @@ export function NeighborCard({
   neighbor: ApiNeighborhoodNeighbor;
   expanded: boolean;
   onToggle: () => void;
-  onChoose: () => void;
+  onChoose: (transitionId: string | null) => void;
   onPrefetch: () => void;
   onNeighborhoodChange: () => Promise<void>;
   fadingOut: boolean;
@@ -143,7 +143,7 @@ export function NeighborCard({
               selected={selected}
               selectedKey={selectedKey}
               onSelectKey={setSelectedKey}
-              onChoose={onChoose}
+              onChoose={() => onChoose(selected?.id ?? null)}
               onNeighborhoodChange={onNeighborhoodChange}
               choosing={choosing}
             />
