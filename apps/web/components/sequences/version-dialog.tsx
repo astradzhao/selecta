@@ -88,6 +88,7 @@ function VersionForm({
 
   return (
     <form
+      className="min-w-0"
       onSubmit={(event) => {
         event.preventDefault();
         const next = name.trim();
@@ -105,7 +106,7 @@ function VersionForm({
           A named selection of alternates. The running order itself does not copy.
         </DialogDescription>
       </DialogHeader>
-      <div className="flex flex-col gap-3 py-2">
+      <div className="flex min-w-0 flex-col gap-3 py-2">
         <FormField id="version-name" label="Name" error={error}>
           <Input
             value={name}
@@ -114,7 +115,7 @@ function VersionForm({
             onChange={(event) => setName(event.target.value)}
           />
         </FormField>
-        <fieldset className="flex flex-col gap-2">
+        <fieldset className="flex min-w-0 flex-col gap-2">
           <legend className="text-caption text-muted-foreground">Alternates</legend>
           {mapped.length === 0 ? (
             <p className="text-caption text-muted-foreground">No mapped alternates yet.</p>
@@ -132,7 +133,7 @@ function VersionForm({
               return (
                 <label
                   key={item.id}
-                  className="flex items-start gap-2 rounded-lg border border-border px-2.5 py-2"
+                  className="flex min-w-0 items-start gap-2 rounded-lg border border-border px-2.5 py-2"
                 >
                   <Checkbox
                     className="mt-0.5"
