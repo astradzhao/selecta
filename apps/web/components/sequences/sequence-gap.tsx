@@ -6,9 +6,11 @@ import Link from "next/link";
 import { Button } from "@selecta/ui/components/button";
 import { cn } from "@selecta/ui/lib/utils";
 
+import { spanRange } from "@/lib/sequences/alternates";
 import { displayGapState, gapChrome, gapRowLabel } from "@/lib/sequences/gap-display";
 import { bpmDelta } from "@/lib/sequences/metrics";
 import type {
+  SequenceAlternate,
   SequenceDetail,
   SequenceRecord,
   SequenceStep,
@@ -19,6 +21,7 @@ import type { ApiTransition } from "@/lib/transitions/types";
 
 import { BlockConnectorRow } from "./block-connector-row";
 import { ConnectorPicker } from "./connector-picker";
+import { AlternateList } from "./alternate-list";
 
 export function SequenceGap({
   step,
@@ -34,6 +37,7 @@ export function SequenceGap({
   selection,
   notesOpenFor,
   noteValue,
+  steps,
   onSelect,
   onTogglePicker,
   onPickTransition,
@@ -43,12 +47,23 @@ export function SequenceGap({
   onToggleExpand,
   onEditBlock,
   onDetach,
+  onAddAlternate,
   onSelectStep,
   onToggleNote,
   onNoteChange,
   onNoteCommit,
   onDragOver,
   onDrop,
+  alternates,
+  showGhost,
+  ghostFromTrackId,
+  ghostToTrackId,
+  expandedAlternateIds,
+  childById,
+  childErrorById,
+  onToggleAlternateExpand,
+  onRemoveAlternate,
+  onCommitAlternateLabel,
 }: {
   step: SequenceStep;
   previous: SequenceStep;
@@ -63,6 +78,9 @@ export function SequenceGap({
   selection: WorkspaceSelection;
   notesOpenFor: (step: SequenceStep) => boolean;
   noteValue: (step: SequenceStep) => string;
+  steps: SequenceStep[];
+  childById: Record<string, SequenceDetail>;
+  childErrorById: Record<string, string>;
   onSelect: () => void;
   onTogglePicker: () => void;
   onPickTransition: (transition: ApiTransition) => void;
@@ -72,12 +90,21 @@ export function SequenceGap({
   onToggleExpand: () => void;
   onEditBlock: () => void;
   onDetach: () => void;
-  onSelectStep: (stepId: string) => void;
+  onAddAlternate: () => void;
+  onSelectStep: (stepId: string, shiftKey?: boolean) => void;
   onToggleNote: (stepId: string) => void;
   onNoteChange: (stepId: string, value: string) => void;
   onNoteCommit: (stepId: string) => void;
   onDragOver: (event: DragEvent) => void;
   onDrop: (event: DragEvent) => void;
+  alternates: SequenceAlternate[];
+  showGhost: boolean;
+  ghostFromTrackId: string | null;
+  ghostToTrackId: string | null;
+  expandedAlternateIds: Record<string, boolean>;
+  onToggleAlternateExpand: (item: SequenceAlternate) => void;
+  onRemoveAlternate: (item: SequenceAlternate) => void;
+  onCommitAlternateLabel: (item: SequenceAlternate, label: string) => void;
 }) {
   const state = displayGapState(step);
   if (!state) return null;
@@ -86,6 +113,12 @@ export function SequenceGap({
   const toTitle = step.track?.title ?? "Track";
   const blockState =
     state === "block" || state === "block-incomplete" || state === "block-broken" ? state : null;
+  const span =
+    selection.kind === "span" ? spanRange(steps, selection.fromStepId, selection.toStepId) : null;
+  const pickerFromTrackId = span?.predecessor.trackId ?? previous.trackId;
+  const pickerToTrackId = span?.destination.trackId ?? step.trackId;
+  const pickerFromTitle = span?.predecessor.track?.title ?? fromTitle;
+  const pickerToTitle = span?.destination.track?.title ?? toTitle;
 
   return (
     <div
@@ -116,6 +149,7 @@ export function SequenceGap({
           onDetach={onDetach}
           onUnlink={onUnlink}
           onToggleSeam={onToggleSeam}
+          onAddAlternate={onAddAlternate}
           onSelectStep={onSelectStep}
           onToggleNote={onToggleNote}
           onNoteChange={onNoteChange}
@@ -135,19 +169,33 @@ export function SequenceGap({
           onTogglePicker={onTogglePicker}
           onUnlink={onUnlink}
           onToggleSeam={onToggleSeam}
+          onAddAlternate={onAddAlternate}
         />
       )}
-      {pickerOpen && !blockState ? (
+      {pickerOpen ? (
         <ConnectorPicker
-          fromTrackId={previous.trackId}
-          toTrackId={step.trackId}
-          fromTitle={fromTitle}
-          toTitle={toTitle}
+          fromTrackId={pickerFromTrackId}
+          toTrackId={pickerToTrackId}
+          fromTitle={pickerFromTitle}
+          toTitle={pickerToTitle}
           excludeSequenceId={sequenceId}
           onPickTransition={onPickTransition}
           onPickBlock={onPickBlock}
         />
       ) : null}
+      <AlternateList
+        items={alternates}
+        steps={steps}
+        showGhost={showGhost}
+        ghostFromTrackId={ghostFromTrackId}
+        ghostToTrackId={ghostToTrackId}
+        expandedIds={expandedAlternateIds}
+        childById={childById}
+        childErrorById={childErrorById}
+        onToggleExpand={onToggleAlternateExpand}
+        onRemove={onRemoveAlternate}
+        onCommitLabel={onCommitAlternateLabel}
+      />
     </div>
   );
 }
@@ -165,6 +213,7 @@ function TransitionGapRow({
   onTogglePicker,
   onUnlink,
   onToggleSeam,
+  onAddAlternate,
 }: {
   step: SequenceStep;
   previous: SequenceStep;
@@ -178,6 +227,7 @@ function TransitionGapRow({
   onTogglePicker: () => void;
   onUnlink: () => void;
   onToggleSeam: () => void;
+  onAddAlternate: () => void;
 }) {
   const fromTitle = previous.track?.title ?? "Track";
   const toTitle = step.track?.title ?? "Track";
@@ -265,6 +315,18 @@ function TransitionGapRow({
           }}
         >
           〜
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="xs"
+          title="Add alternate"
+          onClick={(event) => {
+            event.stopPropagation();
+            onAddAlternate();
+          }}
+        >
+          + alt
         </Button>
       </span>
     </div>

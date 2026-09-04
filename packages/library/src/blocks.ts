@@ -108,6 +108,8 @@ export type SequenceAlternate = {
   altBlockId: string | null;
   /** False when the span is no longer contiguous or the connector is stale. */
   valid: boolean;
+  altTransition: SequenceStepTransition | null;
+  altBlock: SequenceStepBlock | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -436,6 +438,31 @@ async function runtimeSecForSequence(
   const value = sequenceRuntimeSec(runtimeSteps);
   memo.set(sequenceId, value);
   return value;
+}
+
+async function loadTransitionEmbeds(ids: string[]): Promise<Map<string, SequenceStepTransition>> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  const embeds = new Map<string, SequenceStepTransition>();
+  if (unique.length === 0) return embeds;
+  const rows = await getExecutor()
+    .select()
+    .from(transitions)
+    .where(inArray(transitions.id, unique));
+  for (const row of rows) {
+    embeds.set(row.id, {
+      id: row.id,
+      fromTrackId: row.fromTrackId,
+      toTrackId: row.toTrackId,
+      fromBar: row.fromBar,
+      toBar: row.toBar,
+      barsOverlap: row.barsOverlap,
+      technique: row.technique ?? null,
+      intent: row.intent ?? null,
+      quality: row.quality ?? null,
+      notes: row.notes ?? null,
+    });
+  }
+  return embeds;
 }
 
 async function loadBlockEmbeds(ids: string[]): Promise<Map<string, SequenceStepBlock>> {
@@ -925,34 +952,12 @@ async function hydrateSteps(sequenceId: string, steps: BlockStepRow[]): Promise<
   }
   const candidates = await countConnectorsForPairs(pairs, sequenceId);
   const summaries = await getTrackSummariesByIds(steps.map((step) => step.trackId));
-  const transitionIds = [
-    ...new Set(steps.map((step) => step.inTransitionId).filter((id): id is string => Boolean(id))),
-  ];
-  const transitionById = new Map<string, SequenceStepTransition>();
-  if (transitionIds.length > 0) {
-    const rows = await getExecutor()
-      .select()
-      .from(transitions)
-      .where(inArray(transitions.id, transitionIds));
-    for (const row of rows) {
-      transitionById.set(row.id, {
-        id: row.id,
-        fromTrackId: row.fromTrackId,
-        toTrackId: row.toTrackId,
-        fromBar: row.fromBar,
-        toBar: row.toBar,
-        barsOverlap: row.barsOverlap,
-        technique: row.technique ?? null,
-        intent: row.intent ?? null,
-        quality: row.quality ?? null,
-        notes: row.notes ?? null,
-      });
-    }
-  }
-  const blockIds = [
-    ...new Set(steps.map((step) => step.inBlockId).filter((id): id is string => Boolean(id))),
-  ];
-  const blockById = await loadBlockEmbeds(blockIds);
+  const transitionById = await loadTransitionEmbeds(
+    steps.map((step) => step.inTransitionId).filter((id): id is string => Boolean(id)),
+  );
+  const blockById = await loadBlockEmbeds(
+    steps.map((step) => step.inBlockId).filter((id): id is string => Boolean(id)),
+  );
 
   const hydrated: SequenceStep[] = [];
   for (let i = 0; i < steps.length; i++) {
@@ -993,6 +998,12 @@ async function hydrateAlternates(
   steps: BlockStepRow[],
   rows: BlockAlternateRow[],
 ): Promise<SequenceAlternate[]> {
+  const transitionById = await loadTransitionEmbeds(
+    rows.map((row) => row.altTransitionId).filter((id): id is string => Boolean(id)),
+  );
+  const blockById = await loadBlockEmbeds(
+    rows.map((row) => row.altBlockId).filter((id): id is string => Boolean(id)),
+  );
   const result: SequenceAlternate[] = [];
   for (const row of rows) {
     result.push({
@@ -1003,6 +1014,8 @@ async function hydrateAlternates(
       altTransitionId: row.altTransitionId,
       altBlockId: row.altBlockId,
       valid: await isAlternateValid(steps, row),
+      altTransition: row.altTransitionId ? (transitionById.get(row.altTransitionId) ?? null) : null,
+      altBlock: row.altBlockId ? (blockById.get(row.altBlockId) ?? null) : null,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     });

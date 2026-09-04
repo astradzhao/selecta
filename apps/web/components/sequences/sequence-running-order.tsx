@@ -6,9 +6,11 @@ import { Button } from "@selecta/ui/components/button";
 import { cn } from "@selecta/ui/lib/utils";
 
 import type { FitPayload } from "@/lib/sequences/drag";
-import { dropFit } from "@/lib/sequences/drag";
+import { dropFit, spanFitFromSelection } from "@/lib/sequences/drag";
+import { alternatesForGap, coveredStepIds, spanRange } from "@/lib/sequences/alternates";
 import { unitDisplayIndex, unitRange } from "@/lib/sequences/reorder";
 import type {
+  SequenceAlternate,
   DropTarget,
   SequenceDetail,
   SequenceRecord,
@@ -60,6 +62,13 @@ export function SequenceRunningOrder({
   onSetDropTarget,
   onAddTrackCta,
   onInsertBlockCta,
+  alternates,
+  spanCandidateTotal,
+  expandedAlternateIds,
+  onAddAlternate,
+  onToggleAlternateExpand,
+  onRemoveAlternate,
+  onCommitAlternateLabel,
 }: {
   sequenceId: string;
   kindNounEmpty: string;
@@ -75,7 +84,7 @@ export function SequenceRunningOrder({
   childById: Record<string, SequenceDetail>;
   childErrorById: Record<string, string>;
   onSelectGap: (stepId: string) => void;
-  onSelectStep: (stepId: string) => void;
+  onSelectStep: (stepId: string, shiftKey?: boolean) => void;
   onTogglePicker: (stepId: string) => void;
   onPickTransition: (stepId: string, transition: ApiTransition) => void;
   onPickBlock: (stepId: string, block: SequenceRecord) => void;
@@ -96,13 +105,33 @@ export function SequenceRunningOrder({
   onSetDropTarget: (target: DropTarget | null) => void;
   onAddTrackCta: () => void;
   onInsertBlockCta: () => void;
+  alternates: SequenceAlternate[];
+  spanCandidateTotal: number | null;
+  expandedAlternateIds: Record<string, boolean>;
+  onAddAlternate: (stepId: string) => void;
+  onToggleAlternateExpand: (item: SequenceAlternate) => void;
+  onRemoveAlternate: (item: SequenceAlternate) => void;
+  onCommitAlternateLabel: (item: SequenceAlternate, label: string) => void;
 }) {
   const endTarget: DropTarget = { kind: "end", index: steps.length };
-  const endArmed = Boolean(dragPayload && dropFit(dragPayload, endTarget, steps));
-  const endOver = sameTarget(dropTarget, endTarget);
   const dragIndex = draggingStepId ? steps.findIndex((step) => step.id === draggingStepId) : -1;
   const [dragStart, dragEnd] =
     dragIndex >= 0 ? unitRange(steps, dragIndex) : ([-1, -1] as [number, number]);
+  const spanFit = spanFitFromSelection(selection, steps);
+  const spanCovered =
+    selection.kind === "span"
+      ? coveredStepIds(steps, selection.fromStepId, selection.toStepId)
+      : new Set<string>();
+  for (const item of alternates) {
+    if (!expandedAlternateIds[item.id]) continue;
+    for (const id of coveredStepIds(steps, item.fromStepId, item.toStepId)) {
+      spanCovered.add(id);
+    }
+  }
+  const ghostRange =
+    selection.kind === "span" ? spanRange(steps, selection.fromStepId, selection.toStepId) : null;
+  const endArmed = Boolean(dragPayload && dropFit(dragPayload, endTarget, steps, null, spanFit));
+  const endOver = sameTarget(dropTarget, endTarget);
 
   function armOver(event: DragEvent, target: DropTarget, allowed: boolean) {
     if (!allowed) return;
@@ -124,7 +153,7 @@ export function SequenceRunningOrder({
     const stepTarget: DropTarget = { kind: "step", index: unitEnd + 1 };
     const stepArmed = Boolean(
       dragPayload
-        ? dropFit(dragPayload, stepTarget, steps)
+        ? dropFit(dragPayload, stepTarget, steps, null, spanFit)
         : draggingStepId && draggingStepId !== step.id,
     );
     return (
@@ -132,6 +161,7 @@ export function SequenceRunningOrder({
         step={step}
         index={index}
         selected={selection.kind === "step" && selection.stepId === step.id}
+        highlighted={spanCovered.has(step.id)}
         notesOpen={notesOpenFor(step)}
         noteValue={noteValue(step)}
         dragging={movable && dragStart >= 0 && unitStart >= dragStart && unitEnd <= dragEnd}
@@ -141,7 +171,7 @@ export function SequenceRunningOrder({
         canMoveDown={unitEnd < steps.length - 1}
         showIndex={showIndex}
         movable={movable}
-        onSelect={() => onSelectStep(step.id)}
+        onSelect={(event) => onSelectStep(step.id, event.shiftKey)}
         onMove={(delta) => onMove(step.id, delta)}
         onToggleNote={() => onToggleNote(step.id)}
         onNoteChange={(value) => onNoteChange(step.id, value)}
@@ -170,13 +200,15 @@ export function SequenceRunningOrder({
 
   function renderGap(step: SequenceStep, previous: SequenceStep, index: number) {
     const gapTarget: DropTarget = { kind: "gap", index };
-    const gapArmed = Boolean(dragPayload && dropFit(dragPayload, gapTarget, steps));
+    const gapArmed = Boolean(dragPayload && dropFit(dragPayload, gapTarget, steps, null, spanFit));
     const blockId = step.inBlockId;
+    const spanSelectedHere = selection.kind === "span" && selection.fromStepId === step.id;
+    const showGhost = spanSelectedHere && spanCandidateTotal === 0;
     return (
       <SequenceGap
         step={step}
         previous={previous}
-        selected={selection.kind === "gap" && selection.stepId === step.id}
+        selected={(selection.kind === "gap" && selection.stepId === step.id) || spanSelectedHere}
         pickerOpen={pickerStepId === step.id}
         dropArmed={gapArmed}
         dropOver={sameTarget(dropTarget, gapTarget)}
@@ -187,6 +219,9 @@ export function SequenceRunningOrder({
         selection={selection}
         notesOpenFor={notesOpenFor}
         noteValue={noteValue}
+        steps={steps}
+        childById={childById}
+        childErrorById={childErrorById}
         onSelect={() => onSelectGap(step.id)}
         onTogglePicker={() => onTogglePicker(step.id)}
         onPickTransition={(transition) => onPickTransition(step.id, transition)}
@@ -198,6 +233,7 @@ export function SequenceRunningOrder({
         }}
         onEditBlock={() => onEditBlock(step)}
         onDetach={() => onDetach(step)}
+        onAddAlternate={() => onAddAlternate(step.id)}
         onSelectStep={onSelectStep}
         onToggleNote={onToggleNote}
         onNoteChange={onNoteChange}
@@ -217,6 +253,14 @@ export function SequenceRunningOrder({
           if (dragPayload) onPaletteDrop(gapTarget);
           else onReorderDrop(step.id);
         }}
+        alternates={alternatesForGap(alternates, step.id)}
+        showGhost={showGhost}
+        ghostFromTrackId={showGhost ? (ghostRange?.predecessor.trackId ?? null) : null}
+        ghostToTrackId={showGhost ? (ghostRange?.destination.trackId ?? null) : null}
+        expandedAlternateIds={expandedAlternateIds}
+        onToggleAlternateExpand={onToggleAlternateExpand}
+        onRemoveAlternate={onRemoveAlternate}
+        onCommitAlternateLabel={onCommitAlternateLabel}
       />
     );
   }
@@ -261,7 +305,7 @@ export function SequenceRunningOrder({
                   const stepTarget: DropTarget = { kind: "step", index: unitEnd + 1 };
                   const stepArmed = Boolean(
                     dragPayload
-                      ? dropFit(dragPayload, stepTarget, steps)
+                      ? dropFit(dragPayload, stepTarget, steps, null, spanFit)
                       : draggingStepId && draggingStepId !== host.id,
                   );
                   if (dragPayload) {

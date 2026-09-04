@@ -45,6 +45,7 @@ export function SequenceStepCard({
   canMoveDown,
   showIndex = true,
   movable = true,
+  highlighted = false,
   onSelect,
   onMove,
   onToggleNote,
@@ -68,7 +69,8 @@ export function SequenceStepCard({
   canMoveDown: boolean;
   showIndex?: boolean;
   movable?: boolean;
-  onSelect: () => void;
+  highlighted?: boolean;
+  onSelect: (event: { shiftKey: boolean }) => void;
   onMove?: (delta: -1 | 1) => void;
   onToggleNote: () => void;
   onNoteChange: (value: string) => void;
@@ -92,7 +94,7 @@ export function SequenceStepCard({
         onDragOver={onDragOver}
         onDrop={onDrop}
         onDragEnd={onDragEnd}
-        onClick={onSelect}
+        onClick={(event) => onSelect(event)}
         className={cn(
           "grid grid-cols-[auto_36px_minmax(0,1fr)_auto_auto_auto] items-center gap-2.5 rounded-xl border px-2.5 py-2",
           dropOver
@@ -101,7 +103,9 @@ export function SequenceStepCard({
               ? "border-ring"
               : selected
                 ? "border-ring bg-surface-1"
-                : "border-border bg-card hover:border-ring",
+                : highlighted
+                  ? "border-brand-subtle bg-brand-subtle"
+                  : "border-border bg-card hover:border-ring",
           dragging && "opacity-45",
         )}
       >

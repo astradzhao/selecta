@@ -6,6 +6,7 @@ import {
   dropFit,
   insertIndex,
   paletteTransitionQuery,
+  paletteTransitionReason,
   type FitPayload,
 } from "./drag";
 import type { DropTarget } from "./types";
@@ -40,6 +41,7 @@ describe("insertIndex", () => {
     assert.equal(insertIndex({ kind: "step", stepId: "s2" }, steps), 2);
     assert.equal(insertIndex({ kind: "step", stepId: "s3" }, steps), 3);
     assert.equal(insertIndex({ kind: "step", stepId: "nested-child" }, steps), "append");
+    assert.equal(insertIndex({ kind: "span", fromStepId: "s2", toStepId: "s3" }, steps), "append");
   });
 });
 
@@ -96,6 +98,35 @@ describe("dropFit", () => {
     assert.equal(dropFit(completeBlock, { kind: "step", index: 2 }, steps), true);
     assert.equal(dropFit(completeBlock, { kind: "end", index: 3 }, steps), true);
   });
+
+  it("in span mode only arms the fromStep gap when endpoints match the span pair", () => {
+    const span = { fromIdx: 1, fromTrackId: "a", toTrackId: "c" };
+    const ac = { fromTrackId: "a", toTrackId: "c" };
+    const acBlock: FitPayload = {
+      ...completeBlock,
+      startTrackId: "a",
+      endTrackId: "c",
+    };
+    assert.equal(
+      dropFit({ kind: "transition", id: "ac" }, { kind: "gap", index: 1 }, steps, ac, span),
+      true,
+    );
+    assert.equal(
+      dropFit({ kind: "transition", id: "ab" }, { kind: "gap", index: 1 }, steps, ab, span),
+      false,
+    );
+    assert.equal(
+      dropFit({ kind: "transition", id: "ac" }, { kind: "gap", index: 2 }, steps, ac, span),
+      false,
+    );
+    assert.equal(dropFit(acBlock, { kind: "gap", index: 1 }, steps, null, span), true);
+    assert.equal(dropFit(acBlock, { kind: "step", index: 2 }, steps, null, span), false);
+    assert.equal(dropFit(acBlock, { kind: "end", index: 3 }, steps, null, span), false);
+    assert.equal(
+      dropFit({ kind: "track", id: "x", title: "X" }, { kind: "gap", index: 1 }, steps, null, span),
+      false,
+    );
+  });
 });
 
 describe("autoLinkTransitionId", () => {
@@ -129,5 +160,35 @@ describe("paletteTransitionQuery", () => {
     assert.deepEqual(paletteTransitionQuery({ kind: "gap", stepId: "s1" }, steps), {
       fromTrackId: "c",
     });
+    assert.deepEqual(
+      paletteTransitionQuery({ kind: "span", fromStepId: "s2", toStepId: "s3" }, steps),
+      {
+        fromTrackId: "a",
+        toTrackId: "c",
+      },
+    );
+  });
+});
+
+describe("paletteTransitionReason", () => {
+  it("rejects a mix that does not rejoin the selected span", () => {
+    const span = { kind: "span" as const, fromStepId: "s2", toStepId: "s3" };
+    const ac: FitPayload = {
+      kind: "transition",
+      id: "ac",
+      fromTrackId: "a",
+      toTrackId: "c",
+      fromTitle: "A",
+      toTitle: "C",
+      technique: "cut",
+    };
+    const abMix: FitPayload = {
+      ...ac,
+      id: "ab",
+      toTrackId: "b",
+      toTitle: "B",
+    };
+    assert.equal(paletteTransitionReason(ac, span, steps), null);
+    assert.equal(paletteTransitionReason(abMix, span, steps), "Does not fit the selected span");
   });
 });

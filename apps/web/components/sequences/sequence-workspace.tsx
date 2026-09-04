@@ -17,15 +17,26 @@ import { ApiClientError } from "@/lib/api/client";
 import { describeApiError } from "@/lib/api/errors";
 import {
   addSequenceStep,
+  createSequenceAlternate,
   deleteSequence,
+  deleteSequenceAlternate,
   deleteSequenceStep,
   detachSequenceStep,
   getSequence,
   listSequenceReferrers,
+  listSequences,
   reorderSequence,
   updateSequence,
+  updateSequenceAlternate,
   updateSequenceStep,
 } from "@/lib/sequences/api";
+import {
+  alternateCoverage,
+  formatAlternateCoverage,
+  orderSpan,
+  spanRange,
+  versionCountUsingAlternate,
+} from "@/lib/sequences/alternates";
 import {
   autoLinkTransitionId,
   blockFitPayload,
@@ -33,6 +44,8 @@ import {
   insertIndex,
   numericInsertIndex,
   paletteBlockReason,
+  paletteTransitionReason,
+  spanFitFromSelection,
   type FitPayload,
 } from "@/lib/sequences/drag";
 import { incompleteBlockCount } from "@/lib/sequences/gap-display";
@@ -45,7 +58,9 @@ import {
 } from "@/lib/sequences/metrics";
 import { moveUnit, reorderTo, unitRange } from "@/lib/sequences/reorder";
 import type {
+  AlternateDraft,
   DropTarget,
+  SequenceAlternate,
   SequenceDetail,
   SequenceKind,
   SequenceRecord,
@@ -59,6 +74,7 @@ import type { ApiTransition } from "@/lib/transitions/types";
 import { displayVocab } from "@/lib/transitions/vocab-labels";
 import type { ApiTrack } from "@/lib/tracks/api";
 
+import { AlternateLabelDialog } from "./alternate-label-dialog";
 import { LibraryPalette, type PaletteTab } from "./library-palette";
 import { SequenceRunningOrder } from "./sequence-running-order";
 
@@ -91,6 +107,7 @@ export function SequenceWorkspace({
   const [selection, setSelection] = useState<WorkspaceSelection>({ kind: "none" });
   const [paletteTab, setPaletteTab] = useState<PaletteTab>("tracks");
   const [pickerStepId, setPickerStepId] = useState<string | null>(null);
+  const [pickerIntent, setPickerIntent] = useState<"link" | "alternate">("link");
   const [notesOpen, setNotesOpen] = useState<Record<string, boolean>>({});
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [dragPayload, setDragPayload] = useState<FitPayload | null>(null);
@@ -118,6 +135,15 @@ export function SequenceWorkspace({
     description: string;
   } | null>(null);
   const [pendingAction, setPendingAction] = useState(false);
+  const [spanCandidateTotal, setSpanCandidateTotal] = useState<number | null>(null);
+  const [expandedAlternateIds, setExpandedAlternateIds] = useState<Record<string, boolean>>({});
+  const [alternateDraft, setAlternateDraft] = useState<AlternateDraft | null>(null);
+  const [alternatePending, setAlternatePending] = useState(false);
+  const [alternateError, setAlternateError] = useState<string | null>(null);
+  const [pendingAlternateRemove, setPendingAlternateRemove] = useState<{
+    item: SequenceAlternate;
+    versionCount: number;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -164,11 +190,68 @@ export function SequenceWorkspace({
     };
   }, [routeKind, sequenceId]);
 
+  useEffect(() => {
+    if (!detail || selection.kind !== "span") {
+      setSpanCandidateTotal(null);
+      return;
+    }
+    const range = spanRange(detail.steps, selection.fromStepId, selection.toStepId);
+    if (!range) {
+      setSpanCandidateTotal(0);
+      return;
+    }
+    let cancelled = false;
+    void Promise.all([
+      listTransitions({
+        fromTrackId: range.predecessor.trackId,
+        toTrackId: range.destination.trackId,
+        limit: 50,
+      }),
+      listSequences({
+        kind: "block",
+        startTrack: range.predecessor.trackId,
+        endTrack: range.destination.trackId,
+        complete: true,
+        limit: 50,
+      }),
+    ])
+      .then(([transitionResult, blockResult]) => {
+        if (cancelled) return;
+        const blocks = blockResult.sequences.filter(
+          (row) => row.id !== detail.id && row.isComplete,
+        );
+        setSpanCandidateTotal(transitionResult.transitions.length + blocks.length);
+      })
+      .catch(() => {
+        if (!cancelled) setSpanCandidateTotal(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [detail, selection]);
+
+  useEffect(() => {
+    if (selection.kind !== "span" || alternateDraft) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setSelection({ kind: "none" });
+      setPickerStepId(null);
+      setPickerIntent("link");
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selection.kind, alternateDraft]);
+
   function applyDetail(next: SequenceDetail) {
     setDetail(next);
     setTitleDraft(next.title);
     setSelection((current) => {
       if (current.kind === "none") return current;
+      if (current.kind === "span") {
+        return spanRange(next.steps, current.fromStepId, current.toStepId)
+          ? current
+          : { kind: "none" };
+      }
       const step = next.steps.find((item) => item.id === current.stepId);
       if (step) {
         if (current.kind === "gap" && step.gapState == null) return { kind: "none" };
@@ -239,6 +322,7 @@ export function SequenceWorkspace({
   function clearTransient() {
     setSelection({ kind: "none" });
     setPickerStepId(null);
+    setPickerIntent("link");
   }
 
   function forgetChild(blockId: string) {
@@ -302,6 +386,10 @@ export function SequenceWorkspace({
 
   async function handleAddTrack(track: ApiTrack) {
     if (!detail) return;
+    if (selection.kind === "span") {
+      toast("Select a step or gap to insert a track");
+      return;
+    }
     if (selection.kind === "step") {
       const owned = findOwnedStep(detail, childById, selection.stepId);
       if (owned && owned.sequenceId !== detail.id) {
@@ -315,9 +403,40 @@ export function SequenceWorkspace({
     await addTrackAt(track.id, track.title, insertIndex(selection, detail.steps));
   }
 
+  function beginAlternateDraft(draft: AlternateDraft) {
+    setAlternateError(null);
+    setAlternateDraft(draft);
+  }
+
   async function handleAddTransition(transition: ApiTransition) {
     if (!detail) return;
     const technique = displayVocab(transition.technique) ?? "mix";
+    if (selection.kind === "span") {
+      const reason = paletteTransitionReason(
+        {
+          kind: "transition",
+          id: transition.id,
+          fromTrackId: transition.fromTrack.id,
+          toTrackId: transition.toTrack.id,
+          fromTitle: transition.fromTrack.title,
+          toTitle: transition.toTrack.title,
+          technique,
+        },
+        selection,
+        detail.steps,
+      );
+      if (reason) {
+        toast(reason);
+        return;
+      }
+      beginAlternateDraft({
+        fromStepId: selection.fromStepId,
+        toStepId: selection.toStepId,
+        altTransitionId: transition.id,
+        summary: `${technique} · ${transition.fromTrack.title} → ${transition.toTrack.title}`,
+      });
+      return;
+    }
     if (selection.kind === "gap") {
       await mutate(
         () =>
@@ -420,6 +539,20 @@ export function SequenceWorkspace({
 
   async function handleAddBlock(block: SequenceRecord) {
     if (!detail) return;
+    if (selection.kind === "span") {
+      const reason = paletteBlockReason(blockFitPayload(block), selection, detail.steps);
+      if (reason) {
+        toast(reason);
+        return;
+      }
+      beginAlternateDraft({
+        fromStepId: selection.fromStepId,
+        toStepId: selection.toStepId,
+        altBlockId: block.id,
+        summary: block.title,
+      });
+      return;
+    }
     const payload = blockFitPayload(block);
     const insertAt = numericInsertIndex(selection, detail.steps);
     const target: DropTarget =
@@ -436,6 +569,38 @@ export function SequenceWorkspace({
 
   async function handlePaletteDrop(target: DropTarget) {
     if (!detail || !dragPayload) return;
+    if (selection.kind === "span") {
+      if (dragPayload.kind === "track") return;
+      const span = spanFitFromSelection(selection, detail.steps);
+      if (!span) return;
+      if (
+        !dropFit(
+          dragPayload,
+          target,
+          detail.steps,
+          dragPayload.kind === "transition" ? dragPayload : null,
+          span,
+        )
+      ) {
+        return;
+      }
+      if (dragPayload.kind === "transition") {
+        beginAlternateDraft({
+          fromStepId: selection.fromStepId,
+          toStepId: selection.toStepId,
+          altTransitionId: dragPayload.id,
+          summary: `${dragPayload.technique} · ${dragPayload.fromTitle} → ${dragPayload.toTitle}`,
+        });
+        return;
+      }
+      beginAlternateDraft({
+        fromStepId: selection.fromStepId,
+        toStepId: selection.toStepId,
+        altBlockId: dragPayload.id,
+        summary: dragPayload.title,
+      });
+      return;
+    }
     const edge = dragPayload.kind === "transition" ? dragPayload : null;
     if (!dropFit(dragPayload, target, detail.steps, edge)) return;
     if (dragPayload.kind === "track") {
@@ -603,6 +768,122 @@ export function SequenceWorkspace({
     }
   }
 
+  async function handleAddAlternate(stepId: string) {
+    if (!detail) return;
+    const keepSpan = selection.kind === "span" && selection.fromStepId === stepId;
+    const fromStepId = keepSpan ? selection.fromStepId : stepId;
+    const toStepId = keepSpan ? selection.toStepId : stepId;
+    const range = spanRange(detail.steps, fromStepId, toStepId);
+    if (!range) {
+      toast("An alternate needs a join to substitute — pick from the second track on.");
+      return;
+    }
+    setSelection({ kind: "span", fromStepId, toStepId });
+    setPaletteTab("transitions");
+    try {
+      const [transitionResult, blockResult] = await Promise.all([
+        listTransitions({
+          fromTrackId: range.predecessor.trackId,
+          toTrackId: range.destination.trackId,
+          limit: 50,
+        }),
+        listSequences({
+          kind: "block",
+          startTrack: range.predecessor.trackId,
+          endTrack: range.destination.trackId,
+          complete: true,
+          limit: 50,
+        }),
+      ]);
+      const blocks = blockResult.sequences.filter((row) => row.id !== detail.id && row.isComplete);
+      const total = transitionResult.transitions.length + blocks.length;
+      setSpanCandidateTotal(total);
+      if (total > 0) {
+        setPickerIntent("alternate");
+        setPickerStepId(fromStepId);
+      } else {
+        setPickerIntent("link");
+        setPickerStepId(null);
+      }
+    } catch {
+      setPickerIntent("alternate");
+      setPickerStepId(fromStepId);
+    }
+  }
+
+  function handleSelectStep(stepId: string, shiftKey = false) {
+    if (!detail) return;
+    if (shiftKey) {
+      const anchorId =
+        selection.kind === "span"
+          ? selection.fromStepId
+          : selection.kind === "gap" || selection.kind === "step"
+            ? selection.stepId
+            : null;
+      if (!anchorId) {
+        setSelection({ kind: "step", stepId });
+        return;
+      }
+      const ordered = orderSpan(detail.steps, anchorId, stepId);
+      if (!ordered) {
+        toast("An alternate needs a join to substitute — pick from the second track on.");
+        return;
+      }
+      setSelection({ kind: "span", ...ordered });
+      setPaletteTab("transitions");
+      setPickerStepId(null);
+      setPickerIntent("link");
+      return;
+    }
+    const selected = selection.kind === "step" && selection.stepId === stepId;
+    setSelection(selected ? { kind: "none" } : { kind: "step", stepId });
+    setPickerStepId(null);
+    setPickerIntent("link");
+  }
+
+  async function confirmAlternate(label: string) {
+    if (!detail || !alternateDraft) return;
+    setAlternatePending(true);
+    setAlternateError(null);
+    const result = await mutate(
+      () =>
+        createSequenceAlternate(detail.id, {
+          fromStepId: alternateDraft.fromStepId,
+          toStepId: alternateDraft.toStepId,
+          label,
+          altTransitionId: alternateDraft.altTransitionId,
+          altBlockId: alternateDraft.altBlockId,
+        }),
+      `Alternate added — ${label}`,
+    );
+    setAlternatePending(false);
+    if (result) {
+      setAlternateDraft(null);
+      setPickerStepId(null);
+      setPickerIntent("link");
+    } else {
+      setAlternateError("Could not add that alternate.");
+    }
+  }
+
+  function handleRemoveAlternate(item: SequenceAlternate) {
+    if (!detail) return;
+    const versionCount = versionCountUsingAlternate(detail.versions, item.id);
+    if (versionCount > 0) {
+      setPendingAlternateRemove({ item, versionCount });
+      return;
+    }
+    void mutate(() => deleteSequenceAlternate(detail.id, item.id), "Alternate removed");
+  }
+
+  function handleToggleAlternateExpand(item: SequenceAlternate) {
+    const opening = !expandedAlternateIds[item.id];
+    setExpandedAlternateIds((current) => ({ ...current, [item.id]: opening }));
+    if (opening && item.altBlockId) {
+      void handleToggleExpand(item.altBlockId);
+    }
+  }
+
   function handleRemoveStep(step: SequenceStep) {
     if (!detail) return;
     const index = detail.steps.findIndex((item) => item.id === step.id);
@@ -630,6 +911,7 @@ export function SequenceWorkspace({
   const runtimeSec = sequenceRuntimeSec(detail.steps);
   const trackCount = sequenceTrackCount(detail.steps);
   const incompleteBlocks = incompleteBlockCount(detail.steps);
+  const coverage = formatAlternateCoverage(alternateCoverage(detail.alternates));
   const browseHref = setsViewHref(isBlockKind ? "blocks" : "sets");
 
   return (
@@ -671,6 +953,12 @@ export function SequenceWorkspace({
             ) : null}
             {incompleteBlocks > 0 ? (
               <Badge variant="warning">{incompleteBlocks} block incomplete</Badge>
+            ) : null}
+            {coverage ? (
+              <>
+                <span aria-hidden>·</span>
+                <span className="text-numeric">{coverage}</span>
+              </>
             ) : null}
           </div>
         </div>
@@ -717,17 +1005,31 @@ export function SequenceWorkspace({
             setSelection(selected ? { kind: "none" } : { kind: "gap", stepId });
             setPaletteTab(selected ? "tracks" : "transitions");
             setPickerStepId(null);
+            setPickerIntent("link");
           }}
-          onSelectStep={(stepId) => {
-            const selected = selection.kind === "step" && selection.stepId === stepId;
-            setSelection(selected ? { kind: "none" } : { kind: "step", stepId });
-          }}
+          onSelectStep={handleSelectStep}
           onTogglePicker={(stepId) => {
-            setPickerStepId((current) => (current === stepId ? null : stepId));
+            if (pickerStepId === stepId) {
+              setPickerStepId(null);
+              return;
+            }
+            setPickerIntent("link");
+            setPickerStepId(stepId);
             setSelection({ kind: "gap", stepId });
             setPaletteTab("transitions");
           }}
           onPickTransition={(stepId, transition) => {
+            if (pickerIntent === "alternate" && selection.kind === "span") {
+              const technique = displayVocab(transition.technique) ?? "mix";
+              beginAlternateDraft({
+                fromStepId: selection.fromStepId,
+                toStepId: selection.toStepId,
+                altTransitionId: transition.id,
+                summary: `${technique} · ${transition.fromTrack.title} → ${transition.toTrack.title}`,
+              });
+              setPickerStepId(null);
+              return;
+            }
             void mutate(
               () =>
                 updateSequenceStep(detail.id, stepId, {
@@ -737,9 +1039,20 @@ export function SequenceWorkspace({
               `Linked ${displayVocab(transition.technique) ?? "mix"}`,
             );
             setPickerStepId(null);
+            setPickerIntent("link");
             setSelection({ kind: "none" });
           }}
           onPickBlock={(stepId, block) => {
+            if (pickerIntent === "alternate" && selection.kind === "span") {
+              beginAlternateDraft({
+                fromStepId: selection.fromStepId,
+                toStepId: selection.toStepId,
+                altBlockId: block.id,
+                summary: block.title,
+              });
+              setPickerStepId(null);
+              return;
+            }
             void mutate(
               () =>
                 updateSequenceStep(detail.id, stepId, {
@@ -749,6 +1062,7 @@ export function SequenceWorkspace({
               `Linked ${block.title}`,
             );
             setPickerStepId(null);
+            setPickerIntent("link");
             setSelection({ kind: "none" });
           }}
           onUnlink={(stepId) => {
@@ -814,10 +1128,26 @@ export function SequenceWorkspace({
           onAddTrackCta={() => {
             setPaletteTab("tracks");
             setSelection({ kind: "none" });
+            setPickerIntent("link");
+            setPickerStepId(null);
           }}
           onInsertBlockCta={() => {
             setPaletteTab("blocks");
             setSelection({ kind: "none" });
+            setPickerIntent("link");
+            setPickerStepId(null);
+          }}
+          alternates={detail.alternates}
+          spanCandidateTotal={spanCandidateTotal}
+          expandedAlternateIds={expandedAlternateIds}
+          onAddAlternate={(stepId) => void handleAddAlternate(stepId)}
+          onToggleAlternateExpand={handleToggleAlternateExpand}
+          onRemoveAlternate={handleRemoveAlternate}
+          onCommitAlternateLabel={(item, label) => {
+            void mutate(
+              () => updateSequenceAlternate(detail.id, item.id, { label }),
+              "Label updated",
+            );
           }}
         />
         <LibraryPalette
@@ -833,6 +1163,7 @@ export function SequenceWorkspace({
           onClearSelection={() => {
             setSelection({ kind: "none" });
             setPickerStepId(null);
+            setPickerIntent("link");
             setPaletteTab("tracks");
           }}
           onDragStart={setDragPayload}
@@ -933,6 +1264,47 @@ export function SequenceWorkspace({
         onConfirm={() => {
           if (!pendingEdit) return;
           router.push(sequenceWorkspaceHref("block", pendingEdit.blockId));
+        }}
+      />
+      <AlternateLabelDialog
+        draft={alternateDraft}
+        pending={alternatePending}
+        error={alternateError}
+        onOpenChange={(open) => {
+          if (!open && !alternatePending) {
+            setAlternateDraft(null);
+            setAlternateError(null);
+          }
+        }}
+        onConfirm={(label) => void confirmAlternate(label)}
+      />
+      <ConfirmDialog
+        open={pendingAlternateRemove != null}
+        onOpenChange={(open) => {
+          if (!open) setPendingAlternateRemove(null);
+        }}
+        title="Remove this alternate?"
+        description={
+          pendingAlternateRemove
+            ? `This alternate is used in ${pendingAlternateRemove.versionCount} saved ${pendingAlternateRemove.versionCount === 1 ? "version" : "versions"}. Removing it drops it from those versions.`
+            : ""
+        }
+        confirmLabel="Remove"
+        variant="default"
+        pending={pendingAction}
+        pendingLabel="Removing…"
+        onConfirm={() => {
+          if (!pendingAlternateRemove) return;
+          const { item } = pendingAlternateRemove;
+          setPendingAction(true);
+          void (async () => {
+            const result = await mutate(
+              () => deleteSequenceAlternate(detail.id, item.id),
+              "Alternate removed",
+            );
+            setPendingAction(false);
+            if (result) setPendingAlternateRemove(null);
+          })();
         }}
       />
     </div>

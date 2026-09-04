@@ -34,6 +34,7 @@ export function BlockConnectorRow({
   onDetach,
   onUnlink,
   onToggleSeam,
+  onAddAlternate,
   onSelectStep,
   onToggleNote,
   onNoteChange,
@@ -57,7 +58,8 @@ export function BlockConnectorRow({
   onDetach: () => void;
   onUnlink: () => void;
   onToggleSeam: () => void;
-  onSelectStep: (stepId: string) => void;
+  onAddAlternate: () => void;
+  onSelectStep: (stepId: string, shiftKey?: boolean) => void;
   onToggleNote: (stepId: string) => void;
   onNoteChange: (stepId: string, value: string) => void;
   onNoteCommit: (stepId: string) => void;
@@ -174,6 +176,18 @@ export function BlockConnectorRow({
               〜
             </Button>
           ) : null}
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            title="Add alternate"
+            onClick={(event) => {
+              stop(event);
+              onAddAlternate();
+            }}
+          >
+            + alt
+          </Button>
         </span>
       </div>
       {!broken ? (
@@ -228,7 +242,7 @@ function BlockInteriorSequence({
   selection: WorkspaceSelection;
   notesOpenFor: (step: SequenceStep) => boolean;
   noteValue: (step: SequenceStep) => string;
-  onSelectStep: (stepId: string) => void;
+  onSelectStep: (stepId: string, shiftKey?: boolean) => void;
   onToggleNote: (stepId: string) => void;
   onNoteChange: (stepId: string, value: string) => void;
   onNoteCommit: (stepId: string) => void;
@@ -261,7 +275,7 @@ function BlockInteriorSequence({
                   canMoveUp={false}
                   canMoveDown={false}
                   movable={false}
-                  onSelect={() => onSelectStep(inner.id)}
+                  onSelect={(event) => onSelectStep(inner.id, event.shiftKey)}
                   onToggleNote={() => onToggleNote(inner.id)}
                   onNoteChange={(value) => onNoteChange(inner.id, value)}
                   onNoteCommit={() => onNoteCommit(inner.id)}

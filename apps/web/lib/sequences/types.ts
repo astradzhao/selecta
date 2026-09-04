@@ -60,6 +60,8 @@ export type SequenceAlternate = {
   altTransitionId: string | null;
   altBlockId: string | null;
   valid: boolean;
+  altTransition: SequenceStepTransition | null;
+  altBlock: SequenceStepBlock | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -98,7 +100,16 @@ export type SequenceDetail = SequenceRecord & {
 export type WorkspaceSelection =
   | { kind: "none" }
   | { kind: "step"; stepId: string }
-  | { kind: "gap"; stepId: string };
+  | { kind: "gap"; stepId: string }
+  | { kind: "span"; fromStepId: string; toStepId: string };
+
+export type AlternateDraft = {
+  fromStepId: string;
+  toStepId: string;
+  altTransitionId?: string;
+  altBlockId?: string;
+  summary: string;
+};
 
 export type SequenceReferrer = {
   id: string;

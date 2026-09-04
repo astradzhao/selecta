@@ -14,6 +14,7 @@ import { FilterField } from "@/components/common/filtered-list-shell";
 import { useFilteredList } from "@/hooks/use-filtered-list";
 import { artistLine } from "@/lib/format";
 import { listSequences } from "@/lib/sequences/api";
+import { spanRange } from "@/lib/sequences/alternates";
 import {
   blockFitPayload,
   nestedSelectedStep,
@@ -161,17 +162,23 @@ export function LibraryPalette({
   const insertAt = numericInsertIndex(selection, steps);
   const nestedAnchor = nestedSelectedStep(selection, steps, nestedSteps);
   const anchor = nestedAnchor ?? (insertAt > 0 ? steps[insertAt - 1] : null);
+  const span =
+    selection.kind === "span" ? spanRange(steps, selection.fromStepId, selection.toStepId) : null;
   const gapSelected = Boolean(fromStep && toStep);
-  const hasContext = gapSelected || (tab === "transitions" && Boolean(anchor));
-  const contextLabel = gapSelected
-    ? `${fromStep?.track?.title ?? "Track"} → ${toStep?.track?.title ?? "Track"}`
-    : anchor
-      ? `Out of ${anchor.track?.title ?? "Track"}`
-      : "";
+  const spanSelected = Boolean(span);
+  const hasContext = gapSelected || spanSelected || (tab === "transitions" && Boolean(anchor));
+  const contextLabel =
+    span && spanSelected
+      ? `Fits the selected span · ${span.predecessor.track?.title ?? "Track"} → ${span.destination.track?.title ?? "Track"}`
+      : gapSelected
+        ? `${fromStep?.track?.title ?? "Track"} → ${toStep?.track?.title ?? "Track"}`
+        : anchor
+          ? `Out of ${anchor.track?.title ?? "Track"}`
+          : "";
 
   const items = tab === "tracks" ? tracks : tab === "transitions" ? transitions : blocks;
   const emptyText =
-    tab === "transitions" && gapSelected
+    tab === "transitions" && (gapSelected || spanSelected)
       ? "No transition for this pair yet."
       : tab === "transitions" && anchor
         ? `Nothing out of ${anchor.track?.title ?? "this track"} yet.`
@@ -243,6 +250,7 @@ export function LibraryPalette({
         ) : tab === "tracks" ? (
           (tracks.items as ApiTrack[]).map((track) => {
             const payload: FitPayload = { kind: "track", id: track.id, title: track.title };
+            const trackDisabled = selection.kind === "span";
             return (
               <PaletteRow
                 key={track.id}
@@ -254,7 +262,8 @@ export function LibraryPalette({
                     ? `${Math.round(track.bpm)}${track.musicalKey ? ` · ${track.musicalKey}` : ""}`
                     : (track.musicalKey ?? "")
                 }
-                disabled={false}
+                disabled={trackDisabled}
+                disabledReason={trackDisabled ? "Select a step or gap to insert a track" : null}
                 onAdd={() => onAddTrack(track)}
                 onDragStart={(event) => {
                   startPaletteDrag(event, payload);
@@ -323,6 +332,12 @@ export function LibraryPalette({
           })
         )}
       </div>
+      {spanSelected && span ? (
+        <p className="text-caption border-border border-t px-3.5 py-2">
+          + uses this as the alternate for {span.predecessor.track?.title ?? "Track"} →{" "}
+          {span.destination.track?.title ?? "Track"}.
+        </p>
+      ) : null}
     </aside>
   );
 }

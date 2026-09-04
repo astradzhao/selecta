@@ -11,6 +11,7 @@ import {
   createSequenceAlternate,
   createSequenceVersion,
   deleteSequence,
+  deleteSequenceStep,
   detachSequenceStep,
   getSequenceDetail,
   listSequences,
@@ -275,11 +276,126 @@ describe("sequence module invariants", { skip: !pgIntegration }, () => {
           name: "ambiguous",
           alternateIds: [
             one.alternates[0]!.id,
-            two.alternates.find((alt) => alt.id !== one.alternates[0]!.id)!.id,
+            two.alternates.find((row) => row.id !== one.alternates[0]!.id)!.id,
           ],
         }),
       (error: unknown) => isMusicWriteError(error) && /overlap/.test((error as Error).message),
     );
+  });
+
+  it("embeds alternate connectors and validates a two-step span against A → C", async () => {
+    const a = await track("SpanA");
+    const b = await track("SpanB");
+    const c = await track("SpanC");
+    const x = await track("SpanX");
+    const ab = await createTransition({
+      fromTrackId: a.track.id,
+      toTrackId: b.track.id,
+      technique: "blend",
+    });
+    const abAlt = await createTransition({
+      fromTrackId: a.track.id,
+      toTrackId: b.track.id,
+      technique: "cut",
+    });
+    const bc = await createTransition({ fromTrackId: b.track.id, toTrackId: c.track.id });
+    const ax = await createTransition({ fromTrackId: a.track.id, toTrackId: x.track.id });
+    const xc = await createTransition({ fromTrackId: x.track.id, toTrackId: c.track.id });
+    const xb = await createTransition({ fromTrackId: x.track.id, toTrackId: b.track.id });
+
+    const detour = await createSequence({
+      title: `Detour ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, x.track.id, c.track.id] },
+    });
+    await updateSequenceStep(detour.id, stepByTrack(detour, x.track.id).id, {
+      inTransitionId: ax.id,
+    });
+    await updateSequenceStep(detour.id, stepByTrack(detour, c.track.id).id, {
+      inTransitionId: xc.id,
+    });
+
+    const wrongChild = await createSequence({
+      title: `Wrong ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, x.track.id, b.track.id] },
+    });
+    await updateSequenceStep(wrongChild.id, stepByTrack(wrongChild, x.track.id).id, {
+      inTransitionId: ax.id,
+    });
+    await updateSequenceStep(wrongChild.id, stepByTrack(wrongChild, b.track.id).id, {
+      inTransitionId: xb.id,
+    });
+
+    const sequence = await createSequence({
+      title: `Span parent ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, b.track.id, c.track.id] },
+    });
+    const stepB = stepByTrack(sequence, b.track.id);
+    const stepC = stepByTrack(sequence, c.track.id);
+    await updateSequenceStep(sequence.id, stepB.id, { inTransitionId: ab.id });
+    await updateSequenceStep(sequence.id, stepC.id, { inTransitionId: bc.id });
+
+    const oneStep = await createSequenceAlternate(sequence.id, {
+      fromStepId: stepB.id,
+      toStepId: stepB.id,
+      label: "if the room is hot",
+      altTransitionId: abAlt.id,
+    });
+    assert.equal(oneStep.alternates[0]!.altTransition?.technique, "cut");
+    assert.equal(oneStep.alternates[0]!.altBlock, null);
+    assert.equal(oneStep.alternates[0]!.valid, true);
+
+    const twoStep = await createSequenceAlternate(sequence.id, {
+      fromStepId: stepB.id,
+      toStepId: stepC.id,
+      label: "if it stays mellow",
+      altBlockId: detour.id,
+    });
+    const blockAlternate = twoStep.alternates.find((row) => row.altBlockId === detour.id);
+    assert.ok(blockAlternate);
+    assert.equal(blockAlternate.altBlock?.title, detour.title);
+    assert.equal(blockAlternate.altBlock?.stepCount, 3);
+    assert.equal(blockAlternate.valid, true);
+
+    await assert.rejects(
+      () =>
+        createSequenceAlternate(sequence.id, {
+          fromStepId: stepB.id,
+          toStepId: stepC.id,
+          altBlockId: wrongChild.id,
+        }),
+      (error: unknown) =>
+        isMusicWriteError(error) && /endpoints do not match/.test((error as Error).message),
+    );
+  });
+
+  it("clears an alternate when a bounding step is deleted", async () => {
+    const a = await track("BoundA");
+    const b = await track("BoundB");
+    const c = await track("BoundC");
+    const ab = await createTransition({ fromTrackId: a.track.id, toTrackId: b.track.id });
+    const ac = await createTransition({ fromTrackId: a.track.id, toTrackId: c.track.id });
+    const bc = await createTransition({ fromTrackId: b.track.id, toTrackId: c.track.id });
+
+    const sequence = await createSequence({
+      title: `Bound ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, b.track.id, c.track.id] },
+    });
+    const stepB = stepByTrack(sequence, b.track.id);
+    const stepC = stepByTrack(sequence, c.track.id);
+    await updateSequenceStep(sequence.id, stepB.id, { inTransitionId: ab.id });
+    await updateSequenceStep(sequence.id, stepC.id, { inTransitionId: bc.id });
+    await createSequenceAlternate(sequence.id, {
+      fromStepId: stepB.id,
+      toStepId: stepC.id,
+      altTransitionId: ac.id,
+    });
+    assert.equal((await getSequenceDetail(sequence.id)).alternates.length, 1);
+
+    const after = await deleteSequenceStep(sequence.id, stepB.id);
+    assert.equal(after.alternates.length, 0);
+    assert.equal(after.steps.length, 2);
+    assert.equal(after.steps[0]!.trackId, a.track.id);
+    assert.equal(after.steps[1]!.trackId, c.track.id);
   });
 
   it("rejects reorder when the id set does not match", async () => {

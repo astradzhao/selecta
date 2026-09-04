@@ -136,3 +136,43 @@ export async function detachSequenceStep(
     method: "POST",
   });
 }
+
+export async function createSequenceAlternate(
+  id: string,
+  body: {
+    fromStepId: string;
+    toStepId: string;
+    label: string;
+    altTransitionId?: string | null;
+    altBlockId?: string | null;
+  },
+): Promise<{ ok: true; sequence: SequenceDetail }> {
+  return apiFetch(`/blocks/${encodeURIComponent(id)}/alternates`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateSequenceAlternate(
+  id: string,
+  alternateId: string,
+  body: { label: string },
+): Promise<{ ok: true; sequence: SequenceDetail }> {
+  return apiFetch(
+    `/blocks/${encodeURIComponent(id)}/alternates/${encodeURIComponent(alternateId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export async function deleteSequenceAlternate(
+  id: string,
+  alternateId: string,
+): Promise<{ ok: true; sequence: SequenceDetail }> {
+  return apiFetch(
+    `/blocks/${encodeURIComponent(id)}/alternates/${encodeURIComponent(alternateId)}`,
+    { method: "DELETE" },
+  );
+}
