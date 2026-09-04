@@ -1,3 +1,4 @@
+import { spanRange } from "./alternates";
 import { isLiveBlockHost } from "./reorder";
 import type { DragPayload, DropTarget, SequenceRecord, WorkspaceSelection } from "./types";
 
@@ -45,11 +46,17 @@ export function blockFitPayload(row: SequenceRecord): Extract<FitPayload, { kind
   };
 }
 
+export type SpanFit = {
+  fromIdx: number;
+  fromTrackId: string;
+  toTrackId: string;
+};
+
 export function insertIndex(
   selection: WorkspaceSelection,
   steps: readonly { id: string }[],
 ): number | "append" {
-  if (selection.kind === "none") return "append";
+  if (selection.kind === "none" || selection.kind === "span") return "append";
   const at = steps.findIndex((step) => step.id === selection.stepId);
   if (at < 0) return "append";
   return selection.kind === "gap" ? at : at + 1;
@@ -68,8 +75,28 @@ export function dropFit(
   target: DropTarget,
   steps: readonly FitStep[],
   transition: FitTransition | null = null,
+  span: SpanFit | null = null,
 ): boolean {
   if (!payload) return false;
+  if (span) {
+    if (payload.kind === "track") return false;
+    if (target.kind !== "gap" || target.index !== span.fromIdx) return false;
+    if (payload.kind === "block") {
+      return Boolean(
+        payload.isComplete &&
+        payload.startTrackId === span.fromTrackId &&
+        payload.endTrackId === span.toTrackId,
+      );
+    }
+    const edge =
+      transition ??
+      (payload.kind === "transition" && "fromTrackId" in payload
+        ? { fromTrackId: payload.fromTrackId, toTrackId: payload.toTrackId }
+        : null);
+    return Boolean(
+      edge && edge.fromTrackId === span.fromTrackId && edge.toTrackId === span.toTrackId,
+    );
+  }
   if (payload.kind === "track") {
     if (target.kind === "gap") {
       const dest = steps[target.index];
@@ -122,7 +149,7 @@ export function nestedSelectedStep<T extends { id: string }>(
   return nestedSteps.find((step) => step.id === selection.stepId) ?? null;
 }
 
-/** Query the Transitions palette should send (D13): the selected pair, else outbound from the anchor. */
+/** Query the Transitions palette should send: selected pair, span pair, else outbound from the anchor. */
 export function paletteTransitionQuery(
   selection: WorkspaceSelection,
   steps: readonly { id: string; trackId: string }[],
@@ -130,6 +157,12 @@ export function paletteTransitionQuery(
 ): { fromTrackId?: string; toTrackId?: string } {
   const nested = nestedSelectedStep(selection, steps, nestedSteps);
   if (nested) return { fromTrackId: nested.trackId };
+  if (selection.kind === "span") {
+    const range = spanRange(steps, selection.fromStepId, selection.toStepId);
+    if (range) {
+      return { fromTrackId: range.predecessor.trackId, toTrackId: range.destination.trackId };
+    }
+  }
   if (selection.kind === "gap") {
     const gapIndex = steps.findIndex((step) => step.id === selection.stepId);
     if (gapIndex > 0) {
@@ -139,7 +172,7 @@ export function paletteTransitionQuery(
         return { fromTrackId: from.trackId, toTrackId: to.trackId };
       }
     }
-  } else {
+  } else if (selection.kind !== "span") {
     const insertAt = numericInsertIndex(selection, steps);
     const anchor = insertAt > 0 ? steps[insertAt - 1] : null;
     if (anchor) return { fromTrackId: anchor.trackId };
@@ -154,6 +187,17 @@ export function paletteTransitionReason(
   steps: readonly { id: string; trackId: string }[],
   nestedSteps: readonly { id: string; trackId: string }[] = [],
 ): string | null {
+  if (selection.kind === "span") {
+    const range = spanRange(steps, selection.fromStepId, selection.toStepId);
+    if (
+      range &&
+      payload.fromTrackId === range.predecessor.trackId &&
+      payload.toTrackId === range.destination.trackId
+    ) {
+      return null;
+    }
+    return "Does not fit the selected span";
+  }
   const nested = nestedSelectedStep(selection, steps, nestedSteps);
   if (nested) {
     return payload.fromTrackId === nested.trackId
@@ -176,10 +220,35 @@ export function paletteBlockReason(
   if (!payload.isComplete || !payload.startTrackId || !payload.endTrackId) {
     return "Incomplete blocks cannot be used as connectors";
   }
+  if (selection.kind === "span") {
+    const range = spanRange(steps, selection.fromStepId, selection.toStepId);
+    if (
+      range &&
+      payload.startTrackId === range.predecessor.trackId &&
+      payload.endTrackId === range.destination.trackId
+    ) {
+      return null;
+    }
+    return "Does not fit the selected span";
+  }
   const insertAt = numericInsertIndex(selection, steps);
   const target: DropTarget =
     selection.kind === "gap" ? { kind: "gap", index: insertAt } : { kind: "end", index: insertAt };
   if (dropFit(payload, target, steps)) return null;
   if (selection.kind === "gap") return "Does not fit the selected gap";
   return null;
+}
+
+export function spanFitFromSelection(
+  selection: WorkspaceSelection,
+  steps: readonly { id: string; trackId: string }[],
+): SpanFit | null {
+  if (selection.kind !== "span") return null;
+  const range = spanRange(steps, selection.fromStepId, selection.toStepId);
+  if (!range) return null;
+  return {
+    fromIdx: range.fromIdx,
+    fromTrackId: range.predecessor.trackId,
+    toTrackId: range.destination.trackId,
+  };
 }

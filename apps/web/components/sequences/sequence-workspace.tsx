@@ -17,15 +17,35 @@ import { ApiClientError } from "@/lib/api/client";
 import { describeApiError } from "@/lib/api/errors";
 import {
   addSequenceStep,
+  createSequenceAlternate,
+  createSequenceVersion,
   deleteSequence,
+  deleteSequenceAlternate,
   deleteSequenceStep,
+  deleteSequenceVersion,
   detachSequenceStep,
   getSequence,
   listSequenceReferrers,
+  listSequences,
   reorderSequence,
   updateSequence,
+  updateSequenceAlternate,
   updateSequenceStep,
+  updateSequenceVersion,
 } from "@/lib/sequences/api";
+import {
+  alternateCoverage,
+  canAuthorAlternates,
+  formatAlternateCoverage,
+  orderSpan,
+  spanRange,
+  versionCountUsingAlternate,
+} from "@/lib/sequences/alternates";
+import {
+  chosenIdsForVersion,
+  resolveVersionPath,
+  showVersionSwitcher,
+} from "@/lib/sequences/versions";
 import {
   autoLinkTransitionId,
   blockFitPayload,
@@ -33,6 +53,8 @@ import {
   insertIndex,
   numericInsertIndex,
   paletteBlockReason,
+  paletteTransitionReason,
+  spanFitFromSelection,
   type FitPayload,
 } from "@/lib/sequences/drag";
 import { incompleteBlockCount } from "@/lib/sequences/gap-display";
@@ -45,7 +67,9 @@ import {
 } from "@/lib/sequences/metrics";
 import { moveUnit, reorderTo, unitRange } from "@/lib/sequences/reorder";
 import type {
+  AlternateDraft,
   DropTarget,
+  SequenceAlternate,
   SequenceDetail,
   SequenceKind,
   SequenceRecord,
@@ -59,8 +83,11 @@ import type { ApiTransition } from "@/lib/transitions/types";
 import { displayVocab } from "@/lib/transitions/vocab-labels";
 import type { ApiTrack } from "@/lib/tracks/api";
 
+import { AlternateLabelDialog } from "./alternate-label-dialog";
 import { LibraryPalette, type PaletteTab } from "./library-palette";
 import { SequenceRunningOrder } from "./sequence-running-order";
+import { VersionDialog, type VersionDraft } from "./version-dialog";
+import { VersionSwitcher } from "./version-switcher";
 
 function findOwnedStep(
   parent: SequenceDetail,
@@ -91,6 +118,7 @@ export function SequenceWorkspace({
   const [selection, setSelection] = useState<WorkspaceSelection>({ kind: "none" });
   const [paletteTab, setPaletteTab] = useState<PaletteTab>("tracks");
   const [pickerStepId, setPickerStepId] = useState<string | null>(null);
+  const [pickerIntent, setPickerIntent] = useState<"link" | "alternate">("link");
   const [notesOpen, setNotesOpen] = useState<Record<string, boolean>>({});
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [dragPayload, setDragPayload] = useState<FitPayload | null>(null);
@@ -118,6 +146,23 @@ export function SequenceWorkspace({
     description: string;
   } | null>(null);
   const [pendingAction, setPendingAction] = useState(false);
+  const [spanCandidateTotal, setSpanCandidateTotal] = useState<number | null>(null);
+  const [expandedAlternateIds, setExpandedAlternateIds] = useState<Record<string, boolean>>({});
+  const [alternateDraft, setAlternateDraft] = useState<AlternateDraft | null>(null);
+  const [alternatePending, setAlternatePending] = useState(false);
+  const [alternateError, setAlternateError] = useState<string | null>(null);
+  const [pendingAlternateRemove, setPendingAlternateRemove] = useState<{
+    item: SequenceAlternate;
+    versionCount: number;
+  } | null>(null);
+  const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
+  const [versionDraft, setVersionDraft] = useState<VersionDraft | null>(null);
+  const [versionPending, setVersionPending] = useState(false);
+  const [versionError, setVersionError] = useState<string | null>(null);
+  const [pendingVersionDelete, setPendingVersionDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -128,6 +173,13 @@ export function SequenceWorkspace({
         setDetail(result.sequence);
         setTitleDraft(result.sequence.title);
         setLoadError(null);
+        setSelection({ kind: "none" });
+        setPickerStepId(null);
+        setPickerIntent("link");
+        setAlternateDraft(null);
+        setSpanCandidateTotal(null);
+        setActiveVersionId(null);
+        setVersionDraft(null);
       } catch (err) {
         if (!cancelled) {
           setLoadError(describeApiError(err, { resource: "sequence" }));
@@ -164,11 +216,73 @@ export function SequenceWorkspace({
     };
   }, [routeKind, sequenceId]);
 
+  useEffect(() => {
+    if (!detail || !canAuthorAlternates(detail.kind) || selection.kind !== "span") {
+      setSpanCandidateTotal(null);
+      return;
+    }
+    const range = spanRange(detail.steps, selection.fromStepId, selection.toStepId);
+    if (!range) {
+      setSpanCandidateTotal(0);
+      return;
+    }
+    let cancelled = false;
+    void Promise.all([
+      listTransitions({
+        fromTrackId: range.predecessor.trackId,
+        toTrackId: range.destination.trackId,
+        limit: 50,
+      }),
+      listSequences({
+        kind: "block",
+        startTrack: range.predecessor.trackId,
+        endTrack: range.destination.trackId,
+        complete: true,
+        limit: 50,
+      }),
+    ])
+      .then(([transitionResult, blockResult]) => {
+        if (cancelled) return;
+        const blocks = blockResult.sequences.filter(
+          (row) => row.id !== detail.id && row.isComplete,
+        );
+        setSpanCandidateTotal(transitionResult.transitions.length + blocks.length);
+      })
+      .catch(() => {
+        if (!cancelled) setSpanCandidateTotal(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [detail, selection]);
+
+  useEffect(() => {
+    if (selection.kind !== "span" || alternateDraft) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setSelection({ kind: "none" });
+      setPickerStepId(null);
+      setPickerIntent("link");
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selection.kind, alternateDraft]);
+
   function applyDetail(next: SequenceDetail) {
     setDetail(next);
     setTitleDraft(next.title);
+    setActiveVersionId((current) => {
+      if (!current) return current;
+      return next.versions.some((item) => item.id === current) ? current : null;
+    });
     setSelection((current) => {
       if (current.kind === "none") return current;
+      if (current.kind === "span") {
+        if (!canAuthorAlternates(next.kind)) return { kind: "none" };
+        return spanRange(next.steps, current.fromStepId, current.toStepId)
+          ? current
+          : { kind: "none" };
+      }
       const step = next.steps.find((item) => item.id === current.stepId);
       if (step) {
         if (current.kind === "gap" && step.gapState == null) return { kind: "none" };
@@ -213,6 +327,12 @@ export function SequenceWorkspace({
     }
   }
 
+  function requireBasePath() {
+    if (activeVersionId == null) return true;
+    toast("Switch to Base to edit the running order.");
+    return false;
+  }
+
   async function mutateChild(
     blockId: string,
     writer: () => Promise<{ sequence: SequenceDetail }>,
@@ -239,6 +359,7 @@ export function SequenceWorkspace({
   function clearTransient() {
     setSelection({ kind: "none" });
     setPickerStepId(null);
+    setPickerIntent("link");
   }
 
   function forgetChild(blockId: string) {
@@ -267,6 +388,7 @@ export function SequenceWorkspace({
   ) {
     if (!detail) return;
     const targetId = ownerId ?? detail.id;
+    if (targetId === detail.id && !requireBasePath()) return;
     const steps = targetId === detail.id ? detail.steps : (childById[targetId]?.steps ?? null);
     if (!steps) return;
     const numeric = position === "append" ? steps.length : position;
@@ -302,6 +424,10 @@ export function SequenceWorkspace({
 
   async function handleAddTrack(track: ApiTrack) {
     if (!detail) return;
+    if (selection.kind === "span") {
+      toast("Select a step or gap to insert a track");
+      return;
+    }
     if (selection.kind === "step") {
       const owned = findOwnedStep(detail, childById, selection.stepId);
       if (owned && owned.sequenceId !== detail.id) {
@@ -315,9 +441,41 @@ export function SequenceWorkspace({
     await addTrackAt(track.id, track.title, insertIndex(selection, detail.steps));
   }
 
+  function beginAlternateDraft(draft: AlternateDraft) {
+    if (!detail || !canAuthorAlternates(detail.kind) || !requireBasePath()) return;
+    setAlternateError(null);
+    setAlternateDraft(draft);
+  }
+
   async function handleAddTransition(transition: ApiTransition) {
-    if (!detail) return;
+    if (!detail || !requireBasePath()) return;
     const technique = displayVocab(transition.technique) ?? "mix";
+    if (selection.kind === "span") {
+      const reason = paletteTransitionReason(
+        {
+          kind: "transition",
+          id: transition.id,
+          fromTrackId: transition.fromTrack.id,
+          toTrackId: transition.toTrack.id,
+          fromTitle: transition.fromTrack.title,
+          toTitle: transition.toTrack.title,
+          technique,
+        },
+        selection,
+        detail.steps,
+      );
+      if (reason) {
+        toast(reason);
+        return;
+      }
+      beginAlternateDraft({
+        fromStepId: selection.fromStepId,
+        toStepId: selection.toStepId,
+        altTransitionId: transition.id,
+        summary: `${technique} · ${transition.fromTrack.title} → ${transition.toTrack.title}`,
+      });
+      return;
+    }
     if (selection.kind === "gap") {
       await mutate(
         () =>
@@ -419,7 +577,21 @@ export function SequenceWorkspace({
   }
 
   async function handleAddBlock(block: SequenceRecord) {
-    if (!detail) return;
+    if (!detail || !requireBasePath()) return;
+    if (selection.kind === "span") {
+      const reason = paletteBlockReason(blockFitPayload(block), selection, detail.steps);
+      if (reason) {
+        toast(reason);
+        return;
+      }
+      beginAlternateDraft({
+        fromStepId: selection.fromStepId,
+        toStepId: selection.toStepId,
+        altBlockId: block.id,
+        summary: block.title,
+      });
+      return;
+    }
     const payload = blockFitPayload(block);
     const insertAt = numericInsertIndex(selection, detail.steps);
     const target: DropTarget =
@@ -435,7 +607,39 @@ export function SequenceWorkspace({
   }
 
   async function handlePaletteDrop(target: DropTarget) {
-    if (!detail || !dragPayload) return;
+    if (!detail || !dragPayload || !requireBasePath()) return;
+    if (selection.kind === "span") {
+      if (dragPayload.kind === "track") return;
+      const span = spanFitFromSelection(selection, detail.steps);
+      if (!span) return;
+      if (
+        !dropFit(
+          dragPayload,
+          target,
+          detail.steps,
+          dragPayload.kind === "transition" ? dragPayload : null,
+          span,
+        )
+      ) {
+        return;
+      }
+      if (dragPayload.kind === "transition") {
+        beginAlternateDraft({
+          fromStepId: selection.fromStepId,
+          toStepId: selection.toStepId,
+          altTransitionId: dragPayload.id,
+          summary: `${dragPayload.technique} · ${dragPayload.fromTitle} → ${dragPayload.toTitle}`,
+        });
+        return;
+      }
+      beginAlternateDraft({
+        fromStepId: selection.fromStepId,
+        toStepId: selection.toStepId,
+        altBlockId: dragPayload.id,
+        summary: dragPayload.title,
+      });
+      return;
+    }
     const edge = dragPayload.kind === "transition" ? dragPayload : null;
     if (!dropFit(dragPayload, target, detail.steps, edge)) return;
     if (dragPayload.kind === "track") {
@@ -496,7 +700,7 @@ export function SequenceWorkspace({
   }
 
   async function handleMove(stepId: string, delta: -1 | 1) {
-    if (!detail) return;
+    if (!detail || !requireBasePath()) return;
     const index = detail.steps.findIndex((step) => step.id === stepId);
     const next = moveUnit(detail.steps, index, delta);
     if (next.every((step, i) => step.id === detail.steps[i]?.id)) return;
@@ -507,7 +711,7 @@ export function SequenceWorkspace({
   }
 
   async function handleReorderDrop(targetStepId: string) {
-    if (!detail || !draggingStepId || draggingStepId === targetStepId) return;
+    if (!detail || !draggingStepId || draggingStepId === targetStepId || !requireBasePath()) return;
     const fromIndex = detail.steps.findIndex((step) => step.id === draggingStepId);
     const targetIndex = detail.steps.findIndex((step) => step.id === targetStepId);
     const next = reorderTo(detail.steps, fromIndex, targetIndex);
@@ -603,8 +807,158 @@ export function SequenceWorkspace({
     }
   }
 
-  function handleRemoveStep(step: SequenceStep) {
+  async function handleAddAlternate(stepId: string) {
+    if (!detail || !canAuthorAlternates(detail.kind) || !requireBasePath()) return;
+    const keepSpan = selection.kind === "span" && selection.fromStepId === stepId;
+    const fromStepId = keepSpan ? selection.fromStepId : stepId;
+    const toStepId = keepSpan ? selection.toStepId : stepId;
+    const range = spanRange(detail.steps, fromStepId, toStepId);
+    if (!range) {
+      toast("An alternate needs a join to substitute — pick from the second track on.");
+      return;
+    }
+    setSelection({ kind: "span", fromStepId, toStepId });
+    setPaletteTab("transitions");
+    try {
+      const [transitionResult, blockResult] = await Promise.all([
+        listTransitions({
+          fromTrackId: range.predecessor.trackId,
+          toTrackId: range.destination.trackId,
+          limit: 50,
+        }),
+        listSequences({
+          kind: "block",
+          startTrack: range.predecessor.trackId,
+          endTrack: range.destination.trackId,
+          complete: true,
+          limit: 50,
+        }),
+      ]);
+      const blocks = blockResult.sequences.filter((row) => row.id !== detail.id && row.isComplete);
+      const total = transitionResult.transitions.length + blocks.length;
+      setSpanCandidateTotal(total);
+      if (total > 0) {
+        setPickerIntent("alternate");
+        setPickerStepId(fromStepId);
+      } else {
+        setPickerIntent("link");
+        setPickerStepId(null);
+      }
+    } catch {
+      setPickerIntent("alternate");
+      setPickerStepId(fromStepId);
+    }
+  }
+
+  function handleSelectStep(stepId: string, shiftKey = false) {
     if (!detail) return;
+    if (shiftKey && canAuthorAlternates(detail.kind) && activeVersionId == null) {
+      const anchorId =
+        selection.kind === "span"
+          ? selection.fromStepId
+          : selection.kind === "gap" || selection.kind === "step"
+            ? selection.stepId
+            : null;
+      if (!anchorId) {
+        setSelection({ kind: "step", stepId });
+        return;
+      }
+      const ordered = orderSpan(detail.steps, anchorId, stepId);
+      if (!ordered) {
+        toast("An alternate needs a join to substitute — pick from the second track on.");
+        return;
+      }
+      setSelection({ kind: "span", ...ordered });
+      setPaletteTab("transitions");
+      setPickerStepId(null);
+      setPickerIntent("link");
+      return;
+    }
+    const selected = selection.kind === "step" && selection.stepId === stepId;
+    setSelection(selected ? { kind: "none" } : { kind: "step", stepId });
+    setPickerStepId(null);
+    setPickerIntent("link");
+  }
+
+  async function confirmAlternate(label: string) {
+    if (!detail || !alternateDraft || !canAuthorAlternates(detail.kind)) return;
+    setAlternatePending(true);
+    setAlternateError(null);
+    const result = await mutate(
+      () =>
+        createSequenceAlternate(detail.id, {
+          fromStepId: alternateDraft.fromStepId,
+          toStepId: alternateDraft.toStepId,
+          label,
+          altTransitionId: alternateDraft.altTransitionId,
+          altBlockId: alternateDraft.altBlockId,
+        }),
+      `Alternate added — ${label}`,
+    );
+    setAlternatePending(false);
+    if (result) {
+      setAlternateDraft(null);
+      setPickerStepId(null);
+      setPickerIntent("link");
+    } else {
+      setAlternateError("Could not add that alternate.");
+    }
+  }
+
+  function handleRemoveAlternate(item: SequenceAlternate) {
+    if (!detail || !canAuthorAlternates(detail.kind)) return;
+    const versionCount = versionCountUsingAlternate(detail.versions, item.id);
+    if (versionCount > 0) {
+      setPendingAlternateRemove({ item, versionCount });
+      return;
+    }
+    void mutate(() => deleteSequenceAlternate(detail.id, item.id), "Alternate removed");
+  }
+
+  async function handleSaveVersion(draft: VersionDraft) {
+    if (!detail) return;
+    setVersionPending(true);
+    setVersionError(null);
+    const result = draft.versionId
+      ? await mutate(
+          () =>
+            updateSequenceVersion(detail.id, draft.versionId!, {
+              name: draft.name,
+              alternateIds: draft.alternateIds,
+            }),
+          "Version updated",
+        )
+      : await mutate(
+          () =>
+            createSequenceVersion(detail.id, {
+              name: draft.name,
+              alternateIds: draft.alternateIds,
+            }),
+          `Saved “${draft.name}”`,
+        );
+    setVersionPending(false);
+    if (result) {
+      const previousIds = new Set(detail.versions.map((item) => item.id));
+      const saved = draft.versionId
+        ? result.versions.find((item) => item.id === draft.versionId)
+        : result.versions.find((item) => !previousIds.has(item.id));
+      if (saved) setActiveVersionId(saved.id);
+      setVersionDraft(null);
+    } else {
+      setVersionError("Could not save that version.");
+    }
+  }
+
+  function handleToggleAlternateExpand(item: SequenceAlternate) {
+    const opening = !expandedAlternateIds[item.id];
+    setExpandedAlternateIds((current) => ({ ...current, [item.id]: opening }));
+    if (opening && item.altBlockId) {
+      void handleToggleExpand(item.altBlockId);
+    }
+  }
+
+  function handleRemoveStep(step: SequenceStep) {
+    if (!detail || !requireBasePath()) return;
     const index = detail.steps.findIndex((item) => item.id === step.id);
     const [start, end] = unitRange(detail.steps, index);
     if (start === end) {
@@ -626,10 +980,20 @@ export function SequenceWorkspace({
   }
 
   const isBlockKind = detail.kind === "block";
-  const metrics = plannedMetrics(detail.steps);
-  const runtimeSec = sequenceRuntimeSec(detail.steps);
-  const trackCount = sequenceTrackCount(detail.steps);
-  const incompleteBlocks = incompleteBlockCount(detail.steps);
+  const pathLocked = activeVersionId != null;
+  const authorAlternates = canAuthorAlternates(detail.kind) && !pathLocked;
+  const chosenIds = chosenIdsForVersion(detail.versions, activeVersionId);
+  const resolved = resolveVersionPath(detail.steps, detail.alternates, chosenIds);
+  const displaySteps = resolved.steps;
+  const activeVersion = detail.versions.find((item) => item.id === activeVersionId) ?? null;
+  const mappedAltCount = alternateCoverage(detail.alternates).mapped;
+  const metrics = plannedMetrics(displaySteps);
+  const runtimeSec = sequenceRuntimeSec(displaySteps);
+  const trackCount = sequenceTrackCount(displaySteps);
+  const incompleteBlocks = incompleteBlockCount(displaySteps);
+  const coverage = authorAlternates
+    ? formatAlternateCoverage(alternateCoverage(detail.alternates))
+    : null;
   const browseHref = setsViewHref(isBlockKind ? "blocks" : "sets");
 
   return (
@@ -651,7 +1015,7 @@ export function SequenceWorkspace({
             className="text-page-title max-w-xl rounded-lg border border-transparent bg-transparent px-1.5 py-0.5 outline-none hover:border-border focus-visible:border-ring focus-visible:bg-surface-1 focus-visible:ring-3 focus-visible:ring-ring/50"
           />
           <div className="text-muted-foreground flex flex-wrap items-center gap-2.5 text-sm">
-            {detail.steps.length === 0 ? (
+            {displaySteps.length === 0 ? (
               <span className="text-numeric">0 tracks</span>
             ) : (
               <>
@@ -663,7 +1027,7 @@ export function SequenceWorkspace({
               </>
             )}
             <span aria-hidden>·</span>
-            <span>{formatPlannedLine(metrics, detail.steps.length)}</span>
+            <span>{formatPlannedLine(metrics, displaySteps.length)}</span>
             {metrics.seams > 0 ? (
               <Badge variant="tertiary">
                 {metrics.seams} {metrics.seams === 1 ? "seam" : "seams"}
@@ -672,9 +1036,46 @@ export function SequenceWorkspace({
             {incompleteBlocks > 0 ? (
               <Badge variant="warning">{incompleteBlocks} block incomplete</Badge>
             ) : null}
+            {coverage ? (
+              <>
+                <span aria-hidden>·</span>
+                <span className="text-numeric">{coverage}</span>
+              </>
+            ) : null}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {showVersionSwitcher(detail.kind, detail.versions.length, mappedAltCount) ? (
+            <VersionSwitcher
+              versions={detail.versions}
+              activeVersionId={activeVersionId}
+              canSave={mappedAltCount > 0}
+              onChange={(versionId) => {
+                setActiveVersionId(versionId);
+                const name = detail.versions.find((item) => item.id === versionId)?.name;
+                toast(
+                  versionId == null ? "Base path" : `${name ?? "Version"} — alternates substituted`,
+                );
+              }}
+              onSave={() => {
+                setVersionError(null);
+                setVersionDraft({ versionId: null, name: "", alternateIds: [] });
+              }}
+              onEdit={() => {
+                if (!activeVersion) return;
+                setVersionError(null);
+                setVersionDraft({
+                  versionId: activeVersion.id,
+                  name: activeVersion.name,
+                  alternateIds: [...activeVersion.alternateIds],
+                });
+              }}
+              onDelete={() => {
+                if (!activeVersion) return;
+                setPendingVersionDelete({ id: activeVersion.id, name: activeVersion.name });
+              }}
+            />
+          ) : null}
           <Button
             type="button"
             variant="outline"
@@ -688,6 +1089,12 @@ export function SequenceWorkspace({
         </div>
       </div>
       {conflict ? <Alert variant="warning">{conflict}</Alert> : null}
+      {activeVersion ? (
+        <Alert variant="info">
+          Showing “{activeVersion.name}”. Switch to Base to edit the running order — this version is
+          only which alternates are on.
+        </Alert>
+      ) : null}
       {isBlockKind && referrers.length > 0 ? (
         <Alert variant="warning">
           Used as a connector in {referrers.length}{" "}
@@ -699,7 +1106,7 @@ export function SequenceWorkspace({
         <SequenceRunningOrder
           sequenceId={detail.id}
           kindNounEmpty={isBlockKind ? "This block has no tracks yet" : "This night is empty"}
-          steps={detail.steps}
+          steps={displaySteps}
           selection={selection}
           pickerStepId={pickerStepId}
           notesOpenFor={(step) =>
@@ -717,17 +1124,31 @@ export function SequenceWorkspace({
             setSelection(selected ? { kind: "none" } : { kind: "gap", stepId });
             setPaletteTab(selected ? "tracks" : "transitions");
             setPickerStepId(null);
+            setPickerIntent("link");
           }}
-          onSelectStep={(stepId) => {
-            const selected = selection.kind === "step" && selection.stepId === stepId;
-            setSelection(selected ? { kind: "none" } : { kind: "step", stepId });
-          }}
+          onSelectStep={handleSelectStep}
           onTogglePicker={(stepId) => {
-            setPickerStepId((current) => (current === stepId ? null : stepId));
+            if (pickerStepId === stepId) {
+              setPickerStepId(null);
+              return;
+            }
+            setPickerIntent("link");
+            setPickerStepId(stepId);
             setSelection({ kind: "gap", stepId });
             setPaletteTab("transitions");
           }}
           onPickTransition={(stepId, transition) => {
+            if (pickerIntent === "alternate" && selection.kind === "span") {
+              const technique = displayVocab(transition.technique) ?? "mix";
+              beginAlternateDraft({
+                fromStepId: selection.fromStepId,
+                toStepId: selection.toStepId,
+                altTransitionId: transition.id,
+                summary: `${technique} · ${transition.fromTrack.title} → ${transition.toTrack.title}`,
+              });
+              setPickerStepId(null);
+              return;
+            }
             void mutate(
               () =>
                 updateSequenceStep(detail.id, stepId, {
@@ -737,9 +1158,20 @@ export function SequenceWorkspace({
               `Linked ${displayVocab(transition.technique) ?? "mix"}`,
             );
             setPickerStepId(null);
+            setPickerIntent("link");
             setSelection({ kind: "none" });
           }}
           onPickBlock={(stepId, block) => {
+            if (pickerIntent === "alternate" && selection.kind === "span") {
+              beginAlternateDraft({
+                fromStepId: selection.fromStepId,
+                toStepId: selection.toStepId,
+                altBlockId: block.id,
+                summary: block.title,
+              });
+              setPickerStepId(null);
+              return;
+            }
             void mutate(
               () =>
                 updateSequenceStep(detail.id, stepId, {
@@ -749,6 +1181,7 @@ export function SequenceWorkspace({
               `Linked ${block.title}`,
             );
             setPickerStepId(null);
+            setPickerIntent("link");
             setSelection({ kind: "none" });
           }}
           onUnlink={(stepId) => {
@@ -814,10 +1247,36 @@ export function SequenceWorkspace({
           onAddTrackCta={() => {
             setPaletteTab("tracks");
             setSelection({ kind: "none" });
+            setPickerIntent("link");
+            setPickerStepId(null);
           }}
           onInsertBlockCta={() => {
             setPaletteTab("blocks");
             setSelection({ kind: "none" });
+            setPickerIntent("link");
+            setPickerStepId(null);
+          }}
+          alternates={authorAlternates ? detail.alternates : []}
+          spanCandidateTotal={authorAlternates ? spanCandidateTotal : null}
+          expandedAlternateIds={expandedAlternateIds}
+          onAddAlternate={
+            authorAlternates ? (stepId) => void handleAddAlternate(stepId) : undefined
+          }
+          onToggleAlternateExpand={handleToggleAlternateExpand}
+          onRemoveAlternate={handleRemoveAlternate}
+          onCommitAlternateLabel={(item, label) => {
+            void mutate(
+              () => updateSequenceAlternate(detail.id, item.id, { label }),
+              "Label updated",
+            );
+          }}
+          alternateChips={resolved.chips}
+          pathLocked={pathLocked}
+          onPickBlockVersion={(stepId, versionId) => {
+            void mutate(
+              () => updateSequenceStep(detail.id, stepId, { inBlockVersionId: versionId }),
+              versionId ? "Block version pinned" : "Base path for this block",
+            );
           }}
         />
         <LibraryPalette
@@ -833,6 +1292,7 @@ export function SequenceWorkspace({
           onClearSelection={() => {
             setSelection({ kind: "none" });
             setPickerStepId(null);
+            setPickerIntent("link");
             setPaletteTab("tracks");
           }}
           onDragStart={setDragPayload}
@@ -933,6 +1393,88 @@ export function SequenceWorkspace({
         onConfirm={() => {
           if (!pendingEdit) return;
           router.push(sequenceWorkspaceHref("block", pendingEdit.blockId));
+        }}
+      />
+      <AlternateLabelDialog
+        draft={alternateDraft}
+        pending={alternatePending}
+        error={alternateError}
+        onOpenChange={(open) => {
+          if (!open && !alternatePending) {
+            setAlternateDraft(null);
+            setAlternateError(null);
+          }
+        }}
+        onConfirm={(label) => void confirmAlternate(label)}
+      />
+      <VersionDialog
+        draft={versionDraft}
+        steps={detail.steps}
+        alternates={detail.alternates}
+        pending={versionPending}
+        error={versionError}
+        onOpenChange={(open) => {
+          if (!open && !versionPending) {
+            setVersionDraft(null);
+            setVersionError(null);
+          }
+        }}
+        onConfirm={(draft) => void handleSaveVersion(draft)}
+      />
+      <ConfirmDialog
+        open={pendingVersionDelete != null}
+        onOpenChange={(open) => {
+          if (!open) setPendingVersionDelete(null);
+        }}
+        title={pendingVersionDelete ? `Delete “${pendingVersionDelete.name}”?` : "Delete version?"}
+        description="The block and its alternates stay. Only this named selection goes away."
+        confirmLabel="Delete"
+        pending={pendingAction}
+        pendingLabel="Deleting…"
+        onConfirm={() => {
+          if (!pendingVersionDelete) return;
+          const { id, name } = pendingVersionDelete;
+          setPendingAction(true);
+          void (async () => {
+            const result = await mutate(
+              () => deleteSequenceVersion(detail.id, id),
+              `Deleted “${name}”`,
+            );
+            setPendingAction(false);
+            if (result) {
+              setPendingVersionDelete(null);
+              setActiveVersionId(null);
+            }
+          })();
+        }}
+      />
+      <ConfirmDialog
+        open={pendingAlternateRemove != null}
+        onOpenChange={(open) => {
+          if (!open) setPendingAlternateRemove(null);
+        }}
+        title="Remove this alternate?"
+        description={
+          pendingAlternateRemove
+            ? `This alternate is used in ${pendingAlternateRemove.versionCount} saved ${pendingAlternateRemove.versionCount === 1 ? "version" : "versions"}. Removing it drops it from those versions.`
+            : ""
+        }
+        confirmLabel="Remove"
+        variant="default"
+        pending={pendingAction}
+        pendingLabel="Removing…"
+        onConfirm={() => {
+          if (!pendingAlternateRemove) return;
+          const { item } = pendingAlternateRemove;
+          setPendingAction(true);
+          void (async () => {
+            const result = await mutate(
+              () => deleteSequenceAlternate(detail.id, item.id),
+              "Alternate removed",
+            );
+            setPendingAction(false);
+            if (result) setPendingAlternateRemove(null);
+          })();
         }}
       />
     </div>

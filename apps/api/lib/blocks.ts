@@ -276,6 +276,7 @@ export function parseUpdateStepBody(value: unknown): UpdateSequenceStepInput {
     trackId: asOptionalString(value.trackId, "trackId") ?? undefined,
     inTransitionId: asOptionalString(value.inTransitionId, "inTransitionId"),
     inBlockId: asOptionalString(value.inBlockId, "inBlockId"),
+    inBlockVersionId: asOptionalString(value.inBlockVersionId, "inBlockVersionId"),
     isSeam: asOptionalBoolean(value.isSeam, "isSeam"),
     note: asOptionalString(value.note, "note"),
   };

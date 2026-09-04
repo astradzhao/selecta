@@ -1,0 +1,3 @@
+ALTER TABLE "block_steps" ADD COLUMN "in_block_version_id" text;--> statement-breakpoint
+ALTER TABLE "block_steps" ADD CONSTRAINT "block_steps_in_block_version_id_block_versions_id_fk" FOREIGN KEY ("in_block_version_id") REFERENCES "public"."block_versions"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "block_steps_in_block_version_idx" ON "block_steps" USING btree ("in_block_version_id");

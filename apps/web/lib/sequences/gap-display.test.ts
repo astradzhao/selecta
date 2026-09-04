@@ -10,6 +10,7 @@ const emptyBlock = {
   seamCount: 0,
   isComplete: true,
   runtimeSec: 400,
+  versions: [],
 };
 
 describe("displayGapState", () => {

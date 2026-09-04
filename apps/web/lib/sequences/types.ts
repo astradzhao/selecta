@@ -32,6 +32,7 @@ export type SequenceStepBlock = {
   seamCount: number;
   isComplete: boolean;
   runtimeSec: number;
+  versions: Array<{ id: string; name: string }>;
 };
 
 export type SequenceStep = {
@@ -40,6 +41,7 @@ export type SequenceStep = {
   trackId: string;
   inTransitionId: string | null;
   inBlockId: string | null;
+  inBlockVersionId: string | null;
   isSeam: boolean;
   note: string | null;
   gapState: SequenceGapState | null;
@@ -60,6 +62,8 @@ export type SequenceAlternate = {
   altTransitionId: string | null;
   altBlockId: string | null;
   valid: boolean;
+  altTransition: SequenceStepTransition | null;
+  altBlock: SequenceStepBlock | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -98,7 +102,16 @@ export type SequenceDetail = SequenceRecord & {
 export type WorkspaceSelection =
   | { kind: "none" }
   | { kind: "step"; stepId: string }
-  | { kind: "gap"; stepId: string };
+  | { kind: "gap"; stepId: string }
+  | { kind: "span"; fromStepId: string; toStepId: string };
+
+export type AlternateDraft = {
+  fromStepId: string;
+  toStepId: string;
+  altTransitionId?: string;
+  altBlockId?: string;
+  summary: string;
+};
 
 export type SequenceReferrer = {
   id: string;

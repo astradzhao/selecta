@@ -77,6 +77,7 @@ export type SequenceStepBlock = {
   seamCount: number;
   isComplete: boolean;
   runtimeSec: number;
+  versions: Array<{ id: string; name: string }>;
 };
 
 export type SequenceStep = {
@@ -85,6 +86,7 @@ export type SequenceStep = {
   trackId: string;
   inTransitionId: string | null;
   inBlockId: string | null;
+  inBlockVersionId: string | null;
   isSeam: boolean;
   note: string | null;
   /** Null on the first step — there is no inbound gap. */
@@ -108,6 +110,8 @@ export type SequenceAlternate = {
   altBlockId: string | null;
   /** False when the span is no longer contiguous or the connector is stale. */
   valid: boolean;
+  altTransition: SequenceStepTransition | null;
+  altBlock: SequenceStepBlock | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -190,6 +194,7 @@ export type UpdateSequenceStepInput = {
   trackId?: string;
   inTransitionId?: string | null;
   inBlockId?: string | null;
+  inBlockVersionId?: string | null;
   isSeam?: boolean;
   note?: string | null;
 };
@@ -438,6 +443,31 @@ async function runtimeSecForSequence(
   return value;
 }
 
+async function loadTransitionEmbeds(ids: string[]): Promise<Map<string, SequenceStepTransition>> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  const embeds = new Map<string, SequenceStepTransition>();
+  if (unique.length === 0) return embeds;
+  const rows = await getExecutor()
+    .select()
+    .from(transitions)
+    .where(inArray(transitions.id, unique));
+  for (const row of rows) {
+    embeds.set(row.id, {
+      id: row.id,
+      fromTrackId: row.fromTrackId,
+      toTrackId: row.toTrackId,
+      fromBar: row.fromBar,
+      toBar: row.toBar,
+      barsOverlap: row.barsOverlap,
+      technique: row.technique ?? null,
+      intent: row.intent ?? null,
+      quality: row.quality ?? null,
+      notes: row.notes ?? null,
+    });
+  }
+  return embeds;
+}
+
 async function loadBlockEmbeds(ids: string[]): Promise<Map<string, SequenceStepBlock>> {
   const unique = [...new Set(ids.filter(Boolean))];
   const embeds = new Map<string, SequenceStepBlock>();
@@ -460,6 +490,7 @@ async function loadBlockEmbeds(ids: string[]): Promise<Map<string, SequenceStepB
     });
   }
   const memo = new Map<string, number>();
+  const versionSummaries = await loadVersionSummaries(unique);
   for (const row of rows) {
     const counts = countsById.get(row.id) ?? { stepCount: 0, seamCount: 0 };
     embeds.set(row.id, {
@@ -469,6 +500,7 @@ async function loadBlockEmbeds(ids: string[]): Promise<Map<string, SequenceStepB
       seamCount: counts.seamCount,
       isComplete: row.isComplete,
       runtimeSec: await runtimeSecForSequence(row.id, memo, 0),
+      versions: versionSummaries.get(row.id) ?? [],
     });
   }
   return embeds;
@@ -479,6 +511,49 @@ async function loadAlternates(sequenceId: string): Promise<BlockAlternateRow[]> 
     .select()
     .from(blockAlternates)
     .where(eq(blockAlternates.blockId, sequenceId));
+}
+
+async function loadVersionSummaries(
+  sequenceIds: string[],
+): Promise<Map<string, Array<{ id: string; name: string }>>> {
+  const unique = [...new Set(sequenceIds.filter(Boolean))];
+  const summaries = new Map<string, Array<{ id: string; name: string }>>();
+  for (const id of unique) summaries.set(id, []);
+  if (unique.length === 0) return summaries;
+  const rows = await getExecutor()
+    .select({
+      id: blockVersions.id,
+      blockId: blockVersions.blockId,
+      name: blockVersions.name,
+    })
+    .from(blockVersions)
+    .where(inArray(blockVersions.blockId, unique))
+    .orderBy(asc(blockVersions.createdAt), asc(blockVersions.id));
+  for (const row of rows) {
+    summaries.get(row.blockId)?.push({ id: row.id, name: row.name });
+  }
+  return summaries;
+}
+
+async function assertBlockVersionPin(
+  inBlockId: string | null,
+  inBlockVersionId: string | null,
+): Promise<void> {
+  if (!inBlockVersionId) return;
+  if (!inBlockId) {
+    throw new MusicWriteError("invalid_input", "A version pin requires a block connector.");
+  }
+  const [row] = await getExecutor()
+    .select({ id: blockVersions.id, blockId: blockVersions.blockId })
+    .from(blockVersions)
+    .where(eq(blockVersions.id, inBlockVersionId))
+    .limit(1);
+  if (!row || row.blockId !== inBlockId) {
+    throw new MusicWriteError(
+      "invalid_input",
+      "inBlockVersionId must be a version of the connected block.",
+    );
+  }
 }
 
 async function loadVersions(sequenceId: string): Promise<SequenceVersion[]> {
@@ -796,10 +871,16 @@ async function clearStaleStepConnectors(steps: BlockStepRow[]): Promise<BlockSte
     if (!validity.valid) {
       await getExecutor()
         .update(blockSteps)
-        .set({ inTransitionId: null, inBlockId: null, updatedAt: new Date() })
+        .set({
+          inTransitionId: null,
+          inBlockId: null,
+          inBlockVersionId: null,
+          updatedAt: new Date(),
+        })
         .where(eq(blockSteps.id, step.id));
       step.inTransitionId = null;
       step.inBlockId = null;
+      step.inBlockVersionId = null;
     }
   }
   return next;
@@ -925,34 +1006,12 @@ async function hydrateSteps(sequenceId: string, steps: BlockStepRow[]): Promise<
   }
   const candidates = await countConnectorsForPairs(pairs, sequenceId);
   const summaries = await getTrackSummariesByIds(steps.map((step) => step.trackId));
-  const transitionIds = [
-    ...new Set(steps.map((step) => step.inTransitionId).filter((id): id is string => Boolean(id))),
-  ];
-  const transitionById = new Map<string, SequenceStepTransition>();
-  if (transitionIds.length > 0) {
-    const rows = await getExecutor()
-      .select()
-      .from(transitions)
-      .where(inArray(transitions.id, transitionIds));
-    for (const row of rows) {
-      transitionById.set(row.id, {
-        id: row.id,
-        fromTrackId: row.fromTrackId,
-        toTrackId: row.toTrackId,
-        fromBar: row.fromBar,
-        toBar: row.toBar,
-        barsOverlap: row.barsOverlap,
-        technique: row.technique ?? null,
-        intent: row.intent ?? null,
-        quality: row.quality ?? null,
-        notes: row.notes ?? null,
-      });
-    }
-  }
-  const blockIds = [
-    ...new Set(steps.map((step) => step.inBlockId).filter((id): id is string => Boolean(id))),
-  ];
-  const blockById = await loadBlockEmbeds(blockIds);
+  const transitionById = await loadTransitionEmbeds(
+    steps.map((step) => step.inTransitionId).filter((id): id is string => Boolean(id)),
+  );
+  const blockById = await loadBlockEmbeds(
+    steps.map((step) => step.inBlockId).filter((id): id is string => Boolean(id)),
+  );
 
   const hydrated: SequenceStep[] = [];
   for (let i = 0; i < steps.length; i++) {
@@ -974,6 +1033,7 @@ async function hydrateSteps(sequenceId: string, steps: BlockStepRow[]): Promise<
       trackId: step.trackId,
       inTransitionId: step.inTransitionId,
       inBlockId: step.inBlockId,
+      inBlockVersionId: step.inBlockVersionId,
       isSeam: step.isSeam,
       note: step.note ?? null,
       gapState: prev ? await deriveGapState(prev, step, pair.candidateCount) : null,
@@ -993,6 +1053,12 @@ async function hydrateAlternates(
   steps: BlockStepRow[],
   rows: BlockAlternateRow[],
 ): Promise<SequenceAlternate[]> {
+  const transitionById = await loadTransitionEmbeds(
+    rows.map((row) => row.altTransitionId).filter((id): id is string => Boolean(id)),
+  );
+  const blockById = await loadBlockEmbeds(
+    rows.map((row) => row.altBlockId).filter((id): id is string => Boolean(id)),
+  );
   const result: SequenceAlternate[] = [];
   for (const row of rows) {
     result.push({
@@ -1003,6 +1069,8 @@ async function hydrateAlternates(
       altTransitionId: row.altTransitionId,
       altBlockId: row.altBlockId,
       valid: await isAlternateValid(steps, row),
+      altTransition: row.altTransitionId ? (transitionById.get(row.altTransitionId) ?? null) : null,
+      altBlock: row.altBlockId ? (blockById.get(row.altBlockId) ?? null) : null,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     });
@@ -1153,7 +1221,7 @@ async function expandResolvedSteps(
       reason = reason ?? "depth_exceeded";
       continue;
     }
-    const childSteps = await loadOrderedSteps(step.inBlockId);
+    const childSteps = await loadChildStepsForExpand(step);
     const nested = await expandResolvedSteps(step.inBlockId, childSteps, depth + 1);
     // Skip the child's first track — it duplicates the predecessor.
     entries.push(...nested.entries.slice(1));
@@ -1164,6 +1232,18 @@ async function expandResolvedSteps(
   }
 
   return { entries, truncated, reason };
+}
+
+async function loadChildStepsForExpand(step: BlockStepRow): Promise<BlockStepRow[]> {
+  const childId = step.inBlockId;
+  if (!childId) return [];
+  const childSteps = await loadOrderedSteps(childId);
+  if (!step.inBlockVersionId) return childSteps;
+  const versions = await loadVersions(childId);
+  const version = versions.find((item) => item.id === step.inBlockVersionId);
+  if (!version) return childSteps;
+  const alternateRows = await loadAlternates(childId);
+  return applyVersionToSteps(childSteps, alternateRows, version.alternateIds);
 }
 
 function applyVersionToSteps(
@@ -1200,6 +1280,7 @@ function applyVersionToSteps(
     if (!host) continue;
     host.inTransitionId = item.alt.altTransitionId;
     host.inBlockId = item.alt.altBlockId;
+    host.inBlockVersionId = null;
     host.isSeam = false;
     const fromIdx = resolved.findIndex((step) => step.id === item.alt.fromStepId);
     const toIdx = resolved.findIndex((step) => step.id === item.alt.toStepId);
@@ -1572,6 +1653,7 @@ export async function updateSequenceStep(
     input.trackId === undefined &&
     input.inTransitionId === undefined &&
     input.inBlockId === undefined &&
+    input.inBlockVersionId === undefined &&
     input.isSeam === undefined &&
     input.note === undefined
   ) {
@@ -1594,6 +1676,7 @@ export async function updateSequenceStep(
       input.trackId !== undefined ? requireTrimmed(input.trackId, "trackId") : current.trackId;
     let inTransitionId = current.inTransitionId;
     let inBlockId = current.inBlockId;
+    let inBlockVersionId = current.inBlockVersionId;
     let isSeam = current.isSeam;
     if (input.isSeam !== undefined) {
       isSeam = input.isSeam;
@@ -1604,12 +1687,14 @@ export async function updateSequenceStep(
       ) {
         inTransitionId = null;
         inBlockId = null;
+        inBlockVersionId = null;
       }
     }
     if (input.inTransitionId !== undefined) {
       inTransitionId = optionalString(input.inTransitionId);
       if (input.inBlockId === undefined) {
         inBlockId = null;
+        inBlockVersionId = null;
       }
     }
     if (input.inBlockId !== undefined) {
@@ -1617,6 +1702,15 @@ export async function updateSequenceStep(
       if (input.inTransitionId === undefined) {
         inTransitionId = null;
       }
+      if (inBlockId !== current.inBlockId && input.inBlockVersionId === undefined) {
+        inBlockVersionId = null;
+      }
+    }
+    if (input.inBlockVersionId !== undefined) {
+      inBlockVersionId = optionalString(input.inBlockVersionId);
+    }
+    if (!inBlockId || isSeam) {
+      inBlockVersionId = null;
     }
     const connector = xorConnector(inTransitionId, inBlockId);
     if (isSeam && (connector.inTransitionId || connector.inBlockId)) {
@@ -1629,12 +1723,14 @@ export async function updateSequenceStep(
       const previous = steps[index - 1]!;
       await assertConnectorMatchesGap(sequenceId, previous.trackId, nextTrackId, connector);
     }
+    await assertBlockVersionPin(isSeam ? null : connector.inBlockId, inBlockVersionId);
     await getExecutor()
       .update(blockSteps)
       .set({
         trackId: nextTrackId,
         inTransitionId: isSeam ? null : connector.inTransitionId,
         inBlockId: isSeam ? null : connector.inBlockId,
+        inBlockVersionId,
         isSeam,
         note: input.note !== undefined ? optionalString(input.note) : current.note,
         updatedAt: new Date(),
@@ -1716,7 +1812,12 @@ export async function detachSequenceStep(
     if (childSteps.length < 2) {
       await getExecutor()
         .update(blockSteps)
-        .set({ inBlockId: null, inTransitionId: null, updatedAt: new Date() })
+        .set({
+          inBlockId: null,
+          inTransitionId: null,
+          inBlockVersionId: null,
+          updatedAt: new Date(),
+        })
         .where(eq(blockSteps.id, host.id));
       await recomputeSequenceDerived(sequenceId);
       return reloadDetail(sequenceId);
@@ -1910,8 +2011,12 @@ export async function deleteSequenceAlternate(
   });
 }
 
+function alternateChoiceLabel(alt: BlockAlternateRow): string {
+  return alt.label?.trim() || "untitled";
+}
+
 function assertNoOverlappingChoices(steps: BlockStepRow[], chosen: BlockAlternateRow[]): void {
-  const ranges: Array<{ fromIdx: number; toIdx: number }> = [];
+  const ranges: Array<{ alt: BlockAlternateRow; fromIdx: number; toIdx: number }> = [];
   for (const alt of chosen) {
     const span = spanRange(steps, alt.fromStepId, alt.toStepId);
     if (!span) {
@@ -1924,11 +2029,11 @@ function assertNoOverlappingChoices(steps: BlockStepRow[], chosen: BlockAlternat
       if (alternateSpansOverlap(existing, span)) {
         throw new MusicWriteError(
           "invalid_input",
-          "Chosen alternates in a version must not overlap the same step.",
+          `Chosen alternates overlap the same step ("${alternateChoiceLabel(existing.alt)}" and "${alternateChoiceLabel(alt)}").`,
         );
       }
     }
-    ranges.push(span);
+    ranges.push({ alt, fromIdx: span.fromIdx, toIdx: span.toIdx });
   }
 }
 
