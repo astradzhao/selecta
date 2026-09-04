@@ -5,8 +5,7 @@
 >
 > Status: in progress. SET-1, SET-2, and SET-3 have shipped; SET-4 onward are open.
 >
-> Last updated: 2026-09-04 — SET-6 authors alternates on blocks only; a set
-> assembles the night and does not grow its own alt tree (version picking is SET-7).
+> Last updated: 2026-09-04 — SET-7: versions on blocks, nested version pins on sets.
 >
 > Builds on [`NEXT_PRODUCT_ARCHITECTURE.md`](./NEXT_PRODUCT_ARCHITECTURE.md) (Add → Library →
 > Graph product model) and [`TICKET_ORDER.md`](./TICKET_ORDER.md). Storage is one Postgres.
@@ -163,13 +162,13 @@ piece of that chrome; earlier slices **omit** later controls rather than shippin
 
 Sets are **their own top-level surface**, not a Library view.
 
-| Surface       | Route                      | Purpose                                                                             |
-| ------------- | -------------------------- | ----------------------------------------------------------------------------------- |
-| Browse sets   | `/sets`                    | Nights.                                                                             |
-| Browse blocks | `/sets?view=blocks`        | Reusable runs, with a completeness filter.                                          |
+| Surface       | Route                      | Purpose                                                                                                                                           |
+| ------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Browse sets   | `/sets`                    | Nights.                                                                                                                                           |
+| Browse blocks | `/sets?view=blocks`        | Reusable runs, with a completeness filter.                                                                                                        |
 | Build         | `/sets/:id`, `/blocks/:id` | Same workspace component. `kind` changes the header, default picker filters, and whether `+ alt` / span selection / alt rows appear (block only). |
-| Traverse      | `/graph?set=:id`           | Graph in Set mode.                                                                  |
-| Follow        | `/graph?set=:id&follow=1`  | Booth presentation.                                                                 |
+| Traverse      | `/graph?set=:id`           | Graph in Set mode.                                                                                                                                |
+| Follow        | `/graph?set=:id&follow=1`  | Booth presentation.                                                                                                                               |
 
 Primary nav becomes **Library · Sets · Graph**. (An earlier draft said `Add · Library · Sets ·
 Graph`; DJ-138 deleted `/add` and the Add tab, and it is not coming back.)
@@ -654,22 +653,22 @@ Combine with the depth cap from §5.6.
 `apps/api`, following existing conventions (`{ ok: true, ... }`, `expectedUpdatedAt` for optimistic
 concurrency as in the proposal review routes).
 
-| Method           | Path                              | Notes                                                                                                                                                                       |
-| ---------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`            | `/blocks`                         | `kind`, `q`, `complete`, `startTrack`, `endTrack`, `limit`, `offset`. The endpoint filters back the connector picker.                                                       |
-| `POST`           | `/blocks`                         | `{ kind, title, seed? }`. `seed` is `{ trackIds }` or `{ trail }` — powers "Save trail as a block".                                                                         |
-| `GET`            | `/blocks/:id`                     | Steps + connectors + **derived gap states** + alternates + versions + per-gap candidate counts. `?expand=1` for the flattened list, `?version=` to resolve one.             |
-| `PATCH`          | `/blocks/:id`                     | `{ kind?, title?, description?, expectedUpdatedAt }`                                                                                                                        |
-| `DELETE`         | `/blocks/:id`                     | Rejects with 409 if referenced as a connector, listing the referrers.                                                                                                       |
-| `POST`           | `/blocks/:id/steps`               | `{ trackId, position? \| "append", inTransitionId?, inBlockId? }`. Cycle-checked.                                                                                           |
-| `PATCH`          | `/blocks/:id/steps/:stepId`       | `{ trackId?, inTransitionId?, inBlockId?, isSeam?, note? }`. Validates endpoints; 422 on mismatch.                                                                          |
-| `DELETE`         | `/blocks/:id/steps/:stepId`       | Clears alternates whose span it bounded.                                                                                                                                    |
-| `POST`           | `/blocks/:id/reorder`             | `{ stepIds, expectedUpdatedAt }` — **full ordering**, one transaction. Idempotent and immune to the index-drift bugs of `{ stepId, toIndex }`. Rejects a mismatched id set. |
-| `POST`           | `/blocks/:id/detach/:stepId`      | Inline a block connector's steps as editable rows.                                                                                                                          |
-| `POST`           | `/blocks/:id/alternates`          | `{ fromStepId, toStepId, label?, altTransitionId? \| altBlockId? }`                                                                                                         |
-| `PATCH`/`DELETE` | `/blocks/:id/alternates/:altId`   |                                                                                                                                                                             |
-| `POST`           | `/blocks/:id/versions`            | `{ name, alternateIds }`. Rejects overlapping spans with 422.                                                                                                               |
-| `PATCH`/`DELETE` | `/blocks/:id/versions/:versionId` |                                                                                                                                                                             |
+| Method           | Path                              | Notes                                                                                                                                                                                 |
+| ---------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`            | `/blocks`                         | `kind`, `q`, `complete`, `startTrack`, `endTrack`, `limit`, `offset`. The endpoint filters back the connector picker.                                                                 |
+| `POST`           | `/blocks`                         | `{ kind, title, seed? }`. `seed` is `{ trackIds }` or `{ trail }` — powers "Save trail as a block".                                                                                   |
+| `GET`            | `/blocks/:id`                     | Steps + connectors + **derived gap states** + alternates + versions + per-gap candidate counts. `?expand=1` for the flattened list, `?version=` to resolve one.                       |
+| `PATCH`          | `/blocks/:id`                     | `{ kind?, title?, description?, expectedUpdatedAt }`                                                                                                                                  |
+| `DELETE`         | `/blocks/:id`                     | Rejects with 409 if referenced as a connector, listing the referrers.                                                                                                                 |
+| `POST`           | `/blocks/:id/steps`               | `{ trackId, position? \| "append", inTransitionId?, inBlockId? }`. Cycle-checked.                                                                                                     |
+| `PATCH`          | `/blocks/:id/steps/:stepId`       | `{ trackId?, inTransitionId?, inBlockId?, inBlockVersionId?, isSeam?, note? }`. `inBlockVersionId` pins a nested block's version (null = base). Validates endpoints; 422 on mismatch. |
+| `DELETE`         | `/blocks/:id/steps/:stepId`       | Clears alternates whose span it bounded.                                                                                                                                              |
+| `POST`           | `/blocks/:id/reorder`             | `{ stepIds, expectedUpdatedAt }` — **full ordering**, one transaction. Idempotent and immune to the index-drift bugs of `{ stepId, toIndex }`. Rejects a mismatched id set.           |
+| `POST`           | `/blocks/:id/detach/:stepId`      | Inline a block connector's steps as editable rows.                                                                                                                                    |
+| `POST`           | `/blocks/:id/alternates`          | `{ fromStepId, toStepId, label?, altTransitionId? \| altBlockId? }`                                                                                                                   |
+| `PATCH`/`DELETE` | `/blocks/:id/alternates/:altId`   |                                                                                                                                                                                       |
+| `POST`           | `/blocks/:id/versions`            | `{ name, alternateIds }`. Rejects overlapping spans with 422.                                                                                                                         |
+| `PATCH`/`DELETE` | `/blocks/:id/versions/:versionId` |                                                                                                                                                                                       |
 
 No new transition-writing endpoint. Authoring an edge inside a sequence is:
 
@@ -804,7 +803,7 @@ revisited; the richer surfaces arrive later.
 | **SET-4**  | [DJ-114](https://linear.app/dj-project-astradzhao/issue/DJ-114) | `/sets` top-level tab with Sets/Blocks sub-tabs + the two-pane workspace, built to the mockup: running order with drag and `↑`/`↓` reorder, palette drag-and-drop, transition-first extension, seams, notes, and toasts. Transitions only as connectors. Plan: [`sets-feature/DJ114_SETS_WORKSPACE_PLAN.md`](./sets-feature/DJ114_SETS_WORKSPACE_PLAN.md). | SET-2        |
 | **SET-5**  | [DJ-115](https://linear.app/dj-project-astradzhao/issue/DJ-115) | Block connectors: Blocks palette tab, collapsed rows, the move-as-one unit, expand, edit-block, detach-to-copy, "Save trail as a block".                                                                                                                                                                                                                   | SET-4        |
 | **SET-6**  | [DJ-116](https://linear.app/dj-project-astradzhao/issue/DJ-116) | Alternates: spans, labels, `+ alt`, and the alternate rows under a gap — authored on **blocks** only. Sets omit that chrome.                                                                                                                                                                                                                               | SET-4        |
-| **SET-7**  | [DJ-117](https://linear.app/dj-project-astradzhao/issue/DJ-117) | Versions: API, header switcher, resolved-path rendering with `alternate` chips, overlap validation.                                                                                                                                                                                                                                                        | SET-6        |
+| **SET-7**  | [DJ-117](https://linear.app/dj-project-astradzhao/issue/DJ-117) | Versions: named selections of alternates, header switcher on **blocks**, resolved-path chips, overlap copy. Nested block version pin on a set (`in_block_version_id`).                                                                                                                                                                                     | SET-6        |
 | **SET-8**  | [DJ-118](https://linear.app/dj-project-astradzhao/issue/DJ-118) | `/add` sequence context and `AddToSequenceMenu` across track and transition surfaces.                                                                                                                                                                                                                                                                      | SET-3, SET-4 |
 | **SET-9**  | [DJ-119](https://linear.app/dj-project-astradzhao/issue/DJ-119) | Graph Set mode: session-store cursor, rail, on-script next, alternates, seam handoff, off-script prompt.                                                                                                                                                                                                                                                   | SET-5, SET-6 |
 | **SET-10** | [DJ-120](https://linear.app/dj-project-astradzhao/issue/DJ-120) | Follow mode: expansion, alternate chips, keyboard stepping, jump-to-step.                                                                                                                                                                                                                                                                                  | SET-9        |

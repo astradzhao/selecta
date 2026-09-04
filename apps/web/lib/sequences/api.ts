@@ -99,6 +99,7 @@ export async function updateSequenceStep(
   body: {
     inTransitionId?: string | null;
     inBlockId?: string | null;
+    inBlockVersionId?: string | null;
     isSeam?: boolean;
     note?: string | null;
   },
@@ -175,4 +176,34 @@ export async function deleteSequenceAlternate(
     `/blocks/${encodeURIComponent(id)}/alternates/${encodeURIComponent(alternateId)}`,
     { method: "DELETE" },
   );
+}
+
+export async function createSequenceVersion(
+  id: string,
+  body: { name: string; alternateIds: string[] },
+): Promise<{ ok: true; sequence: SequenceDetail }> {
+  return apiFetch(`/blocks/${encodeURIComponent(id)}/versions`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateSequenceVersion(
+  id: string,
+  versionId: string,
+  body: { name?: string; alternateIds?: string[] },
+): Promise<{ ok: true; sequence: SequenceDetail }> {
+  return apiFetch(`/blocks/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteSequenceVersion(
+  id: string,
+  versionId: string,
+): Promise<{ ok: true; sequence: SequenceDetail }> {
+  return apiFetch(`/blocks/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}`, {
+    method: "DELETE",
+  });
 }

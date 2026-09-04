@@ -3,11 +3,14 @@
 import { useId, type DragEvent, type MouseEvent } from "react";
 
 import { Button } from "@selecta/ui/components/button";
+import { Badge } from "@selecta/ui/components/badge";
+import { Select } from "@selecta/ui/components/select";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { displayGapState, gapChrome, gapRowLabel } from "@/lib/sequences/gap-display";
 import { bpmDelta } from "@/lib/sequences/metrics";
 import type { SequenceDetail, SequenceStep, WorkspaceSelection } from "@/lib/sequences/types";
+import { BASE_VERSION_VALUE, resolveVersionPath } from "@/lib/sequences/versions";
 
 import { SequenceStepCard } from "./sequence-step-card";
 
@@ -35,6 +38,9 @@ export function BlockConnectorRow({
   onUnlink,
   onToggleSeam,
   onAddAlternate,
+  onPickBlockVersion,
+  pathLocked,
+  alternateChip,
   onSelectStep,
   onToggleNote,
   onNoteChange,
@@ -59,6 +65,9 @@ export function BlockConnectorRow({
   onUnlink: () => void;
   onToggleSeam: () => void;
   onAddAlternate?: () => void;
+  onPickBlockVersion?: (versionId: string | null) => void;
+  pathLocked?: boolean;
+  alternateChip?: string | null;
   onSelectStep: (stepId: string, shiftKey?: boolean) => void;
   onToggleNote: (stepId: string) => void;
   onNoteChange: (stepId: string, value: string) => void;
@@ -125,7 +134,27 @@ export function BlockConnectorRow({
             {delta} BPM
           </span>
         ) : null}
+        {alternateChip ? <Badge variant="brand">{alternateChip}</Badge> : null}
         <span className="ml-auto flex shrink-0 items-center gap-0.5">
+          {onPickBlockVersion && step.inBlock && step.inBlock.versions.length > 0 ? (
+            <Select
+              aria-label="Block version"
+              className="w-auto min-w-28"
+              value={step.inBlockVersionId ?? BASE_VERSION_VALUE}
+              onClick={stop}
+              onChange={(event) => {
+                const value = event.target.value;
+                onPickBlockVersion(value === BASE_VERSION_VALUE ? null : value);
+              }}
+            >
+              <option value={BASE_VERSION_VALUE}>Base</option>
+              {step.inBlock.versions.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </Select>
+          ) : null}
           {!broken ? (
             <Button
               type="button"
@@ -139,29 +168,33 @@ export function BlockConnectorRow({
               Edit block
             </Button>
           ) : null}
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            onClick={(event) => {
-              stop(event);
-              onDetach();
-            }}
-          >
-            Detach
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            onClick={(event) => {
-              stop(event);
-              onUnlink();
-            }}
-          >
-            Unlink
-          </Button>
-          {!broken ? (
+          {!pathLocked ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={(event) => {
+                stop(event);
+                onDetach();
+              }}
+            >
+              Detach
+            </Button>
+          ) : null}
+          {!pathLocked ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={(event) => {
+                stop(event);
+                onUnlink();
+              }}
+            >
+              Unlink
+            </Button>
+          ) : null}
+          {!broken && !pathLocked ? (
             <Button
               type="button"
               variant="ghost"
@@ -212,6 +245,7 @@ export function BlockConnectorRow({
               <BlockInteriorSequence
                 child={child}
                 childError={childError}
+                versionId={step.inBlockVersionId}
                 selection={selection}
                 notesOpenFor={notesOpenFor}
                 noteValue={noteValue}
@@ -231,6 +265,7 @@ export function BlockConnectorRow({
 function BlockInteriorSequence({
   child,
   childError,
+  versionId,
   selection,
   notesOpenFor,
   noteValue,
@@ -241,6 +276,7 @@ function BlockInteriorSequence({
 }: {
   child: SequenceDetail | null;
   childError: string | null;
+  versionId: string | null;
   selection: WorkspaceSelection;
   notesOpenFor: (step: SequenceStep) => boolean;
   noteValue: (step: SequenceStep) => string;
@@ -255,11 +291,13 @@ function BlockInteriorSequence({
   if (!child) {
     return <p className="text-caption">Loading…</p>;
   }
+  const chosen = child.versions.find((item) => item.id === versionId)?.alternateIds ?? [];
+  const resolved = resolveVersionPath(child.steps, child.alternates, chosen);
   return (
     <div>
-      {child.steps.map((inner, index) => {
-        const prev = index > 0 ? child.steps[index - 1]! : null;
-        const isEndpoint = index === 0 || index === child.steps.length - 1;
+      {resolved.steps.map((inner, index) => {
+        const prev = index > 0 ? resolved.steps[index - 1]! : null;
+        const isEndpoint = index === 0 || index === resolved.steps.length - 1;
         return (
           <div key={inner.id}>
             {prev ? <InteriorGap step={inner} previous={prev} /> : null}

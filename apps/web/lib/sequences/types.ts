@@ -32,6 +32,7 @@ export type SequenceStepBlock = {
   seamCount: number;
   isComplete: boolean;
   runtimeSec: number;
+  versions: Array<{ id: string; name: string }>;
 };
 
 export type SequenceStep = {
@@ -40,6 +41,7 @@ export type SequenceStep = {
   trackId: string;
   inTransitionId: string | null;
   inBlockId: string | null;
+  inBlockVersionId: string | null;
   isSeam: boolean;
   note: string | null;
   gapState: SequenceGapState | null;

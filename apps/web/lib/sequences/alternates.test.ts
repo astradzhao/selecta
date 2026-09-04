@@ -129,6 +129,7 @@ describe("alternateVisual", () => {
           seamCount: 0,
           isComplete: false,
           runtimeSec: 0,
+          versions: [],
         },
       }),
       "incomplete",

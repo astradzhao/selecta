@@ -706,6 +706,9 @@ export const blockSteps = pgTable(
     inBlockId: text("in_block_id").references((): AnyPgColumn => blocks.id, {
       onDelete: "set null",
     }),
+    inBlockVersionId: text("in_block_version_id").references((): AnyPgColumn => blockVersions.id, {
+      onDelete: "set null",
+    }),
     isSeam: boolean("is_seam").notNull().default(false),
     note: text("note"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -723,6 +726,7 @@ export const blockSteps = pgTable(
     index("block_steps_track_idx").on(t.trackId),
     index("block_steps_in_transition_idx").on(t.inTransitionId),
     index("block_steps_in_block_idx").on(t.inBlockId),
+    index("block_steps_in_block_version_idx").on(t.inBlockVersionId),
   ],
 );
 
@@ -860,6 +864,11 @@ export const blockStepsRelations = relations(blockSteps, ({ one, many }) => ({
     references: [blocks.id],
     relationName: "stepInBlock",
   }),
+  inBlockVersion: one(blockVersions, {
+    fields: [blockSteps.inBlockVersionId],
+    references: [blockVersions.id],
+    relationName: "stepInBlockVersion",
+  }),
   alternatesFrom: many(blockAlternates, { relationName: "alternateFromStep" }),
   alternatesTo: many(blockAlternates, { relationName: "alternateToStep" }),
 }));
@@ -897,6 +906,7 @@ export const blockVersionsRelations = relations(blockVersions, ({ one, many }) =
     references: [blocks.id],
   }),
   choices: many(blockVersionChoices),
+  pinnedOnSteps: many(blockSteps, { relationName: "stepInBlockVersion" }),
 }));
 
 export const blockVersionChoicesRelations = relations(blockVersionChoices, ({ one }) => ({

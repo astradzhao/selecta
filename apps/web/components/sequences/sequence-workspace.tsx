@@ -18,9 +18,11 @@ import { describeApiError } from "@/lib/api/errors";
 import {
   addSequenceStep,
   createSequenceAlternate,
+  createSequenceVersion,
   deleteSequence,
   deleteSequenceAlternate,
   deleteSequenceStep,
+  deleteSequenceVersion,
   detachSequenceStep,
   getSequence,
   listSequenceReferrers,
@@ -29,6 +31,7 @@ import {
   updateSequence,
   updateSequenceAlternate,
   updateSequenceStep,
+  updateSequenceVersion,
 } from "@/lib/sequences/api";
 import {
   alternateCoverage,
@@ -38,6 +41,11 @@ import {
   spanRange,
   versionCountUsingAlternate,
 } from "@/lib/sequences/alternates";
+import {
+  chosenIdsForVersion,
+  resolveVersionPath,
+  showVersionSwitcher,
+} from "@/lib/sequences/versions";
 import {
   autoLinkTransitionId,
   blockFitPayload,
@@ -78,6 +86,8 @@ import type { ApiTrack } from "@/lib/tracks/api";
 import { AlternateLabelDialog } from "./alternate-label-dialog";
 import { LibraryPalette, type PaletteTab } from "./library-palette";
 import { SequenceRunningOrder } from "./sequence-running-order";
+import { VersionDialog, type VersionDraft } from "./version-dialog";
+import { VersionSwitcher } from "./version-switcher";
 
 function findOwnedStep(
   parent: SequenceDetail,
@@ -145,6 +155,14 @@ export function SequenceWorkspace({
     item: SequenceAlternate;
     versionCount: number;
   } | null>(null);
+  const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
+  const [versionDraft, setVersionDraft] = useState<VersionDraft | null>(null);
+  const [versionPending, setVersionPending] = useState(false);
+  const [versionError, setVersionError] = useState<string | null>(null);
+  const [pendingVersionDelete, setPendingVersionDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -160,6 +178,8 @@ export function SequenceWorkspace({
         setPickerIntent("link");
         setAlternateDraft(null);
         setSpanCandidateTotal(null);
+        setActiveVersionId(null);
+        setVersionDraft(null);
       } catch (err) {
         if (!cancelled) {
           setLoadError(describeApiError(err, { resource: "sequence" }));
@@ -251,6 +271,10 @@ export function SequenceWorkspace({
   function applyDetail(next: SequenceDetail) {
     setDetail(next);
     setTitleDraft(next.title);
+    setActiveVersionId((current) => {
+      if (!current) return current;
+      return next.versions.some((item) => item.id === current) ? current : null;
+    });
     setSelection((current) => {
       if (current.kind === "none") return current;
       if (current.kind === "span") {
@@ -301,6 +325,12 @@ export function SequenceWorkspace({
       toast(describeApiError(err));
       return null;
     }
+  }
+
+  function requireBasePath() {
+    if (activeVersionId == null) return true;
+    toast("Switch to Base to edit the running order.");
+    return false;
   }
 
   async function mutateChild(
@@ -358,6 +388,7 @@ export function SequenceWorkspace({
   ) {
     if (!detail) return;
     const targetId = ownerId ?? detail.id;
+    if (targetId === detail.id && !requireBasePath()) return;
     const steps = targetId === detail.id ? detail.steps : (childById[targetId]?.steps ?? null);
     if (!steps) return;
     const numeric = position === "append" ? steps.length : position;
@@ -411,13 +442,13 @@ export function SequenceWorkspace({
   }
 
   function beginAlternateDraft(draft: AlternateDraft) {
-    if (!detail || !canAuthorAlternates(detail.kind)) return;
+    if (!detail || !canAuthorAlternates(detail.kind) || !requireBasePath()) return;
     setAlternateError(null);
     setAlternateDraft(draft);
   }
 
   async function handleAddTransition(transition: ApiTransition) {
-    if (!detail) return;
+    if (!detail || !requireBasePath()) return;
     const technique = displayVocab(transition.technique) ?? "mix";
     if (selection.kind === "span") {
       const reason = paletteTransitionReason(
@@ -546,7 +577,7 @@ export function SequenceWorkspace({
   }
 
   async function handleAddBlock(block: SequenceRecord) {
-    if (!detail) return;
+    if (!detail || !requireBasePath()) return;
     if (selection.kind === "span") {
       const reason = paletteBlockReason(blockFitPayload(block), selection, detail.steps);
       if (reason) {
@@ -576,7 +607,7 @@ export function SequenceWorkspace({
   }
 
   async function handlePaletteDrop(target: DropTarget) {
-    if (!detail || !dragPayload) return;
+    if (!detail || !dragPayload || !requireBasePath()) return;
     if (selection.kind === "span") {
       if (dragPayload.kind === "track") return;
       const span = spanFitFromSelection(selection, detail.steps);
@@ -669,7 +700,7 @@ export function SequenceWorkspace({
   }
 
   async function handleMove(stepId: string, delta: -1 | 1) {
-    if (!detail) return;
+    if (!detail || !requireBasePath()) return;
     const index = detail.steps.findIndex((step) => step.id === stepId);
     const next = moveUnit(detail.steps, index, delta);
     if (next.every((step, i) => step.id === detail.steps[i]?.id)) return;
@@ -680,7 +711,7 @@ export function SequenceWorkspace({
   }
 
   async function handleReorderDrop(targetStepId: string) {
-    if (!detail || !draggingStepId || draggingStepId === targetStepId) return;
+    if (!detail || !draggingStepId || draggingStepId === targetStepId || !requireBasePath()) return;
     const fromIndex = detail.steps.findIndex((step) => step.id === draggingStepId);
     const targetIndex = detail.steps.findIndex((step) => step.id === targetStepId);
     const next = reorderTo(detail.steps, fromIndex, targetIndex);
@@ -777,7 +808,7 @@ export function SequenceWorkspace({
   }
 
   async function handleAddAlternate(stepId: string) {
-    if (!detail || !canAuthorAlternates(detail.kind)) return;
+    if (!detail || !canAuthorAlternates(detail.kind) || !requireBasePath()) return;
     const keepSpan = selection.kind === "span" && selection.fromStepId === stepId;
     const fromStepId = keepSpan ? selection.fromStepId : stepId;
     const toStepId = keepSpan ? selection.toStepId : stepId;
@@ -821,7 +852,7 @@ export function SequenceWorkspace({
 
   function handleSelectStep(stepId: string, shiftKey = false) {
     if (!detail) return;
-    if (shiftKey && canAuthorAlternates(detail.kind)) {
+    if (shiftKey && canAuthorAlternates(detail.kind) && activeVersionId == null) {
       const anchorId =
         selection.kind === "span"
           ? selection.fromStepId
@@ -884,6 +915,40 @@ export function SequenceWorkspace({
     void mutate(() => deleteSequenceAlternate(detail.id, item.id), "Alternate removed");
   }
 
+  async function handleSaveVersion(draft: VersionDraft) {
+    if (!detail) return;
+    setVersionPending(true);
+    setVersionError(null);
+    const result = draft.versionId
+      ? await mutate(
+          () =>
+            updateSequenceVersion(detail.id, draft.versionId!, {
+              name: draft.name,
+              alternateIds: draft.alternateIds,
+            }),
+          "Version updated",
+        )
+      : await mutate(
+          () =>
+            createSequenceVersion(detail.id, {
+              name: draft.name,
+              alternateIds: draft.alternateIds,
+            }),
+          `Saved “${draft.name}”`,
+        );
+    setVersionPending(false);
+    if (result) {
+      const previousIds = new Set(detail.versions.map((item) => item.id));
+      const saved = draft.versionId
+        ? result.versions.find((item) => item.id === draft.versionId)
+        : result.versions.find((item) => !previousIds.has(item.id));
+      if (saved) setActiveVersionId(saved.id);
+      setVersionDraft(null);
+    } else {
+      setVersionError("Could not save that version.");
+    }
+  }
+
   function handleToggleAlternateExpand(item: SequenceAlternate) {
     const opening = !expandedAlternateIds[item.id];
     setExpandedAlternateIds((current) => ({ ...current, [item.id]: opening }));
@@ -893,7 +958,7 @@ export function SequenceWorkspace({
   }
 
   function handleRemoveStep(step: SequenceStep) {
-    if (!detail) return;
+    if (!detail || !requireBasePath()) return;
     const index = detail.steps.findIndex((item) => item.id === step.id);
     const [start, end] = unitRange(detail.steps, index);
     if (start === end) {
@@ -915,11 +980,17 @@ export function SequenceWorkspace({
   }
 
   const isBlockKind = detail.kind === "block";
-  const authorAlternates = canAuthorAlternates(detail.kind);
-  const metrics = plannedMetrics(detail.steps);
-  const runtimeSec = sequenceRuntimeSec(detail.steps);
-  const trackCount = sequenceTrackCount(detail.steps);
-  const incompleteBlocks = incompleteBlockCount(detail.steps);
+  const pathLocked = activeVersionId != null;
+  const authorAlternates = canAuthorAlternates(detail.kind) && !pathLocked;
+  const chosenIds = chosenIdsForVersion(detail.versions, activeVersionId);
+  const resolved = resolveVersionPath(detail.steps, detail.alternates, chosenIds);
+  const displaySteps = resolved.steps;
+  const activeVersion = detail.versions.find((item) => item.id === activeVersionId) ?? null;
+  const mappedAltCount = alternateCoverage(detail.alternates).mapped;
+  const metrics = plannedMetrics(displaySteps);
+  const runtimeSec = sequenceRuntimeSec(displaySteps);
+  const trackCount = sequenceTrackCount(displaySteps);
+  const incompleteBlocks = incompleteBlockCount(displaySteps);
   const coverage = authorAlternates
     ? formatAlternateCoverage(alternateCoverage(detail.alternates))
     : null;
@@ -944,7 +1015,7 @@ export function SequenceWorkspace({
             className="text-page-title max-w-xl rounded-lg border border-transparent bg-transparent px-1.5 py-0.5 outline-none hover:border-border focus-visible:border-ring focus-visible:bg-surface-1 focus-visible:ring-3 focus-visible:ring-ring/50"
           />
           <div className="text-muted-foreground flex flex-wrap items-center gap-2.5 text-sm">
-            {detail.steps.length === 0 ? (
+            {displaySteps.length === 0 ? (
               <span className="text-numeric">0 tracks</span>
             ) : (
               <>
@@ -956,7 +1027,7 @@ export function SequenceWorkspace({
               </>
             )}
             <span aria-hidden>·</span>
-            <span>{formatPlannedLine(metrics, detail.steps.length)}</span>
+            <span>{formatPlannedLine(metrics, displaySteps.length)}</span>
             {metrics.seams > 0 ? (
               <Badge variant="tertiary">
                 {metrics.seams} {metrics.seams === 1 ? "seam" : "seams"}
@@ -974,6 +1045,37 @@ export function SequenceWorkspace({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {showVersionSwitcher(detail.kind, detail.versions.length, mappedAltCount) ? (
+            <VersionSwitcher
+              versions={detail.versions}
+              activeVersionId={activeVersionId}
+              canSave={mappedAltCount > 0}
+              onChange={(versionId) => {
+                setActiveVersionId(versionId);
+                const name = detail.versions.find((item) => item.id === versionId)?.name;
+                toast(
+                  versionId == null ? "Base path" : `${name ?? "Version"} — alternates substituted`,
+                );
+              }}
+              onSave={() => {
+                setVersionError(null);
+                setVersionDraft({ versionId: null, name: "", alternateIds: [] });
+              }}
+              onEdit={() => {
+                if (!activeVersion) return;
+                setVersionError(null);
+                setVersionDraft({
+                  versionId: activeVersion.id,
+                  name: activeVersion.name,
+                  alternateIds: [...activeVersion.alternateIds],
+                });
+              }}
+              onDelete={() => {
+                if (!activeVersion) return;
+                setPendingVersionDelete({ id: activeVersion.id, name: activeVersion.name });
+              }}
+            />
+          ) : null}
           <Button
             type="button"
             variant="outline"
@@ -987,6 +1089,12 @@ export function SequenceWorkspace({
         </div>
       </div>
       {conflict ? <Alert variant="warning">{conflict}</Alert> : null}
+      {activeVersion ? (
+        <Alert variant="info">
+          Showing “{activeVersion.name}”. Switch to Base to edit the running order — this version is
+          only which alternates are on.
+        </Alert>
+      ) : null}
       {isBlockKind && referrers.length > 0 ? (
         <Alert variant="warning">
           Used as a connector in {referrers.length}{" "}
@@ -998,7 +1106,7 @@ export function SequenceWorkspace({
         <SequenceRunningOrder
           sequenceId={detail.id}
           kindNounEmpty={isBlockKind ? "This block has no tracks yet" : "This night is empty"}
-          steps={detail.steps}
+          steps={displaySteps}
           selection={selection}
           pickerStepId={pickerStepId}
           notesOpenFor={(step) =>
@@ -1162,6 +1270,14 @@ export function SequenceWorkspace({
               "Label updated",
             );
           }}
+          alternateChips={resolved.chips}
+          pathLocked={pathLocked}
+          onPickBlockVersion={(stepId, versionId) => {
+            void mutate(
+              () => updateSequenceStep(detail.id, stepId, { inBlockVersionId: versionId }),
+              versionId ? "Block version pinned" : "Base path for this block",
+            );
+          }}
         />
         <LibraryPalette
           sequenceId={detail.id}
@@ -1290,6 +1406,47 @@ export function SequenceWorkspace({
           }
         }}
         onConfirm={(label) => void confirmAlternate(label)}
+      />
+      <VersionDialog
+        draft={versionDraft}
+        steps={detail.steps}
+        alternates={detail.alternates}
+        pending={versionPending}
+        error={versionError}
+        onOpenChange={(open) => {
+          if (!open && !versionPending) {
+            setVersionDraft(null);
+            setVersionError(null);
+          }
+        }}
+        onConfirm={(draft) => void handleSaveVersion(draft)}
+      />
+      <ConfirmDialog
+        open={pendingVersionDelete != null}
+        onOpenChange={(open) => {
+          if (!open) setPendingVersionDelete(null);
+        }}
+        title={pendingVersionDelete ? `Delete “${pendingVersionDelete.name}”?` : "Delete version?"}
+        description="The block and its alternates stay. Only this named selection goes away."
+        confirmLabel="Delete"
+        pending={pendingAction}
+        pendingLabel="Deleting…"
+        onConfirm={() => {
+          if (!pendingVersionDelete) return;
+          const { id, name } = pendingVersionDelete;
+          setPendingAction(true);
+          void (async () => {
+            const result = await mutate(
+              () => deleteSequenceVersion(detail.id, id),
+              `Deleted “${name}”`,
+            );
+            setPendingAction(false);
+            if (result) {
+              setPendingVersionDelete(null);
+              setActiveVersionId(null);
+            }
+          })();
+        }}
       />
       <ConfirmDialog
         open={pendingAlternateRemove != null}

@@ -283,6 +283,71 @@ describe("sequence module invariants", { skip: !pgIntegration }, () => {
     );
   });
 
+  it("pins a nested block version and expands the resolved child", async () => {
+    const a = await track("PinA");
+    const x = await track("PinX");
+    const b = await track("PinB");
+    const ax = await createTransition({ fromTrackId: a.track.id, toTrackId: x.track.id });
+    const xb = await createTransition({ fromTrackId: x.track.id, toTrackId: b.track.id });
+    const ab = await createTransition({ fromTrackId: a.track.id, toTrackId: b.track.id });
+
+    const child = await createSequence({
+      kind: "block",
+      title: `Pin child ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, x.track.id, b.track.id] },
+    });
+    const childX = stepByTrack(child, x.track.id);
+    const childB = stepByTrack(child, b.track.id);
+    await updateSequenceStep(child.id, childX.id, { inTransitionId: ax.id });
+    await updateSequenceStep(child.id, childB.id, { inTransitionId: xb.id });
+    const withAlt = await createSequenceAlternate(child.id, {
+      fromStepId: childX.id,
+      toStepId: childB.id,
+      label: "if the room is hot",
+      altTransitionId: ab.id,
+    });
+    const versioned = await createSequenceVersion(child.id, {
+      name: "hot room",
+      alternateIds: [withAlt.alternates[0]!.id],
+    });
+    const versionId = versioned.versions[0]!.id;
+
+    const parent = await createSequence({
+      kind: "set",
+      title: `Pin parent ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, b.track.id] },
+    });
+    const host = stepByTrack(parent, b.track.id);
+    const linked = await updateSequenceStep(parent.id, host.id, { inBlockId: child.id });
+    assert.equal(stepByTrack(linked, b.track.id).inBlockVersionId, null);
+    assert.equal(stepByTrack(linked, b.track.id).inBlock?.versions[0]?.id, versionId);
+
+    const baseExpand = await getSequenceDetail(parent.id, { expand: true });
+    assert.deepEqual(
+      baseExpand.expansion?.entries.map((entry) => entry.trackId),
+      [a.track.id, x.track.id, b.track.id],
+    );
+
+    const pinned = await updateSequenceStep(parent.id, host.id, { inBlockVersionId: versionId });
+    assert.equal(stepByTrack(pinned, b.track.id).inBlockVersionId, versionId);
+
+    const resolvedExpand = await getSequenceDetail(parent.id, { expand: true });
+    assert.deepEqual(
+      resolvedExpand.expansion?.entries.map((entry) => entry.trackId),
+      [a.track.id, b.track.id],
+    );
+
+    const foreign = await createSequenceVersion(parent.id, {
+      name: "set version",
+      alternateIds: [],
+    });
+    await assert.rejects(
+      () => updateSequenceStep(parent.id, host.id, { inBlockVersionId: foreign.versions[0]!.id }),
+      (error: unknown) =>
+        isMusicWriteError(error) && /version of the connected block/.test((error as Error).message),
+    );
+  });
+
   it("embeds alternate connectors and validates a two-step span against A → C", async () => {
     const a = await track("SpanA");
     const b = await track("SpanB");

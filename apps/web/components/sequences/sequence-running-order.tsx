@@ -69,6 +69,9 @@ export function SequenceRunningOrder({
   onToggleAlternateExpand,
   onRemoveAlternate,
   onCommitAlternateLabel,
+  alternateChips,
+  pathLocked,
+  onPickBlockVersion,
 }: {
   sequenceId: string;
   kindNounEmpty: string;
@@ -112,6 +115,9 @@ export function SequenceRunningOrder({
   onToggleAlternateExpand: (item: SequenceAlternate) => void;
   onRemoveAlternate: (item: SequenceAlternate) => void;
   onCommitAlternateLabel: (item: SequenceAlternate, label: string) => void;
+  alternateChips?: Record<string, string>;
+  pathLocked?: boolean;
+  onPickBlockVersion?: (stepId: string, versionId: string | null) => void;
 }) {
   const endTarget: DropTarget = { kind: "end", index: steps.length };
   const dragIndex = draggingStepId ? steps.findIndex((step) => step.id === draggingStepId) : -1;
@@ -234,6 +240,11 @@ export function SequenceRunningOrder({
         onEditBlock={() => onEditBlock(step)}
         onDetach={() => onDetach(step)}
         onAddAlternate={onAddAlternate ? () => onAddAlternate(step.id) : undefined}
+        onPickBlockVersion={
+          onPickBlockVersion ? (versionId) => onPickBlockVersion(step.id, versionId) : undefined
+        }
+        pathLocked={pathLocked}
+        alternateChip={alternateChips?.[step.id] ?? null}
         onSelectStep={onSelectStep}
         onToggleNote={onToggleNote}
         onNoteChange={onNoteChange}

@@ -12,6 +12,7 @@ plans for that epic.
 | [`DJ114_SETS_WORKSPACE_PLAN.md`](./DJ114_SETS_WORKSPACE_PLAN.md)     | [DJ-114](https://linear.app/dj-project-astradzhao/issue/DJ-114) | SET-4 task plan — Sets tab + two-pane workspace, built to the mockup                   |
 | [`DJ115_BLOCK_CONNECTORS_PLAN.md`](./DJ115_BLOCK_CONNECTORS_PLAN.md) | [DJ-115](https://linear.app/dj-project-astradzhao/issue/DJ-115) | SET-5 task plan — block connectors, detach, save-trail-as-block                        |
 | [`DJ116_ALTERNATES_PLAN.md`](./DJ116_ALTERNATES_PLAN.md)             | [DJ-116](https://linear.app/dj-project-astradzhao/issue/DJ-116) | SET-6 task plan — alternates as substitutable spans                                    |
+| [`DJ117_VERSIONS_PLAN.md`](./DJ117_VERSIONS_PLAN.md)                 | [DJ-117](https://linear.app/dj-project-astradzhao/issue/DJ-117) | SET-7 task plan — named versions and nested version pins                               |
 
 ## The mockup
 
@@ -27,7 +28,7 @@ It is the **end state of the whole epic**, not one slice. Split by ticket:
 | Browse list, workspace shell, running order, gaps, seams, notes, Tracks/Transitions palette, drag-and-drop, toasts | SET-4 ([DJ-114](https://linear.app/dj-project-astradzhao/issue/DJ-114))                                                                           |
 | Blocks palette tab, block gap rows, "moves as one" unit, Expand / Edit block / Detach                              | SET-5 ([DJ-115](https://linear.app/dj-project-astradzhao/issue/DJ-115))                                                                           |
 | `+ alt`, `⤷ alt · …` rows on **blocks**; sets omit that chrome                                                     | SET-6 ([DJ-116](https://linear.app/dj-project-astradzhao/issue/DJ-116))                                                                           |
-| Version select, `alternate · …` chips on resolved gaps                                                             | SET-7 ([DJ-117](https://linear.app/dj-project-astradzhao/issue/DJ-117))                                                                           |
+| Version select on **blocks**; `alternate · …` chips; nested block version pin on sets                              | SET-7 ([DJ-117](https://linear.app/dj-project-astradzhao/issue/DJ-117))                                                                           |
 | Open in graph, Follow                                                                                              | SET-9 / SET-10 ([DJ-119](https://linear.app/dj-project-astradzhao/issue/DJ-119), [DJ-120](https://linear.app/dj-project-astradzhao/issue/DJ-120)) |
 
 Each slice ships its own piece of that chrome and **omits** the later controls rather than rendering

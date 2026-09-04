@@ -4,6 +4,7 @@ import type { DragEvent } from "react";
 import Link from "next/link";
 
 import { Button } from "@selecta/ui/components/button";
+import { Badge } from "@selecta/ui/components/badge";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { spanRange } from "@/lib/sequences/alternates";
@@ -48,6 +49,9 @@ export function SequenceGap({
   onEditBlock,
   onDetach,
   onAddAlternate,
+  onPickBlockVersion,
+  pathLocked,
+  alternateChip,
   onSelectStep,
   onToggleNote,
   onNoteChange,
@@ -91,6 +95,9 @@ export function SequenceGap({
   onEditBlock: () => void;
   onDetach: () => void;
   onAddAlternate?: () => void;
+  onPickBlockVersion?: (versionId: string | null) => void;
+  pathLocked?: boolean;
+  alternateChip?: string | null;
   onSelectStep: (stepId: string, shiftKey?: boolean) => void;
   onToggleNote: (stepId: string) => void;
   onNoteChange: (stepId: string, value: string) => void;
@@ -149,7 +156,10 @@ export function SequenceGap({
           onDetach={onDetach}
           onUnlink={onUnlink}
           onToggleSeam={onToggleSeam}
-          onAddAlternate={onAddAlternate}
+          onAddAlternate={pathLocked ? undefined : onAddAlternate}
+          onPickBlockVersion={pathLocked ? undefined : onPickBlockVersion}
+          pathLocked={pathLocked}
+          alternateChip={alternateChip}
           onSelectStep={onSelectStep}
           onToggleNote={onToggleNote}
           onNoteChange={onNoteChange}
@@ -169,10 +179,12 @@ export function SequenceGap({
           onTogglePicker={onTogglePicker}
           onUnlink={onUnlink}
           onToggleSeam={onToggleSeam}
-          onAddAlternate={onAddAlternate}
+          onAddAlternate={pathLocked ? undefined : onAddAlternate}
+          pathLocked={pathLocked}
+          alternateChip={alternateChip}
         />
       )}
-      {pickerOpen ? (
+      {pickerOpen && !pathLocked ? (
         <ConnectorPicker
           fromTrackId={pickerFromTrackId}
           toTrackId={pickerToTrackId}
@@ -214,6 +226,8 @@ function TransitionGapRow({
   onUnlink,
   onToggleSeam,
   onAddAlternate,
+  pathLocked,
+  alternateChip,
 }: {
   step: SequenceStep;
   previous: SequenceStep;
@@ -228,6 +242,8 @@ function TransitionGapRow({
   onUnlink: () => void;
   onToggleSeam: () => void;
   onAddAlternate?: () => void;
+  pathLocked?: boolean;
+  alternateChip?: string | null;
 }) {
   const fromTitle = previous.track?.title ?? "Track";
   const toTitle = step.track?.title ?? "Track";
@@ -265,8 +281,9 @@ function TransitionGapRow({
           {delta} BPM
         </span>
       ) : null}
+      {alternateChip ? <Badge variant="brand">{alternateChip}</Badge> : null}
       <span className="ml-auto flex shrink-0 items-center gap-0.5">
-        {state === "available" || state === "linked" ? (
+        {pathLocked ? null : state === "available" || state === "linked" ? (
           <Button
             type="button"
             variant="ghost"
@@ -280,56 +297,60 @@ function TransitionGapRow({
             {pickerOpen ? "Close" : state === "linked" ? "Swap" : "Pick"}
           </Button>
         ) : null}
-        {state === "unmapped" ? (
-          <Button asChild variant="link" size="xs">
-            <Link
-              href={addTransitionHref(previous.trackId, step.trackId)}
-              onClick={(event) => event.stopPropagation()}
+        {pathLocked ? null : (
+          <>
+            {state === "unmapped" ? (
+              <Button asChild variant="link" size="xs">
+                <Link
+                  href={addTransitionHref(previous.trackId, step.trackId)}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  Add transition
+                </Link>
+              </Button>
+            ) : null}
+            {state === "linked" ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onUnlink();
+                }}
+              >
+                Unlink
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              title={state === "seam" ? "Unmark seam" : "Mark as a seam"}
+              className={state === "seam" ? "text-brand" : undefined}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleSeam();
+              }}
             >
-              Add transition
-            </Link>
-          </Button>
-        ) : null}
-        {state === "linked" ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            onClick={(event) => {
-              event.stopPropagation();
-              onUnlink();
-            }}
-          >
-            Unlink
-          </Button>
-        ) : null}
-        <Button
-          type="button"
-          variant="ghost"
-          size="xs"
-          title={state === "seam" ? "Unmark seam" : "Mark as a seam"}
-          className={state === "seam" ? "text-brand" : undefined}
-          onClick={(event) => {
-            event.stopPropagation();
-            onToggleSeam();
-          }}
-        >
-          〜
-        </Button>
-        {onAddAlternate ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            title="Add alternate"
-            onClick={(event) => {
-              event.stopPropagation();
-              onAddAlternate();
-            }}
-          >
-            + alt
-          </Button>
-        ) : null}
+              〜
+            </Button>
+            {onAddAlternate ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                title="Add alternate"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onAddAlternate();
+                }}
+              >
+                + alt
+              </Button>
+            ) : null}
+          </>
+        )}
       </span>
     </div>
   );
