@@ -4,7 +4,7 @@
 > Architecture: [`../SETS_ARCHITECTURE.md`](../SETS_ARCHITECTURE.md) §2.4, §4.2, §5.2–§5.3, §5.7
 > **Design source: [`Sets feature mockup/Selecta Sets.dc.html`](./Sets%20feature%20mockup/Selecta%20Sets.dc.html)**
 > Predecessor: [`DJ115_BLOCK_CONNECTORS_PLAN.md`](./DJ115_BLOCK_CONNECTORS_PLAN.md) — SET-5 shipped in #102
-> Status: **plan only.** Implementation is a later `dj-116` branch.
+> Status: implemented on `dj-116`. Authoring chrome is **block-only** (D20).
 
 SET-4 made a night orderable. SET-5 made a rehearsed run reusable. SET-6 is plan B: _if the room
 is hot, go here instead_ — without copying the sequence.
@@ -127,10 +127,11 @@ Open `Sets feature mockup/Selecta Sets.dc.html` and drive `+ alt` on a gap, then
 | D17 | Header                              | Leave `plannedMetrics` alone. When `alternates.length > 0`, append a tertiary fact `{n} alternates · {m} mapped` (`m` = `valid === true`). Hidden at zero. An unmapped ghost is not counted. An incomplete-but-valid block still counts as mapped — the unfinished part is the child's interior, same posture as SET-5 D9.                                                                                                          |
 | D18 | Remove                              | Immediate `DELETE`, toast `"Alternate removed"`. No `ConfirmDialog` unless some `versions[].alternateIds` still points at it (possible via API before SET-7), in which case confirm `"This alternate is used in N saved versions"` and then delete — version choices already cascade.                                                                                                                                               |
 | D19 | `+ alt` on block-connector gaps     | Same control as transition gaps. A 1-step alt on a block unit is "a different connector for this pair"; a multi-step span that starts on a unit host is allowed. Do not invent a second picker.                                                                                                                                                                                                                                     |
+| D20 | Authoring lives on blocks           | `canAuthorAlternates(kind)` is true only for `block`. `/sets/:id` omits `+ alt`, shift-click spans, alt rows, and the coverage line even if leftover API alts exist. `/blocks/:id` is the surface that grows the tree. Picking a nested block's version from a set is SET-7 — do not ship a stub switcher here.                                                      |
 
 ### Out of scope
 
-- Versions, header switcher, resolved-path rendering, `alternate ·` chips — SET-7.
+- Versions, header switcher, resolved-path rendering, `alternate ·` chips, and picking a nested block's version from a set — SET-7.
 - Overlap rejection across chosen alts — SET-7 (authoring many overlapping plan Bs is legal).
 - Graph Set mode / off-script "Save as alternate" — SET-9.
 - Follow-mode expansion of the chosen alt — SET-10.
@@ -353,9 +354,10 @@ Restated from the ticket against the verified tree:
 - A selected span with no matching connector is a visible unmapped rejoin (`○` + Add transition),
   not a stored row and not a silent no-op.
 - Alternate coverage is `{n} alternates · {m} mapped` in the header and does not change
-  `N of N planned`.
-- Side by side with the mockup, a one-step alt row (`⤷ alt · label · desc`, `+ alt` on the gap)
-  reads as the same product. Multi-step is the schema the mockup did not draw.
+  `N of N planned`. On a set, that line is absent.
+- On `/sets/:id` there is no `+ alt`, no `⤷ alt` rows, and no span-selection mode.
+- Side by side with the mockup, a one-step alt row on a **block** (`⤷ alt · label · desc`, `+ alt`
+  on the gap) reads as the same product. Multi-step is the schema the mockup did not draw.
 
 ---
 

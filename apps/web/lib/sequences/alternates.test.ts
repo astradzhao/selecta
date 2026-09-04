@@ -5,6 +5,7 @@ import {
   alternateCoverage,
   alternateVisual,
   alternatesForGap,
+  canAuthorAlternates,
   canExpandAlternate,
   formatAlternateCoverage,
   orderSpan,
@@ -33,6 +34,13 @@ function stubAlternate(
     ...partial,
   };
 }
+
+describe("canAuthorAlternates", () => {
+  it("is a block-only job — nights do not grow their own tree", () => {
+    assert.equal(canAuthorAlternates("block"), true);
+    assert.equal(canAuthorAlternates("set"), false);
+  });
+});
 
 describe("spanRange", () => {
   it("returns predecessor and destination for a forward span", () => {

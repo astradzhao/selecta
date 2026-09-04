@@ -2,7 +2,12 @@ import { displayVocab } from "@/lib/transitions/vocab-labels";
 
 import { blockConnectorLabel } from "./gap-display";
 import { mixLabel } from "./metrics";
-import type { SequenceAlternate, SequenceStep } from "./types";
+import type { SequenceAlternate, SequenceKind, SequenceStep } from "./types";
+
+/** Plan B is authored on a rehearsed run. A night only selects a version (SET-7). */
+export function canAuthorAlternates(kind: SequenceKind): boolean {
+  return kind === "block";
+}
 
 export type SpanRange<T extends { id: string; trackId: string }> = {
   fromIdx: number;

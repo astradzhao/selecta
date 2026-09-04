@@ -5,8 +5,8 @@
 >
 > Status: in progress. SET-1, SET-2, and SET-3 have shipped; SET-4 onward are open.
 >
-> Last updated: 2026-08-25 — §4 now defers to the interactive mockup in
-> [`sets-feature/Sets feature mockup/`](./sets-feature/Sets%20feature%20mockup/).
+> Last updated: 2026-09-04 — SET-6 authors alternates on blocks only; a set
+> assembles the night and does not grow its own alt tree (version picking is SET-7).
 >
 > Builds on [`NEXT_PRODUCT_ARCHITECTURE.md`](./NEXT_PRODUCT_ARCHITECTURE.md) (Add → Library →
 > Graph product model) and [`TICKET_ORDER.md`](./TICKET_ORDER.md). Storage is one Postgres.
@@ -37,9 +37,11 @@ Two decisions frame everything else.
 > **There is one graph.** It is `tracks` (nodes) + `transitions` (edges), globally shared. A
 > sequence is a saved, ordered path through that graph. Sequences never own transitions.
 
-> **A block and a set are the same thing.** Both are ordered runs of tracks with connectors
-> between them. They live in one table, differentiated by a `kind` label that carries no
-> behavioral rules of its own.
+> **A block and a set are the same thing in storage.** Both are ordered runs of tracks with
+> connectors between them. They live in one table; schema and API stay identical. The workspace
+> uses `kind` for one authoring split: plan-B alternates are written on blocks (`/blocks/:id`).
+> A set (`/sets/:id`) assembles the night — tracks, nested blocks, seams — and does not grow its
+> own alt tree. Picking which **version** of a nested block to play tonight is SET-7.
 
 The user-facing framing "the graph is in Set mode or Freeform mode" is a property of the
 **session**, not of the graph. Modeling it the other way — sequences that own private transitions
@@ -165,7 +167,7 @@ Sets are **their own top-level surface**, not a Library view.
 | ------------- | -------------------------- | ----------------------------------------------------------------------------------- |
 | Browse sets   | `/sets`                    | Nights.                                                                             |
 | Browse blocks | `/sets?view=blocks`        | Reusable runs, with a completeness filter.                                          |
-| Build         | `/sets/:id`, `/blocks/:id` | Same workspace component; `kind` changes the header and the default picker filters. |
+| Build         | `/sets/:id`, `/blocks/:id` | Same workspace component. `kind` changes the header, default picker filters, and whether `+ alt` / span selection / alt rows appear (block only). |
 | Traverse      | `/graph?set=:id`           | Graph in Set mode.                                                                  |
 | Follow        | `/graph?set=:id&follow=1`  | Booth presentation.                                                                 |
 
@@ -291,11 +293,13 @@ Running-order behaviors:
   editable steps, for when this night's version should differ.
 - **Mark a join as a seam** from the gap row. Seams are the point of the feature for nights built
   from blocks (§4.3).
-- **Add alternate** from a gap or a selected span: pick a connector, write the condition label.
-  Alternates render as `⤷ alt · <label>` rows under the gap they substitute.
-- **Version switcher** in the header. Switching re-renders the resolved path and tags substituted
-  gaps with an `alternate · <label>` chip; editing while a non-base version is active edits the
-  underlying sequence, not the version.
+- **Add alternate** from a gap or a selected span, **on a block only**: pick a connector, write
+  the condition label. Alternates render as `⤷ alt · <label>` rows under the gap they substitute.
+  A set omits this chrome; tonight's branch is a version pick on a nested block (SET-7).
+- **Version switcher** in the header. On a block it names a selection of that block's alternates.
+  On a set it will pick which version of each nested block to play (SET-7). Switching re-renders
+  the resolved path and tags substituted gaps with an `alternate · <label>` chip; editing while a
+  non-base version is active edits the underlying sequence, not the version.
 - **BPM delta** on every linked gap from `tracks.bpm`. Key compatibility is deferred (§12).
 - **Step note** — a per-step reminder ("kill the bass early"), toggled by `✎` and auto-open when
   non-empty. Distinct from `transitions.notes`, which is global truth shared by every sequence.
@@ -629,7 +633,7 @@ Combine with the depth cap from §5.6.
 ## 6. Invariants
 
 - One graph. Sequences reference `transitions`; they never store transition properties.
-- Blocks and sets are one table. `kind` is a filter label with no behavioral rules attached.
+- Blocks and sets are one table. Schema and API treat them the same. Alternate-authoring chrome (`+ alt`, span selection, alt rows) is block-only; a set does not grow its own alt tree.
 - The spine is tracks. Connectors annotate joins and are always nullable.
 - A step has at most one connector.
 - Only tight sequences are importable as connectors. Incomplete ones remain fully editable.
@@ -799,7 +803,7 @@ revisited; the richer surfaces arrive later.
 | **SET-3**  | [DJ-113](https://linear.app/dj-project-astradzhao/issue/DJ-113) | Manual transition mode on `/add` (§9) with the vocabulary comboboxes. Ships standalone value.                                                                                                                                                                                                                                                              | —            |
 | **SET-4**  | [DJ-114](https://linear.app/dj-project-astradzhao/issue/DJ-114) | `/sets` top-level tab with Sets/Blocks sub-tabs + the two-pane workspace, built to the mockup: running order with drag and `↑`/`↓` reorder, palette drag-and-drop, transition-first extension, seams, notes, and toasts. Transitions only as connectors. Plan: [`sets-feature/DJ114_SETS_WORKSPACE_PLAN.md`](./sets-feature/DJ114_SETS_WORKSPACE_PLAN.md). | SET-2        |
 | **SET-5**  | [DJ-115](https://linear.app/dj-project-astradzhao/issue/DJ-115) | Block connectors: Blocks palette tab, collapsed rows, the move-as-one unit, expand, edit-block, detach-to-copy, "Save trail as a block".                                                                                                                                                                                                                   | SET-4        |
-| **SET-6**  | [DJ-116](https://linear.app/dj-project-astradzhao/issue/DJ-116) | Alternates: spans, labels, `+ alt`, and the alternate rows under a gap.                                                                                                                                                                                                                                                                                    | SET-4        |
+| **SET-6**  | [DJ-116](https://linear.app/dj-project-astradzhao/issue/DJ-116) | Alternates: spans, labels, `+ alt`, and the alternate rows under a gap — authored on **blocks** only. Sets omit that chrome.                                                                                                                                                                                                                               | SET-4        |
 | **SET-7**  | [DJ-117](https://linear.app/dj-project-astradzhao/issue/DJ-117) | Versions: API, header switcher, resolved-path rendering with `alternate` chips, overlap validation.                                                                                                                                                                                                                                                        | SET-6        |
 | **SET-8**  | [DJ-118](https://linear.app/dj-project-astradzhao/issue/DJ-118) | `/add` sequence context and `AddToSequenceMenu` across track and transition surfaces.                                                                                                                                                                                                                                                                      | SET-3, SET-4 |
 | **SET-9**  | [DJ-119](https://linear.app/dj-project-astradzhao/issue/DJ-119) | Graph Set mode: session-store cursor, rail, on-script next, alternates, seam handoff, off-script prompt.                                                                                                                                                                                                                                                   | SET-5, SET-6 |

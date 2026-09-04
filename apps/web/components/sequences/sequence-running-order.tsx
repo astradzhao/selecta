@@ -108,7 +108,7 @@ export function SequenceRunningOrder({
   alternates: SequenceAlternate[];
   spanCandidateTotal: number | null;
   expandedAlternateIds: Record<string, boolean>;
-  onAddAlternate: (stepId: string) => void;
+  onAddAlternate?: (stepId: string) => void;
   onToggleAlternateExpand: (item: SequenceAlternate) => void;
   onRemoveAlternate: (item: SequenceAlternate) => void;
   onCommitAlternateLabel: (item: SequenceAlternate, label: string) => void;
@@ -233,7 +233,7 @@ export function SequenceRunningOrder({
         }}
         onEditBlock={() => onEditBlock(step)}
         onDetach={() => onDetach(step)}
-        onAddAlternate={() => onAddAlternate(step.id)}
+        onAddAlternate={onAddAlternate ? () => onAddAlternate(step.id) : undefined}
         onSelectStep={onSelectStep}
         onToggleNote={onToggleNote}
         onNoteChange={onNoteChange}

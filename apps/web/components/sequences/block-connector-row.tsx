@@ -58,7 +58,7 @@ export function BlockConnectorRow({
   onDetach: () => void;
   onUnlink: () => void;
   onToggleSeam: () => void;
-  onAddAlternate: () => void;
+  onAddAlternate?: () => void;
   onSelectStep: (stepId: string, shiftKey?: boolean) => void;
   onToggleNote: (stepId: string) => void;
   onNoteChange: (stepId: string, value: string) => void;
@@ -176,18 +176,20 @@ export function BlockConnectorRow({
               〜
             </Button>
           ) : null}
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            title="Add alternate"
-            onClick={(event) => {
-              stop(event);
-              onAddAlternate();
-            }}
-          >
-            + alt
-          </Button>
+          {onAddAlternate ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              title="Add alternate"
+              onClick={(event) => {
+                stop(event);
+                onAddAlternate();
+              }}
+            >
+              + alt
+            </Button>
+          ) : null}
         </span>
       </div>
       {!broken ? (

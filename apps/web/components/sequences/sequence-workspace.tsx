@@ -32,6 +32,7 @@ import {
 } from "@/lib/sequences/api";
 import {
   alternateCoverage,
+  canAuthorAlternates,
   formatAlternateCoverage,
   orderSpan,
   spanRange,
@@ -154,6 +155,11 @@ export function SequenceWorkspace({
         setDetail(result.sequence);
         setTitleDraft(result.sequence.title);
         setLoadError(null);
+        setSelection({ kind: "none" });
+        setPickerStepId(null);
+        setPickerIntent("link");
+        setAlternateDraft(null);
+        setSpanCandidateTotal(null);
       } catch (err) {
         if (!cancelled) {
           setLoadError(describeApiError(err, { resource: "sequence" }));
@@ -191,7 +197,7 @@ export function SequenceWorkspace({
   }, [routeKind, sequenceId]);
 
   useEffect(() => {
-    if (!detail || selection.kind !== "span") {
+    if (!detail || !canAuthorAlternates(detail.kind) || selection.kind !== "span") {
       setSpanCandidateTotal(null);
       return;
     }
@@ -248,6 +254,7 @@ export function SequenceWorkspace({
     setSelection((current) => {
       if (current.kind === "none") return current;
       if (current.kind === "span") {
+        if (!canAuthorAlternates(next.kind)) return { kind: "none" };
         return spanRange(next.steps, current.fromStepId, current.toStepId)
           ? current
           : { kind: "none" };
@@ -404,6 +411,7 @@ export function SequenceWorkspace({
   }
 
   function beginAlternateDraft(draft: AlternateDraft) {
+    if (!detail || !canAuthorAlternates(detail.kind)) return;
     setAlternateError(null);
     setAlternateDraft(draft);
   }
@@ -769,7 +777,7 @@ export function SequenceWorkspace({
   }
 
   async function handleAddAlternate(stepId: string) {
-    if (!detail) return;
+    if (!detail || !canAuthorAlternates(detail.kind)) return;
     const keepSpan = selection.kind === "span" && selection.fromStepId === stepId;
     const fromStepId = keepSpan ? selection.fromStepId : stepId;
     const toStepId = keepSpan ? selection.toStepId : stepId;
@@ -813,7 +821,7 @@ export function SequenceWorkspace({
 
   function handleSelectStep(stepId: string, shiftKey = false) {
     if (!detail) return;
-    if (shiftKey) {
+    if (shiftKey && canAuthorAlternates(detail.kind)) {
       const anchorId =
         selection.kind === "span"
           ? selection.fromStepId
@@ -842,7 +850,7 @@ export function SequenceWorkspace({
   }
 
   async function confirmAlternate(label: string) {
-    if (!detail || !alternateDraft) return;
+    if (!detail || !alternateDraft || !canAuthorAlternates(detail.kind)) return;
     setAlternatePending(true);
     setAlternateError(null);
     const result = await mutate(
@@ -867,7 +875,7 @@ export function SequenceWorkspace({
   }
 
   function handleRemoveAlternate(item: SequenceAlternate) {
-    if (!detail) return;
+    if (!detail || !canAuthorAlternates(detail.kind)) return;
     const versionCount = versionCountUsingAlternate(detail.versions, item.id);
     if (versionCount > 0) {
       setPendingAlternateRemove({ item, versionCount });
@@ -907,11 +915,14 @@ export function SequenceWorkspace({
   }
 
   const isBlockKind = detail.kind === "block";
+  const authorAlternates = canAuthorAlternates(detail.kind);
   const metrics = plannedMetrics(detail.steps);
   const runtimeSec = sequenceRuntimeSec(detail.steps);
   const trackCount = sequenceTrackCount(detail.steps);
   const incompleteBlocks = incompleteBlockCount(detail.steps);
-  const coverage = formatAlternateCoverage(alternateCoverage(detail.alternates));
+  const coverage = authorAlternates
+    ? formatAlternateCoverage(alternateCoverage(detail.alternates))
+    : null;
   const browseHref = setsViewHref(isBlockKind ? "blocks" : "sets");
 
   return (
@@ -1137,10 +1148,12 @@ export function SequenceWorkspace({
             setPickerIntent("link");
             setPickerStepId(null);
           }}
-          alternates={detail.alternates}
-          spanCandidateTotal={spanCandidateTotal}
+          alternates={authorAlternates ? detail.alternates : []}
+          spanCandidateTotal={authorAlternates ? spanCandidateTotal : null}
           expandedAlternateIds={expandedAlternateIds}
-          onAddAlternate={(stepId) => void handleAddAlternate(stepId)}
+          onAddAlternate={
+            authorAlternates ? (stepId) => void handleAddAlternate(stepId) : undefined
+          }
           onToggleAlternateExpand={handleToggleAlternateExpand}
           onRemoveAlternate={handleRemoveAlternate}
           onCommitAlternateLabel={(item, label) => {

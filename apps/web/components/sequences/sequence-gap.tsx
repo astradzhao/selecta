@@ -90,7 +90,7 @@ export function SequenceGap({
   onToggleExpand: () => void;
   onEditBlock: () => void;
   onDetach: () => void;
-  onAddAlternate: () => void;
+  onAddAlternate?: () => void;
   onSelectStep: (stepId: string, shiftKey?: boolean) => void;
   onToggleNote: (stepId: string) => void;
   onNoteChange: (stepId: string, value: string) => void;
@@ -227,7 +227,7 @@ function TransitionGapRow({
   onTogglePicker: () => void;
   onUnlink: () => void;
   onToggleSeam: () => void;
-  onAddAlternate: () => void;
+  onAddAlternate?: () => void;
 }) {
   const fromTitle = previous.track?.title ?? "Track";
   const toTitle = step.track?.title ?? "Track";
@@ -316,18 +316,20 @@ function TransitionGapRow({
         >
           〜
         </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="xs"
-          title="Add alternate"
-          onClick={(event) => {
-            event.stopPropagation();
-            onAddAlternate();
-          }}
-        >
-          + alt
-        </Button>
+        {onAddAlternate ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            title="Add alternate"
+            onClick={(event) => {
+              event.stopPropagation();
+              onAddAlternate();
+            }}
+          >
+            + alt
+          </Button>
+        ) : null}
       </span>
     </div>
   );
