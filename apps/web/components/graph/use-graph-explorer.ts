@@ -90,6 +90,7 @@ export function useGraphExplorer() {
     nextId: string,
     transitionId: string | null,
     sourceElement?: HTMLElement | null,
+    afterHop?: (fromId: string, toId: string, transitionId: string | null) => void,
   ) {
     if (!trackId || choosingId || nextId === trackId) return;
 
@@ -110,6 +111,7 @@ export function useGraphExplorer() {
 
       loadedIdRef.current = next ? nextId : null;
       hopGraphSession(trackId, nextId, transitionId);
+      afterHop?.(trackId, nextId, transitionId);
       if (next) {
         setCurrent(next.current);
         setNeighbors(next.neighbors);

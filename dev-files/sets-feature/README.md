@@ -13,6 +13,7 @@ plans for that epic.
 | [`DJ115_BLOCK_CONNECTORS_PLAN.md`](./DJ115_BLOCK_CONNECTORS_PLAN.md) | [DJ-115](https://linear.app/dj-project-astradzhao/issue/DJ-115) | SET-5 task plan — block connectors, detach, save-trail-as-block                        |
 | [`DJ116_ALTERNATES_PLAN.md`](./DJ116_ALTERNATES_PLAN.md)             | [DJ-116](https://linear.app/dj-project-astradzhao/issue/DJ-116) | SET-6 task plan — alternates as substitutable spans                                    |
 | [`DJ117_VERSIONS_PLAN.md`](./DJ117_VERSIONS_PLAN.md)                 | [DJ-117](https://linear.app/dj-project-astradzhao/issue/DJ-117) | SET-7 task plan — named versions and nested version pins                               |
+| [`DJ119_GRAPH_SET_MODE_PLAN.md`](./DJ119_GRAPH_SET_MODE_PLAN.md)     | [DJ-119](https://linear.app/dj-project-astradzhao/issue/DJ-119) | SET-9 — Graph Set mode overlay, seams, off-script edits (**implemented**)              |
 
 ## The mockup
 
@@ -40,15 +41,10 @@ The mockup's alternates are keyed to a single gap; the SET-1 schema already mode
 
 ## Status
 
-SET-1 ([DJ-111](https://linear.app/dj-project-astradzhao/issue/DJ-111)), SET-2
-([DJ-112](https://linear.app/dj-project-astradzhao/issue/DJ-112)), SET-4
-([DJ-114](https://linear.app/dj-project-astradzhao/issue/DJ-114)), and SET-5
-([DJ-115](https://linear.app/dj-project-astradzhao/issue/DJ-115), #102) are on `main`. SET-3
-([DJ-113](https://linear.app/dj-project-astradzhao/issue/DJ-113)) shipped the manual transition page
-at `/library/add/transitions`. Architecture §11 still says not to start SET-6…SET-10 until SET-4
-has been used on a real gig.
+SET-1 through SET-7 are on `main` (SET-5 #102, SET-6, SET-7 #104). SET-3 shipped the manual
+transition page at `/library/add/transitions`. Architecture §11 still says not to start SET-5…SET-10
+until SET-4 has been used on a real gig; SET-5–7 shipped anyway. SET-9
+([`DJ119_GRAPH_SET_MODE_PLAN.md`](./DJ119_GRAPH_SET_MODE_PLAN.md)) is implemented on `dj-119`.
 
-SET-1 and SET-2 landed more of the backend than the slice order implies. Block connectors **and**
-the alternates and versions routes are already implemented and tested, so SET-6 and SET-7 are close
-to web-only slices. Check what exists before planning API work — see
-[`DJ116_ALTERNATES_PLAN.md`](./DJ116_ALTERNATES_PLAN.md) §1.
+Linear still shows DJ-115 / DJ-116 as Backlog blockers of DJ-119 — that is stale; git is the
+authority. SET-8 (add-context deep links) is independent. SET-10 (Follow) waits on SET-9.

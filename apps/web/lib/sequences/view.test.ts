@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { addTransitionHref, parseSetsView, sequenceWorkspaceHref, setsViewHref } from "./view";
+import {
+  addTransitionHref,
+  graphSetHref,
+  parseSetsView,
+  sequenceWorkspaceHref,
+  setsViewHref,
+} from "./view";
 
 describe("parseSetsView", () => {
   it("accepts sets and blocks and coerces anything else to sets", () => {
@@ -25,6 +31,14 @@ describe("sequenceWorkspaceHref", () => {
   it("routes kind to the matching path", () => {
     assert.equal(sequenceWorkspaceHref("set", "abc"), "/sets/abc");
     assert.equal(sequenceWorkspaceHref("block", "abc"), "/blocks/abc");
+  });
+});
+
+describe("graphSetHref", () => {
+  it("puts set, version, and step on the graph URL", () => {
+    assert.equal(graphSetHref("abc"), "/graph?set=abc");
+    assert.equal(graphSetHref("abc", { versionId: "v1" }), "/graph?set=abc&version=v1");
+    assert.equal(graphSetHref("abc", { stepId: "s1" }), "/graph?set=abc&step=s1");
   });
 });
 

@@ -97,6 +97,24 @@ export type SequenceDetail = SequenceRecord & {
   steps: SequenceStep[];
   alternates: SequenceAlternate[];
   versions: SequenceVersion[];
+  expansion: SequenceExpansion | null;
+};
+
+export type SequenceExpansionEntry = {
+  stepId: string;
+  trackId: string;
+  sequenceId: string;
+  depth: number;
+  inTransitionId: string | null;
+  inBlockId: string | null;
+  isSeam: boolean;
+  track: SequenceStepTrack | null;
+};
+
+export type SequenceExpansion = {
+  entries: SequenceExpansionEntry[];
+  truncated: boolean;
+  reason: "incomplete" | "broken" | "depth_exceeded" | null;
 };
 
 export type WorkspaceSelection =

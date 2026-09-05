@@ -131,6 +131,8 @@ export type ExpandedSequenceEntry = {
   depth: number;
   inTransitionId: string | null;
   inBlockId: string | null;
+  isSeam: boolean;
+  track: SequenceStepTrack | null;
 };
 
 export type SequenceExpansion = {
@@ -1187,6 +1189,8 @@ async function expandResolvedSteps(
       depth: stepDepth,
       inTransitionId: step.inTransitionId,
       inBlockId: step.inBlockId,
+      isSeam: step.isSeam,
+      track: null,
     });
   };
 
@@ -1232,6 +1236,17 @@ async function expandResolvedSteps(
   }
 
   return { entries, truncated, reason };
+}
+
+async function hydrateExpansion(expansion: SequenceExpansion): Promise<SequenceExpansion> {
+  const summaries = await getTrackSummariesByIds(expansion.entries.map((entry) => entry.trackId));
+  return {
+    ...expansion,
+    entries: expansion.entries.map((entry) => ({
+      ...entry,
+      track: toStepTrack(summaries.get(entry.trackId)),
+    })),
+  };
 }
 
 async function loadChildStepsForExpand(step: BlockStepRow): Promise<BlockStepRow[]> {
@@ -1309,7 +1324,7 @@ async function buildDetail(
       }
       resolved = applyVersionToSteps(steps, alternateRows, version.alternateIds);
     }
-    expansion = await expandResolvedSteps(row.id, resolved, 0);
+    expansion = await hydrateExpansion(await expandResolvedSteps(row.id, resolved, 0));
   }
   const hydrated = await hydrateSteps(row.id, steps);
   return {
