@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronRightIcon } from "lucide-react";
 
 import { Badge } from "@selecta/ui/components/badge";
@@ -25,6 +25,8 @@ export function NeighborCard({
   index,
   panelId,
   registerRef,
+  badges,
+  preferredTransitionId,
 }: {
   neighbor: ApiNeighborhoodNeighbor;
   expanded: boolean;
@@ -37,9 +39,14 @@ export function NeighborCard({
   index: number;
   panelId: string;
   registerRef: (element: HTMLElement | null) => void;
+  badges?: ReactNode;
+  preferredTransitionId?: string | null;
 }) {
   const edges = neighbor.transitions;
-  const defaultEdge = edges[0];
+  const preferred = preferredTransitionId
+    ? edges.find((edge) => edge.id === preferredTransitionId)
+    : null;
+  const defaultEdge = preferred ?? edges[0];
   const [selectedKey, setSelectedKey] = useState(() =>
     defaultEdge ? edgeKey(defaultEdge, neighbor.id) : neighbor.id,
   );
@@ -87,6 +94,7 @@ export function NeighborCard({
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+              {badges}
               {edges.length > 1 ? (
                 <Badge variant="outline" className="text-numeric text-caption">
                   {edges.length}

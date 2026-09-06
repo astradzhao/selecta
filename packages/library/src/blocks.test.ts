@@ -624,6 +624,27 @@ describe("sequence module invariants", { skip: !pgIntegration }, () => {
     assert.equal(expanded.expansion?.entries[1]!.trackId, a.track.id);
   });
 
+  it("embeds isSeam and track titles on expansion entries", async () => {
+    const a = await track("A");
+    const b = await track("B");
+    const c = await track("C");
+    const sequence = await createSequence({
+      title: `Expand seam ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, b.track.id, c.track.id] },
+    });
+    await updateSequenceStep(sequence.id, stepByTrack(sequence, c.track.id).id, { isSeam: true });
+
+    const expanded = await getSequenceDetail(sequence.id, { expand: true });
+    const entries = expanded.expansion?.entries ?? [];
+    assert.equal(entries.length, 3);
+    assert.equal(entries[0]!.isSeam, false);
+    assert.equal(entries[1]!.isSeam, false);
+    assert.equal(entries[2]!.isSeam, true);
+    assert.equal(entries[2]!.stepId, stepByTrack(sequence, c.track.id).id);
+    assert.equal(entries[0]!.track?.title, a.track.title);
+    assert.equal(entries[2]!.track?.title, c.track.title);
+  });
+
   it("rejects a connector whose endpoints do not match the gap", async () => {
     const a = await track("A");
     const b = await track("B");

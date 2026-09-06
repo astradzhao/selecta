@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { DragEvent } from "react";
 import { XIcon } from "lucide-react";
@@ -77,7 +78,7 @@ import type {
   SequenceStep,
   WorkspaceSelection,
 } from "@/lib/sequences/types";
-import { sequenceWorkspaceHref, setsViewHref } from "@/lib/sequences/view";
+import { graphSetHref, sequenceWorkspaceHref, setsViewHref } from "@/lib/sequences/view";
 import { listTransitions } from "@/lib/transitions/api";
 import type { ApiTransition } from "@/lib/transitions/types";
 import { displayVocab } from "@/lib/transitions/vocab-labels";
@@ -1045,6 +1046,17 @@ export function SequenceWorkspace({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {displaySteps.length === 0 ? (
+            <Button type="button" variant="outline" size="sm" disabled title="Add a track first">
+              Open in graph
+            </Button>
+          ) : (
+            <Button asChild variant="outline" size="sm">
+              <Link href={graphSetHref(detail.id, { versionId: activeVersionId })}>
+                Open in graph
+              </Link>
+            </Button>
+          )}
           {showVersionSwitcher(detail.kind, detail.versions.length, mappedAltCount) ? (
             <VersionSwitcher
               versions={detail.versions}

@@ -54,8 +54,23 @@ export async function createSequence(body: {
   });
 }
 
-export async function getSequence(id: string): Promise<{ ok: true; sequence: SequenceDetail }> {
-  return apiFetch(`/blocks/${encodeURIComponent(id)}`);
+export async function getSequence(
+  id: string,
+  options: { expand?: boolean; versionId?: string | null } = {},
+): Promise<{ ok: true; sequence: SequenceDetail }> {
+  const qs = sequenceDetailSearchParams(options);
+  return apiFetch(`/blocks/${encodeURIComponent(id)}${qs ? `?${qs}` : ""}`);
+}
+
+/** HTTP query for `GET /blocks/:id`. */
+export function sequenceDetailSearchParams(input: {
+  expand?: boolean;
+  versionId?: string | null;
+}): string {
+  const params = new URLSearchParams();
+  if (input.expand) params.set("expand", "1");
+  if (input.versionId?.trim()) params.set("version", input.versionId.trim());
+  return params.toString();
 }
 
 export async function listSequenceReferrers(
@@ -97,6 +112,7 @@ export async function updateSequenceStep(
   id: string,
   stepId: string,
   body: {
+    trackId?: string;
     inTransitionId?: string | null;
     inBlockId?: string | null;
     inBlockVersionId?: string | null;
