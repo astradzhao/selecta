@@ -365,11 +365,7 @@ function TrackPickerBody(
 
       {showSkeleton ? (
         <ListSkeleton rows={4} aria-label="Loading library" className="rounded-none border-0" />
-      ) : hideList ? null : !active ? (
-        props.source === "catalog" ? (
-          <DataList />
-        ) : null
-      ) : (
+      ) : hideList || !active ? null : (
         <TrackPickerList
           rows={rows}
           size={props.size}

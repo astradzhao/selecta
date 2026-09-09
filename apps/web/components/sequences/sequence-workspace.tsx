@@ -1293,6 +1293,7 @@ export function SequenceWorkspace({
         />
         <LibraryPalette
           sequenceId={detail.id}
+          sequenceKind={detail.kind}
           selection={selection}
           steps={detail.steps}
           nestedSteps={Object.values(childById).flatMap((child) => child.steps)}

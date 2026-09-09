@@ -11,6 +11,7 @@ import { SegmentedTab, SegmentedTabs } from "@selecta/ui/components/segmented-ta
 import { cn } from "@selecta/ui/lib/utils";
 
 import { FilterField } from "@/components/common/filtered-list-shell";
+import { AddTrackDialog } from "@/components/tracks/add-track-dialog";
 import { useFilteredList } from "@/hooks/use-filtered-list";
 import { artistLine } from "@/lib/format";
 import { listSequences } from "@/lib/sequences/api";
@@ -24,7 +25,12 @@ import {
   paletteTransitionReason,
   type FitPayload,
 } from "@/lib/sequences/drag";
-import type { SequenceRecord, SequenceStep, WorkspaceSelection } from "@/lib/sequences/types";
+import type {
+  SequenceKind,
+  SequenceRecord,
+  SequenceStep,
+  WorkspaceSelection,
+} from "@/lib/sequences/types";
 import { listTracks, type ApiTrack } from "@/lib/tracks/api";
 import { listTransitions } from "@/lib/transitions/api";
 import type { ApiTransition } from "@/lib/transitions/types";
@@ -78,6 +84,7 @@ function startPaletteDrag(event: DragEvent, payload: FitPayload) {
 
 export function LibraryPalette({
   sequenceId,
+  sequenceKind,
   selection,
   steps,
   nestedSteps = [],
@@ -91,6 +98,7 @@ export function LibraryPalette({
   onDragEnd,
 }: {
   sequenceId: string;
+  sequenceKind: SequenceKind;
   selection: WorkspaceSelection;
   steps: SequenceStep[];
   nestedSteps?: SequenceStep[];
@@ -104,7 +112,9 @@ export function LibraryPalette({
   onDragEnd: () => void;
 }) {
   const [query, setQuery] = useState("");
-  const trackFilters = useMemo(() => ({ query }), [query]);
+  const [newTrackOpen, setNewTrackOpen] = useState(false);
+  const [trackEpoch, setTrackEpoch] = useState(0);
+  const trackFilters = useMemo(() => ({ query, trackEpoch }), [query, trackEpoch]);
   const { fromTrackId, toTrackId } = paletteTransitionQuery(selection, steps, nestedSteps);
   const transitionFilters = useMemo(
     () => ({ query, fromTrackId, toTrackId }),
@@ -116,6 +126,9 @@ export function LibraryPalette({
     const result = await listTracks({ query: next.query, limit: 50 });
     return { items: result.tracks, hasMore: Boolean(result.hasMore) };
   }, []);
+  const noun = sequenceKind === "block" ? "block" : "set";
+  const newTrackDisabled = selection.kind === "span";
+  const newTrackReason = newTrackDisabled ? "Select a step or gap to insert a track" : null;
 
   const fetchTransitions = useCallback(
     async (next: { query: string; fromTrackId?: string; toTrackId?: string }) => {
@@ -184,7 +197,9 @@ export function LibraryPalette({
         ? `Nothing out of ${anchor.track?.title ?? "this track"} yet.`
         : tab === "blocks"
           ? "No blocks yet."
-          : "Nothing matches that search.";
+          : query.trim()
+            ? "Nothing matches that search."
+            : "No tracks in the library yet.";
   const searchPlaceholder =
     tab === "tracks"
       ? "Search tracks"
@@ -338,6 +353,33 @@ export function LibraryPalette({
           {span.destination.track?.title ?? "Track"}.
         </p>
       ) : null}
+      {tab === "tracks" ? (
+        <div className="border-border border-t px-3.5 py-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full"
+            disabled={newTrackDisabled}
+            title={newTrackReason ?? undefined}
+            onClick={() => setNewTrackOpen(true)}
+          >
+            <PlusIcon />
+            New track
+          </Button>
+        </div>
+      ) : null}
+      <AddTrackDialog
+        open={newTrackOpen}
+        onOpenChange={setNewTrackOpen}
+        initialQuery={query}
+        description={`Search the catalog or enter it manually. Saved to your library and inserted into this ${noun}.`}
+        onCreated={(track) => {
+          setNewTrackOpen(false);
+          setTrackEpoch((current) => current + 1);
+          onAddTrack(track);
+        }}
+      />
     </aside>
   );
 }
