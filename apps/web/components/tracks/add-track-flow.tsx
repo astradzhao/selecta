@@ -18,15 +18,27 @@ import { describeApiError } from "@/lib/api/errors";
 import type { CatalogTrack } from "@/lib/catalog/types";
 import { formatDuration } from "@/lib/format";
 import { invalidateLibraryCache } from "@/lib/library-cache";
-import { createTrack } from "@/lib/tracks/api";
+import { createTrack, type ApiTrack } from "@/lib/tracks/api";
 
 type Mode = "search" | "review";
 type ReviewFieldErrors = Partial<Record<"title" | "artistsText", string>>;
 
-export function AddTrackFlow() {
+export function AddTrackFlow({
+  compact = false,
+  initialQuery = "",
+  onCreated,
+  onDismiss,
+  submitLabel = "Save to library",
+}: {
+  compact?: boolean;
+  initialQuery?: string;
+  onCreated?: (track: ApiTrack) => void | Promise<void>;
+  onDismiss?: () => void;
+  submitLabel?: string;
+} = {}) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("search");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [savePending, startSave] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<ReviewFieldErrors>({});
@@ -91,6 +103,10 @@ export function AddTrackFlow() {
           })),
         });
         invalidateLibraryCache();
+        if (onCreated) {
+          await onCreated(response.track);
+          return;
+        }
         router.push(`/tracks/${response.track.id}`);
         router.refresh();
       } catch (error) {
@@ -100,7 +116,7 @@ export function AddTrackFlow() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={compact ? "space-y-4" : "space-y-6"}>
       {mode === "search" ? (
         <section className="space-y-4">
           <TrackPicker
@@ -109,10 +125,13 @@ export function AddTrackFlow() {
             onQueryChange={setQuery}
             minQueryLength={2}
             limit={10}
-            size="md"
+            size={compact ? "sm" : "md"}
             autoFocus
             placeholder="Search track or artist"
             emptyFiltered="No catalog hits. Try another query or enter the track manually."
+            listClassName={
+              compact ? "max-h-[min(40vh,16rem)] overflow-y-auto overflow-x-hidden" : undefined
+            }
             leading={
               <Button type="button" variant="outline" onClick={() => openReview(null)}>
                 Enter manually
@@ -128,7 +147,7 @@ export function AddTrackFlow() {
           />
         </section>
       ) : (
-        <section className="space-y-6">
+        <section className={compact ? "space-y-4" : "space-y-6"}>
           <div className="flex items-start justify-between gap-4">
             <SectionHeading
               title={catalog ? "Review catalog hit" : "Manual entry"}
@@ -250,9 +269,13 @@ export function AddTrackFlow() {
 
           <div className="flex gap-3">
             <Button type="button" onClick={save} disabled={savePending}>
-              {savePending ? "Saving…" : "Save to library"}
+              {savePending ? "Saving…" : submitLabel}
             </Button>
-            <Button type="button" variant="outline" onClick={() => setMode("search")}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => (onDismiss ? onDismiss() : setMode("search"))}
+            >
               Cancel
             </Button>
           </div>
