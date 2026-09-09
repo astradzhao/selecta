@@ -25,6 +25,7 @@ import {
   paletteTransitionReason,
   type FitPayload,
 } from "@/lib/sequences/drag";
+import { canWrapSpan, stepSpan } from "@/lib/sequences/span";
 import type {
   SequenceKind,
   SequenceRecord,
@@ -115,7 +116,17 @@ export function LibraryPalette({
   const [newTrackOpen, setNewTrackOpen] = useState(false);
   const [trackEpoch, setTrackEpoch] = useState(0);
   const trackFilters = useMemo(() => ({ query, trackEpoch }), [query, trackEpoch]);
-  const { fromTrackId, toTrackId } = paletteTransitionQuery(selection, steps, nestedSteps);
+  const wrapSpan = canWrapSpan(sequenceKind) && selection.kind === "span";
+  const wrapRange =
+    wrapSpan && selection.kind === "span"
+      ? stepSpan(steps, selection.fromStepId, selection.toStepId)
+      : null;
+  const { fromTrackId, toTrackId } = paletteTransitionQuery(
+    selection,
+    steps,
+    nestedSteps,
+    wrapSpan,
+  );
   const transitionFilters = useMemo(
     () => ({ query, fromTrackId, toTrackId }),
     [query, fromTrackId, toTrackId],
@@ -176,12 +187,19 @@ export function LibraryPalette({
   const nestedAnchor = nestedSelectedStep(selection, steps, nestedSteps);
   const anchor = nestedAnchor ?? (insertAt > 0 ? steps[insertAt - 1] : null);
   const span =
-    selection.kind === "span" ? spanRange(steps, selection.fromStepId, selection.toStepId) : null;
+    wrapSpan || selection.kind !== "span"
+      ? null
+      : spanRange(steps, selection.fromStepId, selection.toStepId);
+  const wrapStart = wrapRange ? steps[wrapRange.fromIdx] : null;
+  const wrapEnd = wrapRange ? steps[wrapRange.toIdx] : null;
+  const wrapCount = wrapRange ? wrapRange.toIdx - wrapRange.fromIdx + 1 : 0;
   const gapSelected = Boolean(fromStep && toStep);
   const spanSelected = Boolean(span);
-  const hasContext = gapSelected || spanSelected || (tab === "transitions" && Boolean(anchor));
-  const contextLabel =
-    span && spanSelected
+  const hasContext =
+    gapSelected || spanSelected || Boolean(wrapRange) || (tab === "transitions" && Boolean(anchor));
+  const contextLabel = wrapRange
+    ? `${wrapCount} ${wrapCount === 1 ? "track" : "tracks"} selected · ${wrapStart?.track?.title ?? "Track"} → ${wrapEnd?.track?.title ?? "Track"}`
+    : span && spanSelected
       ? `Fits the selected span · ${span.predecessor.track?.title ?? "Track"} → ${span.destination.track?.title ?? "Track"}`
       : gapSelected
         ? `${fromStep?.track?.title ?? "Track"} → ${toStep?.track?.title ?? "Track"}`
@@ -291,7 +309,13 @@ export function LibraryPalette({
         ) : tab === "transitions" ? (
           (transitions.items as ApiTransition[]).map((transition) => {
             const payload = transitionPayload(transition);
-            const reason = paletteTransitionReason(payload, selection, steps, nestedSteps);
+            const reason = paletteTransitionReason(
+              payload,
+              selection,
+              steps,
+              nestedSteps,
+              wrapSpan,
+            );
             const tone = qualityRankTone(transition.quality);
             return (
               <PaletteRow
@@ -323,7 +347,7 @@ export function LibraryPalette({
         ) : (
           visibleBlocks.map((block) => {
             const payload = blockFitPayload(block);
-            const reason = paletteBlockReason(payload, selection, steps);
+            const reason = paletteBlockReason(payload, selection, steps, wrapSpan);
             const startTitle = block.startTrack?.title ?? "—";
             const endTitle = block.endTrack?.title ?? "—";
             return (
@@ -347,7 +371,7 @@ export function LibraryPalette({
           })
         )}
       </div>
-      {spanSelected && span ? (
+      {spanSelected && span && !wrapSpan ? (
         <p className="text-caption border-border border-t px-3.5 py-2">
           + uses this as the alternate for {span.predecessor.track?.title ?? "Track"} →{" "}
           {span.destination.track?.title ?? "Track"}.

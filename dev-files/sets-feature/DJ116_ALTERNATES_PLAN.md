@@ -127,7 +127,7 @@ Open `Sets feature mockup/Selecta Sets.dc.html` and drive `+ alt` on a gap, then
 | D17 | Header                              | Leave `plannedMetrics` alone. When `alternates.length > 0`, append a tertiary fact `{n} alternates · {m} mapped` (`m` = `valid === true`). Hidden at zero. An unmapped ghost is not counted. An incomplete-but-valid block still counts as mapped — the unfinished part is the child's interior, same posture as SET-5 D9.                                                                                                          |
 | D18 | Remove                              | Immediate `DELETE`, toast `"Alternate removed"`. No `ConfirmDialog` unless some `versions[].alternateIds` still points at it (possible via API before SET-7), in which case confirm `"This alternate is used in N saved versions"` and then delete — version choices already cascade.                                                                                                                                               |
 | D19 | `+ alt` on block-connector gaps     | Same control as transition gaps. A 1-step alt on a block unit is "a different connector for this pair"; a multi-step span that starts on a unit host is allowed. Do not invent a second picker.                                                                                                                                                                                                                                     |
-| D20 | Authoring lives on blocks           | `canAuthorAlternates(kind)` is true only for `block`. `/sets/:id` omits `+ alt`, shift-click spans, alt rows, and the coverage line even if leftover API alts exist. `/blocks/:id` is the surface that grows the tree. Picking a nested block's version from a set is SET-7 — do not ship a stub switcher here.                                                      |
+| D20 | Authoring lives on blocks           | `canAuthorAlternates(kind)` is true only for `block`. `/sets/:id` omits `+ alt`, shift-click spans, alt rows, and the coverage line even if leftover API alts exist. `/blocks/:id` is the surface that grows the tree. Picking a nested block's version from a set is SET-7 — do not ship a stub switcher here.                                                                                                                     |
 
 ### Out of scope
 
@@ -138,7 +138,7 @@ Open `Sets feature mockup/Selecta Sets.dc.html` and drive `+ alt` on a gap, then
 - `AddToSequenceMenu` / `/add` sequence context — SET-8.
 - Persisting an alternate with no connector. Schema XOR forbids it; do not migrate.
 - Nested-block editing inside an expanded alt. Edit block is SET-5's navigation; this slice does not add it on alt rows.
-- Auto-creating a block from a selected span. If you need `A → B′ → C`, build that block in `/sets?view=blocks` (or save a trail) and drop it on the span.
+- Auto-creating a block from a selected span — shipped later as [DJ-148](https://linear.app/dj-project-astradzhao/issue/DJ-148); plan: [`DJ148_MAKE_BLOCK_FROM_SPAN_PLAN.md`](./DJ148_MAKE_BLOCK_FROM_SPAN_PLAN.md).
 
 ---
 

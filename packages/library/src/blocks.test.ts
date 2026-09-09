@@ -13,6 +13,7 @@ import {
   deleteSequence,
   deleteSequenceStep,
   detachSequenceStep,
+  wrapSequenceSpan,
   getSequenceDetail,
   listSequences,
   getSequenceReferrers,
@@ -910,5 +911,233 @@ describe("sequence module invariants", { skip: !pgIntegration }, () => {
     assert.equal(step.gapState, "seam");
     assert.equal(step.inTransitionId, null);
     assert.equal(withSeam.isComplete, true);
+  });
+
+  it("wraps a span into a nested block and detaches back to the same line", async () => {
+    const a = await track("WrapA");
+    const b = await track("WrapB");
+    const c = await track("WrapC");
+    const d = await track("WrapD");
+    const ab = await createTransition({ fromTrackId: a.track.id, toTrackId: b.track.id });
+    const bc = await createTransition({ fromTrackId: b.track.id, toTrackId: c.track.id });
+
+    const parent = await createSequence({
+      kind: "set",
+      title: `Wrap parent ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, b.track.id, c.track.id, d.track.id] },
+    });
+    await updateSequenceStep(parent.id, stepByTrack(parent, b.track.id).id, {
+      inTransitionId: ab.id,
+    });
+    await updateSequenceStep(parent.id, stepByTrack(parent, c.track.id).id, {
+      inTransitionId: bc.id,
+      note: "kill the bass",
+    });
+    await updateSequenceStep(parent.id, stepByTrack(parent, d.track.id).id, { isSeam: true });
+
+    const wrapped = await wrapSequenceSpan(parent.id, {
+      fromStepId: stepByTrack(parent, b.track.id).id,
+      toStepId: stepByTrack(parent, d.track.id).id,
+      title: "Peak run",
+    });
+    assert.equal(wrapped.block.kind, "block");
+    assert.equal(wrapped.block.title, "Peak run");
+    assert.deepEqual(
+      wrapped.block.steps.map((step) => step.trackId),
+      [b.track.id, c.track.id, d.track.id],
+    );
+    assert.equal(wrapped.block.steps[0]!.inTransitionId, null);
+    assert.equal(wrapped.block.steps[0]!.inBlockId, null);
+    assert.equal(wrapped.block.steps[1]!.inTransitionId, bc.id);
+    assert.equal(wrapped.block.steps[1]!.note, "kill the bass");
+    assert.equal(wrapped.block.steps[2]!.isSeam, true);
+    assert.equal(wrapped.block.steps[2]!.inTransitionId, null);
+
+    assert.deepEqual(
+      wrapped.sequence.steps.map((step) => step.trackId),
+      [a.track.id, b.track.id, d.track.id],
+    );
+    assert.equal(stepByTrack(wrapped.sequence, b.track.id).inTransitionId, ab.id);
+    const host = stepByTrack(wrapped.sequence, d.track.id);
+    assert.equal(host.inBlockId, wrapped.block.id);
+    assert.equal(host.inTransitionId, null);
+    assert.equal(host.isSeam, false);
+    assert.equal(host.gapState, "linked");
+
+    const detached = await detachSequenceStep(wrapped.sequence.id, host.id);
+    assert.deepEqual(
+      detached.steps.map((step) => step.trackId),
+      [a.track.id, b.track.id, c.track.id, d.track.id],
+    );
+    assert.equal(stepByTrack(detached, b.track.id).inTransitionId, ab.id);
+    assert.equal(stepByTrack(detached, c.track.id).inTransitionId, bc.id);
+    assert.equal(stepByTrack(detached, c.track.id).note, "kill the bass");
+    assert.equal(stepByTrack(detached, d.track.id).inBlockId, null);
+    assert.equal(stepByTrack(detached, d.track.id).isSeam, true);
+  });
+
+  it("wraps from the opener and copies a nested unit by reference", async () => {
+    const a = await track("NestA");
+    const x = await track("NestX");
+    const b = await track("NestB");
+    const c = await track("NestC");
+    const ax = await createTransition({ fromTrackId: a.track.id, toTrackId: x.track.id });
+    const xb = await createTransition({ fromTrackId: x.track.id, toTrackId: b.track.id });
+    const abSkip = await createTransition({ fromTrackId: a.track.id, toTrackId: b.track.id });
+    const bc = await createTransition({ fromTrackId: b.track.id, toTrackId: c.track.id });
+
+    const inner = await createSequence({
+      kind: "block",
+      title: `Nest inner ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, x.track.id, b.track.id] },
+    });
+    await updateSequenceStep(inner.id, stepByTrack(inner, x.track.id).id, {
+      inTransitionId: ax.id,
+    });
+    await updateSequenceStep(inner.id, stepByTrack(inner, b.track.id).id, {
+      inTransitionId: xb.id,
+    });
+    const withAlt = await createSequenceAlternate(inner.id, {
+      fromStepId: stepByTrack(inner, x.track.id).id,
+      toStepId: stepByTrack(inner, b.track.id).id,
+      label: "if the room is hot",
+      altTransitionId: abSkip.id,
+    });
+    const versioned = await createSequenceVersion(inner.id, {
+      name: "hot room",
+      alternateIds: [withAlt.alternates[0]!.id],
+    });
+    const versionId = versioned.versions[0]!.id;
+
+    const parent = await createSequence({
+      kind: "set",
+      title: `Nest parent ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, b.track.id, c.track.id] },
+    });
+    await updateSequenceStep(parent.id, stepByTrack(parent, b.track.id).id, {
+      inBlockId: inner.id,
+      inBlockVersionId: versionId,
+    });
+    await updateSequenceStep(parent.id, stepByTrack(parent, c.track.id).id, {
+      inTransitionId: bc.id,
+    });
+
+    await assert.rejects(
+      () =>
+        wrapSequenceSpan(parent.id, {
+          fromStepId: stepByTrack(parent, a.track.id).id,
+          toStepId: stepByTrack(parent, b.track.id).id,
+          title: "Just the unit",
+        }),
+      (error: unknown) =>
+        isMusicWriteError(error) && /already a block/.test((error as Error).message),
+    );
+
+    const wrapped = await wrapSequenceSpan(parent.id, {
+      fromStepId: stepByTrack(parent, a.track.id).id,
+      toStepId: stepByTrack(parent, c.track.id).id,
+      title: "Whole night",
+    });
+    assert.deepEqual(
+      wrapped.sequence.steps.map((step) => step.trackId),
+      [a.track.id, c.track.id],
+    );
+    assert.equal(stepByTrack(wrapped.sequence, c.track.id).inBlockId, wrapped.block.id);
+    assert.deepEqual(
+      wrapped.block.steps.map((step) => step.trackId),
+      [a.track.id, b.track.id, c.track.id],
+    );
+    const childHost = stepByTrack(wrapped.block, b.track.id);
+    assert.equal(childHost.inBlockId, inner.id);
+    assert.equal(childHost.inBlockVersionId, versionId);
+    assert.equal(stepByTrack(wrapped.block, c.track.id).inTransitionId, bc.id);
+  });
+
+  it("rejects a one-step wrap, a split unit, and a span that overlaps an alternate", async () => {
+    const a = await track("RejA");
+    const b = await track("RejB");
+    const c = await track("RejC");
+    const ab = await createTransition({ fromTrackId: a.track.id, toTrackId: b.track.id });
+    const bc = await createTransition({ fromTrackId: b.track.id, toTrackId: c.track.id });
+    const ac = await createTransition({ fromTrackId: a.track.id, toTrackId: c.track.id });
+
+    const inner = await createSequence({
+      kind: "block",
+      title: `Rej inner ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, b.track.id] },
+    });
+    await updateSequenceStep(inner.id, stepByTrack(inner, b.track.id).id, {
+      inTransitionId: ab.id,
+    });
+
+    const parent = await createSequence({
+      kind: "block",
+      title: `Rej parent ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, b.track.id, c.track.id] },
+    });
+    await updateSequenceStep(parent.id, stepByTrack(parent, b.track.id).id, {
+      inBlockId: inner.id,
+    });
+    await updateSequenceStep(parent.id, stepByTrack(parent, c.track.id).id, {
+      inTransitionId: bc.id,
+    });
+
+    await assert.rejects(
+      () =>
+        wrapSequenceSpan(parent.id, {
+          fromStepId: stepByTrack(parent, c.track.id).id,
+          toStepId: stepByTrack(parent, c.track.id).id,
+          title: "One",
+        }),
+      (error: unknown) =>
+        isMusicWriteError(error) && /at least two tracks/.test((error as Error).message),
+    );
+    await assert.rejects(
+      () =>
+        wrapSequenceSpan(parent.id, {
+          fromStepId: stepByTrack(parent, b.track.id).id,
+          toStepId: stepByTrack(parent, c.track.id).id,
+          title: "Split",
+        }),
+      (error: unknown) =>
+        isMusicWriteError(error) && /included in full/.test((error as Error).message),
+    );
+    await assert.rejects(
+      () =>
+        wrapSequenceSpan(parent.id, {
+          fromStepId: "missing",
+          toStepId: stepByTrack(parent, c.track.id).id,
+          title: "Ghost",
+        }),
+      (error: unknown) =>
+        isMusicWriteError(error) && /contiguous span/.test((error as Error).message),
+    );
+
+    const loose = await createSequence({
+      kind: "block",
+      title: `Rej loose ${randomUUID().slice(0, 8)}`,
+      seed: { trackIds: [a.track.id, b.track.id, c.track.id] },
+    });
+    await updateSequenceStep(loose.id, stepByTrack(loose, b.track.id).id, {
+      inTransitionId: ab.id,
+    });
+    await updateSequenceStep(loose.id, stepByTrack(loose, c.track.id).id, {
+      inTransitionId: bc.id,
+    });
+    await createSequenceAlternate(loose.id, {
+      fromStepId: stepByTrack(loose, b.track.id).id,
+      toStepId: stepByTrack(loose, c.track.id).id,
+      label: "if the room is hot",
+      altTransitionId: ac.id,
+    });
+    await assert.rejects(
+      () =>
+        wrapSequenceSpan(loose.id, {
+          fromStepId: stepByTrack(loose, a.track.id).id,
+          toStepId: stepByTrack(loose, c.track.id).id,
+          title: "Covered",
+        }),
+      (error: unknown) => isMusicWriteError(error) && /alternate/.test((error as Error).message),
+    );
   });
 });
