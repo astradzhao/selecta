@@ -30,22 +30,20 @@ export function AddTrackDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-0 overflow-hidden p-0 duration-fast sm:max-w-lg">
-        <DialogHeader className="gap-1.5 border-b px-5 py-4 pe-12">
+      <DialogContent className="max-h-[min(70vh,36rem)] overflow-y-auto duration-fast sm:max-w-lg">
+        <DialogHeader className="gap-1.5 pe-8">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <div className="max-h-[min(70vh,36rem)] overflow-y-auto px-5 py-4">
-          {open ? (
-            <AddTrackFlow
-              compact
-              initialQuery={initialQuery}
-              submitLabel={submitLabel}
-              onCreated={onCreated}
-              onDismiss={() => onOpenChange(false)}
-            />
-          ) : null}
-        </div>
+        {open ? (
+          <AddTrackFlow
+            compact
+            initialQuery={initialQuery}
+            submitLabel={submitLabel}
+            onCreated={onCreated}
+            onDismiss={() => onOpenChange(false)}
+          />
+        ) : null}
       </DialogContent>
     </Dialog>
   );
