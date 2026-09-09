@@ -1,9 +1,22 @@
 import { displayVocab } from "@/lib/transitions/vocab-labels";
 
 import { mixLabel } from "./metrics";
-import type { SequenceGapState, SequenceStep, SequenceStepBlock } from "./types";
+import type {
+  SequenceGapState,
+  SequenceStep,
+  SequenceStepBlock,
+  SequenceStepTransition,
+} from "./types";
 
 export type DisplayGapState = SequenceGapState | "block" | "block-incomplete" | "block-broken";
+
+/** A mix panel belongs on a linked transition join, never a block header or empty gap. */
+export function canInspectMix(
+  state: DisplayGapState | null,
+  transition: SequenceStepTransition | null | undefined,
+): boolean {
+  return state === "linked" && transition != null;
+}
 
 export function displayGapState(
   step: Pick<SequenceStep, "gapState" | "inBlockId" | "inBlock">,

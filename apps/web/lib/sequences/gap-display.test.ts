@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { displayGapState, gapRowLabel } from "./gap-display";
+import { canInspectMix, displayGapState, gapRowLabel } from "./gap-display";
 
 const emptyBlock = {
   id: "blk-1",
@@ -67,6 +67,33 @@ describe("displayGapState", () => {
       }),
       "block-broken",
     );
+  });
+});
+
+describe("canInspectMix", () => {
+  const mix = {
+    id: "tr-1",
+    fromTrackId: "a",
+    toTrackId: "b",
+    fromBar: 16,
+    toBar: 1,
+    barsOverlap: 8,
+    technique: "cut",
+    intent: null,
+    quality: "great",
+    notes: "wait for the vocal",
+  };
+
+  it("is true only for a linked transition pin", () => {
+    assert.equal(canInspectMix("linked", mix), true);
+    assert.equal(canInspectMix("linked", null), false);
+    assert.equal(canInspectMix("available", mix), false);
+    assert.equal(canInspectMix("unmapped", mix), false);
+    assert.equal(canInspectMix("seam", mix), false);
+    assert.equal(canInspectMix("block", mix), false);
+    assert.equal(canInspectMix("block-incomplete", mix), false);
+    assert.equal(canInspectMix("block-broken", mix), false);
+    assert.equal(canInspectMix(null, mix), false);
   });
 });
 

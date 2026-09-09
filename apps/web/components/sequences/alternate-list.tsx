@@ -15,6 +15,8 @@ import {
 import type { SequenceAlternate, SequenceDetail, SequenceStep } from "@/lib/sequences/types";
 import { addTransitionHref } from "@/lib/sequences/view";
 
+import { MixInspector } from "./mix-inspector";
+
 export function AlternateList({
   items,
   steps,
@@ -102,6 +104,8 @@ function AlternateRow({
   const desc = alternateDesc(item, fromTitle, toTitle);
   const stepCount = range ? range.toIdx - range.fromIdx + 1 : 1;
   const expandable = canExpandAlternate(item);
+  const inspectable = item.valid && item.altTransition != null;
+  const [inspectOpen, setInspectOpen] = useState(false);
   const rowClass =
     visual === "broken"
       ? "text-destructive"
@@ -123,7 +127,30 @@ function AlternateRow({
           disabled={visual === "broken"}
           onCommit={onCommitLabel}
         />
-        <span className="min-w-0 truncate">
+        <span
+          className={cn("min-w-0 truncate", inspectable && "text-foreground cursor-pointer")}
+          role={inspectable ? "button" : undefined}
+          tabIndex={inspectable ? 0 : undefined}
+          aria-expanded={inspectable ? inspectOpen : undefined}
+          onClick={
+            inspectable
+              ? (event) => {
+                  stop(event);
+                  setInspectOpen((current) => !current);
+                }
+              : undefined
+          }
+          onKeyDown={
+            inspectable
+              ? (event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setInspectOpen((current) => !current);
+                  }
+                }
+              : undefined
+          }
+        >
           {visual === "broken"
             ? "this alternate no longer fits — taking this would strand you"
             : desc}
@@ -162,6 +189,9 @@ function AlternateRow({
           </Button>
         </span>
       </div>
+      {inspectable && inspectOpen && item.altTransition ? (
+        <MixInspector transition={item.altTransition} />
+      ) : null}
       {expandable && expanded ? (
         <div className="border-border bg-surface-1 flex flex-col gap-1 rounded-[10px] border border-dashed px-3 py-2">
           {item.altBlockId ? (

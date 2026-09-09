@@ -8,7 +8,12 @@ import { Badge } from "@selecta/ui/components/badge";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { spanRange } from "@/lib/sequences/alternates";
-import { displayGapState, gapChrome, gapRowLabel } from "@/lib/sequences/gap-display";
+import {
+  canInspectMix,
+  displayGapState,
+  gapChrome,
+  gapRowLabel,
+} from "@/lib/sequences/gap-display";
 import { bpmDelta } from "@/lib/sequences/metrics";
 import type {
   SequenceAlternate,
@@ -20,9 +25,10 @@ import type {
 import { addTransitionHref } from "@/lib/sequences/view";
 import type { ApiTransition } from "@/lib/transitions/types";
 
+import { AlternateList } from "./alternate-list";
 import { BlockConnectorRow } from "./block-connector-row";
 import { ConnectorPicker } from "./connector-picker";
-import { AlternateList } from "./alternate-list";
+import { MixInspector } from "./mix-inspector";
 
 export function SequenceGap({
   step,
@@ -126,6 +132,10 @@ export function SequenceGap({
   const pickerToTrackId = span?.destination.trackId ?? step.trackId;
   const pickerFromTitle = span?.predecessor.track?.title ?? fromTitle;
   const pickerToTitle = span?.destination.track?.title ?? toTitle;
+  const inspectOpen =
+    canInspectMix(state, step.inTransition) &&
+    selection.kind === "gap" &&
+    selection.stepId === step.id;
 
   return (
     <div
@@ -172,6 +182,7 @@ export function SequenceGap({
           state={state}
           chrome={chrome}
           selected={selected}
+          inspectOpen={inspectOpen}
           pickerOpen={pickerOpen}
           dropArmed={dropArmed}
           dropOver={dropOver}
@@ -218,6 +229,7 @@ function TransitionGapRow({
   state,
   chrome,
   selected,
+  inspectOpen,
   pickerOpen,
   dropArmed,
   dropOver,
@@ -234,6 +246,7 @@ function TransitionGapRow({
   state: NonNullable<ReturnType<typeof displayGapState>>;
   chrome: ReturnType<typeof gapChrome>;
   selected: boolean;
+  inspectOpen: boolean;
   pickerOpen: boolean;
   dropArmed: boolean;
   dropOver: boolean;
@@ -251,107 +264,111 @@ function TransitionGapRow({
   const delta = bpmDelta(previous.track?.bpm, step.track?.bpm);
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onSelect}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onSelect();
-        }
-      }}
-      className={cn(
-        "flex items-center gap-2 rounded-[10px] border px-2.5 py-1.5",
-        chrome.rowClass,
-        dropOver
-          ? "border-selected bg-brand-subtle"
-          : dropArmed
-            ? "border-ring"
-            : selected
+    <div className="flex flex-col gap-1.5">
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={inspectOpen || undefined}
+        onClick={onSelect}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onSelect();
+          }
+        }}
+        className={cn(
+          "flex items-center gap-2 rounded-[10px] border px-2.5 py-1.5",
+          chrome.rowClass,
+          dropOver
+            ? "border-selected bg-brand-subtle"
+            : dropArmed
               ? "border-ring"
-              : null,
-      )}
-    >
-      <span className={cn("min-w-0 truncate text-sm font-medium", chrome.inkClass)}>
-        {chrome.icon} {label}
-      </span>
-      {state === "linked" && delta ? (
-        <span className="bg-surface-2 text-crate-meta shrink-0 rounded-full px-1.5 py-px">
-          {delta} BPM
+              : selected
+                ? "border-ring"
+                : null,
+        )}
+      >
+        <span className={cn("min-w-0 truncate text-sm font-medium", chrome.inkClass)}>
+          {chrome.icon} {label}
         </span>
-      ) : null}
-      {alternateChip ? <Badge variant="brand">{alternateChip}</Badge> : null}
-      <span className="ml-auto flex shrink-0 items-center gap-0.5">
-        {pathLocked ? null : state === "available" || state === "linked" ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            className="text-brand"
-            onClick={(event) => {
-              event.stopPropagation();
-              onTogglePicker();
-            }}
-          >
-            {pickerOpen ? "Close" : state === "linked" ? "Swap" : "Pick"}
-          </Button>
+        {state === "linked" && delta ? (
+          <span className="bg-surface-2 text-crate-meta shrink-0 rounded-full px-1.5 py-px">
+            {delta} BPM
+          </span>
         ) : null}
-        {pathLocked ? null : (
-          <>
-            {state === "unmapped" ? (
-              <Button asChild variant="link" size="xs">
-                <Link
-                  href={addTransitionHref(previous.trackId, step.trackId)}
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  Add transition
-                </Link>
-              </Button>
-            ) : null}
-            {state === "linked" ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="xs"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onUnlink();
-                }}
-              >
-                Unlink
-              </Button>
-            ) : null}
+        {alternateChip ? <Badge variant="brand">{alternateChip}</Badge> : null}
+        <span className="ml-auto flex shrink-0 items-center gap-0.5">
+          {pathLocked ? null : state === "available" || state === "linked" ? (
             <Button
               type="button"
               variant="ghost"
               size="xs"
-              title={state === "seam" ? "Unmark seam" : "Mark as a seam"}
-              className={state === "seam" ? "text-brand" : undefined}
+              className="text-brand"
               onClick={(event) => {
                 event.stopPropagation();
-                onToggleSeam();
+                onTogglePicker();
               }}
             >
-              〜
+              {pickerOpen ? "Close" : state === "linked" ? "Swap" : "Pick"}
             </Button>
-            {onAddAlternate ? (
+          ) : null}
+          {pathLocked ? null : (
+            <>
+              {state === "unmapped" ? (
+                <Button asChild variant="link" size="xs">
+                  <Link
+                    href={addTransitionHref(previous.trackId, step.trackId)}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    Add transition
+                  </Link>
+                </Button>
+              ) : null}
+              {state === "linked" ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onUnlink();
+                  }}
+                >
+                  Unlink
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="ghost"
                 size="xs"
-                title="Add alternate"
+                title={state === "seam" ? "Unmark seam" : "Mark as a seam"}
+                className={state === "seam" ? "text-brand" : undefined}
                 onClick={(event) => {
                   event.stopPropagation();
-                  onAddAlternate();
+                  onToggleSeam();
                 }}
               >
-                + alt
+                〜
               </Button>
-            ) : null}
-          </>
-        )}
-      </span>
+              {onAddAlternate ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  title="Add alternate"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onAddAlternate();
+                  }}
+                >
+                  + alt
+                </Button>
+              ) : null}
+            </>
+          )}
+        </span>
+      </div>
+      {inspectOpen && step.inTransition ? <MixInspector transition={step.inTransition} /> : null}
     </div>
   );
 }

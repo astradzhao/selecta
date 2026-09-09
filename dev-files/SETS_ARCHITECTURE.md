@@ -306,6 +306,11 @@ Running-order behaviors:
 - **Step note** — a per-step reminder ("kill the bass early"), toggled by `✎` and auto-open when
   non-empty. Distinct from `transitions.notes`, which is global truth shared by every sequence.
   Performance reminders must not pollute the graph.
+- **Linked-mix inspector** — selecting a linked transition gap still filters the palette for Swap;
+  it also reveals the embed already on the step (cut-out / overlap / come-in, technique, intent,
+  quality, `transitions.notes`) under the row. **Open in library** is the path to the shared
+  record. Do not edit the edge from the workspace. Plan:
+  [`sets-feature/DJ153_TRANSITION_INFO_ON_SETS_PLAN.md`](./sets-feature/DJ153_TRANSITION_INFO_ON_SETS_PLAN.md).
 - **Runtime** from `tracks.duration_sec`, minus overlap where known. Approximate; label it so.
 - **Every mutation confirms in a toast**, and the toast says what happened to the _library_ when
   that is the anxious question: "Unlinked — the transition stays in your library", "Block removed —
@@ -812,6 +817,7 @@ revisited; the richer surfaces arrive later.
 | **SET-9**  | [DJ-119](https://linear.app/dj-project-astradzhao/issue/DJ-119) | Graph Set mode: session-store cursor, rail, on-script next, alternates, seam handoff, off-script prompt.                                                                                                                                                                                                                                                   | SET-5, SET-6 |
 | **SET-10** | [DJ-120](https://linear.app/dj-project-astradzhao/issue/DJ-120) | Follow mode: expansion, alternate chips, keyboard stepping, jump-to-step.                                                                                                                                                                                                                                                                                  | SET-9        |
 | **—**      | [DJ-148](https://linear.app/dj-project-astradzhao/issue/DJ-148) | Make a selected span of a set into a nested block (inverse of Detach). Plan: [`sets-feature/DJ148_MAKE_BLOCK_FROM_SPAN_PLAN.md`](./sets-feature/DJ148_MAKE_BLOCK_FROM_SPAN_PLAN.md).                                                                                                                                                                       | SET-5        |
+| **—**      | [DJ-153](https://linear.app/dj-project-astradzhao/issue/DJ-153) | Click a linked mix on a set/block and read the embed (bars, intent, notes) without leaving the workspace. Plan: [`sets-feature/DJ153_TRANSITION_INFO_ON_SETS_PLAN.md`](./sets-feature/DJ153_TRANSITION_INFO_ON_SETS_PLAN.md).                                                                                                                              | SET-4        |
 
 If only part ships, make it SET-3 plus SET-1/2/4. That alone lets a user hand-author a full
 running order with seams; blocks, alternates, and versions layer on without migration.
