@@ -8,6 +8,7 @@ import { cn } from "@selecta/ui/lib/utils";
 import type { FitPayload } from "@/lib/sequences/drag";
 import { dropFit, spanFitFromSelection } from "@/lib/sequences/drag";
 import { alternatesForGap, coveredStepIds, spanRange } from "@/lib/sequences/alternates";
+import { coveredStepIdsInRange, stepSpan } from "@/lib/sequences/span";
 import { unitDisplayIndex, unitRange } from "@/lib/sequences/reorder";
 import type {
   SequenceAlternate,
@@ -72,6 +73,9 @@ export function SequenceRunningOrder({
   alternateChips,
   pathLocked,
   onPickBlockVersion,
+  canWrap,
+  onMakeBlock,
+  onClearSpan,
 }: {
   sequenceId: string;
   kindNounEmpty: string;
@@ -118,15 +122,25 @@ export function SequenceRunningOrder({
   alternateChips?: Record<string, string>;
   pathLocked?: boolean;
   onPickBlockVersion?: (stepId: string, versionId: string | null) => void;
+  canWrap?: boolean;
+  onMakeBlock?: () => void;
+  onClearSpan?: () => void;
 }) {
   const endTarget: DropTarget = { kind: "end", index: steps.length };
   const dragIndex = draggingStepId ? steps.findIndex((step) => step.id === draggingStepId) : -1;
   const [dragStart, dragEnd] =
     dragIndex >= 0 ? unitRange(steps, dragIndex) : ([-1, -1] as [number, number]);
-  const spanFit = spanFitFromSelection(selection, steps);
+  const wrapSelected = Boolean(canWrap && selection.kind === "span");
+  const wrapRange =
+    wrapSelected && selection.kind === "span"
+      ? stepSpan(steps, selection.fromStepId, selection.toStepId)
+      : null;
+  const spanFit = wrapSelected ? null : spanFitFromSelection(selection, steps);
   const spanCovered =
     selection.kind === "span"
-      ? coveredStepIds(steps, selection.fromStepId, selection.toStepId)
+      ? wrapSelected
+        ? coveredStepIdsInRange(steps, selection.fromStepId, selection.toStepId)
+        : coveredStepIds(steps, selection.fromStepId, selection.toStepId)
       : new Set<string>();
   for (const item of alternates) {
     if (!expandedAlternateIds[item.id]) continue;
@@ -208,7 +222,8 @@ export function SequenceRunningOrder({
     const gapTarget: DropTarget = { kind: "gap", index };
     const gapArmed = Boolean(dragPayload && dropFit(dragPayload, gapTarget, steps, null, spanFit));
     const blockId = step.inBlockId;
-    const spanSelectedHere = selection.kind === "span" && selection.fromStepId === step.id;
+    const spanSelectedHere =
+      !wrapSelected && selection.kind === "span" && selection.fromStepId === step.id;
     const showGhost = spanSelectedHere && spanCandidateTotal === 0;
     return (
       <SequenceGap
@@ -278,6 +293,38 @@ export function SequenceRunningOrder({
 
   return (
     <div className="flex min-w-0 flex-col">
+      {wrapSelected && wrapRange ? (
+        <div className="bg-brand-subtle mb-3 flex flex-wrap items-center gap-2 rounded-xl px-3.5 py-2">
+          <span className="text-brand min-w-0 text-sm font-medium">
+            {wrapRange.toIdx - wrapRange.fromIdx + 1}{" "}
+            {wrapRange.toIdx - wrapRange.fromIdx + 1 === 1 ? "track" : "tracks"} selected ·{" "}
+            {steps[wrapRange.fromIdx]?.track?.title ?? "Track"} →{" "}
+            {steps[wrapRange.toIdx]?.track?.title ?? "Track"}
+          </span>
+          <Button
+            type="button"
+            variant="default"
+            size="sm"
+            className="ml-auto"
+            onClick={onMakeBlock}
+          >
+            Make block
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            className="text-brand"
+            onClick={onClearSpan}
+          >
+            clear
+          </Button>
+        </div>
+      ) : canWrap && steps.length >= 2 ? (
+        <p className="text-caption text-muted-foreground mb-2">
+          Shift-click a range to make a block.
+        </p>
+      ) : null}
       {steps.map((step, index) => {
         const [unitStart, unitEnd] = unitRange(steps, index);
         if (unitStart < index) return null;

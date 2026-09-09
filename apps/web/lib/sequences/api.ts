@@ -154,6 +154,16 @@ export async function detachSequenceStep(
   });
 }
 
+export async function wrapSequenceSpan(
+  id: string,
+  body: { fromStepId: string; toStepId: string; title: string; description?: string | null },
+): Promise<{ ok: true; sequence: SequenceDetail; block: SequenceDetail }> {
+  return apiFetch(`/blocks/${encodeURIComponent(id)}/wrap`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
 export async function createSequenceAlternate(
   id: string,
   body: {

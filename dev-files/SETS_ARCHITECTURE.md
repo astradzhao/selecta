@@ -289,7 +289,10 @@ Running-order behaviors:
 - **Block connectors render collapsed** — one row showing the name, track count, and endpoints.
   **Expand** shows the inner steps read-only. **Edit block** opens the block's own workspace and
   warns that edits apply everywhere it is used. **Detach** inlines its interior steps as loose,
-  editable steps, for when this night's version should differ.
+  editable steps, for when this night's version should differ. **Make block** (on a set) is the
+  inverse: shift-click a contiguous run and it becomes a nested block. `/blocks/:id` keeps
+  shift-click for alternates. Plan:
+  [`sets-feature/DJ148_MAKE_BLOCK_FROM_SPAN_PLAN.md`](./sets-feature/DJ148_MAKE_BLOCK_FROM_SPAN_PLAN.md).
 - **Mark a join as a seam** from the gap row. Seams are the point of the feature for nights built
   from blocks (§4.3).
 - **Add alternate** from a gap or a selected span, **on a block only**: pick a connector, write
@@ -665,6 +668,7 @@ concurrency as in the proposal review routes).
 | `DELETE`         | `/blocks/:id/steps/:stepId`       | Clears alternates whose span it bounded.                                                                                                                                              |
 | `POST`           | `/blocks/:id/reorder`             | `{ stepIds, expectedUpdatedAt }` — **full ordering**, one transaction. Idempotent and immune to the index-drift bugs of `{ stepId, toIndex }`. Rejects a mismatched id set.           |
 | `POST`           | `/blocks/:id/detach/:stepId`      | Inline a block connector's steps as editable rows.                                                                                                                                    |
+| `POST`           | `/blocks/:id/wrap`                | `{ fromStepId, toStepId, title }` — collapse a contiguous span into a new nested block (inverse of detach).                                                                           |
 | `POST`           | `/blocks/:id/alternates`          | `{ fromStepId, toStepId, label?, altTransitionId? \| altBlockId? }`                                                                                                                   |
 | `PATCH`/`DELETE` | `/blocks/:id/alternates/:altId`   |                                                                                                                                                                                       |
 | `POST`           | `/blocks/:id/versions`            | `{ name, alternateIds }`. Rejects overlapping spans with 422.                                                                                                                         |
@@ -807,6 +811,7 @@ revisited; the richer surfaces arrive later.
 | **SET-8**  | [DJ-118](https://linear.app/dj-project-astradzhao/issue/DJ-118) | `/add` sequence context and `AddToSequenceMenu` across track and transition surfaces.                                                                                                                                                                                                                                                                      | SET-3, SET-4 |
 | **SET-9**  | [DJ-119](https://linear.app/dj-project-astradzhao/issue/DJ-119) | Graph Set mode: session-store cursor, rail, on-script next, alternates, seam handoff, off-script prompt.                                                                                                                                                                                                                                                   | SET-5, SET-6 |
 | **SET-10** | [DJ-120](https://linear.app/dj-project-astradzhao/issue/DJ-120) | Follow mode: expansion, alternate chips, keyboard stepping, jump-to-step.                                                                                                                                                                                                                                                                                  | SET-9        |
+| **—**      | [DJ-148](https://linear.app/dj-project-astradzhao/issue/DJ-148) | Make a selected span of a set into a nested block (inverse of Detach). Plan: [`sets-feature/DJ148_MAKE_BLOCK_FROM_SPAN_PLAN.md`](./sets-feature/DJ148_MAKE_BLOCK_FROM_SPAN_PLAN.md).                                                                                                                                                                       | SET-5        |
 
 If only part ships, make it SET-3 plus SET-1/2/4. That alone lets a user hand-author a full
 running order with seams; blocks, alternates, and versions layer on without migration.

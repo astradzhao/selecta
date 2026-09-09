@@ -33,6 +33,7 @@ import {
   updateSequenceAlternate,
   updateSequenceStep,
   updateSequenceVersion,
+  wrapSequenceSpan,
 } from "@/lib/sequences/api";
 import {
   alternateCoverage,
@@ -67,6 +68,13 @@ import {
   sequenceTrackCount,
 } from "@/lib/sequences/metrics";
 import { moveUnit, reorderTo, unitRange } from "@/lib/sequences/reorder";
+import {
+  canWrapSpan,
+  isExactLiveUnit,
+  orderStepSpan,
+  snapSpanToUnits,
+  stepSpan,
+} from "@/lib/sequences/span";
 import type {
   AlternateDraft,
   DropTarget,
@@ -85,6 +93,7 @@ import { displayVocab } from "@/lib/transitions/vocab-labels";
 import type { ApiTrack } from "@/lib/tracks/api";
 
 import { AlternateLabelDialog } from "./alternate-label-dialog";
+import { MakeBlockDialog } from "./make-block-dialog";
 import { LibraryPalette, type PaletteTab } from "./library-palette";
 import { SequenceRunningOrder } from "./sequence-running-order";
 import { VersionDialog, type VersionDraft } from "./version-dialog";
@@ -164,6 +173,9 @@ export function SequenceWorkspace({
     id: string;
     name: string;
   } | null>(null);
+  const [wrapOpen, setWrapOpen] = useState(false);
+  const [wrapPending, setWrapPending] = useState(false);
+  const [wrapError, setWrapError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -279,6 +291,11 @@ export function SequenceWorkspace({
     setSelection((current) => {
       if (current.kind === "none") return current;
       if (current.kind === "span") {
+        if (canWrapSpan(next.kind)) {
+          return stepSpan(next.steps, current.fromStepId, current.toStepId)
+            ? current
+            : { kind: "none" };
+        }
         if (!canAuthorAlternates(next.kind)) return { kind: "none" };
         return spanRange(next.steps, current.fromStepId, current.toStepId)
           ? current
@@ -452,6 +469,10 @@ export function SequenceWorkspace({
     if (!detail || !requireBasePath()) return;
     const technique = displayVocab(transition.technique) ?? "mix";
     if (selection.kind === "span") {
+      if (canWrapSpan(detail.kind)) {
+        toast("Make a block from the selected tracks, or clear the selection");
+        return;
+      }
       const reason = paletteTransitionReason(
         {
           kind: "transition",
@@ -580,6 +601,10 @@ export function SequenceWorkspace({
   async function handleAddBlock(block: SequenceRecord) {
     if (!detail || !requireBasePath()) return;
     if (selection.kind === "span") {
+      if (canWrapSpan(detail.kind)) {
+        toast("Make a block from the selected tracks, or clear the selection");
+        return;
+      }
       const reason = paletteBlockReason(blockFitPayload(block), selection, detail.steps);
       if (reason) {
         toast(reason);
@@ -610,6 +635,7 @@ export function SequenceWorkspace({
   async function handlePaletteDrop(target: DropTarget) {
     if (!detail || !dragPayload || !requireBasePath()) return;
     if (selection.kind === "span") {
+      if (canWrapSpan(detail.kind)) return;
       if (dragPayload.kind === "track") return;
       const span = spanFitFromSelection(selection, detail.steps);
       if (!span) return;
@@ -853,6 +879,52 @@ export function SequenceWorkspace({
 
   function handleSelectStep(stepId: string, shiftKey = false) {
     if (!detail) return;
+    if (shiftKey && canWrapSpan(detail.kind)) {
+      if (!requireBasePath()) return;
+      const anchorId =
+        selection.kind === "span"
+          ? selection.fromStepId
+          : selection.kind === "gap" || selection.kind === "step"
+            ? selection.stepId
+            : null;
+      if (!anchorId) {
+        setSelection({ kind: "step", stepId });
+        return;
+      }
+      const ordered = orderStepSpan(detail.steps, anchorId, stepId);
+      if (!ordered) {
+        setSelection({ kind: "step", stepId });
+        return;
+      }
+      const range = stepSpan(detail.steps, ordered.fromStepId, ordered.toStepId);
+      if (!range) return;
+      const snapped = snapSpanToUnits(detail.steps, range.fromIdx, range.toIdx);
+      if (isExactLiveUnit(detail.steps, snapped.fromIdx, snapped.toIdx)) {
+        toast("That's already a block.");
+        return;
+      }
+      if (snapped.toIdx - snapped.fromIdx + 1 < 2) {
+        toast("Select at least two tracks.");
+        return;
+      }
+      const from = detail.steps[snapped.fromIdx];
+      const to = detail.steps[snapped.toIdx];
+      if (!from || !to) return;
+      if (
+        selection.kind === "span" &&
+        selection.fromStepId === from.id &&
+        selection.toStepId === to.id
+      ) {
+        setSelection({ kind: "none" });
+        setPickerStepId(null);
+        setPickerIntent("link");
+        return;
+      }
+      setSelection({ kind: "span", fromStepId: from.id, toStepId: to.id });
+      setPickerStepId(null);
+      setPickerIntent("link");
+      return;
+    }
     if (shiftKey && canAuthorAlternates(detail.kind) && activeVersionId == null) {
       const anchorId =
         selection.kind === "span"
@@ -879,6 +951,30 @@ export function SequenceWorkspace({
     setSelection(selected ? { kind: "none" } : { kind: "step", stepId });
     setPickerStepId(null);
     setPickerIntent("link");
+  }
+
+  async function confirmWrap(title: string) {
+    if (!detail || selection.kind !== "span" || !canWrapSpan(detail.kind)) return;
+    if (!requireBasePath()) return;
+    setWrapPending(true);
+    setWrapError(null);
+    try {
+      const result = await wrapSequenceSpan(detail.id, {
+        fromStepId: selection.fromStepId,
+        toStepId: selection.toStepId,
+        title,
+      });
+      applyDetail(result.sequence);
+      setChildById((current) => ({ ...current, [result.block.id]: result.block }));
+      toast(`Made “${title}” — it stays in your library`);
+      setWrapOpen(false);
+      setSelection({ kind: "none" });
+      setConflict(null);
+    } catch (err) {
+      setWrapError(describeApiError(err, { resource: "block" }));
+    } finally {
+      setWrapPending(false);
+    }
   }
 
   async function confirmAlternate(label: string) {
@@ -982,6 +1078,10 @@ export function SequenceWorkspace({
 
   const isBlockKind = detail.kind === "block";
   const pathLocked = activeVersionId != null;
+  const wrapRange =
+    canWrapSpan(detail.kind) && selection.kind === "span"
+      ? stepSpan(detail.steps, selection.fromStepId, selection.toStepId)
+      : null;
   const authorAlternates = canAuthorAlternates(detail.kind) && !pathLocked;
   const chosenIds = chosenIdsForVersion(detail.versions, activeVersionId);
   const resolved = resolveVersionPath(detail.steps, detail.alternates, chosenIds);
@@ -1290,6 +1390,16 @@ export function SequenceWorkspace({
               versionId ? "Block version pinned" : "Base path for this block",
             );
           }}
+          canWrap={canWrapSpan(detail.kind) && !pathLocked}
+          onMakeBlock={() => {
+            setWrapError(null);
+            setWrapOpen(true);
+          }}
+          onClearSpan={() => {
+            setSelection({ kind: "none" });
+            setPickerStepId(null);
+            setPickerIntent("link");
+          }}
         />
         <LibraryPalette
           sequenceId={detail.id}
@@ -1407,6 +1517,21 @@ export function SequenceWorkspace({
           if (!pendingEdit) return;
           router.push(sequenceWorkspaceHref("block", pendingEdit.blockId));
         }}
+      />
+      <MakeBlockDialog
+        open={wrapOpen}
+        pending={wrapPending}
+        error={wrapError}
+        fromTitle={wrapRange ? (detail.steps[wrapRange.fromIdx]?.track?.title ?? "Track") : "Track"}
+        toTitle={wrapRange ? (detail.steps[wrapRange.toIdx]?.track?.title ?? "Track") : "Track"}
+        trackCount={wrapRange ? wrapRange.toIdx - wrapRange.fromIdx + 1 : 0}
+        onOpenChange={(open) => {
+          if (!open && !wrapPending) {
+            setWrapOpen(false);
+            setWrapError(null);
+          }
+        }}
+        onConfirm={(title) => void confirmWrap(title)}
       />
       <AlternateLabelDialog
         draft={alternateDraft}

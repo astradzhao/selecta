@@ -5,15 +5,16 @@ Canonical architecture for Blocks / Sets lives at
 tickets all point there). This folder holds the design mockup and the per-ticket implementation
 plans for that epic.
 
-| Doc                                                                  | Ticket                                                          | Status                                                                                 |
-| -------------------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| [`../SETS_ARCHITECTURE.md`](../SETS_ARCHITECTURE.md)                 | [DJ-110](https://linear.app/dj-project-astradzhao/issue/DJ-110) | Source of truth for the model, schema, API, and slice order                            |
-| [`Sets feature mockup/`](./Sets%20feature%20mockup/)                 | [DJ-110](https://linear.app/dj-project-astradzhao/issue/DJ-110) | **Source of truth for chrome and interaction.** Interactive prototype of the end state |
-| [`DJ114_SETS_WORKSPACE_PLAN.md`](./DJ114_SETS_WORKSPACE_PLAN.md)     | [DJ-114](https://linear.app/dj-project-astradzhao/issue/DJ-114) | SET-4 task plan — Sets tab + two-pane workspace, built to the mockup                   |
-| [`DJ115_BLOCK_CONNECTORS_PLAN.md`](./DJ115_BLOCK_CONNECTORS_PLAN.md) | [DJ-115](https://linear.app/dj-project-astradzhao/issue/DJ-115) | SET-5 task plan — block connectors, detach, save-trail-as-block                        |
-| [`DJ116_ALTERNATES_PLAN.md`](./DJ116_ALTERNATES_PLAN.md)             | [DJ-116](https://linear.app/dj-project-astradzhao/issue/DJ-116) | SET-6 task plan — alternates as substitutable spans                                    |
-| [`DJ117_VERSIONS_PLAN.md`](./DJ117_VERSIONS_PLAN.md)                 | [DJ-117](https://linear.app/dj-project-astradzhao/issue/DJ-117) | SET-7 task plan — named versions and nested version pins                               |
-| [`DJ119_GRAPH_SET_MODE_PLAN.md`](./DJ119_GRAPH_SET_MODE_PLAN.md)     | [DJ-119](https://linear.app/dj-project-astradzhao/issue/DJ-119) | SET-9 — Graph Set mode overlay, seams, off-script edits (**implemented**)              |
+| Doc                                                                          | Ticket                                                          | Status                                                                                                          |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| [`../SETS_ARCHITECTURE.md`](../SETS_ARCHITECTURE.md)                         | [DJ-110](https://linear.app/dj-project-astradzhao/issue/DJ-110) | Source of truth for the model, schema, API, and slice order                                                     |
+| [`Sets feature mockup/`](./Sets%20feature%20mockup/)                         | [DJ-110](https://linear.app/dj-project-astradzhao/issue/DJ-110) | **Source of truth for chrome and interaction.** Interactive prototype of the end state                          |
+| [`DJ114_SETS_WORKSPACE_PLAN.md`](./DJ114_SETS_WORKSPACE_PLAN.md)             | [DJ-114](https://linear.app/dj-project-astradzhao/issue/DJ-114) | SET-4 task plan — Sets tab + two-pane workspace, built to the mockup                                            |
+| [`DJ115_BLOCK_CONNECTORS_PLAN.md`](./DJ115_BLOCK_CONNECTORS_PLAN.md)         | [DJ-115](https://linear.app/dj-project-astradzhao/issue/DJ-115) | SET-5 task plan — block connectors, detach, save-trail-as-block                                                 |
+| [`DJ116_ALTERNATES_PLAN.md`](./DJ116_ALTERNATES_PLAN.md)                     | [DJ-116](https://linear.app/dj-project-astradzhao/issue/DJ-116) | SET-6 task plan — alternates as substitutable spans                                                             |
+| [`DJ117_VERSIONS_PLAN.md`](./DJ117_VERSIONS_PLAN.md)                         | [DJ-117](https://linear.app/dj-project-astradzhao/issue/DJ-117) | SET-7 task plan — named versions and nested version pins                                                        |
+| [`DJ119_GRAPH_SET_MODE_PLAN.md`](./DJ119_GRAPH_SET_MODE_PLAN.md)             | [DJ-119](https://linear.app/dj-project-astradzhao/issue/DJ-119) | SET-9 — Graph Set mode overlay, seams, off-script edits (**implemented**)                                       |
+| [`DJ148_MAKE_BLOCK_FROM_SPAN_PLAN.md`](./DJ148_MAKE_BLOCK_FROM_SPAN_PLAN.md) | [DJ-148](https://linear.app/dj-project-astradzhao/issue/DJ-148) | Follow-up — select a span on a set and make it a nested block (inverse of Detach). **Implemented** on `dj-148`. |
 
 ## The mockup
 
@@ -48,3 +49,6 @@ until SET-4 has been used on a real gig; SET-5–7 shipped anyway. SET-9
 
 Linear still shows DJ-115 / DJ-116 as Backlog blockers of DJ-119 — that is stale; git is the
 authority. SET-8 (add-context deep links) is independent. SET-10 (Follow) waits on SET-9.
+[DJ-148](https://linear.app/dj-project-astradzhao/issue/DJ-148) (make a selected span of a set
+into a block) is a Sets follow-up, not a SET-\* slice; plan is
+[`DJ148_MAKE_BLOCK_FROM_SPAN_PLAN.md`](./DJ148_MAKE_BLOCK_FROM_SPAN_PLAN.md).

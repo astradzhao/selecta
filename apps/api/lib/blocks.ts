@@ -16,6 +16,7 @@ import {
   type UpdateSequenceInput,
   type UpdateSequenceStepInput,
   type UpdateSequenceVersionInput,
+  type WrapSequenceSpanInput,
 } from "@selecta/library";
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
@@ -361,4 +362,25 @@ export function parseUpdateVersionBody(value: unknown): UpdateSequenceVersionInp
     throw new Error("Provide at least one of name or alternateIds.");
   }
   return input;
+}
+
+export function parseWrapSpanBody(value: unknown): WrapSequenceSpanInput {
+  if (!isRecord(value)) {
+    throw new Error("JSON body must be an object.");
+  }
+  if (typeof value.fromStepId !== "string" || !value.fromStepId.trim()) {
+    throw new Error("fromStepId is required.");
+  }
+  if (typeof value.toStepId !== "string" || !value.toStepId.trim()) {
+    throw new Error("toStepId is required.");
+  }
+  if (typeof value.title !== "string" || !value.title.trim()) {
+    throw new Error("title is required.");
+  }
+  return {
+    fromStepId: value.fromStepId,
+    toStepId: value.toStepId,
+    title: value.title,
+    description: asOptionalString(value.description, "description"),
+  };
 }

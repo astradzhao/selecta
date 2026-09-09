@@ -191,4 +191,21 @@ describe("paletteTransitionReason", () => {
     assert.equal(paletteTransitionReason(ac, span, steps), null);
     assert.equal(paletteTransitionReason(abMix, span, steps), "Does not fit the selected span");
   });
+
+  it("disables connector adds while wrapping a set span", () => {
+    const span = { kind: "span" as const, fromStepId: "s1", toStepId: "s3" };
+    const ac: FitPayload = {
+      kind: "transition",
+      id: "ac",
+      fromTrackId: "a",
+      toTrackId: "c",
+      fromTitle: "A",
+      toTitle: "C",
+      technique: "cut",
+    };
+    assert.equal(
+      paletteTransitionReason(ac, span, steps, [], true),
+      "Make a block from the selected tracks, or clear the selection",
+    );
+  });
 });

@@ -1,5 +1,6 @@
 import { spanRange } from "./alternates";
 import { isLiveBlockHost } from "./reorder";
+import { WRAP_SPAN_DISABLED_REASON } from "./span";
 import type { DragPayload, DropTarget, SequenceRecord, WorkspaceSelection } from "./types";
 
 export type FitTransition = {
@@ -154,10 +155,15 @@ export function paletteTransitionQuery(
   selection: WorkspaceSelection,
   steps: readonly { id: string; trackId: string }[],
   nestedSteps: readonly { id: string; trackId: string }[] = [],
+  wrapSpan = false,
 ): { fromTrackId?: string; toTrackId?: string } {
   const nested = nestedSelectedStep(selection, steps, nestedSteps);
   if (nested) return { fromTrackId: nested.trackId };
   if (selection.kind === "span") {
+    if (wrapSpan) {
+      const last = steps[steps.length - 1];
+      return last ? { fromTrackId: last.trackId } : {};
+    }
     const range = spanRange(steps, selection.fromStepId, selection.toStepId);
     if (range) {
       return { fromTrackId: range.predecessor.trackId, toTrackId: range.destination.trackId };
@@ -186,7 +192,11 @@ export function paletteTransitionReason(
   selection: WorkspaceSelection,
   steps: readonly { id: string; trackId: string }[],
   nestedSteps: readonly { id: string; trackId: string }[] = [],
+  wrapSpan = false,
 ): string | null {
+  if (wrapSpan && selection.kind === "span") {
+    return WRAP_SPAN_DISABLED_REASON;
+  }
   if (selection.kind === "span") {
     const range = spanRange(steps, selection.fromStepId, selection.toStepId);
     if (
@@ -216,9 +226,13 @@ export function paletteBlockReason(
   payload: Extract<FitPayload, { kind: "block" }>,
   selection: WorkspaceSelection,
   steps: readonly { id: string; trackId: string }[],
+  wrapSpan = false,
 ): string | null {
   if (!payload.isComplete || !payload.startTrackId || !payload.endTrackId) {
     return "Incomplete blocks cannot be used as connectors";
+  }
+  if (wrapSpan && selection.kind === "span") {
+    return WRAP_SPAN_DISABLED_REASON;
   }
   if (selection.kind === "span") {
     const range = spanRange(steps, selection.fromStepId, selection.toStepId);

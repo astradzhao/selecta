@@ -201,6 +201,18 @@ export type UpdateSequenceStepInput = {
   note?: string | null;
 };
 
+export type WrapSequenceSpanInput = {
+  fromStepId: string;
+  toStepId: string;
+  title: string;
+  description?: string | null;
+};
+
+export type WrapSequenceSpanResult = {
+  sequence: SequenceDetail;
+  block: SequenceDetail;
+};
+
 export type CreateSequenceAlternateInput = {
   fromStepId: string;
   toStepId: string;
@@ -615,6 +627,29 @@ function spanRange(
     return null;
   }
   return { fromIdx, toIdx };
+}
+
+async function isLiveBlockHostRow(steps: BlockStepRow[], index: number): Promise<boolean> {
+  const step = steps[index];
+  if (!step || index <= 0 || !step.inBlockId || step.isSeam) {
+    return false;
+  }
+  const previous = steps[index - 1];
+  if (!previous) {
+    return false;
+  }
+  const validity = await validateConnector(previous.trackId, step.trackId, step);
+  return validity.valid && validity.kind === "block";
+}
+
+async function spineUnitRange(steps: BlockStepRow[], index: number): Promise<[number, number]> {
+  if (await isLiveBlockHostRow(steps, index)) {
+    return [index - 1, index];
+  }
+  if (await isLiveBlockHostRow(steps, index + 1)) {
+    return [index, index + 1];
+  }
+  return [index, index];
 }
 
 export function alternateSpansOverlap(
@@ -1132,10 +1167,15 @@ async function insertStepRow(
     position: number;
     inTransitionId: string | null;
     inBlockId: string | null;
+    inBlockVersionId?: string | null;
     isSeam: boolean;
     note: string | null;
   },
 ): Promise<BlockStepRow> {
+  const inBlockVersionId = input.inBlockId ? (input.inBlockVersionId ?? null) : null;
+  if (inBlockVersionId) {
+    await assertBlockVersionPin(input.inBlockId, inBlockVersionId);
+  }
   const id = randomUUID();
   const [row] = await getExecutor()
     .insert(blockSteps)
@@ -1146,6 +1186,7 @@ async function insertStepRow(
       trackId: input.trackId,
       inTransitionId: input.inTransitionId,
       inBlockId: input.inBlockId,
+      inBlockVersionId,
       isSeam: input.isSeam,
       note: input.note,
     })
@@ -1877,6 +1918,120 @@ export async function detachSequenceStep(
     await rewritePositions(sequenceId, orderedIds);
     await recomputeSequenceDerived(sequenceId);
     return reloadDetail(sequenceId);
+  });
+}
+
+export async function wrapSequenceSpan(
+  sequenceId: string,
+  input: WrapSequenceSpanInput,
+): Promise<WrapSequenceSpanResult> {
+  const fromStepId = requireTrimmed(input.fromStepId, "fromStepId");
+  const toStepId = requireTrimmed(input.toStepId, "toStepId");
+  const title = requireTrimmed(input.title, "title");
+  const description = optionalString(input.description);
+
+  return runInDbTransaction(async () => {
+    const parent = await requireSequenceRow(sequenceId);
+    const steps = await loadOrderedSteps(sequenceId);
+    const span = spanRange(steps, fromStepId, toStepId);
+    if (!span) {
+      throw new MusicWriteError(
+        "invalid_input",
+        "fromStepId and toStepId must bound a contiguous span of this sequence.",
+      );
+    }
+    if (span.toIdx - span.fromIdx + 1 < 2) {
+      throw new MusicWriteError("invalid_input", "Select at least two tracks.");
+    }
+    for (let i = span.fromIdx; i <= span.toIdx; i++) {
+      const [unitStart, unitEnd] = await spineUnitRange(steps, i);
+      if (unitStart < span.fromIdx || unitEnd > span.toIdx) {
+        throw new MusicWriteError("invalid_input", "A nested block has to be included in full.");
+      }
+    }
+    if (await isLiveBlockHostRow(steps, span.toIdx)) {
+      const [unitStart, unitEnd] = await spineUnitRange(steps, span.toIdx);
+      if (unitStart === span.fromIdx && unitEnd === span.toIdx) {
+        throw new MusicWriteError("invalid_input", "That's already a block.");
+      }
+    }
+    const alternates = await loadAlternates(sequenceId);
+    const overlapping = alternates.filter((row) => {
+      const altSpan = spanRange(steps, row.fromStepId, row.toStepId);
+      return Boolean(altSpan && altSpan.fromIdx <= span.toIdx && span.fromIdx <= altSpan.toIdx);
+    });
+    if (overlapping.length > 0) {
+      throw new MusicWriteError(
+        "invalid_input",
+        `This span overlaps ${overlapping.length} ${overlapping.length === 1 ? "alternate" : "alternates"}. Remove those alternates first.`,
+      );
+    }
+
+    const start = steps[span.fromIdx]!;
+    const host = steps[span.toIdx]!;
+    const childId = randomUUID();
+    const [childRow] = await getExecutor()
+      .insert(blocks)
+      .values({
+        id: childId,
+        kind: "block",
+        title,
+        description,
+        libraryId: parent.libraryId,
+      })
+      .returning();
+    if (!childRow) {
+      throw new MusicWriteError("invalid_input", "Failed to create sequence.");
+    }
+
+    for (let i = span.fromIdx; i <= span.toIdx; i++) {
+      const source = steps[i]!;
+      const isFirst = i === span.fromIdx;
+      const connector = isFirst
+        ? { inTransitionId: null, inBlockId: null }
+        : xorConnector(source.inTransitionId, source.inBlockId);
+      await insertStepRow(childId, {
+        trackId: source.trackId,
+        position: i - span.fromIdx,
+        inTransitionId: connector.inTransitionId,
+        inBlockId: connector.inBlockId,
+        inBlockVersionId: isFirst ? null : source.inBlockVersionId,
+        isSeam: isFirst ? false : source.isSeam,
+        note: source.note ?? null,
+      });
+    }
+    await recomputeSequenceDerived(childId);
+
+    const interiorIds = steps.slice(span.fromIdx + 1, span.toIdx).map((step) => step.id);
+    if (interiorIds.length > 0) {
+      await getExecutor()
+        .delete(blockSteps)
+        .where(and(eq(blockSteps.blockId, sequenceId), inArray(blockSteps.id, interiorIds)));
+    }
+    await getExecutor()
+      .update(blockSteps)
+      .set({
+        inTransitionId: null,
+        inBlockId: childId,
+        inBlockVersionId: null,
+        isSeam: false,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(blockSteps.id, host.id), eq(blockSteps.blockId, sequenceId)));
+    const remainingIds = [
+      ...steps.slice(0, span.fromIdx + 1).map((step) => step.id),
+      ...steps.slice(span.toIdx).map((step) => step.id),
+    ];
+    await rewritePositions(sequenceId, remainingIds);
+    await assertConnectorMatchesGap(sequenceId, start.trackId, host.trackId, {
+      inTransitionId: null,
+      inBlockId: childId,
+    });
+    await recomputeSequenceDerived(sequenceId);
+    return {
+      sequence: await reloadDetail(sequenceId),
+      block: await reloadDetail(childId),
+    };
   });
 }
 
