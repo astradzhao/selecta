@@ -590,6 +590,8 @@ function summarizeProposal(proposal: SubmissionProposal): Record<string, unknown
       toMentionId?: string;
       fromBar?: number | null;
       toBar?: number | null;
+      fromCue?: string | null;
+      toCue?: string | null;
       barsOverlap?: number | null;
       technique?: string | null;
       intent?: string | null;
@@ -625,6 +627,8 @@ function summarizeProposal(proposal: SubmissionProposal): Record<string, unknown
         toMentionId?: string;
         fromBar?: number | null;
         toBar?: number | null;
+        fromCue?: string | null;
+        toCue?: string | null;
         barsOverlap?: number | null;
         technique?: string | null;
         intent?: string | null;

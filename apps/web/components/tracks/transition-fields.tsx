@@ -1,5 +1,6 @@
 "use client";
 
+import { HOT_CUE_MAX_LENGTH } from "@selecta/library/mix-point";
 import { Combobox } from "@selecta/ui/components/combobox";
 import { Field, FieldError, FieldTitle } from "@selecta/ui/components/field";
 import { Input } from "@selecta/ui/components/input";
@@ -24,6 +25,8 @@ const QUALITY_SEGMENTED_OPTIONS = QUALITY_OPTIONS.map((option) => ({
 export type TransitionFieldValues = {
   fromBar: string;
   toBar: string;
+  fromCue: string;
+  toCue: string;
   barsOverlap: string;
   technique: string;
   intent: string;
@@ -37,6 +40,8 @@ export function emptyTransitionFields(): TransitionFieldValues {
   return {
     fromBar: "",
     toBar: "",
+    fromCue: "",
+    toCue: "",
     barsOverlap: "",
     technique: "",
     intent: "",
@@ -48,6 +53,8 @@ export function emptyTransitionFields(): TransitionFieldValues {
 export function transitionFieldsFromEdge(edge: {
   fromBar: number | null;
   toBar: number | null;
+  fromCue?: string | null;
+  toCue?: string | null;
   barsOverlap: number | null;
   technique: string | null;
   intent: string | null;
@@ -57,6 +64,8 @@ export function transitionFieldsFromEdge(edge: {
   return {
     fromBar: edge.fromBar != null ? String(edge.fromBar) : "",
     toBar: edge.toBar != null ? String(edge.toBar) : "",
+    fromCue: edge.fromCue ?? "",
+    toCue: edge.toCue ?? "",
     barsOverlap: edge.barsOverlap != null ? String(edge.barsOverlap) : "",
     technique: edge.technique ?? "",
     intent: edge.intent ?? "",
@@ -65,12 +74,23 @@ export function transitionFieldsFromEdge(edge: {
   };
 }
 
+function cueFieldError(value: string): string | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.length > HOT_CUE_MAX_LENGTH) {
+    return `Hot cue must be ${HOT_CUE_MAX_LENGTH} characters or fewer.`;
+  }
+  return undefined;
+}
+
 export function parseTransitionFieldPatch(form: TransitionFieldValues):
   | {
       ok: true;
       patch: {
         fromBar: number | null;
         toBar: number | null;
+        fromCue: string | null;
+        toCue: string | null;
         barsOverlap: number | null;
         technique: string | null;
         intent: string | null;
@@ -83,17 +103,23 @@ export function parseTransitionFieldPatch(form: TransitionFieldValues):
   const fromBarError = optionalNumberError(form.fromBar);
   const toBarError = optionalNumberError(form.toBar);
   const overlapError = optionalNumberError(form.barsOverlap);
+  const fromCueError = cueFieldError(form.fromCue);
+  const toCueError = cueFieldError(form.toCue);
   if (fromBarError) fields.fromBar = fromBarError;
   if (toBarError) fields.toBar = toBarError;
   if (overlapError) fields.barsOverlap = overlapError;
-  if (fromBarError || toBarError || overlapError) {
-    return { ok: false, error: "Bar fields must be numbers when set.", fields };
+  if (fromCueError) fields.fromCue = fromCueError;
+  if (toCueError) fields.toCue = toCueError;
+  if (fromBarError || toBarError || overlapError || fromCueError || toCueError) {
+    return { ok: false, error: "Mix points must be a cue, a bar number, or both.", fields };
   }
   return {
     ok: true,
     patch: {
       fromBar: optionalNumber(form.fromBar),
       toBar: optionalNumber(form.toBar),
+      fromCue: form.fromCue.trim() || null,
+      toCue: form.toCue.trim() || null,
       barsOverlap: optionalNumber(form.barsOverlap),
       technique: form.technique.trim() || null,
       intent: form.intent.trim() || null,
@@ -101,6 +127,62 @@ export function parseTransitionFieldPatch(form: TransitionFieldValues):
       notes: form.notes.trim() || null,
     },
   };
+}
+
+function MixEndpointFields({
+  idPrefix,
+  title,
+  description,
+  cue,
+  bar,
+  cueError,
+  barError,
+  disabled,
+  onCue,
+  onBar,
+}: {
+  idPrefix: string;
+  title: string;
+  description: string;
+  cue: string;
+  bar: string;
+  cueError?: string;
+  barError?: string;
+  disabled?: boolean;
+  onCue: (value: string) => void;
+  onBar: (value: string) => void;
+}) {
+  return (
+    <div className="min-w-0 space-y-2">
+      <div>
+        <p className="text-eyebrow">{title}</p>
+        <p className="text-caption mt-0.5">{description}</p>
+      </div>
+      <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2">
+        <FormField id={`${idPrefix}-cue`} label="Cue" error={cueError}>
+          <Input
+            maxLength={HOT_CUE_MAX_LENGTH}
+            autoCapitalize="characters"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="A"
+            value={cue}
+            onChange={(event) => onCue(event.target.value)}
+            disabled={disabled}
+          />
+        </FormField>
+        <FormField id={`${idPrefix}-bar`} label="Bar" error={barError}>
+          <Input
+            inputMode="decimal"
+            className="text-numeric"
+            value={bar}
+            onChange={(event) => onBar(event.target.value)}
+            disabled={disabled}
+          />
+        </FormField>
+      </div>
+    </div>
+  );
 }
 
 export function TransitionFields({
@@ -118,32 +200,43 @@ export function TransitionFields({
   errors?: TransitionFieldErrors;
   disabled?: boolean;
   compact?: boolean;
-  /** Graph and Library detail keep the stacked bar row; the add page places bars on the pair. */
+  /** Graph and Library detail keep the stacked mix-point row; the add page places them on the pair. */
   includeBars?: boolean;
 }) {
   return (
     <div className={compact ? "space-y-3" : "space-y-6"}>
       {includeBars ? (
-        <div className="grid gap-3 sm:grid-cols-3">
-          <FormField id={`${idPrefix}-from-bar`} label="From bar" error={errors?.fromBar}>
-            <Input
-              inputMode="decimal"
-              className="text-numeric"
-              value={values.fromBar}
-              onChange={(event) => onChange("fromBar", event.target.value)}
-              disabled={disabled}
-            />
-          </FormField>
-          <FormField id={`${idPrefix}-to-bar`} label="To bar" error={errors?.toBar}>
-            <Input
-              inputMode="decimal"
-              className="text-numeric"
-              value={values.toBar}
-              onChange={(event) => onChange("toBar", event.target.value)}
-              disabled={disabled}
-            />
-          </FormField>
-          <FormField id={`${idPrefix}-bars-overlap`} label="Overlap" error={errors?.barsOverlap}>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <MixEndpointFields
+            idPrefix={`${idPrefix}-from`}
+            title="From"
+            description="Outgoing — start playing the next track"
+            cue={values.fromCue}
+            bar={values.fromBar}
+            cueError={errors?.fromCue}
+            barError={errors?.fromBar}
+            disabled={disabled}
+            onCue={(value) => onChange("fromCue", value)}
+            onBar={(value) => onChange("fromBar", value)}
+          />
+          <MixEndpointFields
+            idPrefix={`${idPrefix}-into`}
+            title="Into"
+            description="Incoming — where playback begins"
+            cue={values.toCue}
+            bar={values.toBar}
+            cueError={errors?.toCue}
+            barError={errors?.toBar}
+            disabled={disabled}
+            onCue={(value) => onChange("toCue", value)}
+            onBar={(value) => onChange("toBar", value)}
+          />
+          <FormField
+            id={`${idPrefix}-bars-overlap`}
+            label="Overlap"
+            error={errors?.barsOverlap}
+            description="Bars together before the outgoing fades"
+          >
             <Input
               inputMode="decimal"
               className="text-numeric"

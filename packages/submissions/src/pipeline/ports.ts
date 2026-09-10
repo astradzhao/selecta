@@ -70,6 +70,8 @@ export type MusicWritePort = {
     confidence?: number | null;
     fromBar?: number | null;
     toBar?: number | null;
+    fromCue?: string | null;
+    toCue?: string | null;
     barsOverlap?: number | null;
     technique?: string | null;
     intent?: string | null;

@@ -12,6 +12,7 @@ import { NeighborDetail } from "@/components/graph/neighbor-detail";
 import { artistLine } from "@/lib/format";
 import type { ApiNeighborhoodNeighbor } from "@/lib/graph/types";
 import { qualityBadgeTone } from "@/lib/graph/viz";
+import { hasMixPoint, mixPointText } from "@/lib/transitions/mix-point";
 
 export function NeighborCard({
   neighbor,
@@ -110,8 +111,9 @@ export function NeighborCard({
           <p className="text-caption text-numeric line-clamp-1">
             {selected
               ? [
-                  selected.fromBar != null || selected.toBar != null
-                    ? `Bars ${selected.fromBar ?? "—"} → ${selected.toBar ?? "—"}`
+                  hasMixPoint(selected.fromCue, selected.fromBar) ||
+                  hasMixPoint(selected.toCue, selected.toBar)
+                    ? `${mixPointText(selected.fromCue, selected.fromBar)} → ${mixPointText(selected.toCue, selected.toBar)}`
                     : null,
                   technique,
                   intent,

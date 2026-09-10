@@ -23,6 +23,7 @@ import {
 import { describeApiError } from "@/lib/api/errors";
 import type { ApiNeighborhoodNeighbor, ApiTransitionEdge } from "@/lib/graph/types";
 import { deleteTransition, updateTransition } from "@/lib/transitions/api";
+import { formatMixPoint } from "@/lib/transitions/mix-point";
 
 export function NeighborDetail({
   neighbor,
@@ -119,7 +120,9 @@ export function NeighborDetail({
             const label = [
               formatGraphLabel(edge.quality) ?? "Unrated",
               formatGraphLabel(edge.technique),
-              edge.fromBar != null ? `bar ${edge.fromBar}` : null,
+              formatMixPoint(edge.fromCue, edge.fromBar)
+                ? `from ${formatMixPoint(edge.fromCue, edge.fromBar)}`
+                : null,
             ]
               .filter(Boolean)
               .join(" · ");

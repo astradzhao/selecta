@@ -31,25 +31,30 @@ export function MixHeadline({
   transition,
   className,
 }: {
-  transition: Pick<SequenceStepTransition, "fromBar" | "toBar" | "barsOverlap" | "technique">;
+  transition: Pick<
+    SequenceStepTransition,
+    "fromBar" | "toBar" | "fromCue" | "toCue" | "barsOverlap" | "technique"
+  >;
   className?: string;
 }) {
   const facts = mixFacts({
     technique: displayVocab(transition.technique),
     fromBar: transition.fromBar,
     toBar: transition.toBar,
+    fromCue: transition.fromCue,
+    toCue: transition.toCue,
     barsOverlap: transition.barsOverlap,
   });
 
   return (
     <span
       className={cn(
-        "grid w-full min-w-0 grid-cols-[2.5rem_2.25rem_4.5rem_minmax(0,1fr)] items-end gap-x-3",
+        "grid w-full min-w-0 grid-cols-[minmax(3.5rem,auto)_minmax(3.5rem,auto)_4.5rem_minmax(0,1fr)] items-end gap-x-3",
         className,
       )}
     >
-      <MixStat label="Out" value={facts.out != null ? String(facts.out) : "—"} />
-      <MixStat label="In" value={facts.in != null ? String(facts.in) : "—"} />
+      <MixStat label="From" value={facts.from ?? "—"} />
+      <MixStat label="Into" value={facts.into ?? "—"} />
       <MixStat label="Overlap" value={facts.overlap != null ? String(facts.overlap) : "—"} />
       <MixStat label="Type" value={facts.technique ?? "—"} numeric={false} />
     </span>

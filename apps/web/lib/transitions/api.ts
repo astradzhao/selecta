@@ -7,6 +7,8 @@ export type { ApiTransition, ApiTransitionEndpoint, ApiTransitionProposalSummary
 export type UpdateTransitionBody = {
   fromBar?: number | null;
   toBar?: number | null;
+  fromCue?: string | null;
+  toCue?: string | null;
   barsOverlap?: number | null;
   technique?: string | null;
   intent?: string | null;
@@ -19,6 +21,8 @@ export type CreateTransitionBody = {
   toTrackId: string;
   fromBar?: number | null;
   toBar?: number | null;
+  fromCue?: string | null;
+  toCue?: string | null;
   barsOverlap?: number | null;
   technique?: string | null;
   intent?: string | null;

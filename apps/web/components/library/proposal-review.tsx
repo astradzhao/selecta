@@ -181,6 +181,8 @@ function transitionFieldsFromProposal(proposal: ApiProposal): {
     fields: {
       fromBar: source.fromBar != null ? String(source.fromBar) : "",
       toBar: source.toBar != null ? String(source.toBar) : "",
+      fromCue: typeof source.fromCue === "string" ? source.fromCue : "",
+      toCue: typeof source.toCue === "string" ? source.toCue : "",
       barsOverlap: source.barsOverlap != null ? String(source.barsOverlap) : "",
       technique: typeof source.technique === "string" ? source.technique : "",
       intent: typeof source.intent === "string" ? source.intent : "",

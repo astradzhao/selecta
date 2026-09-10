@@ -1,3 +1,4 @@
+export { HOT_CUE_MAX_LENGTH, optionalHotCue, formatMixPoint } from "./mix-point";
 export { normalizeName } from "./normalize";
 export {
   FOLDER_KINDS,

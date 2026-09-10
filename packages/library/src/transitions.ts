@@ -37,6 +37,7 @@ import { clampListLimit, clampListOffset, type ListPageMeta } from "./list-page"
 import { toNamedNode, toTrackNode } from "./mappers";
 import { normalizeName } from "./normalize";
 import { asTransitionEdge, transitionRowToEdge, type TransitionEdgeSummary } from "./neighborhood";
+import { optionalHotCue } from "./mix-point";
 import { optionalNumber, optionalString, requireTrimmed } from "./shared";
 import type { NamedNode, TrackNode } from "./types";
 
@@ -72,6 +73,8 @@ export type CreateTransitionInput = {
   toTrackId: string;
   fromBar?: number | null;
   toBar?: number | null;
+  fromCue?: string | null;
+  toCue?: string | null;
   barsOverlap?: number | null;
   technique?: string | null;
   intent?: string | null;
@@ -87,6 +90,8 @@ export type CreateTransitionInput = {
 export type UpdateTransitionInput = {
   fromBar?: number | null;
   toBar?: number | null;
+  fromCue?: string | null;
+  toCue?: string | null;
   barsOverlap?: number | null;
   technique?: string | null;
   intent?: string | null;
@@ -140,6 +145,8 @@ export type CommitTransitionInput = {
   confidence?: number | null;
   fromBar?: number | null;
   toBar?: number | null;
+  fromCue?: string | null;
+  toCue?: string | null;
   barsOverlap?: number | null;
   technique?: string | null;
   intent?: string | null;
@@ -345,6 +352,8 @@ function transitionProperties(row: TransitionRow): Record<string, unknown> {
     confidence: row.confidence,
     fromBar: row.fromBar,
     toBar: row.toBar,
+    fromCue: row.fromCue,
+    toCue: row.toCue,
     barsOverlap: row.barsOverlap,
     technique: row.technique,
     intent: row.intent,
@@ -394,6 +403,8 @@ export async function createTransition(input: CreateTransitionInput): Promise<Tr
       confidence: optionalNumber(input.confidence),
       fromBar: optionalNumber(input.fromBar),
       toBar: optionalNumber(input.toBar),
+      fromCue: optionalHotCue(input.fromCue),
+      toCue: optionalHotCue(input.toCue),
       barsOverlap: optionalNumber(input.barsOverlap),
       technique: optionalString(input.technique),
       intent: optionalString(input.intent),
@@ -576,6 +587,8 @@ export async function updateTransitionById(
   const hasPatch =
     input.fromBar !== undefined ||
     input.toBar !== undefined ||
+    input.fromCue !== undefined ||
+    input.toCue !== undefined ||
     input.barsOverlap !== undefined ||
     input.technique !== undefined ||
     input.intent !== undefined ||
@@ -602,6 +615,12 @@ export async function updateTransitionById(
   }
   if (input.toBar !== undefined) {
     patch.toBar = optionalNumber(input.toBar);
+  }
+  if (input.fromCue !== undefined) {
+    patch.fromCue = optionalHotCue(input.fromCue);
+  }
+  if (input.toCue !== undefined) {
+    patch.toCue = optionalHotCue(input.toCue);
   }
   if (input.barsOverlap !== undefined) {
     patch.barsOverlap = optionalNumber(input.barsOverlap);
@@ -694,6 +713,8 @@ export async function commitTransitionProposal(
       confidence: optionalNumber(input.confidence),
       fromBar: optionalNumber(input.fromBar),
       toBar: optionalNumber(input.toBar),
+      fromCue: optionalHotCue(input.fromCue),
+      toCue: optionalHotCue(input.toCue),
       barsOverlap: optionalNumber(input.barsOverlap),
       technique: optionalString(input.technique),
       intent: optionalString(input.intent),
