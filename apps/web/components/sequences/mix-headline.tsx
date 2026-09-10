@@ -17,14 +17,11 @@ function MixStat({
   return (
     <span className="flex w-full min-w-0 flex-col gap-0.5">
       <span className="text-eyebrow">{label}</span>
+      {/* Size tokens include muted color; nest foreground so twMerge doesn't drop the size. */}
       <span
-        className={cn(
-          "text-body",
-          numeric ? "text-numeric" : "truncate",
-          empty && "text-muted-foreground opacity-40",
-        )}
+        className={cn(numeric ? "text-crate-meta" : "text-caption truncate", empty && "opacity-40")}
       >
-        {value}
+        <span className={empty ? undefined : "text-foreground"}>{value}</span>
       </span>
     </span>
   );
@@ -47,7 +44,7 @@ export function MixHeadline({
   return (
     <span
       className={cn(
-        "grid w-full min-w-0 grid-cols-[2.75rem_2.5rem_4.75rem_minmax(0,1fr)] items-end gap-x-3",
+        "grid w-full min-w-0 grid-cols-[2.5rem_2.25rem_4.5rem_minmax(0,1fr)] items-end gap-x-3",
         className,
       )}
     >
