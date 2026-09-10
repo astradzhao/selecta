@@ -175,7 +175,7 @@ function MixEndpointFields({
           </FormField>
           {cue.trim() ? (
             <span className="flex h-8 shrink-0 items-center">
-              <HotCuePad cue={cue} size="sm" />
+              <HotCuePad cue={cue} />
             </span>
           ) : null}
         </div>

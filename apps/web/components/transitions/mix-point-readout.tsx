@@ -35,7 +35,7 @@ export function MixPointReadout({
     <span className={cn("inline-flex min-w-0 items-center gap-1.5", className)}>
       <span className="sr-only">{text}</span>
       <span aria-hidden className="inline-flex min-w-0 items-center gap-1.5">
-        {label ? <HotCuePad cue={label} size={size} /> : null}
+        {label ? <HotCuePad cue={label} /> : null}
         {measure ? <span className={BAR_CLASS[size]}>{measure}</span> : null}
       </span>
     </span>

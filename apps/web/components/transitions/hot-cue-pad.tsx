@@ -2,36 +2,23 @@ import { pioneerHotCueSlot, type PioneerHotCue } from "@selecta/library/mix-poin
 import { cn } from "@selecta/ui/lib/utils";
 
 const PIONEER_PAD_CLASS: Record<PioneerHotCue, string> = {
-  A: "bg-hot-cue-a text-hot-cue-a-foreground",
-  B: "bg-hot-cue-b text-hot-cue-b-foreground",
-  C: "bg-hot-cue-c text-hot-cue-c-foreground",
-  D: "bg-hot-cue-d text-hot-cue-d-foreground",
-  E: "bg-hot-cue-e text-hot-cue-e-foreground",
-  F: "bg-hot-cue-f text-hot-cue-f-foreground",
-  G: "bg-hot-cue-g text-hot-cue-g-foreground",
-  H: "bg-hot-cue-h text-hot-cue-h-foreground",
+  A: "border-hot-cue-a text-hot-cue-a",
+  B: "border-hot-cue-b text-hot-cue-b",
+  C: "border-hot-cue-c text-hot-cue-c",
+  D: "border-hot-cue-d text-hot-cue-d",
+  E: "border-hot-cue-e text-hot-cue-e",
+  F: "border-hot-cue-f text-hot-cue-f",
+  G: "border-hot-cue-g text-hot-cue-g",
+  H: "border-hot-cue-h text-hot-cue-h",
 };
-
-const SIZE_CLASS = {
-  sm: "size-5 rounded-sm text-xs font-semibold",
-  md: "size-5 rounded-sm text-xs font-semibold",
-  lg: "size-7 rounded-md text-sm font-semibold",
-} as const;
 
 function padLabel(cue: string): string {
   if (/^[a-h]$/i.test(cue)) return cue.toUpperCase();
   return cue.length <= 3 ? cue : cue.slice(0, 3);
 }
 
-export function HotCuePad({
-  cue,
-  size = "md",
-  className,
-}: {
-  cue: string;
-  size?: keyof typeof SIZE_CLASS;
-  className?: string;
-}) {
+/** Same outline mark in headlines, inspectors, editors, and phrase cards. */
+export function HotCuePad({ cue, className }: { cue: string; className?: string }) {
   const trimmed = cue.trim();
   if (!trimmed) return null;
   const slot = pioneerHotCueSlot(trimmed);
@@ -41,10 +28,9 @@ export function HotCuePad({
     <span
       aria-hidden
       className={cn(
-        "inline-flex shrink-0 items-center justify-center leading-none",
-        SIZE_CLASS[size],
-        slot ? PIONEER_PAD_CLASS[slot] : "bg-tertiary text-tertiary-foreground",
-        label.length > 1 && "w-auto min-w-0 px-1",
+        "inline-flex size-5 shrink-0 items-center justify-center rounded-sm border bg-transparent font-sans text-xs font-semibold leading-none",
+        slot ? PIONEER_PAD_CLASS[slot] : "border-tertiary text-tertiary-foreground",
+        label.length > 1 && "w-auto min-w-5 px-1",
         className,
       )}
     >

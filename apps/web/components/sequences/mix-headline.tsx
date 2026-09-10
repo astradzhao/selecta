@@ -11,20 +11,24 @@ import { displayVocab } from "@/lib/transitions/vocab-labels";
 function MixStat({
   label,
   empty,
-  numeric = true,
+  tone = "meta",
   children,
 }: {
   label: string;
   empty: boolean;
-  numeric?: boolean;
+  tone?: "meta" | "body" | "caption";
   children: ReactNode;
 }) {
   return (
     <span className="flex w-full min-w-0 flex-col gap-0.5">
       <span className="text-eyebrow">{label}</span>
-      {/* Size tokens include muted color; nest foreground so twMerge doesn't drop the size. */}
       <span
-        className={cn(numeric ? "text-crate-meta" : "text-caption truncate", empty && "opacity-40")}
+        className={cn(
+          tone === "body" && "text-body",
+          tone === "meta" && "text-crate-meta",
+          tone === "caption" && "text-caption truncate",
+          empty && "opacity-40",
+        )}
       >
         {empty ? <span>—</span> : <span className="text-foreground">{children}</span>}
       </span>
@@ -58,16 +62,20 @@ export function MixHeadline({
         className,
       )}
     >
-      <MixStat label="From" empty={!hasMixPoint(transition.fromCue, transition.fromBar)}>
-        <MixPointReadout cue={transition.fromCue} bar={transition.fromBar} size="sm" />
+      <MixStat
+        label="From"
+        empty={!hasMixPoint(transition.fromCue, transition.fromBar)}
+        tone="body"
+      >
+        <MixPointReadout cue={transition.fromCue} bar={transition.fromBar} />
       </MixStat>
-      <MixStat label="Into" empty={!hasMixPoint(transition.toCue, transition.toBar)}>
-        <MixPointReadout cue={transition.toCue} bar={transition.toBar} size="sm" />
+      <MixStat label="Into" empty={!hasMixPoint(transition.toCue, transition.toBar)} tone="body">
+        <MixPointReadout cue={transition.toCue} bar={transition.toBar} />
       </MixStat>
       <MixStat label="Overlap" empty={facts.overlap == null}>
         {facts.overlap != null ? String(facts.overlap) : "—"}
       </MixStat>
-      <MixStat label="Type" empty={!facts.technique} numeric={false}>
+      <MixStat label="Type" empty={!facts.technique} tone="caption">
         {facts.technique ?? "—"}
       </MixStat>
     </span>
