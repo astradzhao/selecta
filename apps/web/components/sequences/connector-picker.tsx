@@ -7,6 +7,7 @@ import { Badge } from "@selecta/ui/components/badge";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { listSequences } from "@/lib/sequences/api";
+import { mixLabel } from "@/lib/sequences/metrics";
 import type { SequenceRecord } from "@/lib/sequences/types";
 import { listTransitions } from "@/lib/transitions/api";
 import type { ApiTransition } from "@/lib/transitions/types";
@@ -103,8 +104,6 @@ export function ConnectorPicker({
         <p className="text-caption px-2 py-1">No transitions or blocks for this pair yet.</p>
       ) : null}
       {ranked.map((transition) => {
-        const technique = displayVocab(transition.technique) ?? "mix";
-        const bars = transition.barsOverlap != null ? `${transition.barsOverlap} bars` : null;
         const tone = qualityRankTone(transition.quality);
         return (
           <button
@@ -117,8 +116,12 @@ export function ConnectorPicker({
           >
             <span className="text-brand">⟶</span>
             <span>
-              {technique}
-              {bars ? ` · ${bars}` : ""}
+              {mixLabel({
+                technique: displayVocab(transition.technique),
+                fromBar: transition.fromBar,
+                toBar: transition.toBar,
+                barsOverlap: transition.barsOverlap,
+              })}
             </span>
             {transition.quality ? (
               <Badge variant={tone ?? "tertiary"} className="ml-auto">

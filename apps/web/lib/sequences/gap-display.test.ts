@@ -98,7 +98,7 @@ describe("canInspectMix", () => {
 });
 
 describe("gapRowLabel", () => {
-  it("names a linked mix with technique, bars, and quality", () => {
+  it("names a linked mix with in/out bars, overlap, and technique — not quality", () => {
     assert.equal(
       gapRowLabel(
         "linked",
@@ -122,7 +122,7 @@ describe("gapRowLabel", () => {
         "From",
         "To",
       ),
-      "Blend · 8 bars · Great",
+      "out 48 · overlap 8 · in 1 · Blend",
     );
   });
 });

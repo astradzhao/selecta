@@ -25,6 +25,7 @@ import {
   paletteTransitionReason,
   type FitPayload,
 } from "@/lib/sequences/drag";
+import { mixLabel } from "@/lib/sequences/metrics";
 import { canWrapSpan, stepSpan } from "@/lib/sequences/span";
 import type {
   SequenceKind,
@@ -328,9 +329,12 @@ export function LibraryPalette({
                       ? "bg-warning-subtle text-warning"
                       : "bg-tertiary text-tertiary-foreground"
                 }
-                title={`${payload.technique}${
-                  transition.barsOverlap != null ? ` · ${transition.barsOverlap} bars` : ""
-                }`}
+                title={mixLabel({
+                  technique: displayVocab(transition.technique),
+                  fromBar: transition.fromBar,
+                  toBar: transition.toBar,
+                  barsOverlap: transition.barsOverlap,
+                })}
                 sub={`${transition.fromTrack.title} → ${transition.toTrack.title}`}
                 meta={displayVocab(transition.quality) ?? ""}
                 disabled={Boolean(reason)}

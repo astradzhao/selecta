@@ -49,15 +49,24 @@ export function bpmDelta(
   return "0";
 }
 
+function finiteBar(value: number | null | undefined): number | null {
+  return value != null && Number.isFinite(value) ? value : null;
+}
+
+/** Running-order one-liner: in/out bars and overlap, then technique if we have one. */
 export function mixLabel(transition: {
-  technique: string;
+  technique: string | null;
+  fromBar: number | null;
+  toBar: number | null;
   barsOverlap: number | null;
-  quality: string | null;
 }): string {
-  const parts = [transition.technique];
-  if (transition.barsOverlap != null && Number.isFinite(transition.barsOverlap)) {
-    parts.push(`${transition.barsOverlap} bar${transition.barsOverlap === 1 ? "" : "s"}`);
-  }
-  if (transition.quality) parts.push(transition.quality);
-  return parts.join(" · ");
+  const parts: string[] = [];
+  const fromBar = finiteBar(transition.fromBar);
+  const overlap = finiteBar(transition.barsOverlap);
+  const toBar = finiteBar(transition.toBar);
+  if (fromBar != null) parts.push(`out ${fromBar}`);
+  if (overlap != null) parts.push(`overlap ${overlap}`);
+  if (toBar != null) parts.push(`in ${toBar}`);
+  if (transition.technique) parts.push(transition.technique);
+  return parts.join(" · ") || "mix";
 }
