@@ -1,6 +1,6 @@
 "use client";
 
-import type { DragEvent } from "react";
+import type { DragEvent, ReactNode } from "react";
 import { useCallback, useMemo, useState } from "react";
 import { compareNeighborhoodNeighbors } from "@selecta/library/neighborhood-rank";
 import { PlusIcon } from "lucide-react";
@@ -25,7 +25,6 @@ import {
   paletteTransitionReason,
   type FitPayload,
 } from "@/lib/sequences/drag";
-import { mixLabel } from "@/lib/sequences/metrics";
 import { canWrapSpan, stepSpan } from "@/lib/sequences/span";
 import type {
   SequenceKind,
@@ -37,6 +36,8 @@ import { listTracks, type ApiTrack } from "@/lib/tracks/api";
 import { listTransitions } from "@/lib/transitions/api";
 import type { ApiTransition } from "@/lib/transitions/types";
 import { displayVocab, qualityRankTone } from "@/lib/transitions/vocab-labels";
+
+import { MixHeadline } from "./mix-headline";
 
 export type PaletteTab = "tracks" | "transitions" | "blocks";
 
@@ -321,7 +322,7 @@ export function LibraryPalette({
             return (
               <PaletteRow
                 key={transition.id}
-                icon="⟶"
+                icon=""
                 iconClass={
                   tone === "success"
                     ? "bg-success-subtle text-success"
@@ -329,12 +330,7 @@ export function LibraryPalette({
                       ? "bg-warning-subtle text-warning"
                       : "bg-tertiary text-tertiary-foreground"
                 }
-                title={mixLabel({
-                  technique: displayVocab(transition.technique),
-                  fromBar: transition.fromBar,
-                  toBar: transition.toBar,
-                  barsOverlap: transition.barsOverlap,
-                })}
+                title={<MixHeadline transition={transition} />}
                 sub={`${transition.fromTrack.title} → ${transition.toTrack.title}`}
                 meta={displayVocab(transition.quality) ?? ""}
                 disabled={Boolean(reason)}
@@ -426,7 +422,7 @@ function PaletteRow({
 }: {
   icon: string;
   iconClass?: string;
-  title: string;
+  title: ReactNode;
   sub: string;
   meta: string;
   disabled: boolean;
@@ -455,7 +451,11 @@ function PaletteRow({
         {icon}
       </span>
       <span className="flex min-w-0 flex-col gap-px">
-        <span className="truncate text-sm font-medium">{title}</span>
+        {typeof title === "string" ? (
+          <span className="truncate text-sm font-medium">{title}</span>
+        ) : (
+          title
+        )}
         <span className="text-caption truncate">{sub}</span>
       </span>
       <span className="text-crate-meta">{meta}</span>

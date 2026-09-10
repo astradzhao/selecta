@@ -74,21 +74,21 @@ describe("sequenceTrackCount", () => {
 });
 
 describe("mixLabel", () => {
-  it("leads with in/out bars and overlap, then technique, and never quality", () => {
+  it("leads with Out, In, Overlap, then type, and never quality", () => {
     assert.equal(
       mixLabel({ technique: "Loop", fromBar: 81, toBar: 1, barsOverlap: 16 }),
-      "out 81 · overlap 16 · in 1 · Loop",
+      "Out 81 · In 1 · Overlap 16 · Loop",
     );
   });
 
   it("omits empty slots and falls back to mix when nothing is known", () => {
     assert.equal(
       mixLabel({ technique: "Cut", fromBar: null, toBar: null, barsOverlap: 4 }),
-      "overlap 4 · Cut",
+      "Overlap 4 · Cut",
     );
     assert.equal(
       mixLabel({ technique: null, fromBar: 24, toBar: 32, barsOverlap: null }),
-      "out 24 · in 32",
+      "Out 24 · In 32",
     );
     assert.equal(
       mixLabel({ technique: null, fromBar: null, toBar: null, barsOverlap: null }),

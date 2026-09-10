@@ -17,6 +17,7 @@ import { bpmDelta } from "@/lib/sequences/metrics";
 import type { SequenceDetail, SequenceStep, WorkspaceSelection } from "@/lib/sequences/types";
 import { BASE_VERSION_VALUE, resolveVersionPath } from "@/lib/sequences/versions";
 
+import { MixHeadline } from "./mix-headline";
 import { MixInspector } from "./mix-inspector";
 import { SequenceStepCard } from "./sequence-step-card";
 
@@ -381,10 +382,14 @@ function InteriorGap({ step, previous }: { step: SequenceStep; previous: Sequenc
           inspectOpen && "border-ring",
         )}
       >
-        <span className={cn("min-w-0 truncate text-sm font-medium", chrome.inkClass)}>
-          {chrome.icon} {label}
-          {state === "block-incomplete" ? " · open joins inside" : ""}
-        </span>
+        {inspectable && step.inTransition ? (
+          <MixHeadline className="min-w-0 flex-1" transition={step.inTransition} />
+        ) : (
+          <span className={cn("min-w-0 truncate text-sm font-medium", chrome.inkClass)}>
+            {chrome.icon} {label}
+            {state === "block-incomplete" ? " · open joins inside" : ""}
+          </span>
+        )}
         {delta ? (
           <span className="bg-surface-2 text-crate-meta ml-auto shrink-0 rounded-full px-1.5 py-px">
             {delta} BPM

@@ -7,11 +7,12 @@ import { Badge } from "@selecta/ui/components/badge";
 import { cn } from "@selecta/ui/lib/utils";
 
 import { listSequences } from "@/lib/sequences/api";
-import { mixLabel } from "@/lib/sequences/metrics";
 import type { SequenceRecord } from "@/lib/sequences/types";
 import { listTransitions } from "@/lib/transitions/api";
 import type { ApiTransition } from "@/lib/transitions/types";
 import { displayVocab, qualityRankTone } from "@/lib/transitions/vocab-labels";
+
+import { MixHeadline } from "./mix-headline";
 
 function rankTransitions(items: ApiTransition[]): ApiTransition[] {
   return items.slice().sort((a, b) =>
@@ -110,19 +111,11 @@ export function ConnectorPicker({
             key={transition.id}
             type="button"
             className={cn(
-              "hover:bg-surface-2 flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm",
+              "hover:bg-surface-2 flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left",
             )}
             onClick={() => onPickTransition(transition)}
           >
-            <span className="text-brand">⟶</span>
-            <span>
-              {mixLabel({
-                technique: displayVocab(transition.technique),
-                fromBar: transition.fromBar,
-                toBar: transition.toBar,
-                barsOverlap: transition.barsOverlap,
-              })}
-            </span>
+            <MixHeadline className="min-w-0 flex-1" transition={transition} />
             {transition.quality ? (
               <Badge variant={tone ?? "tertiary"} className="ml-auto">
                 {displayVocab(transition.quality)}

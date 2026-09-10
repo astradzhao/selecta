@@ -28,6 +28,7 @@ import type { ApiTransition } from "@/lib/transitions/types";
 import { AlternateList } from "./alternate-list";
 import { BlockConnectorRow } from "./block-connector-row";
 import { ConnectorPicker } from "./connector-picker";
+import { MixHeadline } from "./mix-headline";
 import { MixInspector } from "./mix-inspector";
 
 export function SequenceGap({
@@ -288,9 +289,13 @@ function TransitionGapRow({
                 : null,
         )}
       >
-        <span className={cn("min-w-0 truncate text-sm font-medium", chrome.inkClass)}>
-          {chrome.icon} {label}
-        </span>
+        {state === "linked" && step.inTransition ? (
+          <MixHeadline className="min-w-0 flex-1" transition={step.inTransition} />
+        ) : (
+          <span className={cn("min-w-0 truncate text-sm font-medium", chrome.inkClass)}>
+            {chrome.icon} {label}
+          </span>
+        )}
         {state === "linked" && delta ? (
           <span className="bg-surface-2 text-crate-meta shrink-0 rounded-full px-1.5 py-px">
             {delta} BPM

@@ -15,6 +15,7 @@ import {
 import type { SequenceAlternate, SequenceDetail, SequenceStep } from "@/lib/sequences/types";
 import { addTransitionHref } from "@/lib/sequences/view";
 
+import { MixHeadline } from "./mix-headline";
 import { MixInspector } from "./mix-inspector";
 
 export function AlternateList({
@@ -127,35 +128,43 @@ function AlternateRow({
           disabled={visual === "broken"}
           onCommit={onCommitLabel}
         />
-        <span
-          className={cn("min-w-0 truncate", inspectable && "text-foreground cursor-pointer")}
-          role={inspectable ? "button" : undefined}
-          tabIndex={inspectable ? 0 : undefined}
-          aria-expanded={inspectable ? inspectOpen : undefined}
-          onClick={
-            inspectable
-              ? (event) => {
-                  stop(event);
-                  setInspectOpen((current) => !current);
-                }
-              : undefined
-          }
-          onKeyDown={
-            inspectable
-              ? (event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
+        {visual === "broken" ? (
+          <span className="min-w-0 truncate">
+            this alternate no longer fits — taking this would strand you
+          </span>
+        ) : item.altTransition ? (
+          <span
+            className={cn("min-w-0 flex-1", inspectable && "cursor-pointer")}
+            role={inspectable ? "button" : undefined}
+            tabIndex={inspectable ? 0 : undefined}
+            aria-expanded={inspectable ? inspectOpen : undefined}
+            onClick={
+              inspectable
+                ? (event) => {
+                    stop(event);
                     setInspectOpen((current) => !current);
                   }
-                }
-              : undefined
-          }
-        >
-          {visual === "broken"
-            ? "this alternate no longer fits — taking this would strand you"
-            : desc}
-          {visual === "incomplete" ? " · open joins inside" : ""}
-        </span>
+                : undefined
+            }
+            onKeyDown={
+              inspectable
+                ? (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setInspectOpen((current) => !current);
+                    }
+                  }
+                : undefined
+            }
+          >
+            <MixHeadline transition={item.altTransition} />
+          </span>
+        ) : (
+          <span className="min-w-0 truncate">
+            {desc}
+            {visual === "incomplete" ? " · open joins inside" : ""}
+          </span>
+        )}
         {stepCount > 1 && visual !== "broken" ? (
           <span className="text-caption shrink-0">
             covers {stepCount} steps · {fromTitle} → {toTitle}

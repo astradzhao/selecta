@@ -53,20 +53,37 @@ function finiteBar(value: number | null | undefined): number | null {
   return value != null && Number.isFinite(value) ? value : null;
 }
 
-/** Running-order one-liner: in/out bars and overlap, then technique if we have one. */
+export function mixFacts(transition: {
+  technique: string | null;
+  fromBar: number | null;
+  toBar: number | null;
+  barsOverlap: number | null;
+}): {
+  out: number | null;
+  in: number | null;
+  overlap: number | null;
+  technique: string | null;
+} {
+  return {
+    out: finiteBar(transition.fromBar),
+    in: finiteBar(transition.toBar),
+    overlap: finiteBar(transition.barsOverlap),
+    technique: transition.technique?.trim() || null,
+  };
+}
+
+/** Accessible one-liner: Out, In, Overlap, then type. */
 export function mixLabel(transition: {
   technique: string | null;
   fromBar: number | null;
   toBar: number | null;
   barsOverlap: number | null;
 }): string {
+  const facts = mixFacts(transition);
   const parts: string[] = [];
-  const fromBar = finiteBar(transition.fromBar);
-  const overlap = finiteBar(transition.barsOverlap);
-  const toBar = finiteBar(transition.toBar);
-  if (fromBar != null) parts.push(`out ${fromBar}`);
-  if (overlap != null) parts.push(`overlap ${overlap}`);
-  if (toBar != null) parts.push(`in ${toBar}`);
-  if (transition.technique) parts.push(transition.technique);
+  if (facts.out != null) parts.push(`Out ${facts.out}`);
+  if (facts.in != null) parts.push(`In ${facts.in}`);
+  if (facts.overlap != null) parts.push(`Overlap ${facts.overlap}`);
+  if (facts.technique) parts.push(facts.technique);
   return parts.join(" · ") || "mix";
 }
