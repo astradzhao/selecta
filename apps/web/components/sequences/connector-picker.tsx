@@ -12,6 +12,8 @@ import { listTransitions } from "@/lib/transitions/api";
 import type { ApiTransition } from "@/lib/transitions/types";
 import { displayVocab, qualityRankTone } from "@/lib/transitions/vocab-labels";
 
+import { MixHeadline } from "./mix-headline";
+
 function rankTransitions(items: ApiTransition[]): ApiTransition[] {
   return items.slice().sort((a, b) =>
     compareNeighborhoodNeighbors(
@@ -103,23 +105,17 @@ export function ConnectorPicker({
         <p className="text-caption px-2 py-1">No transitions or blocks for this pair yet.</p>
       ) : null}
       {ranked.map((transition) => {
-        const technique = displayVocab(transition.technique) ?? "mix";
-        const bars = transition.barsOverlap != null ? `${transition.barsOverlap} bars` : null;
         const tone = qualityRankTone(transition.quality);
         return (
           <button
             key={transition.id}
             type="button"
             className={cn(
-              "hover:bg-surface-2 flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm",
+              "hover:bg-surface-2 flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left",
             )}
             onClick={() => onPickTransition(transition)}
           >
-            <span className="text-brand">⟶</span>
-            <span>
-              {technique}
-              {bars ? ` · ${bars}` : ""}
-            </span>
+            <MixHeadline className="min-w-0 flex-1" transition={transition} />
             {transition.quality ? (
               <Badge variant={tone ?? "tertiary"} className="ml-auto">
                 {displayVocab(transition.quality)}

@@ -49,15 +49,41 @@ export function bpmDelta(
   return "0";
 }
 
-export function mixLabel(transition: {
-  technique: string;
+function finiteBar(value: number | null | undefined): number | null {
+  return value != null && Number.isFinite(value) ? value : null;
+}
+
+export function mixFacts(transition: {
+  technique: string | null;
+  fromBar: number | null;
+  toBar: number | null;
   barsOverlap: number | null;
-  quality: string | null;
+}): {
+  out: number | null;
+  in: number | null;
+  overlap: number | null;
+  technique: string | null;
+} {
+  return {
+    out: finiteBar(transition.fromBar),
+    in: finiteBar(transition.toBar),
+    overlap: finiteBar(transition.barsOverlap),
+    technique: transition.technique?.trim() || null,
+  };
+}
+
+/** Accessible one-liner: Out, In, Overlap, then type. */
+export function mixLabel(transition: {
+  technique: string | null;
+  fromBar: number | null;
+  toBar: number | null;
+  barsOverlap: number | null;
 }): string {
-  const parts = [transition.technique];
-  if (transition.barsOverlap != null && Number.isFinite(transition.barsOverlap)) {
-    parts.push(`${transition.barsOverlap} bar${transition.barsOverlap === 1 ? "" : "s"}`);
-  }
-  if (transition.quality) parts.push(transition.quality);
-  return parts.join(" · ");
+  const facts = mixFacts(transition);
+  const parts: string[] = [];
+  if (facts.out != null) parts.push(`Out ${facts.out}`);
+  if (facts.in != null) parts.push(`In ${facts.in}`);
+  if (facts.overlap != null) parts.push(`Overlap ${facts.overlap}`);
+  if (facts.technique) parts.push(facts.technique);
+  return parts.join(" · ") || "mix";
 }

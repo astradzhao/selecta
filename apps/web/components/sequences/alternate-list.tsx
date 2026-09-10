@@ -15,6 +15,9 @@ import {
 import type { SequenceAlternate, SequenceDetail, SequenceStep } from "@/lib/sequences/types";
 import { addTransitionHref } from "@/lib/sequences/view";
 
+import { MixHeadline } from "./mix-headline";
+import { MixInspector } from "./mix-inspector";
+
 export function AlternateList({
   items,
   steps,
@@ -102,6 +105,8 @@ function AlternateRow({
   const desc = alternateDesc(item, fromTitle, toTitle);
   const stepCount = range ? range.toIdx - range.fromIdx + 1 : 1;
   const expandable = canExpandAlternate(item);
+  const inspectable = item.valid && item.altTransition != null;
+  const [inspectOpen, setInspectOpen] = useState(false);
   const rowClass =
     visual === "broken"
       ? "text-destructive"
@@ -114,7 +119,7 @@ function AlternateRow({
   }
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col">
       <div className={cn("flex items-center gap-2 text-[12.5px]", rowClass)}>
         <span className="text-brand shrink-0">⤷</span>
         <span className="text-foreground shrink-0 font-medium">alt ·</span>
@@ -123,12 +128,43 @@ function AlternateRow({
           disabled={visual === "broken"}
           onCommit={onCommitLabel}
         />
-        <span className="min-w-0 truncate">
-          {visual === "broken"
-            ? "this alternate no longer fits — taking this would strand you"
-            : desc}
-          {visual === "incomplete" ? " · open joins inside" : ""}
-        </span>
+        {visual === "broken" ? (
+          <span className="min-w-0 truncate">
+            this alternate no longer fits — taking this would strand you
+          </span>
+        ) : item.altTransition ? (
+          <span
+            className={cn("min-w-0 flex-1", inspectable && "cursor-pointer")}
+            role={inspectable ? "button" : undefined}
+            tabIndex={inspectable ? 0 : undefined}
+            aria-expanded={inspectable ? inspectOpen : undefined}
+            onClick={
+              inspectable
+                ? (event) => {
+                    stop(event);
+                    setInspectOpen((current) => !current);
+                  }
+                : undefined
+            }
+            onKeyDown={
+              inspectable
+                ? (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setInspectOpen((current) => !current);
+                    }
+                  }
+                : undefined
+            }
+          >
+            <MixHeadline transition={item.altTransition} />
+          </span>
+        ) : (
+          <span className="min-w-0 truncate">
+            {desc}
+            {visual === "incomplete" ? " · open joins inside" : ""}
+          </span>
+        )}
         {stepCount > 1 && visual !== "broken" ? (
           <span className="text-caption shrink-0">
             covers {stepCount} steps · {fromTitle} → {toTitle}
@@ -162,8 +198,11 @@ function AlternateRow({
           </Button>
         </span>
       </div>
+      {inspectable && item.altTransition ? (
+        <MixInspector open={inspectOpen} transition={item.altTransition} />
+      ) : null}
       {expandable && expanded ? (
-        <div className="border-border bg-surface-1 flex flex-col gap-1 rounded-[10px] border border-dashed px-3 py-2">
+        <div className="border-border bg-surface-1 mt-1 flex flex-col gap-1 rounded-[10px] border border-dashed px-3 py-2">
           {item.altBlockId ? (
             <>
               <span className="text-eyebrow">Inside this block · read-only</span>

@@ -1,17 +1,24 @@
 "use client";
 
-import { useId, type DragEvent, type MouseEvent } from "react";
+import { useId, useState, type DragEvent, type MouseEvent } from "react";
 
 import { Button } from "@selecta/ui/components/button";
 import { Badge } from "@selecta/ui/components/badge";
 import { Select } from "@selecta/ui/components/select";
 import { cn } from "@selecta/ui/lib/utils";
 
-import { displayGapState, gapChrome, gapRowLabel } from "@/lib/sequences/gap-display";
+import {
+  canInspectMix,
+  displayGapState,
+  gapChrome,
+  gapRowLabel,
+} from "@/lib/sequences/gap-display";
 import { bpmDelta } from "@/lib/sequences/metrics";
 import type { SequenceDetail, SequenceStep, WorkspaceSelection } from "@/lib/sequences/types";
 import { BASE_VERSION_VALUE, resolveVersionPath } from "@/lib/sequences/versions";
 
+import { MixHeadline } from "./mix-headline";
+import { MixInspector } from "./mix-inspector";
 import { SequenceStepCard } from "./sequence-step-card";
 
 function ignoreDrag(event: DragEvent) {
@@ -330,6 +337,7 @@ function BlockInteriorSequence({
 }
 
 function InteriorGap({ step, previous }: { step: SequenceStep; previous: SequenceStep }) {
+  const [open, setOpen] = useState(false);
   const state = displayGapState(step);
   if (!state) return null;
   const chrome = gapChrome(state);
@@ -340,27 +348,57 @@ function InteriorGap({ step, previous }: { step: SequenceStep; previous: Sequenc
     state === "linked" || state === "block" || state === "block-incomplete"
       ? bpmDelta(previous.track?.bpm, step.track?.bpm)
       : null;
+  const inspectable = canInspectMix(state, step.inTransition);
+  const inspectOpen = inspectable && open;
+
+  function toggle() {
+    if (!inspectable) return;
+    setOpen((current) => !current);
+  }
 
   return (
     <div
       className={cn("mr-2.5 ml-[20px] flex flex-col border-l-2 py-1 pr-10 pl-3", chrome.railClass)}
     >
       <div
+        role={inspectable ? "button" : undefined}
+        tabIndex={inspectable ? 0 : undefined}
+        aria-expanded={inspectable ? inspectOpen : undefined}
+        onClick={inspectable ? toggle : undefined}
+        onKeyDown={
+          inspectable
+            ? (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  toggle();
+                }
+              }
+            : undefined
+        }
         className={cn(
           "flex items-center gap-2 rounded-[10px] border px-2.5 py-1.5",
           chrome.rowClass,
+          inspectable && "cursor-pointer",
+          inspectOpen && "border-ring",
         )}
       >
-        <span className={cn("min-w-0 truncate text-sm font-medium", chrome.inkClass)}>
-          {chrome.icon} {label}
-          {state === "block-incomplete" ? " · open joins inside" : ""}
-        </span>
+        {inspectable && step.inTransition ? (
+          <MixHeadline className="min-w-0 flex-1" transition={step.inTransition} />
+        ) : (
+          <span className={cn("min-w-0 truncate text-sm font-medium", chrome.inkClass)}>
+            {chrome.icon} {label}
+            {state === "block-incomplete" ? " · open joins inside" : ""}
+          </span>
+        )}
         {delta ? (
           <span className="bg-surface-2 text-crate-meta ml-auto shrink-0 rounded-full px-1.5 py-px">
             {delta} BPM
           </span>
         ) : null}
       </div>
+      {inspectable && step.inTransition ? (
+        <MixInspector open={inspectOpen} transition={step.inTransition} />
+      ) : null}
     </div>
   );
 }

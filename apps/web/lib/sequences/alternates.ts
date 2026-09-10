@@ -97,9 +97,10 @@ export function alternateDesc(
   const transition = item.altTransition;
   if (!transition) return "";
   return mixLabel({
-    technique: displayVocab(transition.technique) ?? "mix",
+    technique: displayVocab(transition.technique),
+    fromBar: transition.fromBar,
+    toBar: transition.toBar,
     barsOverlap: transition.barsOverlap,
-    quality: displayVocab(transition.quality),
   });
 }
 

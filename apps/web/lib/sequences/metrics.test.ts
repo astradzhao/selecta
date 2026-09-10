@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   bpmDelta,
   formatPlannedLine,
+  mixLabel,
   plannedMetrics,
   sequenceRuntimeSec,
   sequenceTrackCount,
@@ -68,6 +69,30 @@ describe("sequenceTrackCount", () => {
         { gapState: "unmapped", inBlock: null },
       ]),
       6,
+    );
+  });
+});
+
+describe("mixLabel", () => {
+  it("leads with Out, In, Overlap, then type, and never quality", () => {
+    assert.equal(
+      mixLabel({ technique: "Loop", fromBar: 81, toBar: 1, barsOverlap: 16 }),
+      "Out 81 · In 1 · Overlap 16 · Loop",
+    );
+  });
+
+  it("omits empty slots and falls back to mix when nothing is known", () => {
+    assert.equal(
+      mixLabel({ technique: "Cut", fromBar: null, toBar: null, barsOverlap: 4 }),
+      "Overlap 4 · Cut",
+    );
+    assert.equal(
+      mixLabel({ technique: null, fromBar: 24, toBar: 32, barsOverlap: null }),
+      "Out 24 · In 32",
+    );
+    assert.equal(
+      mixLabel({ technique: null, fromBar: null, toBar: null, barsOverlap: null }),
+      "mix",
     );
   });
 });
