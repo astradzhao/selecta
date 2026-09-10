@@ -1,5 +1,6 @@
 import { cn } from "@selecta/ui/lib/utils";
 
+import { MixPointReadout } from "@/components/transitions/mix-point-readout";
 import type { ApiTransitionEdge } from "@/lib/graph/types";
 import { barStripTickCount } from "@/lib/graph/viz";
 import { formatMixPoint } from "@/lib/transitions/mix-point";
@@ -14,17 +15,35 @@ export function BarChart({ transition }: { transition: ApiTransitionEdge }) {
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
         <p className="text-eyebrow">Mix points</p>
-        <p className="text-numeric text-caption">
-          {[
-            fromPoint ? `from ${fromPoint}` : null,
-            intoPoint ? `into ${intoPoint}` : null,
-            transition.barsOverlap != null ? `overlap ${transition.barsOverlap}` : null,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
+        {fromPoint || intoPoint || transition.barsOverlap != null ? (
+          <p className="text-caption flex min-w-0 flex-wrap items-center justify-end gap-x-1.5 gap-y-1">
+            {fromPoint ? (
+              <span className="inline-flex items-center gap-1">
+                from <MixPointReadout cue={transition.fromCue} bar={fromBar} size="sm" />
+              </span>
+            ) : null}
+            {fromPoint && (intoPoint || transition.barsOverlap != null) ? (
+              <span aria-hidden className="text-muted-foreground">
+                ·
+              </span>
+            ) : null}
+            {intoPoint ? (
+              <span className="inline-flex items-center gap-1">
+                into <MixPointReadout cue={transition.toCue} bar={toBar} size="sm" />
+              </span>
+            ) : null}
+            {intoPoint && transition.barsOverlap != null ? (
+              <span aria-hidden className="text-muted-foreground">
+                ·
+              </span>
+            ) : null}
+            {transition.barsOverlap != null ? (
+              <span className="text-numeric">overlap {transition.barsOverlap}</span>
+            ) : null}
+          </p>
+        ) : null}
       </div>
       {ticks == null ? null : (
         <div
