@@ -2,6 +2,9 @@ import { MusicWriteError } from "./errors";
 
 export const HOT_CUE_MAX_LENGTH = 16;
 
+export const PIONEER_HOT_CUES = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
+export type PioneerHotCue = (typeof PIONEER_HOT_CUES)[number];
+
 function trimOrNull(value: string | null | undefined): string | null {
   if (value == null) return null;
   const trimmed = value.trim();
@@ -20,6 +23,15 @@ export function optionalHotCue(value: string | null | undefined): string | null 
   }
   if (/^[a-h]$/i.test(trimmed)) return trimmed.toUpperCase();
   return trimmed;
+}
+
+/** Pioneer A–H, or Serato 1–8 mapped onto that bank. Named cues return null. */
+export function pioneerHotCueSlot(cue: string | null | undefined): PioneerHotCue | null {
+  const trimmed = trimOrNull(cue);
+  if (!trimmed) return null;
+  if (/^[A-Ha-h]$/.test(trimmed)) return trimmed.toUpperCase() as PioneerHotCue;
+  if (/^[1-8]$/.test(trimmed)) return PIONEER_HOT_CUES[Number(trimmed) - 1] ?? null;
+  return null;
 }
 
 export function formatMixPoint(

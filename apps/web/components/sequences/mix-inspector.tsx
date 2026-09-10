@@ -6,19 +6,9 @@ import Link from "next/link";
 import { Badge } from "@selecta/ui/components/badge";
 import { cn } from "@selecta/ui/lib/utils";
 
-import { mixPointText } from "@/lib/transitions/mix-point";
+import { MixPointReadout } from "@/components/transitions/mix-point-readout";
 import type { SequenceStepTransition } from "@/lib/sequences/types";
 import { displayVocab, qualityRankTone } from "@/lib/transitions/vocab-labels";
-
-function MixPointValue({ cue, bar }: { cue: string | null; bar: number | null }) {
-  const text = mixPointText(cue, bar);
-  const empty = text === "—";
-  return (
-    <span className={cn("text-numeric text-body", empty && "text-muted-foreground opacity-40")}>
-      {text}
-    </span>
-  );
-}
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -78,13 +68,13 @@ export function MixInspector({
           <div className="border-border bg-surface-1 rounded-xl border px-3 py-2.5">
             <dl className="grid grid-cols-3 items-start gap-x-3 gap-y-3">
               <Field label="From">
-                <MixPointValue cue={transition.fromCue} bar={transition.fromBar} />
+                <MixPointReadout cue={transition.fromCue} bar={transition.fromBar} />
               </Field>
               <Field label="Overlap">
                 <NumberValue value={transition.barsOverlap} />
               </Field>
               <Field label="Into">
-                <MixPointValue cue={transition.toCue} bar={transition.toBar} />
+                <MixPointReadout cue={transition.toCue} bar={transition.toBar} />
               </Field>
               <Field label="Technique">
                 <FactValue>

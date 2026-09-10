@@ -8,6 +8,7 @@ import { Segmented } from "@selecta/ui/components/segmented";
 import { Textarea } from "@selecta/ui/components/textarea";
 
 import { FormField } from "@/components/common/form-field";
+import { HotCuePad } from "@/components/transitions/hot-cue-pad";
 import { optionalNumber, optionalNumberError } from "@/lib/format";
 import {
   INTENT_OPTIONS,
@@ -158,19 +159,26 @@ function MixEndpointFields({
         <p className="text-eyebrow">{title}</p>
         <p className="text-caption mt-0.5">{description}</p>
       </div>
-      <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2">
-        <FormField id={`${idPrefix}-cue`} label="Cue" error={cueError}>
-          <Input
-            maxLength={HOT_CUE_MAX_LENGTH}
-            autoCapitalize="characters"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="A"
-            value={cue}
-            onChange={(event) => onCue(event.target.value)}
-            disabled={disabled}
-          />
-        </FormField>
+      <div className="grid grid-cols-[minmax(4.5rem,1fr)_minmax(0,1.25fr)] gap-2">
+        <div className="flex min-w-0 items-end gap-1.5">
+          <FormField id={`${idPrefix}-cue`} label="Cue" error={cueError} className="min-w-0 flex-1">
+            <Input
+              maxLength={HOT_CUE_MAX_LENGTH}
+              autoCapitalize="characters"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="A"
+              value={cue}
+              onChange={(event) => onCue(event.target.value)}
+              disabled={disabled}
+            />
+          </FormField>
+          {cue.trim() ? (
+            <span className="flex h-8 shrink-0 items-center">
+              <HotCuePad cue={cue} size="sm" />
+            </span>
+          ) : null}
+        </div>
         <FormField id={`${idPrefix}-bar`} label="Bar" error={barError}>
           <Input
             inputMode="decimal"

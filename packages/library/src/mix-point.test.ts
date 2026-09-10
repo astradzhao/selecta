@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { isMusicWriteError } from "./errors";
-import { formatMixPoint, optionalHotCue } from "./mix-point";
+import { formatMixPoint, optionalHotCue, pioneerHotCueSlot } from "./mix-point";
 
 describe("optionalHotCue", () => {
   it("uppercases Pioneer A–H and keeps Serato 1–8 and named cues", () => {
@@ -23,6 +23,24 @@ describe("optionalHotCue", () => {
       assert.equal(isMusicWriteError(error), true);
       if (isMusicWriteError(error)) assert.equal(error.code, "invalid_input");
     }
+  });
+});
+
+describe("pioneerHotCueSlot", () => {
+  it("maps Pioneer A–H and Serato 1–8 onto the hardware bank", () => {
+    assert.equal(pioneerHotCueSlot("a"), "A");
+    assert.equal(pioneerHotCueSlot("H"), "H");
+    assert.equal(pioneerHotCueSlot("1"), "A");
+    assert.equal(pioneerHotCueSlot("8"), "H");
+    assert.equal(pioneerHotCueSlot("3"), "C");
+  });
+
+  it("leaves named cues and empty values unmapped", () => {
+    assert.equal(pioneerHotCueSlot("Drop"), null);
+    assert.equal(pioneerHotCueSlot("9"), null);
+    assert.equal(pioneerHotCueSlot("AB"), null);
+    assert.equal(pioneerHotCueSlot(""), null);
+    assert.equal(pioneerHotCueSlot(null), null);
   });
 });
 

@@ -73,6 +73,26 @@ pick up the theme accent. `--viz-bar-weak|faint` stay on `--foreground` so the
 beat grid does not become a lavender wall. Do not recreate opacity ladders
 with `bg-foreground/45`.
 
+### Hot cues (Pioneer A–H)
+
+Hardware bank colors on mix-point pads. Serato `1–8` maps onto A–H. Named cues
+that are not A–H / 1–8 use `--tertiary`. Do not reuse these as status colors.
+Letter ink is `--hot-cue-X-foreground` — never invent a hex on the pad.
+
+| Token         | Pioneer pad |
+| ------------- | ----------- |
+| `--hot-cue-a` | Magenta     |
+| `--hot-cue-b` | Cyan        |
+| `--hot-cue-c` | Green       |
+| `--hot-cue-d` | Purple      |
+| `--hot-cue-e` | Cream       |
+| `--hot-cue-f` | Orange      |
+| `--hot-cue-g` | Blue        |
+| `--hot-cue-h` | Gray        |
+
+Use the static class map on `HotCuePad` (`bg-hot-cue-a text-hot-cue-a-foreground`,
+…). Do not interpolate `bg-hot-cue-${slot}` — Tailwind will not emit the class.
+
 ### Contrast (WCAG AA 4.5:1, normal text)
 
 Verified pairs for the Haze theme (lavender 305 + teal 197). Dark
