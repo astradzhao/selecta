@@ -118,7 +118,7 @@ function AlternateRow({
   }
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col">
       <div className={cn("flex items-center gap-2 text-[12.5px]", rowClass)}>
         <span className="text-brand shrink-0">⤷</span>
         <span className="text-foreground shrink-0 font-medium">alt ·</span>
@@ -189,11 +189,11 @@ function AlternateRow({
           </Button>
         </span>
       </div>
-      {inspectable && inspectOpen && item.altTransition ? (
-        <MixInspector transition={item.altTransition} />
+      {inspectable && item.altTransition ? (
+        <MixInspector open={inspectOpen} transition={item.altTransition} />
       ) : null}
       {expandable && expanded ? (
-        <div className="border-border bg-surface-1 flex flex-col gap-1 rounded-[10px] border border-dashed px-3 py-2">
+        <div className="border-border bg-surface-1 mt-1 flex flex-col gap-1 rounded-[10px] border border-dashed px-3 py-2">
           {item.altBlockId ? (
             <>
               <span className="text-eyebrow">Inside this block · read-only</span>

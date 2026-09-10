@@ -264,7 +264,7 @@ function TransitionGapRow({
   const delta = bpmDelta(previous.track?.bpm, step.track?.bpm);
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col">
       <div
         role="button"
         tabIndex={0}
@@ -368,7 +368,9 @@ function TransitionGapRow({
           )}
         </span>
       </div>
-      {inspectOpen && step.inTransition ? <MixInspector transition={step.inTransition} /> : null}
+      {canInspectMix(state, step.inTransition) && step.inTransition ? (
+        <MixInspector open={inspectOpen} transition={step.inTransition} />
+      ) : null}
     </div>
   );
 }

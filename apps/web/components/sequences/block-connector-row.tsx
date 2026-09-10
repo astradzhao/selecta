@@ -357,10 +357,7 @@ function InteriorGap({ step, previous }: { step: SequenceStep; previous: Sequenc
 
   return (
     <div
-      className={cn(
-        "mr-2.5 ml-[20px] flex flex-col gap-1.5 border-l-2 py-1 pr-10 pl-3",
-        chrome.railClass,
-      )}
+      className={cn("mr-2.5 ml-[20px] flex flex-col border-l-2 py-1 pr-10 pl-3", chrome.railClass)}
     >
       <div
         role={inspectable ? "button" : undefined}
@@ -394,7 +391,9 @@ function InteriorGap({ step, previous }: { step: SequenceStep; previous: Sequenc
           </span>
         ) : null}
       </div>
-      {inspectOpen && step.inTransition ? <MixInspector transition={step.inTransition} /> : null}
+      {inspectable && step.inTransition ? (
+        <MixInspector open={inspectOpen} transition={step.inTransition} />
+      ) : null}
     </div>
   );
 }
