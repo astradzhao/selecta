@@ -55,6 +55,8 @@ function parseCreateBody(value: unknown): CreateTransitionInput {
     toTrackId,
     fromBar: asOptionalNumber(value.fromBar, "fromBar"),
     toBar: asOptionalNumber(value.toBar, "toBar"),
+    fromCue: asOptionalString(value.fromCue, "fromCue"),
+    toCue: asOptionalString(value.toCue, "toCue"),
     barsOverlap: asOptionalNumber(value.barsOverlap, "barsOverlap"),
     technique: asOptionalString(value.technique, "technique"),
     intent: asOptionalString(value.intent, "intent"),

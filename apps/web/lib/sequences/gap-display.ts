@@ -145,6 +145,8 @@ export function gapRowLabel(
     technique: displayVocab(transition.technique),
     fromBar: transition.fromBar,
     toBar: transition.toBar,
+    fromCue: transition.fromCue,
+    toCue: transition.toCue,
     barsOverlap: transition.barsOverlap,
   });
 }

@@ -9,9 +9,11 @@ import { cn } from "@selecta/ui/lib/utils";
 import { GraphArtwork } from "@/components/graph/artwork";
 import { edgeKey, formatGraphLabel } from "@/components/graph/helpers";
 import { NeighborDetail } from "@/components/graph/neighbor-detail";
+import { MixPointReadout } from "@/components/transitions/mix-point-readout";
 import { artistLine } from "@/lib/format";
 import type { ApiNeighborhoodNeighbor } from "@/lib/graph/types";
 import { qualityBadgeTone } from "@/lib/graph/viz";
+import { hasMixPoint } from "@/lib/transitions/mix-point";
 
 export function NeighborCard({
   neighbor,
@@ -107,19 +109,22 @@ export function NeighborCard({
               ) : null}
             </div>
           </div>
-          <p className="text-caption text-numeric line-clamp-1">
-            {selected
-              ? [
-                  selected.fromBar != null || selected.toBar != null
-                    ? `Bars ${selected.fromBar ?? "—"} → ${selected.toBar ?? "—"}`
-                    : null,
+          <p className="text-caption flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
+            {selected ? (
+              <NeighborMixSummary
+                fromCue={selected.fromCue}
+                fromBar={selected.fromBar}
+                toCue={selected.toCue}
+                toBar={selected.toBar}
+                extras={[
                   technique,
                   intent,
                   edges.length > 1 ? `${edges.length} transitions` : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ") || "Transition details"
-              : "No transitions"}
+                ]}
+              />
+            ) : (
+              "No transitions"
+            )}
           </p>
         </div>
         <ChevronRightIcon
@@ -159,5 +164,44 @@ export function NeighborCard({
         </div>
       </div>
     </li>
+  );
+}
+
+function NeighborMixSummary({
+  fromCue,
+  fromBar,
+  toCue,
+  toBar,
+  extras,
+}: {
+  fromCue: string | null;
+  fromBar: number | null;
+  toCue: string | null;
+  toBar: number | null;
+  extras: Array<string | null | undefined>;
+}) {
+  const showMix = hasMixPoint(fromCue, fromBar) || hasMixPoint(toCue, toBar);
+  const rest = extras.filter((item): item is string => Boolean(item));
+
+  if (!showMix && rest.length === 0) return "Transition details";
+
+  return (
+    <>
+      {showMix ? (
+        <>
+          <MixPointReadout cue={fromCue} bar={fromBar} size="sm" />
+          <span aria-hidden className="text-muted-foreground">
+            →
+          </span>
+          <MixPointReadout cue={toCue} bar={toBar} size="sm" />
+        </>
+      ) : null}
+      {showMix && rest.length > 0 ? (
+        <span aria-hidden className="text-muted-foreground">
+          ·
+        </span>
+      ) : null}
+      {rest.length > 0 ? <span className="text-numeric">{rest.join(" · ")}</span> : null}
+    </>
   );
 }

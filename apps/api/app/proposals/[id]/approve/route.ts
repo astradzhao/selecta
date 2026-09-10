@@ -60,6 +60,8 @@ function parseTransitionPatch(value: unknown): Partial<SubmissionTransitionPlan>
   return {
     fromBar: asOptionalNumber(value.fromBar),
     toBar: asOptionalNumber(value.toBar),
+    fromCue: asOptionalString(value.fromCue),
+    toCue: asOptionalString(value.toCue),
     barsOverlap: asOptionalNumber(value.barsOverlap),
     technique: asOptionalString(value.technique),
     intent: asOptionalString(value.intent),

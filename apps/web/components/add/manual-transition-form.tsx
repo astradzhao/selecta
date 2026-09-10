@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { ArrowRightIcon } from "lucide-react";
 
+import { HOT_CUE_MAX_LENGTH } from "@selecta/library/mix-point";
 import { Alert } from "@selecta/ui/components/alert";
 import { Button } from "@selecta/ui/components/button";
 import { cn } from "@selecta/ui/lib/utils";
@@ -30,7 +31,7 @@ function MeasureInput({
   unit,
   className,
   ...props
-}: React.ComponentProps<"input"> & { unit: string }) {
+}: React.ComponentProps<"input"> & { unit?: string }) {
   return (
     <span
       className={cn(
@@ -42,7 +43,7 @@ function MeasureInput({
         className="text-numeric min-w-0 flex-1 bg-transparent text-right text-sm outline-none disabled:cursor-not-allowed"
         {...props}
       />
-      <span className="text-caption shrink-0">{unit}</span>
+      {unit ? <span className="text-caption shrink-0">{unit}</span> : null}
     </span>
   );
 }
@@ -91,6 +92,82 @@ function BarField({
         onChange={(event) => onChange(event.target.value)}
       />
       {error ? <p className="text-destructive mt-1 text-xs">{error}</p> : null}
+    </div>
+  );
+}
+
+function MixPointField({
+  idPrefix,
+  label,
+  cue,
+  bar,
+  cueError,
+  barError,
+  disabled,
+  onCue,
+  onBar,
+  align = "start",
+  className,
+}: {
+  idPrefix: string;
+  label: string;
+  cue: string;
+  bar: string;
+  cueError?: string;
+  barError?: string;
+  disabled?: boolean;
+  onCue: (value: string) => void;
+  onBar: (value: string) => void;
+  align?: "start" | "center" | "end";
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "min-w-0",
+        align === "start" && "justify-self-start text-left",
+        align === "center" && "justify-self-center text-center",
+        align === "end" && "justify-self-end text-right",
+        className,
+      )}
+    >
+      <p className="text-caption mb-1.5">{label}</p>
+      <div className="flex flex-wrap items-end gap-2">
+        <div>
+          <label htmlFor={`${idPrefix}-cue`} className="text-eyebrow mb-1 block">
+            Cue
+          </label>
+          <MeasureInput
+            id={`${idPrefix}-cue`}
+            maxLength={HOT_CUE_MAX_LENGTH}
+            autoCapitalize="characters"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="A"
+            value={cue}
+            disabled={disabled}
+            aria-invalid={Boolean(cueError) || undefined}
+            onChange={(event) => onCue(event.target.value)}
+            className="w-[4.5rem] [&_input]:text-left"
+          />
+        </div>
+        <div>
+          <label htmlFor={`${idPrefix}-bar`} className="text-eyebrow mb-1 block">
+            Bar
+          </label>
+          <MeasureInput
+            id={`${idPrefix}-bar`}
+            unit="bar"
+            inputMode="decimal"
+            value={bar}
+            disabled={disabled}
+            aria-invalid={Boolean(barError) || undefined}
+            onChange={(event) => onBar(event.target.value)}
+          />
+        </div>
+      </div>
+      {cueError ? <p className="text-destructive mt-1 text-xs">{cueError}</p> : null}
+      {barError ? <p className="text-destructive mt-1 text-xs">{barError}</p> : null}
     </div>
   );
 }
@@ -182,11 +259,15 @@ export function ManualTransitionForm({
       ...current,
       fromBar: current.toBar,
       toBar: current.fromBar,
+      fromCue: current.toCue,
+      toCue: current.fromCue,
     }));
     setFieldErrors((current) => ({
       ...current,
       fromBar: current.toBar,
       toBar: current.fromBar,
+      fromCue: current.toCue,
+      toCue: current.fromCue,
     }));
     setError(null);
   }
@@ -272,15 +353,16 @@ export function ManualTransitionForm({
           />
         </div>
 
-        <BarField
-          id="add-from-bar"
-          label="Cut out at"
-          unit="bar"
-          align="start"
-          value={form.fromBar}
-          error={fieldErrors.fromBar}
+        <MixPointField
+          idPrefix="add-from"
+          label="From"
+          cue={form.fromCue}
+          bar={form.fromBar}
+          cueError={fieldErrors.fromCue}
+          barError={fieldErrors.fromBar}
           disabled={pending}
-          onChange={(value) => updateField("fromBar", value)}
+          onCue={(value) => updateField("fromCue", value)}
+          onBar={(value) => updateField("fromBar", value)}
           className="[grid-area:from-bar]"
         />
         <BarField
@@ -294,15 +376,17 @@ export function ManualTransitionForm({
           onChange={(value) => updateField("barsOverlap", value)}
           className="[grid-area:overlap]"
         />
-        <BarField
-          id="add-to-bar"
-          label="Come in at"
-          unit="bar"
-          align="end"
-          value={form.toBar}
-          error={fieldErrors.toBar}
+        <MixPointField
+          idPrefix="add-into"
+          label="Into"
+          cue={form.toCue}
+          bar={form.toBar}
+          cueError={fieldErrors.toCue}
+          barError={fieldErrors.toBar}
           disabled={pending}
-          onChange={(value) => updateField("toBar", value)}
+          onCue={(value) => updateField("toCue", value)}
+          onBar={(value) => updateField("toBar", value)}
+          align="end"
           className="[grid-area:to-bar]"
         />
       </div>

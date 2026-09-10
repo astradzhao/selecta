@@ -1,4 +1,5 @@
 import { sequenceRuntimeSec, sequenceTrackCount } from "@selecta/library/sequence-runtime";
+import { formatMixPoint } from "@selecta/library/mix-point";
 
 import type { SequenceStep } from "./types";
 
@@ -57,32 +58,36 @@ export function mixFacts(transition: {
   technique: string | null;
   fromBar: number | null;
   toBar: number | null;
+  fromCue?: string | null;
+  toCue?: string | null;
   barsOverlap: number | null;
 }): {
-  out: number | null;
-  in: number | null;
+  from: string | null;
+  into: string | null;
   overlap: number | null;
   technique: string | null;
 } {
   return {
-    out: finiteBar(transition.fromBar),
-    in: finiteBar(transition.toBar),
+    from: formatMixPoint(transition.fromCue, transition.fromBar),
+    into: formatMixPoint(transition.toCue, transition.toBar),
     overlap: finiteBar(transition.barsOverlap),
     technique: transition.technique?.trim() || null,
   };
 }
 
-/** Accessible one-liner: Out, In, Overlap, then type. */
+/** Accessible one-liner: From, Into, Overlap, then type. */
 export function mixLabel(transition: {
   technique: string | null;
   fromBar: number | null;
   toBar: number | null;
+  fromCue?: string | null;
+  toCue?: string | null;
   barsOverlap: number | null;
 }): string {
   const facts = mixFacts(transition);
   const parts: string[] = [];
-  if (facts.out != null) parts.push(`Out ${facts.out}`);
-  if (facts.in != null) parts.push(`In ${facts.in}`);
+  if (facts.from) parts.push(`From ${facts.from}`);
+  if (facts.into) parts.push(`Into ${facts.into}`);
   if (facts.overlap != null) parts.push(`Overlap ${facts.overlap}`);
   if (facts.technique) parts.push(facts.technique);
   return parts.join(" · ") || "mix";

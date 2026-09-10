@@ -20,9 +20,11 @@ import {
   type TransitionFieldErrors,
   type TransitionFieldValues,
 } from "@/components/tracks/transition-fields";
+import { MixPointReadout } from "@/components/transitions/mix-point-readout";
 import { describeApiError } from "@/lib/api/errors";
 import type { ApiNeighborhoodNeighbor, ApiTransitionEdge } from "@/lib/graph/types";
 import { deleteTransition, updateTransition } from "@/lib/transitions/api";
+import { formatMixPoint } from "@/lib/transitions/mix-point";
 
 export function NeighborDetail({
   neighbor,
@@ -116,13 +118,9 @@ export function NeighborDetail({
           {edges.map((edge, edgeIndex) => {
             const key = edgeKey(edge, `${neighbor.id}-${edgeIndex}`);
             const selectedEdge = key === selectedKey;
-            const label = [
-              formatGraphLabel(edge.quality) ?? "Unrated",
-              formatGraphLabel(edge.technique),
-              edge.fromBar != null ? `bar ${edge.fromBar}` : null,
-            ]
-              .filter(Boolean)
-              .join(" · ");
+            const fromPoint = formatMixPoint(edge.fromCue, edge.fromBar);
+            const quality = formatGraphLabel(edge.quality) ?? "Unrated";
+            const technique = formatGraphLabel(edge.technique);
             return (
               <button
                 key={key}
@@ -140,9 +138,26 @@ export function NeighborDetail({
                     : "border-border hover:bg-surface-1 rounded-md border px-2.5 py-1 text-left text-xs"
                 }
               >
-                <span className="font-medium">{label}</span>
-                <span className="text-muted-foreground ml-1.5">
-                  {provenanceLabel(edge).kind === "ai" ? "submission" : "manual"}
+                <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                  <span className="font-medium">{quality}</span>
+                  {technique ? (
+                    <>
+                      <span aria-hidden>·</span>
+                      <span className="font-medium">{technique}</span>
+                    </>
+                  ) : null}
+                  {fromPoint ? (
+                    <>
+                      <span aria-hidden>·</span>
+                      <span className="inline-flex items-center gap-1 font-medium">
+                        from
+                        <MixPointReadout cue={edge.fromCue} bar={edge.fromBar} size="sm" />
+                      </span>
+                    </>
+                  ) : null}
+                  <span className="text-muted-foreground">
+                    {provenanceLabel(edge).kind === "ai" ? "submission" : "manual"}
+                  </span>
                 </span>
               </button>
             );

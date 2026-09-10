@@ -490,6 +490,8 @@ export const transitions = pgTable(
     confidence: real("confidence"),
     fromBar: integer("from_bar"),
     toBar: integer("to_bar"),
+    fromCue: text("from_cue"),
+    toCue: text("to_cue"),
     barsOverlap: integer("bars_overlap"),
     technique: text("technique"),
     intent: text("intent"),
