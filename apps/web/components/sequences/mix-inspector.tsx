@@ -80,11 +80,11 @@ export function MixInspector({
               <Field label="From">
                 <MixPointValue cue={transition.fromCue} bar={transition.fromBar} />
               </Field>
-              <Field label="Into">
-                <MixPointValue cue={transition.toCue} bar={transition.toBar} />
-              </Field>
               <Field label="Overlap">
                 <NumberValue value={transition.barsOverlap} />
+              </Field>
+              <Field label="Into">
+                <MixPointValue cue={transition.toCue} bar={transition.toBar} />
               </Field>
               <Field label="Technique">
                 <FactValue>

@@ -199,12 +199,6 @@ export function TransitionView({ transition }: { transition: ApiTransition }) {
           align="start"
         />
         <PhraseMeasure
-          label="Into"
-          value={mixPointText(transition.toCue, transition.toBar)}
-          unit="incoming start"
-          align="center"
-        />
-        <PhraseMeasure
           label="Overlap"
           value={
             transition.barsOverlap != null && Number.isFinite(transition.barsOverlap)
@@ -212,6 +206,12 @@ export function TransitionView({ transition }: { transition: ApiTransition }) {
               : "—"
           }
           unit="bars together"
+          align="center"
+        />
+        <PhraseMeasure
+          label="Into"
+          value={mixPointText(transition.toCue, transition.toBar)}
+          unit="incoming start"
           align="end"
         />
       </section>
