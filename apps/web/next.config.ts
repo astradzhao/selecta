@@ -7,7 +7,7 @@ import { loadRootEnv } from "../../scripts/load-root-env.mjs";
 // Monorepo root `.env.local` (Next only auto-loads env files from this app dir).
 loadRootEnv(resolve(dirname(fileURLToPath(import.meta.url)), "../.."));
 
-const apiOrigin = process.env.API_ORIGIN ?? "http://localhost:3001";
+const apiOrigin = process.env.API_ORIGIN ?? "http://localhost:4001";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@selecta/db", "@selecta/library", "@selecta/submissions", "@selecta/ui"],

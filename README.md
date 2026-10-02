@@ -8,8 +8,8 @@ Repo: [github.com/astradzhao/selecta](https://github.com/astradzhao/selecta)
 
 ```text
 apps/
-  web/          # Next.js UI (Vercel) — port 3000
-  api/          # Next.js API deployable (Vercel) — port 3001
+  web/          # Next.js UI (Vercel) — port 4000
+  api/          # Next.js API deployable (Vercel) — port 4001
 packages/
   catalog/      # External music catalog search (@selecta/catalog)
   db/           # Postgres client + Drizzle schema + migrations (@selecta/db)
@@ -28,7 +28,7 @@ Requires [Docker Desktop](https://docs.docker.com/get-docker/) (Compose healthch
 ```bash
 pnpm install
 cp .env.example .env.local   # Postgres, API_ORIGIN, optional Spotify/AI
-pnpm dev                     # Postgres → migrate → web :3000 + api :3001
+pnpm dev                     # Postgres → migrate → web :4000 + api :4001
 ```
 
 `pnpm dev` is the primary local entrypoint (`scripts/dev-stack.mjs`). It:
@@ -37,7 +37,7 @@ pnpm dev                     # Postgres → migrate → web :3000 + api :3001
 2. Applies pending Postgres migrations (idempotent)
 3. Starts `@selecta/web` and `@selecta/api`
 
-Then open [http://localhost:3000/library](http://localhost:3000/library).
+Then open [http://localhost:4000/library](http://localhost:4000/library).
 
 ### Escape hatches
 
@@ -46,7 +46,7 @@ pnpm db:up         # Compose only
 pnpm db:migrate    # Postgres migrations only (Library DB)
 pnpm db:test       # prepare selecta_test + run @selecta/db unit/integration suites
 pnpm db:test:prepare  # create/migrate selecta_test only
-pnpm dev:stop      # stop Compose Postgres + free :3000 / :3001 (stale Next leftovers)
+pnpm dev:stop      # stop Compose Postgres + free :4000 / :4001 (stale Next leftovers)
 pnpm dev:apps      # web + api only (Postgres already up)
 pnpm dev:web       # web only
 pnpm dev:api       # api only
@@ -58,7 +58,7 @@ pnpm format:check  # CI-friendly format check
 pnpm build
 ```
 
-`.env.example` credentials match the Compose Postgres service. Postgres listens on host port `5433` (mapped to container `5432`, so it does not collide with a local Postgres on `5432`). The Compose instance also provisions an isolated `selecta_test` database for `@selecta/db` integration tests (same server, never the Library `selecta` DB). Use `pnpm db:test` to create/migrate that DB and run the package suites; if you only want unit tests when Postgres is down, `pnpm --filter @selecta/db test` still skips integration cases. `API_ORIGIN` (default `http://localhost:3001`) is used by the web app’s `/backend` rewrite. Fill an AI gateway key when you need that service. Optional `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` enable catalog search (server-only; UI falls back to manual entry when unset). Local MVP is single-user: one Postgres owns notes, proposals, tracks, and transitions. `DEV_LIBRARY_ID` / `DEV_USER_ID` remain as optional stubs until auth. Auth provider secrets in `.env.example` are optional placeholders only.
+`.env.example` credentials match the Compose Postgres service. Postgres listens on host port `5500` (mapped to container `5432`, so it does not collide with a local Postgres on `5432` or `5433`). The Compose instance also provisions an isolated `selecta_test` database for `@selecta/db` integration tests (same server, never the Library `selecta` DB). Use `pnpm db:test` to create/migrate that DB and run the package suites; if you only want unit tests when Postgres is down, `pnpm --filter @selecta/db test` still skips integration cases. `API_ORIGIN` (default `http://localhost:4001`) is used by the web app’s `/backend` rewrite. Fill an AI gateway key when you need that service. Optional `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` enable catalog search (server-only; UI falls back to manual entry when unset). Local MVP is single-user: one Postgres owns notes, proposals, tracks, and transitions. `DEV_LIBRARY_ID` / `DEV_USER_ID` remain as optional stubs until auth. Auth provider secrets in `.env.example` are optional placeholders only.
 
 ## Linting & formatting
 
