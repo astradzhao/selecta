@@ -23,7 +23,7 @@ dev-files/      # Architecture + planning docs
 
 ## Getting started
 
-Requires [Docker Desktop](https://docs.docker.com/get-docker/) (Compose healthcheck for Postgres).
+Requires Node.js 24 (see `.nvmrc`) and [Docker Desktop](https://docs.docker.com/get-docker/) (Compose healthcheck for Postgres).
 
 ```bash
 pnpm install
@@ -44,7 +44,8 @@ Then open [http://localhost:4000/library](http://localhost:4000/library).
 ```bash
 pnpm db:up         # Compose only
 pnpm db:migrate    # Postgres migrations only (Library DB)
-pnpm db:test       # prepare selecta_test + run @selecta/db unit/integration suites
+pnpm test          # every package that defines a test script (skips integration cases if Postgres is down)
+pnpm db:test       # prepare selecta_test + run Postgres-backed suites
 pnpm db:test:prepare  # create/migrate selecta_test only
 pnpm dev:stop      # stop Compose Postgres + free :4000 / :4001 (stale Next leftovers)
 pnpm dev:apps      # web + api only (Postgres already up)
@@ -58,7 +59,7 @@ pnpm format:check  # CI-friendly format check
 pnpm build
 ```
 
-`.env.example` credentials match the Compose Postgres service. Postgres listens on host port `5500` (mapped to container `5432`, so it does not collide with a local Postgres on `5432` or `5433`). The Compose instance also provisions an isolated `selecta_test` database for `@selecta/db` integration tests (same server, never the Library `selecta` DB). Use `pnpm db:test` to create/migrate that DB and run the package suites; if you only want unit tests when Postgres is down, `pnpm --filter @selecta/db test` still skips integration cases. `API_ORIGIN` (default `http://localhost:4001`) is used by the web app’s `/backend` rewrite. Fill an AI gateway key when you need that service. Optional `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` enable catalog search (server-only; UI falls back to manual entry when unset). Local MVP is single-user: one Postgres owns notes, proposals, tracks, and transitions. `DEV_LIBRARY_ID` / `DEV_USER_ID` remain as optional stubs until auth. Auth provider secrets in `.env.example` are optional placeholders only.
+`.env.example` credentials match the Compose Postgres service. Postgres listens on host port `5500` (mapped to container `5432`, so it does not collide with a local Postgres on `5432` or `5433`). The Compose instance also provisions an isolated `selecta_test` database for `@selecta/db` integration tests (same server, never the Library `selecta` DB). Use `pnpm db:test` to create/migrate that DB and run the Postgres-backed suites. With Postgres down, `pnpm test` still passes and skips integration cases. Set `REQUIRE_DB_INTEGRATION=1` to fail instead of skipping when the test database is missing, unreachable, or not a dedicated `*_test` database — CI sets this so a downed Postgres cannot turn the suite green. `API_ORIGIN` (default `http://localhost:4001`) is used by the web app’s `/backend` rewrite. Fill an AI gateway key when you need that service. Optional `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` enable catalog search (server-only; UI falls back to manual entry when unset). Local MVP is single-user: one Postgres owns notes, proposals, tracks, and transitions. `DEV_LIBRARY_ID` / `DEV_USER_ID` remain as optional stubs until auth. Auth provider secrets in `.env.example` are optional placeholders only.
 
 ## Linting & formatting
 
