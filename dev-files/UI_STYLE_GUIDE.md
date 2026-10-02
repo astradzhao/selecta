@@ -81,16 +81,16 @@ not A–H / 1–8 use `--tertiary`. Do not reuse these as status colors. Dark th
 uses the Rekordbox hex hues; light theme keeps the same hue and darkens for
 contrast on `--background`.
 
-| Token         | Rekordbox   |
-| ------------- | ----------- |
-| `--hot-cue-a` | Magenta     |
-| `--hot-cue-b` | Cyan        |
-| `--hot-cue-c` | Green       |
-| `--hot-cue-d` | Purple      |
-| `--hot-cue-e` | Cream       |
-| `--hot-cue-f` | Orange      |
-| `--hot-cue-g` | Blue        |
-| `--hot-cue-h` | Gray        |
+| Token         | Rekordbox |
+| ------------- | --------- |
+| `--hot-cue-a` | Magenta   |
+| `--hot-cue-b` | Cyan      |
+| `--hot-cue-c` | Green     |
+| `--hot-cue-d` | Purple    |
+| `--hot-cue-e` | Cream     |
+| `--hot-cue-f` | Orange    |
+| `--hot-cue-g` | Blue      |
+| `--hot-cue-h` | Gray      |
 
 Use the static class map on `HotCuePad` (`border-hot-cue-a text-hot-cue-a`, …).
 Do not interpolate `border-hot-cue-${slot}` — Tailwind will not emit the class.

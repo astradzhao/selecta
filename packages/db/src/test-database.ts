@@ -144,21 +144,40 @@ export async function truncateTestDatabase(): Promise<void> {
   await db.execute(sql.raw(`TRUNCATE TABLE ${list} CASCADE`));
 }
 
+/** CI sets this so a missing or unsafe test database fails the suite instead of skipping. */
+export function isDbIntegrationRequired(env: NodeJS.ProcessEnv = process.env): boolean {
+  const value = env.REQUIRE_DB_INTEGRATION?.trim().toLowerCase();
+  return value === "1" || value === "true";
+}
+
 /**
  * Point the process at the isolated test DB, create/migrate if needed.
  * Returns false when Postgres is unavailable so unit tests still pass.
+ * When `REQUIRE_DB_INTEGRATION` is set, a missing URL, an unsafe database name,
+ * or a connection failure throws instead.
  */
 export async function enableDbIntegration(): Promise<boolean> {
   if (prepared) return true;
   if (prepareInFlight) return prepareInFlight;
 
   prepareInFlight = (async () => {
+    const required = isDbIntegrationRequired();
     const libraryUrl = process.env.DATABASE_URL?.trim();
     const testUrl = resolveTestDatabaseUrl();
-    if (!testUrl) return false;
+    if (!testUrl) {
+      if (required) {
+        throw new Error(
+          "[@selecta/db] Postgres integration tests required: set DATABASE_URL or DATABASE_URL_TEST",
+        );
+      }
+      return false;
+    }
 
     const safety = isSafeTestDatabaseUrl(testUrl, libraryUrl);
     if (!safety.ok) {
+      if (required) {
+        throw new Error(`[@selecta/db] Postgres integration tests required: ${safety.reason}`);
+      }
       console.warn(`[@selecta/db] Skipping Postgres integration tests: ${safety.reason}`);
       return false;
     }
@@ -170,6 +189,7 @@ export async function enableDbIntegration(): Promise<boolean> {
       await ensureDatabaseExists(testUrl, ensureAdminUrl);
       await migrateTestDatabase(testUrl);
     } catch (error) {
+      if (required) throw error;
       const message = error instanceof Error ? error.message : String(error);
       console.warn(
         `[@selecta/db] Skipping Postgres integration tests (test DB unavailable): ${message}`,

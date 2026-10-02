@@ -123,12 +123,14 @@ export function LibraryPalette({
     wrapSpan && selection.kind === "span"
       ? stepSpan(steps, selection.fromStepId, selection.toStepId)
       : null;
-  const { fromTrackId, toTrackId } = paletteTransitionQuery(
-    selection,
-    steps,
-    nestedSteps,
-    wrapSpan,
-  );
+  const transitionQuery = paletteTransitionQuery(selection, steps, nestedSteps, wrapSpan);
+  // Copy into fresh strings. The compiler treats fields of the returned object as
+  // mutable, so they cannot be useMemo dependencies, and the filters object must stay
+  // referentially stable or the debounced fetch restarts on every render.
+  const fromTrackId =
+    transitionQuery.fromTrackId === undefined ? undefined : `${transitionQuery.fromTrackId}`;
+  const toTrackId =
+    transitionQuery.toTrackId === undefined ? undefined : `${transitionQuery.toTrackId}`;
   const transitionFilters = useMemo(
     () => ({ query, fromTrackId, toTrackId }),
     [query, fromTrackId, toTrackId],

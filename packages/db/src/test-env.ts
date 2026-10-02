@@ -31,6 +31,7 @@ export function loadDbTestEnv(): void {
 /**
  * Prepare the isolated test database and point DATABASE_URL at it.
  * Returns false when Postgres / selecta_test is unavailable so unit tests still pass.
+ * Throws when `REQUIRE_DB_INTEGRATION` is set and the test database cannot be prepared.
  */
 export async function isDbIntegrationEnabled(): Promise<boolean> {
   loadDbTestEnv();

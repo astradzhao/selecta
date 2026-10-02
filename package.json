@@ -19,11 +19,15 @@
     "build": "pnpm run --filter @selecta/web --filter @selecta/api build",
     "lint": "pnpm run --recursive --filter '!@selecta/eslint-config' lint && pnpm --filter @selecta/eslint-config test",
     "typecheck": "pnpm run --recursive --filter '!@selecta/eslint-config' typecheck",
+    "test": "pnpm run --recursive --filter '!@selecta/eslint-config' test",
     "format": "oxfmt",
     "format:check": "oxfmt --check"
   },
   "devDependencies": {
     "oxfmt": "^0.61.0"
+  },
+  "engines": {
+    "node": ">=24"
   },
   "packageManager": "pnpm@11.18.0"
 }
