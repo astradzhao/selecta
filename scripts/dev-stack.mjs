@@ -82,8 +82,8 @@ run("docker", ["compose", "up", "-d", "--wait"]);
 console.log("→ Applying Postgres migrations…");
 run("pnpm", ["db:migrate"]);
 
-console.log("→ Starting web (:3000) + api (:3001)…");
-console.log("   Library UI: http://localhost:3000/library\n");
+console.log("→ Starting web (:4000) + api (:4001)…");
+console.log("   Library UI: http://localhost:4000/library\n");
 
 const child = spawn(
   "pnpm",

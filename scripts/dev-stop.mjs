@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Tear down local full-stack leftovers from `pnpm dev`.
- * Stops Compose Postgres and frees Next.js ports (3000 / 3001).
+ * Stops Compose Postgres and frees Next.js ports (4000 / 4001).
  * Usage: pnpm dev:stop
  */
 
@@ -9,8 +9,8 @@ import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
-const WEB_PORT = 3000;
-const API_PORT = 3001;
+const WEB_PORT = 4000;
+const API_PORT = 4001;
 
 function run(command, args, options = {}) {
   return spawnSync(command, args, {

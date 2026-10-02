@@ -386,7 +386,7 @@ No Playwright. Exercise as a user.
    detail **Open in graph** clears Set mode.
 9. **Freeform unchanged.** `/graph` from nav, hop, Save as block, Exit — no rail, no prompt.
 
-If browser tools are up, do this against `pnpm dev` at `http://localhost:3000`. If not, say so in
+If browser tools are up, do this against `pnpm dev` at `http://localhost:4000`. If not, say so in
 the PR and run the helper tests plus a curl of `GET /blocks/:id?expand=1`.
 
 ---
