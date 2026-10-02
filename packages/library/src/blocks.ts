@@ -63,6 +63,8 @@ export type SequenceStepTransition = {
   toTrackId: string;
   fromBar: number | null;
   toBar: number | null;
+  fromCue: string | null;
+  toCue: string | null;
   barsOverlap: number | null;
   technique: string | null;
   intent: string | null;
@@ -472,6 +474,8 @@ async function loadTransitionEmbeds(ids: string[]): Promise<Map<string, Sequence
       toTrackId: row.toTrackId,
       fromBar: row.fromBar,
       toBar: row.toBar,
+      fromCue: row.fromCue ?? null,
+      toCue: row.toCue ?? null,
       barsOverlap: row.barsOverlap,
       technique: row.technique ?? null,
       intent: row.intent ?? null,

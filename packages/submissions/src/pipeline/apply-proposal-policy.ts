@@ -119,6 +119,8 @@ export async function applyProposalPolicy(
     confidence: confidenceToUnitInterval(plan.confidence),
     fromBar: policy.commit.transition.fromBar ?? null,
     toBar: policy.commit.transition.toBar ?? null,
+    fromCue: policy.commit.transition.fromCue ?? null,
+    toCue: policy.commit.transition.toCue ?? null,
     barsOverlap: policy.commit.transition.barsOverlap ?? null,
     technique: policy.commit.transition.technique ?? null,
     intent: policy.commit.transition.intent ?? null,

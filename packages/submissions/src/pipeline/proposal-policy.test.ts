@@ -30,6 +30,8 @@ function transition(
   return {
     fromBar: null,
     toBar: null,
+    fromCue: null,
+    toCue: null,
     barsOverlap: null,
     technique: null,
     intent: null,

@@ -39,6 +39,8 @@ export function serializeTransition(
     confidence: record.edge.confidence,
     fromBar: record.edge.fromBar,
     toBar: record.edge.toBar,
+    fromCue: record.edge.fromCue,
+    toCue: record.edge.toCue,
     barsOverlap: record.edge.barsOverlap,
     technique: record.edge.technique,
     intent: record.edge.intent,

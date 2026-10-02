@@ -73,6 +73,28 @@ pick up the theme accent. `--viz-bar-weak|faint` stay on `--foreground` so the
 beat grid does not become a lavender wall. Do not recreate opacity ladders
 with `bg-foreground/45`.
 
+### Hot cues (Rekordbox / CDJ A–H)
+
+Bank colors for mix-point marks. Outline + letter in `--hot-cue-X`, transparent
+fill — not solid Rekordbox pads. Serato `1–8` maps onto A–H. Named cues that are
+not A–H / 1–8 use `--tertiary`. Do not reuse these as status colors. Dark theme
+uses the Rekordbox hex hues; light theme keeps the same hue and darkens for
+contrast on `--background`.
+
+| Token         | Rekordbox   |
+| ------------- | ----------- |
+| `--hot-cue-a` | Magenta     |
+| `--hot-cue-b` | Cyan        |
+| `--hot-cue-c` | Green       |
+| `--hot-cue-d` | Purple      |
+| `--hot-cue-e` | Cream       |
+| `--hot-cue-f` | Orange      |
+| `--hot-cue-g` | Blue        |
+| `--hot-cue-h` | Gray        |
+
+Use the static class map on `HotCuePad` (`border-hot-cue-a text-hot-cue-a`, …).
+Do not interpolate `border-hot-cue-${slot}` — Tailwind will not emit the class.
+
 ### Contrast (WCAG AA 4.5:1, normal text)
 
 Verified pairs for the Haze theme (lavender 305 + teal 197). Dark

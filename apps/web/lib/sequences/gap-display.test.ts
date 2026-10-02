@@ -77,6 +77,8 @@ describe("canInspectMix", () => {
     toTrackId: "b",
     fromBar: 16,
     toBar: 1,
+    fromCue: null,
+    toCue: null,
     barsOverlap: 8,
     technique: "cut",
     intent: null,
@@ -98,7 +100,7 @@ describe("canInspectMix", () => {
 });
 
 describe("gapRowLabel", () => {
-  it("names a linked mix as Out, In, Overlap, type — not quality", () => {
+  it("names a linked mix as From, Into, Overlap, type — not quality", () => {
     assert.equal(
       gapRowLabel(
         "linked",
@@ -109,6 +111,8 @@ describe("gapRowLabel", () => {
             toTrackId: "b",
             fromBar: 48,
             toBar: 1,
+            fromCue: null,
+            toCue: null,
             barsOverlap: 8,
             technique: "blend",
             intent: null,
@@ -122,7 +126,7 @@ describe("gapRowLabel", () => {
         "From",
         "To",
       ),
-      "Out 48 · In 1 · Overlap 8 · Blend",
+      "From 48 · Into 1 · Overlap 8 · Blend",
     );
   });
 });

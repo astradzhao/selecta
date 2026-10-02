@@ -7,6 +7,7 @@ import { Badge } from "@selecta/ui/components/badge";
 import { Separator } from "@selecta/ui/components/separator";
 import { cn } from "@selecta/ui/lib/utils";
 
+import { MixPointReadout } from "@/components/transitions/mix-point-readout";
 import { TrackChips } from "@/components/tracks/track-chips";
 import { artistLine, formatTimestamp } from "@/lib/format";
 import { CRATE_SUBGENRE_LIMIT } from "@/lib/tracks/crate-row";
@@ -15,11 +16,6 @@ import type { ApiTransition, ApiTransitionEndpoint } from "@/lib/transitions/typ
 import { displayVocab, qualityRankTone } from "@/lib/transitions/vocab-labels";
 
 const ART_PX = 192;
-
-function barLabel(value: number | null): { text: string; empty: boolean } {
-  if (value == null || !Number.isFinite(value)) return { text: "—", empty: true };
-  return { text: String(value), empty: false };
-}
 
 function SleeveArt({ url }: { url: string | null }) {
   return (
@@ -81,16 +77,21 @@ function MixShift({ from, to }: { from: ApiTransitionEndpoint; to: ApiTransition
 
 function PhraseMeasure({
   label,
-  value,
   unit,
   align,
+  cue,
+  bar,
+  value,
 }: {
   label: string;
-  value: number | null;
   unit: string;
   align: "start" | "center" | "end";
+  cue?: string | null;
+  bar?: number | null;
+  value?: string;
 }) {
-  const measure = barLabel(value);
+  const mixPoint = cue !== undefined || bar !== undefined;
+  const emptyValue = value === "—";
   return (
     <div
       className={cn(
@@ -101,14 +102,26 @@ function PhraseMeasure({
       )}
     >
       <p className="text-eyebrow">{label}</p>
-      <p
+      <div
         className={cn(
-          "text-section-title text-numeric mt-1.5",
-          measure.empty && "text-muted-foreground opacity-40",
+          "mt-1.5 flex",
+          align === "center" && "justify-center",
+          align === "end" && "justify-end",
         )}
       >
-        {measure.text}
-      </p>
+        {mixPoint ? (
+          <MixPointReadout cue={cue} bar={bar} size="lg" />
+        ) : (
+          <p
+            className={cn(
+              "text-section-title text-numeric",
+              emptyValue && "text-muted-foreground opacity-40",
+            )}
+          >
+            {value}
+          </p>
+        )}
+      </div>
       <p className="text-caption mt-0.5">{unit}</p>
     </div>
   );
@@ -189,12 +202,33 @@ export function TransitionView({ transition }: { transition: ApiTransition }) {
       </section>
 
       <section
-        aria-label="Bars"
+        aria-label="Mix points"
         className="border-border bg-surface-1 grid grid-cols-3 gap-3 rounded-xl border px-4 py-4 sm:px-6"
       >
-        <PhraseMeasure label="Cut out at" value={transition.fromBar} unit="bar" align="start" />
-        <PhraseMeasure label="Overlap" value={transition.barsOverlap} unit="bars" align="center" />
-        <PhraseMeasure label="Come in at" value={transition.toBar} unit="bar" align="end" />
+        <PhraseMeasure
+          label="From"
+          cue={transition.fromCue}
+          bar={transition.fromBar}
+          unit="outgoing start"
+          align="start"
+        />
+        <PhraseMeasure
+          label="Overlap"
+          value={
+            transition.barsOverlap != null && Number.isFinite(transition.barsOverlap)
+              ? String(transition.barsOverlap)
+              : "—"
+          }
+          unit="bars together"
+          align="center"
+        />
+        <PhraseMeasure
+          label="Into"
+          cue={transition.toCue}
+          bar={transition.toBar}
+          unit="incoming start"
+          align="end"
+        />
       </section>
 
       <dl className="grid gap-6 sm:grid-cols-3">

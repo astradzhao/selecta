@@ -22,6 +22,8 @@ export type TransitionEdgeSummary = {
   confidence: number | null;
   fromBar: number | null;
   toBar: number | null;
+  fromCue: string | null;
+  toCue: string | null;
   barsOverlap: number | null;
   technique: string | null;
   intent: string | null;
@@ -80,6 +82,8 @@ export function asTransitionEdge(props: Record<string, unknown> | null): Transit
       confidence: null,
       fromBar: null,
       toBar: null,
+      fromCue: null,
+      toCue: null,
       barsOverlap: null,
       technique: null,
       intent: null,
@@ -98,6 +102,8 @@ export function asTransitionEdge(props: Record<string, unknown> | null): Transit
     confidence: asOptionalNumber(props.confidence),
     fromBar: asOptionalNumber(props.fromBar),
     toBar: asOptionalNumber(props.toBar),
+    fromCue: asOptionalString(props.fromCue),
+    toCue: asOptionalString(props.toCue),
     barsOverlap: asOptionalNumber(props.barsOverlap),
     technique: asOptionalString(props.technique),
     intent: asOptionalString(props.intent),
@@ -118,6 +124,8 @@ export function transitionRowToEdge(row: TransitionRow): TransitionEdgeSummary {
     confidence: row.confidence ?? null,
     fromBar: row.fromBar ?? null,
     toBar: row.toBar ?? null,
+    fromCue: row.fromCue ?? null,
+    toCue: row.toCue ?? null,
     barsOverlap: row.barsOverlap ?? null,
     technique: row.technique ?? null,
     intent: row.intent ?? null,

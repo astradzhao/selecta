@@ -42,6 +42,8 @@ function basePlan(): SubmissionProcessingPlan {
         toMentionId: "to",
         fromBar: 64,
         toBar: 1,
+        fromCue: null,
+        toCue: null,
         barsOverlap: 16,
         technique: "echo out",
         intent: "energy",

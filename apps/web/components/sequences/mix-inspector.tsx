@@ -6,13 +6,9 @@ import Link from "next/link";
 import { Badge } from "@selecta/ui/components/badge";
 import { cn } from "@selecta/ui/lib/utils";
 
+import { MixPointReadout } from "@/components/transitions/mix-point-readout";
 import type { SequenceStepTransition } from "@/lib/sequences/types";
 import { displayVocab, qualityRankTone } from "@/lib/transitions/vocab-labels";
-
-function barText(value: number | null): { text: string; empty: boolean } {
-  if (value == null || !Number.isFinite(value)) return { text: "—", empty: true };
-  return { text: String(value), empty: false };
-}
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -23,13 +19,11 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function BarValue({ value }: { value: number | null }) {
-  const measure = barText(value);
+function NumberValue({ value }: { value: number | null }) {
+  const empty = value == null || !Number.isFinite(value);
   return (
-    <span
-      className={cn("text-numeric text-body", measure.empty && "text-muted-foreground opacity-40")}
-    >
-      {measure.text}
+    <span className={cn("text-numeric text-body", empty && "text-muted-foreground opacity-40")}>
+      {empty ? "—" : String(value)}
     </span>
   );
 }
@@ -73,14 +67,14 @@ export function MixInspector({
         >
           <div className="border-border bg-surface-1 rounded-xl border px-3 py-2.5">
             <dl className="grid grid-cols-3 items-start gap-x-3 gap-y-3">
-              <Field label="Cut out">
-                <BarValue value={transition.fromBar} />
+              <Field label="From">
+                <MixPointReadout cue={transition.fromCue} bar={transition.fromBar} />
               </Field>
               <Field label="Overlap">
-                <BarValue value={transition.barsOverlap} />
+                <NumberValue value={transition.barsOverlap} />
               </Field>
-              <Field label="Come in">
-                <BarValue value={transition.toBar} />
+              <Field label="Into">
+                <MixPointReadout cue={transition.toCue} bar={transition.toBar} />
               </Field>
               <Field label="Technique">
                 <FactValue>

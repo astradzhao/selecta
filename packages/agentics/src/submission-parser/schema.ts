@@ -20,6 +20,7 @@ export type MentionResolutionStatus = (typeof MENTION_RESOLUTION_STATUSES)[numbe
 const nullableNonNegInt = z.number().int().nonnegative().nullable();
 const nullableNonEmptyString = z.string().min(1).nullable();
 const nullableString = z.string().nullable();
+const nullableHotCue = z.string().max(16).nullable();
 const nullableConfidence = z.number().min(0).max(1).nullable();
 
 /** Opaque handles returned by tools: `graph:<id>` or `spotify:<providerId>`. */
@@ -44,6 +45,8 @@ export const SubmissionTransitionPlanSchema = z.object({
   toMentionId: z.string().min(1),
   fromBar: nullableNonNegInt,
   toBar: nullableNonNegInt,
+  fromCue: nullableHotCue,
+  toCue: nullableHotCue,
   barsOverlap: nullableNonNegInt,
   technique: nullableNonEmptyString,
   intent: nullableNonEmptyString,

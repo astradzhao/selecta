@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./constants": "./src/constants.ts",
+    "./mix-point": "./src/mix-point.ts",
     "./neighborhood-rank": "./src/neighborhood-rank.ts",
     "./sequence-runtime": "./src/sequence-runtime.ts"
   },
